@@ -168,8 +168,13 @@ ops -> `TomlStore::preview` -> eval (+library) -> `Checker` -> dry run returns
 - MCP: every tool runs on the real session, including `import_file`/`export_file`
   (M2.5/M2.6), `engine_design`/`engine_simulate` (M4.6), and `cfd_import`
   (M5.4, R6.15: `crates/rw-project/src/cfd.rs`, the record in
-  `runs/cfd.<id>/<run>/`). Contract-fixture doubles answer only when the
-  sidecar has no project. Descriptions (`mcp/descriptions.rs`) say when to
+  `runs/cfd.<id>/<run>/`). The ThrustCurve tools are the exception that
+  keeps the session offline: `thrustcurve_search` runs in rw-cli
+  (`src/thrustcurve.rs`) without the session, and `thrustcurve_fetch`
+  downloads there, outside the session lock, then saves the bytes through
+  `Session::import_motor_bytes` (the `import_file` motor path plus a
+  `[lib.source]` record) as one step. Contract-fixture doubles answer only
+  when the sidecar has no project. Descriptions (`mcp/descriptions.rs`) say when to
   use each tool and show the `CheckDelta` shape on mutating tools; `render`
   also returns the PNG as image content.
 - Window renders (`viewport_render`, `plot_render`): the app server stores

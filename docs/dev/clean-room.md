@@ -26,7 +26,11 @@ for spec R8 and Acceptance 7. The brief every builder agent gets is in
   NASA CEA, Lecturn, three.js) may be ported with attribution (rule 5).
 - **Data.** ThrustCurve motor files are never committed or bundled (no data
   license); `make parity` caches downloads in the gitignored
-  `tests/oracle/cache/`. OpenRocket `.ork` files are never committed. The
+  `tests/oracle/cache/`. The user-facing ThrustCurve search and download
+  (`rw motor thrustcurve`, Search ThrustCurve in the app) runs only when the
+  user asks: the user's machine downloads the file into that user's project
+  (`lib/motors/`, with a `[lib.source]` record), and RocketWright never
+  redistributes it. Test fixtures for it are synthetic. OpenRocket `.ork` files are never committed. The
   oracle goldens and the case fixtures built from them are OpenRocket-derived
   data, credited in `NOTICE.md` under OpenRocket's GPL-3.0-or-later.
 - **Licensing.** RocketWright is AGPL-3.0-or-later ([`LICENSE`](../../LICENSE)).
@@ -128,7 +132,7 @@ file and fails when:
 | `denylist` | A file's contents or path name one of the two OpenRocket Java package roots (built in) or an entry of `docs/dev/clean-room-denylist.txt` or `tests/oracle/denylist.or.txt` (the oracle's class-name export, M1.43). Both list files are required and must hold at least one entry. Plain identifiers match as whole identifiers; entries with `.` or `/` match as substrings. Only the two list files are excluded. |
 | `citation` | A physics `pub fn` has no citation, a `cite:` line is malformed, or its lit-id is not in `citations.toml`. `cite:` comment lines in the non-physics crates are checked the same way (well-formed, known lit-id). Every directory under `crates/` must be classified in `PHYSICS_CRATES` or `NON_PHYSICS_CRATES` (`audit.rs`), so a new crate cannot skip the check. A `Ported from` note only counts when it is well-formed (`Ported from <Project> (<License>) ...`). |
 | `notice` | A `Ported from <Project> (` note names a project with no row in the `NOTICE.md` "Ported source code" table; the file carrying the note is not covered by a backticked path in that row's "Used in" column (`{a,b}` brace groups and directory entries are allowed); a backticked path in that column does not exist; or a `Ported from <Name>` note lacks its `(<License>)`. |
-| `layering` | A pure crate's normal dependency tree (`cargo tree -e normal --target all`) reaches `rw-project`, `rw-cli`, `rw-cea-sys`, `xtask`, `rand`, `getrandom`, `tokio`, `mio`, `notify`, `gix`, or `rmcp` (invariant I5). |
+| `layering` | A pure crate's normal dependency tree (`cargo tree -e normal --target all`) reaches `rw-project`, `rw-cli`, `rw-cea-sys`, `xtask`, `rand`, `getrandom`, `tokio`, `mio`, `notify`, `gix`, `rmcp`, or the network client (`ureq`, `rustls`, `ring`) (invariant I5). |
 | `doubles` | Any workspace member other than `xtask` builds with the `doubles` feature on in its normal (non-dev) dependency graph, or a release command line in a Makefile, `.cargo/`, `scripts/`, or `package.json` enables it, or a built binary on disk (`target/release/rocketwright`, the dev-app `target/rw-plain/rocketwright`, `dist/kit/bin/rocketwright`) carries a build-provenance marker listing `doubles`, or no marker at all (a stale build: rebuild or delete it). Turn doubles on only from `[dev-dependencies]` or test commands. |
 | `ork` | Any `.ork` file is tracked, or untracked and not ignored (`tests/oracle/cache/` is ignored). |
 | `motor-provenance` | A file under `lib/motors/` (other than `.md`) has a sha256 that its nearest `PROVENANCE.md` does not contain. |

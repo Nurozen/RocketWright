@@ -55,6 +55,12 @@ Only permissively licensed projects (MIT, BSD, Apache-2.0) are ported.
 | Desktop app icon: the RocketWright mark in `#61b5ad` on `#1b1e20`, a rasterization made for RocketWright from the same SVG mark (the 1024 px original and a 128 px downscale; the 128 px file's sha256 is `aea5f56195d77cb38a15958feaf4aaeaf32028d8a5ca2e828460a5fe647e2a65`) | AGPL-3.0-or-later (the project license) | `app/apps/desktop/assets/app-icon-1024.png` (packaged app icon), `app/apps/desktop/assets/app-icon-128.png` (Lecturn registration icon) |
 | Studio environment panorama (2048×1024 LDR equirectangular): generated for RocketWright with Codex's built-in image-generation tool from a project prompt and resampled without cropping; no third-party image or stock source (`app/apps/web/public/env/PROVENANCE.md`) | AGPL-3.0-or-later (the project license) | `app/apps/web/public/env/` |
 
+## Data downloaded on request
+
+| Source | Terms | How it is used |
+|---|---|---|
+| [ThrustCurve](https://www.thrustcurve.org) motor data files (RASP `.eng`, RockSim `.rse`) and search results, through its public API | No data license is granted to RocketWright | Never in this repository and never bundled. When a user asks (`rw motor thrustcurve search\|fetch`, the `thrustcurve_search`/`thrustcurve_fetch` tools, Search ThrustCurve in the app), the user's machine downloads the file into that user's project (`lib/motors/`, recorded under `rocketwright.toml [lib.source]` with its ThrustCurve ids, page URL, and download time). RocketWright does not redistribute it |
+
 ## Rust and npm dependencies
 
 Crate and package licenses are recorded by their own manifests
@@ -68,3 +74,11 @@ RocketWright release build:
 |---|---|---|
 | `@anthropic-ai/claude-agent-sdk` 0.3.301 (and its platform packages) | Anthropic commercial terms (`SEE LICENSE IN README.md`) | Only `app/packages/bar-agent`, the bar-only package that `make bar-agent` (`scripts/bar/agent-loop.ts`) loads. The app does not depend on it and it is never shipped |
 | `@cursor/sdk` 1.0.35 and `@cursor/sdk-<platform>` | Cursor SDK License: © Anysphere Inc., all rights reserved, use subject to Cursor's Terms of Service | A runtime npm dependency of the vendored `lecturn` server. It is not in this repository and is left out of RocketWright release builds (`EXCLUDE_CURSOR_SDK` in `scripts/desktop/package.ts`); Lecturn loads it only when present |
+
+The ThrustCurve client in `rw-cli` uses `ureq` (MIT OR Apache-2.0) with
+`rustls` (Apache-2.0 OR ISC OR MIT), `ring` (Apache-2.0 AND ISC), and
+`rustls-platform-verifier` (MIT OR Apache-2.0), which checks certificates
+with the operating system's trust store, so no root certificate bundle ships.
+`Cargo.lock` also lists `webpki-root-certs` (CDLA-Permissive-2.0) as a
+dependency of `rustls-platform-verifier` on targets RocketWright does not
+build; it is not compiled into macOS or Linux builds.

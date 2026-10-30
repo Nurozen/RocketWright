@@ -390,6 +390,8 @@ as `name`, `material`, `finish`, `appearance`, `instances`, `override`, and
 | `rw engine design <id>`, `rw engine sim <id> [--duration "10 s"]` | size a liquid engine (`engines/<id>.rw.toml`): chamber, nozzle, injector, feed budget, tanks, blowdown; `sim` writes `runs/engine.<id>/<run>/` (`engine.json`, `series.csv`) |
 | `rw cfd import <file.csv\|dir> [--study <id>] [--dry-run]` | import a CFD point dataset (CSV header `x,y,z` in m, body frame; optional `vx,vy,vz`, named scalars; `# rw-cfd: units=p:Pa; time=0.5` lines; one `<prefix>_t<s>.csv` per step) into `runs/cfd.<id>/<run>/cfd.json` with `provenance = cfd`, for page 06 Imported CFD; display only, never an engineering number; prints each scalar's range |
 | `rw motor import <file.eng\|file.rse>` | copy a motor file into `lib/motors/` and record its sha256; refs `lib:motors/<file>#<designation>` |
+| `rw motor thrustcurve search [<query>] [--manufacturer M] [--diameter "18 mm"] [--impulse-class C]` | search thrustcurve.org for real motors (network: only when the user asks); lists motor id, manufacturer, designation, class, diameter, total impulse, burn time; needs no project and writes nothing |
+| `rw motor thrustcurve fetch <motor id\|designation> [--format eng\|rse] [--dry-run]` | download that motor's data file into `lib/motors/` as `rw motor import` does (sha256, strict check), recording its source under `[lib.source]`; refs `lib:motors/<Maker>_<designation>.eng#<designation>` |
 | `rw lib search [--kind material]` | search the project library and the built-in parts presets (`preset:<catalog>/<part>`, openrocket-database, Apache-2.0) |
 | `rw import ork <file.ork> [<dir>]` | import an OpenRocket design: a new project in `<dir>`, or (inside a project) replace its model as one step |
 | `rw export <format> <path> [--config <id>] [--run <ref>] [--allow-outside]` | write `ork`, `rasp` (the configuration's motors), `glb`, `stl` (mm), or `csv` (a run's series, needs `--run`); the path must be inside the project unless `--allow-outside` |
@@ -534,6 +536,8 @@ name your host lists.
 | `run_list`, `run_diff` | `rw diff run` | |
 | `motor_search`, `library_search` | `rw motor search`, `rw lib search` | read-only |
 | `import_file` | `rw motor import` | `{"path":"/abs/K828FJ.eng","kind":"motor"}`; needs the user's approval |
+| `thrustcurve_search` | `rw motor thrustcurve search` | `{"query":"Estes C6"}`; network, read-only; only when the user asks |
+| `thrustcurve_fetch` | `rw motor thrustcurve fetch` | `{"motor":"<motor id>"}`; network; needs the user's approval, which names the host |
 | `history_list`, `history_show`, `history_compare`, `history_tag`, `history_restore` | `rw history ...` | |
 | `model_diff` | `rw diff model` | |
 | `engine_design`, `engine_simulate` | `rw engine design`, `rw engine sim` | `{"engine":"demo"}`; the design lists `missing_inputs` and `RW-E22x` rule findings |
@@ -847,6 +851,31 @@ rw fmt --check
 rw validate
 ```
 
+### Motors from ThrustCurve
+
+The built-in generic curves work offline and are the default. When the user
+asks for a real motor (an Estes C6-5, an AeroTech H128W), RocketWright can
+search thrustcurve.org and download that motor's data file. This is the only
+network access RocketWright makes, and only on request: the user's machine
+downloads the file into the project, and RocketWright never bundles it.
+
+1. `rw motor thrustcurve search "Estes C6"` lists matches with their motor
+   ids (a delay suffix such as `-5` is ignored; ThrustCurve designations have
+   no delay).
+2. `rw motor thrustcurve fetch <motor id>` saves `lib/motors/Estes_C6.eng`
+   (`--format rse` for RockSim, which carries mass and CG per sample),
+   records its sha256 under `[lib.sha256]` and its origin, motor id, data
+   file id, page URL, and download time under `[lib.source]`, and prints the
+   ref and its own `check --strict:` section.
+3. Assign the ref and check:
+   `rw set configs.<id>.motors.<mount>.motor=lib:motors/Estes_C6.eng#C6`.
+   Set the configuration's `delay` to one of the delays the file lists.
+
+Errors say why and write nothing: `RW-E015` (thrustcurve.org could not be
+reached; exit 2), `RW-E016` (no such motor, or no data file in that format),
+`RW-E017` (the designation matches several motors: pass the motor id or
+`--manufacturer`). Over MCP, `thrustcurve_fetch` asks the user first.
+
 ### Imported designs
 
 `rw import ork` keeps every component's OpenRocket UUID in `import.uuid`,
@@ -946,6 +975,9 @@ Also in [`diagnostics.md`](diagnostics.md).
 | `RW-E012` | `param-not-a-choice` | error | A param value is not one of its `choices`. |
 | `RW-E013` | `param-dimension` | error | A param's `min`, `max`, `step`, or `choices` differ in dimension from its value. |
 | `RW-E014` | `unknown-variant` | error | The selected variant is not defined under `[variants]`. |
+| `RW-E015` | `thrustcurve-unreachable` | error | A ThrustCurve search or download the user asked for could not reach thrustcurve.org (offline, timed out, or the server answered with an error); nothing was written. |
+| `RW-E016` | `thrustcurve-not-found` | error | ThrustCurve has no motor matching the request, or the motor has no data file in the requested format. |
+| `RW-E017` | `thrustcurve-ambiguous` | error | A designation matches several ThrustCurve motors; pass the motor id or a manufacturer. |
 | `RW-E020` | `quantity-syntax` | error | A quantity cannot be parsed. |
 | `RW-E021` | `unit-missing` | error | A bare number on a dimensional field (only `0` may omit the unit). |
 | `RW-E022` | `unknown-unit` | error | The unit symbol is not in the unit table. |

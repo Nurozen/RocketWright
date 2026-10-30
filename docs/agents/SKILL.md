@@ -67,6 +67,11 @@ provider:
   failed. rw_engine_simulate returns the finished run.
 - Imports, exports, network fetches, and large jobs may need the user's
   approval. Do not retry a refused or unapproved call unless the user asks.
+- The motor library is built in and works offline. Only when the user asks
+  for ThrustCurve, or for a real motor the library lacks, search
+  thrustcurve.org with rw_thrustcurve_search, then download one motor file
+  into lib/motors with rw_thrustcurve_fetch (it needs the user's approval).
+  Assign its lib: ref and check. Never reach the network otherwise.
 
 ## The loop
 
@@ -171,7 +176,10 @@ rw run summary baseline --fields apogee,max_velocity,time_to_apogee
 - **Motors**: `rw motor search --diameter "18 mm"` lists the generic curves
   available offline (18 mm generic:RW_A8G, generic:RW_B4G, generic:RW_C6G;
   24 mm generic:RW_D10G; 38 mm generic:RW_I261G, generic:RW_I1294G,
-  generic:RW_I60G).
+  generic:RW_I60G). Only if the user asks for a real motor from ThrustCurve:
+  `rw motor thrustcurve search "Estes C6"` (network), then
+  `rw motor thrustcurve fetch <motor id>` saves it in `lib/motors/` like
+  `rw motor import`; assign the printed `lib:motors/<file>#<designation>` ref.
 - **Unstable** (RW-E101): increase the fin span or root chord, or add nose
   weight, and read the edit's `check --strict:` section.
 - **Recovery** (RW-W250): every parachute or streamer needs a deployment
