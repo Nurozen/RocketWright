@@ -50,21 +50,18 @@ jobs:
             rocketwright/vendor/lecturn/patches
           key: lecturn-kit-v1-${{ steps.pin.outputs.sha }}-${{ hashFiles('rocketwright/scripts/vendor-lecturn.sh', 'rocketwright/scripts/vendor/lecturn-kit.ts', 'rocketwright/vendor/lecturn/lecturn-pack.json', 'rocketwright/app/packages/ui/generated/lecturn-theme.json', 'rocketwright/app/pnpm-workspace.yaml') }}
 
+      # A plain shallow fetch: actions/checkout's credential cleanup runs
+      # `git submodule foreach`, which fails on Lecturn's .repos/ reference
+      # gitlinks (they have no submodule URLs).
       - name: Checkout Lecturn at the pin
         if: steps.cache.outputs.cache-hit != 'true'
-        uses: actions/checkout@v6
-        with:
-          repository: Nurozen/lecturn
-          ref: ${{ steps.pin.outputs.sha }}
-          path: lecturn
-          persist-credentials: false
-          # Lecturn's CI skips the same paths: .repos/ holds reference gitlinks
-          # without URLs, which a full checkout fails on.
-          sparse-checkout: |
-            /*
-            !/.repos/
-            !/apps/mobile/modules/lecturn-terminal/Vendor/**/*.a
-          sparse-checkout-cone-mode: false
+        env:
+          PIN: ${{ steps.pin.outputs.sha }}
+        run: |
+          git init -q lecturn
+          git -C lecturn remote add origin https://github.com/Nurozen/lecturn.git
+          git -C lecturn fetch -q --depth=1 --no-recurse-submodules origin "$PIN"
+          git -C lecturn checkout -q --detach FETCH_HEAD
 
       # Lecturn's CI installs Vite+ the same way (.github/actions/setup-ci-deps).
       - name: Setup Vite+
