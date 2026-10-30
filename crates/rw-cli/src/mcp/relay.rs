@@ -29,9 +29,20 @@
 //!   without waiting for a call), and replays `initialize`,
 //!   `notifications/initialized` and every `resources/subscribe` on the new
 //!   upstream, swallowing their responses;
-//! - it then tells the client: `notifications/resources/updated` for every
-//!   subscribed URI and `notifications/rw/upstream-changed`, so mirrors
-//!   built from the old owner are refreshed.
+//! - once the new upstream answers, it tells the client:
+//!   `notifications/resources/updated` for every subscribed URI and
+//!   `notifications/rw/upstream-changed`, so mirrors built from the old owner
+//!   are refreshed.
+//!
+//! An upstream that closes before it says anything processed nothing (an
+//! MCP server answers `initialize` before it reads any other request), so
+//! everything in flight on it is resent and no retry is charged. This
+//! happens on Linux: the kernel releases a dying owner's files newest first,
+//! so its connections close before its listener and its flock, and a relay
+//! can re-elect while the dead owner still holds the lock and connect into
+//! its listener's backlog, which is then reset. Consecutive silent
+//! upstreams back off like a failed connect and give up after
+//! [`ELECT_TIMEOUT`].
 //!
 //! Drain: when this process owns the project and its stdio client goes
 //! away, it keeps the socket and the [`Hub`] alive while relays are
@@ -330,6 +341,8 @@ pub struct State {
     inflight: BTreeMap<String, Inflight>,
     seq: u64,
     arrivals: u64,
+    /// The current upstream has sent a line (so it answered `initialize`).
+    answered: bool,
 }
 
 fn id_key(id: &Value) -> String {
@@ -456,6 +469,7 @@ impl State {
 
     /// Records an upstream line; returns it unless it answers the relay.
     pub fn from_upstream(&mut self, line: String) -> Option<String> {
+        self.answered = true;
         let Ok(v) = serde_json::from_str::<Value>(&line) else {
             return Some(line);
         };
@@ -470,14 +484,24 @@ impl State {
         Some(line)
     }
 
+    /// True once the current upstream has sent anything.
+    pub fn answered(&self) -> bool {
+        self.answered
+    }
+
     /// The upstream is gone: error responses for the in-flight requests
     /// that cannot be resent (mutations, and reads already retried once).
     /// Reads not yet retried are kept and resent by [`State::replay`]; an
-    /// in-flight `initialize` is replayed with its own id.
+    /// in-flight `initialize` is replayed with its own id. An upstream that
+    /// never answered processed nothing: every request is kept for resending
+    /// and none is charged a retry.
     pub fn fail_inflight(&mut self) -> Vec<String> {
         let mut lost = Vec::new();
         for (k, mut req) in std::mem::take(&mut self.inflight) {
             if req.method == "initialize" {
+                self.inflight.insert(k, req);
+            } else if !self.answered {
+                req.resend = true;
                 self.inflight.insert(k, req);
             } else if req.read_only && !req.retried {
                 req.retried = true;
@@ -499,8 +523,9 @@ impl State {
     }
 
     /// Lines that bring a new upstream to the client's session state: the
-    /// handshake, the subscriptions, then the reads being retried.
+    /// handshake, the subscriptions, then the requests being resent.
     pub fn replay(&mut self) -> Vec<String> {
+        self.answered = false;
         let mut out = self.handshake();
         let mut resend: Vec<&mut Inflight> =
             self.inflight.values_mut().filter(|r| r.resend).collect();
@@ -574,6 +599,18 @@ async fn write_line<W: AsyncWrite + Unpin + ?Sized>(w: &mut W, line: &str) -> st
     w.flush().await
 }
 
+/// Sends the client the notes for a new upstream; false when the client
+/// is gone.
+async fn send_resync<W: AsyncWrite + Unpin>(out: &mut W, state: &State, role_name: &str) -> bool {
+    trace(format_args!("resynced as {role_name}"));
+    for line in state.resync_notes(role_name) {
+        if write_line(out, &line).await.is_err() {
+            return false;
+        }
+    }
+    true
+}
+
 /// Runs the relay front on stdio until the client disconnects.
 pub async fn run(project: PathBuf, opts: McpOptions) -> anyhow::Result<()> {
     run_on(project, opts, tokio::io::stdin(), tokio::io::stdout()).await
@@ -604,6 +641,11 @@ where
     let mut generation = 0u64;
     spawn_reader(r, generation, utx.clone());
     let mut state = State::default();
+    // The resync notes owed to the client once the new upstream answers.
+    let mut resync: Option<&'static str> = None;
+    // Consecutive upstreams that closed without answering (module docs).
+    let mut silent_since: Option<Instant> = None;
+    let mut delay = BACKOFF_MIN;
 
     loop {
         tokio::select! {
@@ -629,11 +671,34 @@ where
                         {
                             break;
                         }
+                        silent_since = None;
+                        delay = BACKOFF_MIN;
+                        if let Some(role_name) = resync.take()
+                            && !send_resync(&mut out, &state, role_name).await
+                        {
+                            break;
+                        }
                     }
                     None => {
-                        trace("upstream closed");
+                        let silent = !state.answered();
+                        trace(if silent {
+                            "upstream closed without answering"
+                        } else {
+                            "upstream closed"
+                        });
                         for e in state.fail_inflight() {
                             let _ = write_line(&mut out, &e).await;
+                        }
+                        if silent {
+                            let since = *silent_since.get_or_insert_with(Instant::now);
+                            if since.elapsed() >= ELECT_TIMEOUT {
+                                return Err(locked_by(
+                                    None,
+                                    "the owner's socket closes every connection without answering",
+                                ));
+                            }
+                            tokio::time::sleep(delay).await;
+                            delay = (delay * 2).min(BACKOFF_MAX);
                         }
                         let (r, w) = match &role {
                             Role::Owner(o) => o.connect(),
@@ -646,18 +711,23 @@ where
                         up = w;
                         generation += 1;
                         spawn_reader(r, generation, utx.clone());
-                        for line in state.replay() {
-                            let _ = write_line(&mut up, &line).await;
+                        let replay = state.replay();
+                        for line in &replay {
+                            let _ = write_line(&mut up, line).await;
                         }
                         let role_name = match &role {
                             Role::Owner(_) => "owner",
                             Role::Relay(_) => "relay",
                         };
-                        trace(format_args!("resynced as {role_name}"));
-                        for line in state.resync_notes(role_name) {
-                            if write_line(&mut out, &line).await.is_err() {
-                                break;
-                            }
+                        // Tell the client once the new upstream has answered
+                        // the replayed handshake; a dying owner's backlog
+                        // never does. Nothing replayed: nothing to wait for.
+                        resync = Some(role_name);
+                        if replay.is_empty()
+                            && let Some(role_name) = resync.take()
+                            && !send_resync(&mut out, &state, role_name).await
+                        {
+                            break;
                         }
                     }
                 }
@@ -775,6 +845,9 @@ mod tests {
         assert_eq!(replay[2], read, "resent after the handshake");
         assert_eq!(replay[3], res);
         assert_eq!(st.replay().len(), 2, "resent once per loss");
+        // The new upstream answers the handshake, then goes away too.
+        let hello = r#"{"jsonrpc":"2.0","id":"rw-relay:2","result":{}}"#;
+        assert_eq!(st.from_upstream(hello.into()), None);
         // Lost again: unavailable, no outcome (nothing could have changed).
         let errs: Vec<Value> = st.fail_inflight().iter().map(|l| v(l)).collect();
         assert_eq!(errs.len(), 2);
@@ -783,6 +856,44 @@ mod tests {
         assert!(e.get("outcome").is_none());
         assert_eq!(errs[1]["id"], 10);
         assert!(errs[1]["error"]["data"].get("outcome").is_none());
+    }
+
+    #[test]
+    fn a_silent_upstream_is_charged_nothing() {
+        let mut st = State::default();
+        st.from_client(r#"{"jsonrpc":"2.0","id":0,"method":"initialize","params":{"clientInfo":{"name":"c","version":"0"}}}"#.into());
+        st.from_upstream(r#"{"jsonrpc":"2.0","id":0,"result":{}}"#.into());
+        st.from_client(r#"{"jsonrpc":"2.0","method":"notifications/initialized"}"#.into());
+        let read = st.from_client(
+            r#"{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"model_get","arguments":{}}}"#
+                .into(),
+        );
+        assert!(st.fail_inflight().is_empty());
+        assert_eq!(st.replay().last(), Some(&read));
+        // A dying owner's backlog: the connection closes without a word, so
+        // it processed nothing. The read is resent again, uncharged, and so
+        // is a mutation the client sent meanwhile.
+        let patch = st.from_client(
+            r#"{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"model_patch","arguments":{}}}"#
+                .into(),
+        );
+        assert!(!st.answered());
+        assert!(st.fail_inflight().is_empty(), "nothing is lost");
+        let replay = st.replay();
+        assert_eq!(replay[replay.len() - 2..], [read, patch]);
+        // The next upstream answers, then dies: the read has had its retry
+        // and the mutation may have run.
+        let hello = r#"{"jsonrpc":"2.0","id":"rw-relay:2","result":{}}"#;
+        assert_eq!(st.from_upstream(hello.into()), None);
+        assert!(st.answered());
+        let errs: Vec<Value> = st.fail_inflight().iter().map(|l| v(l)).collect();
+        assert_eq!(errs.len(), 2);
+        assert!(
+            errs[0]["result"]["_meta"]["rw/error"]
+                .get("outcome")
+                .is_none()
+        );
+        assert_eq!(errs[1]["result"]["_meta"]["rw/error"]["outcome"], "unknown");
     }
 
     #[test]

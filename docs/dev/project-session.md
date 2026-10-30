@@ -50,10 +50,15 @@ ops -> `TomlStore::preview` -> eval (+library) -> `Checker` -> dry run returns
   subscriptions. Calls lost with the owner: read-only ones (catalogue
   `read_only`, read-only MCP methods) are resent once; mutations get
   `unavailable` with `outcome: "unknown"` (they commit before replying, so
-  check `history_list` before retrying). The relay then sends
-  `resources/updated` for each subscription and
+  check `history_list` before retrying). Once the new upstream answers, the
+  relay sends `resources/updated` for each subscription and
   `notifications/rw/upstream-changed`, on which `ProjectHost` resyncs its
-  mirror. Test hooks (`RW_TEST_HOOKS=1`): `RW_TEST_EXIT_BEFORE=<tool>` /
+  mirror. An upstream that closes without answering processed nothing, so
+  its calls are resent without using up the retry. This happens on Linux:
+  the kernel releases a dead owner's files newest first, so its relay
+  connections close while its listener still accepts and its flock is
+  still held, and a relay that re-elects in that window reaches the dead
+  listener's backlog. Test hooks (`RW_TEST_HOOKS=1`): `RW_TEST_EXIT_BEFORE=<tool>` /
   `RW_TEST_EXIT_AFTER=<tool>` make the owner exit around a call. An owner whose stdio client leaves drains: it serves while
   relays are attached or jobs run, then exits. A `--no-socket` owner makes
   later instances exit 2 (`RW-E007`). `--list-tools` prints `tools/list` and
