@@ -1,0 +1,36 @@
+{
+  "name": "rocketwright-app",
+  "private": true,
+  "license": "AGPL-3.0-or-later",
+  "type": "module",
+  "packageManager": "pnpm@12.6.0",
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "scripts": {
+    "typecheck": "pnpm -r typecheck",
+    "lint": "pnpm -r lint && pnpm run lint:root",
+    "lint:self-test": "if oxlint -c .oxlintrc.json --deny-warnings --no-ignore lint-fixtures/planted.ts >/dev/null; then echo 'lint self-test: the planted violations in lint-fixtures/planted.ts passed' >&2; exit 1; else echo 'lint self-test: ok (planted violations fail)'; fi",
+    "lint:root": "cd .. && app/node_modules/.bin/oxlint -c app/.oxlintrc.json --deny-warnings app/e2e scripts",
+    "test": "pnpm -r test",
+    "bar:calibrate": "node e2e/bar/calibrate.ts",
+    "bar:lint-checklists": "node e2e/bar/lint-checklists.ts",
+    "bar:packet": "node e2e/bar/packet.ts",
+    "bar:tokens": "node e2e/visual-tokens.ts",
+    "bar:test": "vitest run e2e/__tests__",
+    "bar:typecheck": "tsc -p e2e/tsconfig.json",
+    "e2e": "playwright test -c e2e/playwright.config.ts",
+    "e2e:desktop": "vitest run --config e2e/vitest.config.ts"
+  },
+  "dependencies": {
+    "@lecturn/embed": "file:../vendor/lecturn/lecturn-embed.tgz",
+    "lecturn": "file:../vendor/lecturn/lecturn.tgz"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.64.1",
+    "@types/node": "24.19.2",
+    "oxlint": "1.89.0",
+    "typescript": "6.0.3",
+    "vitest": "5.0.5"
+  }
+}

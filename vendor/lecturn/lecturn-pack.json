@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "packages": {
+    "lecturn": {
+      "name": "lecturn",
+      "version": "0.0.50",
+      "tarball": "lecturn.tgz",
+      "bin": {
+        "lecturn": "./dist/bin.mjs"
+      }
+    },
+    "embed": {
+      "name": "@lecturn/embed",
+      "version": "0.0.50",
+      "tarball": "lecturn-embed.tgz"
+    }
+  },
+  "pnpm": {
+    "nodeLinker": "hoisted",
+    "publicHoistPattern": [
+      "@cursor/sdk-*"
+    ],
+    "allowBuilds": {
+      "node-pty": true
+    },
+    "patchedDependencies": {
+      "@ff-labs/fff-node@0.11.0": "patches/@ff-labs__fff-node@0.11.0.patch",
+      "node-pty@1.2.0-beta.15": "patches/node-pty@1.2.0-beta.15.patch"
+    }
+  },
+  "notes": [
+    "Install hoisted (nodeLinker: hoisted). An isolated install also needs publicHoistPattern [\"@cursor/sdk-*\"]: @cursor/sdk finds its platform helper by walking up from argv[1], and without the hoist it stays inside the virtual store.",
+    "patchedDependencies paths are relative to this file. The @ff-labs/fff-node patch is required when the tree is packed into an asar (it loads libfff_c from *.asar.unpacked); the node-pty patch only changes Windows.",
+    "Inside an asar on macOS and Linux, name the archive app.asar or node_modules.asar (node-pty only rewrites those to .unpacked for spawn-helper), unpack *.node, *.dylib, *.so*, *.dll and spawn-helper, and copy @cursor/sdk-* beside the archive as real files.",
+    "Built without a repo .env: Lecturn Connect unavailable (lecturn connect reports missing public configuration), telemetry off (no PostHog key), production icons."
+  ],
+  "build": {
+    "repoEnvFile": false,
+    "lecturnConnect": false,
+    "telemetry": false,
+    "icons": "production"
+  }
+}

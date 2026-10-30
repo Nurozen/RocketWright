@@ -1,0 +1,2452 @@
+{
+  "schema": "rw/1",
+  "sim": "study_01",
+  "sim_name": "Study 01",
+  "run_id": "7d0fcfd5d690",
+  "provenance": "visual",
+  "engine": "demo",
+  "engine_name": "Demo engine",
+  "attitude": "scripted_tilt",
+  "duration": 10.0,
+  "burn_time": 8.49227542,
+  "tank": {
+    "node": "tank_a",
+    "fluid": "n2o",
+    "length": 0.4112,
+    "od": 0.1524,
+    "wall": 0.003,
+    "end_cap": "hemispherical",
+    "volume": 0.0059994264,
+    "fill0": 0.6
+  },
+  "geometry": {
+    "throat_diameter": 0.026159122,
+    "exit_diameter": 0.052318244,
+    "chamber_diameter": 0.052318244,
+    "chamber_length": 0.37324094,
+    "convergent_length": 0.0359357985,
+    "nozzle_length": 0.0505355431,
+    "feed_diameter": 0.01
+  },
+  "samples": [
+    {
+      "t": 0.0,
+      "tilt_deg": 50.0,
+      "specific_force": [
+        -6.30359,
+        0.0,
+        7.51233
+      ],
+      "relative_flow": 1.0,
+      "relative_fill": 1.0,
+      "fill_fraction": 0.6
+    },
+    {
+      "t": 0.05,
+      "tilt_deg": 50.7846,
+      "specific_force": [
+        -6.20013,
+        0.0,
+        7.59794
+      ],
+      "relative_flow": 0.987025,
+      "relative_fill": 0.990291,
+      "fill_fraction": 0.594175
+    },
+    {
+      "t": 0.1,
+      "tilt_deg": 51.5643,
+      "specific_force": [
+        -6.09616,
+        0.0,
+        7.68162
+      ],
+      "relative_flow": 0.974534,
+      "relative_fill": 0.980702,
+      "fill_fraction": 0.588421
+    },
+    {
+      "t": 0.15,
+      "tilt_deg": 52.3345,
+      "specific_force": [
+        -5.99236,
+        0.0,
+        7.76286
+      ],
+      "relative_flow": 0.962499,
+      "relative_fill": 0.971228,
+      "fill_fraction": 0.582737
+    },
+    {
+      "t": 0.2,
+      "tilt_deg": 53.0902,
+      "specific_force": [
+        -5.88946,
+        0.0,
+        7.84122
+      ],
+      "relative_flow": 0.950893,
+      "relative_fill": 0.961866,
+      "fill_fraction": 0.57712
+    },
+    {
+      "t": 0.25,
+      "tilt_deg": 53.8268,
+      "specific_force": [
+        -5.78816,
+        0.0,
+        7.91629
+      ],
+      "relative_flow": 0.93969,
+      "relative_fill": 0.952612,
+      "fill_fraction": 0.571567
+    },
+    {
+      "t": 0.3,
+      "tilt_deg": 54.5399,
+      "specific_force": [
+        -5.68919,
+        0.0,
+        7.98771
+      ],
+      "relative_flow": 0.928867,
+      "relative_fill": 0.943461,
+      "fill_fraction": 0.566077
+    },
+    {
+      "t": 0.35,
+      "tilt_deg": 55.225,
+      "specific_force": [
+        -5.59328,
+        0.0,
+        8.05516
+      ],
+      "relative_flow": 0.918405,
+      "relative_fill": 0.934412,
+      "fill_fraction": 0.560647
+    },
+    {
+      "t": 0.4,
+      "tilt_deg": 55.8779,
+      "specific_force": [
+        -5.50113,
+        0.0,
+        8.11837
+      ],
+      "relative_flow": 0.90828,
+      "relative_fill": 0.925459,
+      "fill_fraction": 0.555276
+    },
+    {
+      "t": 0.45,
+      "tilt_deg": 56.4945,
+      "specific_force": [
+        -5.41344,
+        0.0,
+        8.1771
+      ],
+      "relative_flow": 0.898478,
+      "relative_fill": 0.916601,
+      "fill_fraction": 0.549961
+    },
+    {
+      "t": 0.5,
+      "tilt_deg": 57.0711,
+      "specific_force": [
+        -5.33088,
+        0.0,
+        8.23117
+      ],
+      "relative_flow": 0.88898,
+      "relative_fill": 0.907835,
+      "fill_fraction": 0.544701
+    },
+    {
+      "t": 0.55,
+      "tilt_deg": 57.6041,
+      "specific_force": [
+        -5.25408,
+        0.0,
+        8.2804
+      ],
+      "relative_flow": 0.879771,
+      "relative_fill": 0.899156,
+      "fill_fraction": 0.539494
+    },
+    {
+      "t": 0.6,
+      "tilt_deg": 58.0902,
+      "specific_force": [
+        -5.18364,
+        0.0,
+        8.32468
+      ],
+      "relative_flow": 0.870836,
+      "relative_fill": 0.890564,
+      "fill_fraction": 0.534339
+    },
+    {
+      "t": 0.65,
+      "tilt_deg": 58.5264,
+      "specific_force": [
+        -5.12011,
+        0.0,
+        8.3639
+      ],
+      "relative_flow": 0.862163,
+      "relative_fill": 0.882056,
+      "fill_fraction": 0.529233
+    },
+    {
+      "t": 0.7,
+      "tilt_deg": 58.9101,
+      "specific_force": [
+        -5.06399,
+        0.0,
+        8.398
+      ],
+      "relative_flow": 0.853739,
+      "relative_fill": 0.873628,
+      "fill_fraction": 0.524177
+    },
+    {
+      "t": 0.75,
+      "tilt_deg": 59.2388,
+      "specific_force": [
+        -5.01572,
+        0.0,
+        8.42692
+      ],
+      "relative_flow": 0.84555,
+      "relative_fill": 0.86528,
+      "fill_fraction": 0.519168
+    },
+    {
+      "t": 0.8,
+      "tilt_deg": 59.5106,
+      "specific_force": [
+        -4.97569,
+        0.0,
+        8.45061
+      ],
+      "relative_flow": 0.837587,
+      "relative_fill": 0.857008,
+      "fill_fraction": 0.514205
+    },
+    {
+      "t": 0.85,
+      "tilt_deg": 59.7237,
+      "specific_force": [
+        -4.94422,
+        0.0,
+        8.46906
+      ],
+      "relative_flow": 0.829841,
+      "relative_fill": 0.84881,
+      "fill_fraction": 0.509286
+    },
+    {
+      "t": 0.9,
+      "tilt_deg": 59.8769,
+      "specific_force": [
+        -4.92156,
+        0.0,
+        8.48225
+      ],
+      "relative_flow": 0.8223,
+      "relative_fill": 0.840686,
+      "fill_fraction": 0.504411
+    },
+    {
+      "t": 0.95,
+      "tilt_deg": 59.9692,
+      "specific_force": [
+        -4.90789,
+        0.0,
+        8.49017
+      ],
+      "relative_flow": 0.814955,
+      "relative_fill": 0.832632,
+      "fill_fraction": 0.499579
+    },
+    {
+      "t": 1.0,
+      "tilt_deg": 60.0,
+      "specific_force": [
+        -4.90333,
+        0.0,
+        8.49281
+      ],
+      "relative_flow": 0.807799,
+      "relative_fill": 0.824647,
+      "fill_fraction": 0.494788
+    },
+    {
+      "t": 1.05,
+      "tilt_deg": 59.9692,
+      "specific_force": [
+        -4.90789,
+        0.0,
+        8.49017
+      ],
+      "relative_flow": 0.800824,
+      "relative_fill": 0.816729,
+      "fill_fraction": 0.490037
+    },
+    {
+      "t": 1.1,
+      "tilt_deg": 59.8769,
+      "specific_force": [
+        -4.92156,
+        0.0,
+        8.48225
+      ],
+      "relative_flow": 0.794022,
+      "relative_fill": 0.808877,
+      "fill_fraction": 0.485326
+    },
+    {
+      "t": 1.15,
+      "tilt_deg": 59.7237,
+      "specific_force": [
+        -4.94422,
+        0.0,
+        8.46906
+      ],
+      "relative_flow": 0.787385,
+      "relative_fill": 0.801089,
+      "fill_fraction": 0.480653
+    },
+    {
+      "t": 1.2,
+      "tilt_deg": 59.5106,
+      "specific_force": [
+        -4.97569,
+        0.0,
+        8.45061
+      ],
+      "relative_flow": 0.780907,
+      "relative_fill": 0.793363,
+      "fill_fraction": 0.476018
+    },
+    {
+      "t": 1.25,
+      "tilt_deg": 59.2388,
+      "specific_force": [
+        -5.01572,
+        0.0,
+        8.42692
+      ],
+      "relative_flow": 0.774583,
+      "relative_fill": 0.785699,
+      "fill_fraction": 0.471419
+    },
+    {
+      "t": 1.3,
+      "tilt_deg": 58.9101,
+      "specific_force": [
+        -5.06399,
+        0.0,
+        8.398
+      ],
+      "relative_flow": 0.768406,
+      "relative_fill": 0.778094,
+      "fill_fraction": 0.466856
+    },
+    {
+      "t": 1.35,
+      "tilt_deg": 58.5264,
+      "specific_force": [
+        -5.12011,
+        0.0,
+        8.3639
+      ],
+      "relative_flow": 0.76237,
+      "relative_fill": 0.770547,
+      "fill_fraction": 0.462328
+    },
+    {
+      "t": 1.4,
+      "tilt_deg": 58.0902,
+      "specific_force": [
+        -5.18364,
+        0.0,
+        8.32468
+      ],
+      "relative_flow": 0.75647,
+      "relative_fill": 0.763057,
+      "fill_fraction": 0.457834
+    },
+    {
+      "t": 1.45,
+      "tilt_deg": 57.6041,
+      "specific_force": [
+        -5.25408,
+        0.0,
+        8.2804
+      ],
+      "relative_flow": 0.750702,
+      "relative_fill": 0.755623,
+      "fill_fraction": 0.453374
+    },
+    {
+      "t": 1.5,
+      "tilt_deg": 57.0711,
+      "specific_force": [
+        -5.33088,
+        0.0,
+        8.23117
+      ],
+      "relative_flow": 0.74506,
+      "relative_fill": 0.748243,
+      "fill_fraction": 0.448946
+    },
+    {
+      "t": 1.55,
+      "tilt_deg": 56.4945,
+      "specific_force": [
+        -5.41344,
+        0.0,
+        8.1771
+      ],
+      "relative_flow": 0.739539,
+      "relative_fill": 0.740917,
+      "fill_fraction": 0.44455
+    },
+    {
+      "t": 1.6,
+      "tilt_deg": 55.8779,
+      "specific_force": [
+        -5.50113,
+        0.0,
+        8.11837
+      ],
+      "relative_flow": 0.734135,
+      "relative_fill": 0.733643,
+      "fill_fraction": 0.440186
+    },
+    {
+      "t": 1.65,
+      "tilt_deg": 55.225,
+      "specific_force": [
+        -5.59328,
+        0.0,
+        8.05516
+      ],
+      "relative_flow": 0.728844,
+      "relative_fill": 0.72642,
+      "fill_fraction": 0.435852
+    },
+    {
+      "t": 1.7,
+      "tilt_deg": 54.5399,
+      "specific_force": [
+        -5.68919,
+        0.0,
+        7.98771
+      ],
+      "relative_flow": 0.723663,
+      "relative_fill": 0.719247,
+      "fill_fraction": 0.431548
+    },
+    {
+      "t": 1.75,
+      "tilt_deg": 53.8268,
+      "specific_force": [
+        -5.78816,
+        0.0,
+        7.91629
+      ],
+      "relative_flow": 0.718587,
+      "relative_fill": 0.712123,
+      "fill_fraction": 0.427274
+    },
+    {
+      "t": 1.8,
+      "tilt_deg": 53.0902,
+      "specific_force": [
+        -5.88946,
+        0.0,
+        7.84122
+      ],
+      "relative_flow": 0.713613,
+      "relative_fill": 0.705047,
+      "fill_fraction": 0.423028
+    },
+    {
+      "t": 1.85,
+      "tilt_deg": 52.3345,
+      "specific_force": [
+        -5.99236,
+        0.0,
+        7.76286
+      ],
+      "relative_flow": 0.708737,
+      "relative_fill": 0.698018,
+      "fill_fraction": 0.418811
+    },
+    {
+      "t": 1.9,
+      "tilt_deg": 51.5643,
+      "specific_force": [
+        -6.09616,
+        0.0,
+        7.68162
+      ],
+      "relative_flow": 0.703957,
+      "relative_fill": 0.691036,
+      "fill_fraction": 0.414622
+    },
+    {
+      "t": 1.95,
+      "tilt_deg": 50.7846,
+      "specific_force": [
+        -6.20013,
+        0.0,
+        7.59794
+      ],
+      "relative_flow": 0.699269,
+      "relative_fill": 0.684099,
+      "fill_fraction": 0.410459
+    },
+    {
+      "t": 2.0,
+      "tilt_deg": 50.0,
+      "specific_force": [
+        -6.30359,
+        0.0,
+        7.51233
+      ],
+      "relative_flow": 0.694671,
+      "relative_fill": 0.677206,
+      "fill_fraction": 0.406324
+    },
+    {
+      "t": 2.05,
+      "tilt_deg": 49.2154,
+      "specific_force": [
+        -6.40587,
+        0.0,
+        7.42531
+      ],
+      "relative_flow": 0.690158,
+      "relative_fill": 0.670357,
+      "fill_fraction": 0.402214
+    },
+    {
+      "t": 2.1,
+      "tilt_deg": 48.4357,
+      "specific_force": [
+        -6.50633,
+        0.0,
+        7.33744
+      ],
+      "relative_flow": 0.68573,
+      "relative_fill": 0.663551,
+      "fill_fraction": 0.39813
+    },
+    {
+      "t": 2.15,
+      "tilt_deg": 47.6655,
+      "specific_force": [
+        -6.60436,
+        0.0,
+        7.24933
+      ],
+      "relative_flow": 0.681382,
+      "relative_fill": 0.656786,
+      "fill_fraction": 0.394072
+    },
+    {
+      "t": 2.2,
+      "tilt_deg": 46.9098,
+      "specific_force": [
+        -6.6994,
+        0.0,
+        7.1616
+      ],
+      "relative_flow": 0.677114,
+      "relative_fill": 0.650064,
+      "fill_fraction": 0.390038
+    },
+    {
+      "t": 2.25,
+      "tilt_deg": 46.1732,
+      "specific_force": [
+        -6.79092,
+        0.0,
+        7.07487
+      ],
+      "relative_flow": 0.672922,
+      "relative_fill": 0.643381,
+      "fill_fraction": 0.386029
+    },
+    {
+      "t": 2.3,
+      "tilt_deg": 45.4601,
+      "specific_force": [
+        -6.87844,
+        0.0,
+        6.98981
+      ],
+      "relative_flow": 0.668804,
+      "relative_fill": 0.636739,
+      "fill_fraction": 0.382043
+    },
+    {
+      "t": 2.35,
+      "tilt_deg": 44.775,
+      "specific_force": [
+        -6.96152,
+        0.0,
+        6.90707
+      ],
+      "relative_flow": 0.664758,
+      "relative_fill": 0.630135,
+      "fill_fraction": 0.378081
+    },
+    {
+      "t": 2.4,
+      "tilt_deg": 44.1221,
+      "specific_force": [
+        -7.03977,
+        0.0,
+        6.82729
+      ],
+      "relative_flow": 0.660782,
+      "relative_fill": 0.623571,
+      "fill_fraction": 0.374142
+    },
+    {
+      "t": 2.45,
+      "tilt_deg": 43.5055,
+      "specific_force": [
+        -7.11284,
+        0.0,
+        6.75114
+      ],
+      "relative_flow": 0.656873,
+      "relative_fill": 0.617044,
+      "fill_fraction": 0.370226
+    },
+    {
+      "t": 2.5,
+      "tilt_deg": 42.9289,
+      "specific_force": [
+        -7.18042,
+        0.0,
+        6.67922
+      ],
+      "relative_flow": 0.653031,
+      "relative_fill": 0.610554,
+      "fill_fraction": 0.366332
+    },
+    {
+      "t": 2.55,
+      "tilt_deg": 42.3959,
+      "specific_force": [
+        -7.24224,
+        0.0,
+        6.61213
+      ],
+      "relative_flow": 0.649254,
+      "relative_fill": 0.6041,
+      "fill_fraction": 0.36246
+    },
+    {
+      "t": 2.6,
+      "tilt_deg": 41.9098,
+      "specific_force": [
+        -7.29808,
+        0.0,
+        6.55045
+      ],
+      "relative_flow": 0.645538,
+      "relative_fill": 0.597683,
+      "fill_fraction": 0.35861
+    },
+    {
+      "t": 2.65,
+      "tilt_deg": 41.4736,
+      "specific_force": [
+        -7.34774,
+        0.0,
+        6.4947
+      ],
+      "relative_flow": 0.641883,
+      "relative_fill": 0.591301,
+      "fill_fraction": 0.354781
+    },
+    {
+      "t": 2.7,
+      "tilt_deg": 41.0899,
+      "specific_force": [
+        -7.39106,
+        0.0,
+        6.44535
+      ],
+      "relative_flow": 0.638287,
+      "relative_fill": 0.584954,
+      "fill_fraction": 0.350973
+    },
+    {
+      "t": 2.75,
+      "tilt_deg": 40.7612,
+      "specific_force": [
+        -7.42792,
+        0.0,
+        6.40284
+      ],
+      "relative_flow": 0.634748,
+      "relative_fill": 0.578642,
+      "fill_fraction": 0.347185
+    },
+    {
+      "t": 2.8,
+      "tilt_deg": 40.4894,
+      "specific_force": [
+        -7.45821,
+        0.0,
+        6.36753
+      ],
+      "relative_flow": 0.631265,
+      "relative_fill": 0.572363,
+      "fill_fraction": 0.343418
+    },
+    {
+      "t": 2.85,
+      "tilt_deg": 40.2763,
+      "specific_force": [
+        -7.48184,
+        0.0,
+        6.33975
+      ],
+      "relative_flow": 0.627837,
+      "relative_fill": 0.566117,
+      "fill_fraction": 0.33967
+    },
+    {
+      "t": 2.9,
+      "tilt_deg": 40.1231,
+      "specific_force": [
+        -7.49877,
+        0.0,
+        6.31972
+      ],
+      "relative_flow": 0.624462,
+      "relative_fill": 0.559904,
+      "fill_fraction": 0.335942
+    },
+    {
+      "t": 2.95,
+      "tilt_deg": 40.0308,
+      "specific_force": [
+        -7.50894,
+        0.0,
+        6.30763
+      ],
+      "relative_flow": 0.621139,
+      "relative_fill": 0.553723,
+      "fill_fraction": 0.332234
+    },
+    {
+      "t": 3.0,
+      "tilt_deg": 40.0,
+      "specific_force": [
+        -7.51233,
+        0.0,
+        6.30359
+      ],
+      "relative_flow": 0.617866,
+      "relative_fill": 0.547574,
+      "fill_fraction": 0.328545
+    },
+    {
+      "t": 3.05,
+      "tilt_deg": 40.0308,
+      "specific_force": [
+        -7.50894,
+        0.0,
+        6.30763
+      ],
+      "relative_flow": 0.614642,
+      "relative_fill": 0.541457,
+      "fill_fraction": 0.324874
+    },
+    {
+      "t": 3.1,
+      "tilt_deg": 40.1231,
+      "specific_force": [
+        -7.49877,
+        0.0,
+        6.31972
+      ],
+      "relative_flow": 0.611466,
+      "relative_fill": 0.53537,
+      "fill_fraction": 0.321222
+    },
+    {
+      "t": 3.15,
+      "tilt_deg": 40.2763,
+      "specific_force": [
+        -7.48184,
+        0.0,
+        6.33975
+      ],
+      "relative_flow": 0.608337,
+      "relative_fill": 0.529313,
+      "fill_fraction": 0.317588
+    },
+    {
+      "t": 3.2,
+      "tilt_deg": 40.4894,
+      "specific_force": [
+        -7.45821,
+        0.0,
+        6.36753
+      ],
+      "relative_flow": 0.605253,
+      "relative_fill": 0.523286,
+      "fill_fraction": 0.313972
+    },
+    {
+      "t": 3.25,
+      "tilt_deg": 40.7612,
+      "specific_force": [
+        -7.42792,
+        0.0,
+        6.40284
+      ],
+      "relative_flow": 0.602214,
+      "relative_fill": 0.517289,
+      "fill_fraction": 0.310373
+    },
+    {
+      "t": 3.3,
+      "tilt_deg": 41.0899,
+      "specific_force": [
+        -7.39106,
+        0.0,
+        6.44535
+      ],
+      "relative_flow": 0.599219,
+      "relative_fill": 0.511321,
+      "fill_fraction": 0.306793
+    },
+    {
+      "t": 3.35,
+      "tilt_deg": 41.4736,
+      "specific_force": [
+        -7.34774,
+        0.0,
+        6.4947
+      ],
+      "relative_flow": 0.596265,
+      "relative_fill": 0.505381,
+      "fill_fraction": 0.303229
+    },
+    {
+      "t": 3.4,
+      "tilt_deg": 41.9098,
+      "specific_force": [
+        -7.29808,
+        0.0,
+        6.55045
+      ],
+      "relative_flow": 0.593353,
+      "relative_fill": 0.49947,
+      "fill_fraction": 0.299682
+    },
+    {
+      "t": 3.45,
+      "tilt_deg": 42.3959,
+      "specific_force": [
+        -7.24224,
+        0.0,
+        6.61213
+      ],
+      "relative_flow": 0.590482,
+      "relative_fill": 0.493587,
+      "fill_fraction": 0.296152
+    },
+    {
+      "t": 3.5,
+      "tilt_deg": 42.9289,
+      "specific_force": [
+        -7.18042,
+        0.0,
+        6.67922
+      ],
+      "relative_flow": 0.58765,
+      "relative_fill": 0.487731,
+      "fill_fraction": 0.292639
+    },
+    {
+      "t": 3.55,
+      "tilt_deg": 43.5055,
+      "specific_force": [
+        -7.11284,
+        0.0,
+        6.75114
+      ],
+      "relative_flow": 0.584857,
+      "relative_fill": 0.481902,
+      "fill_fraction": 0.289141
+    },
+    {
+      "t": 3.6,
+      "tilt_deg": 44.1221,
+      "specific_force": [
+        -7.03977,
+        0.0,
+        6.82729
+      ],
+      "relative_flow": 0.582102,
+      "relative_fill": 0.4761,
+      "fill_fraction": 0.28566
+    },
+    {
+      "t": 3.65,
+      "tilt_deg": 44.775,
+      "specific_force": [
+        -6.96152,
+        0.0,
+        6.90707
+      ],
+      "relative_flow": 0.579383,
+      "relative_fill": 0.470325,
+      "fill_fraction": 0.282195
+    },
+    {
+      "t": 3.7,
+      "tilt_deg": 45.4601,
+      "specific_force": [
+        -6.87844,
+        0.0,
+        6.98981
+      ],
+      "relative_flow": 0.576701,
+      "relative_fill": 0.464575,
+      "fill_fraction": 0.278745
+    },
+    {
+      "t": 3.75,
+      "tilt_deg": 46.1732,
+      "specific_force": [
+        -6.79092,
+        0.0,
+        7.07487
+      ],
+      "relative_flow": 0.574053,
+      "relative_fill": 0.458851,
+      "fill_fraction": 0.275311
+    },
+    {
+      "t": 3.8,
+      "tilt_deg": 46.9098,
+      "specific_force": [
+        -6.6994,
+        0.0,
+        7.1616
+      ],
+      "relative_flow": 0.57144,
+      "relative_fill": 0.453153,
+      "fill_fraction": 0.271892
+    },
+    {
+      "t": 3.85,
+      "tilt_deg": 47.6655,
+      "specific_force": [
+        -6.60436,
+        0.0,
+        7.24933
+      ],
+      "relative_flow": 0.568861,
+      "relative_fill": 0.447479,
+      "fill_fraction": 0.268488
+    },
+    {
+      "t": 3.9,
+      "tilt_deg": 48.4357,
+      "specific_force": [
+        -6.50633,
+        0.0,
+        7.33744
+      ],
+      "relative_flow": 0.566316,
+      "relative_fill": 0.441831,
+      "fill_fraction": 0.265098
+    },
+    {
+      "t": 3.95,
+      "tilt_deg": 49.2154,
+      "specific_force": [
+        -6.40587,
+        0.0,
+        7.42531
+      ],
+      "relative_flow": 0.563803,
+      "relative_fill": 0.436207,
+      "fill_fraction": 0.261724
+    },
+    {
+      "t": 4.0,
+      "tilt_deg": 50.0,
+      "specific_force": [
+        -6.30359,
+        0.0,
+        7.51233
+      ],
+      "relative_flow": 0.561321,
+      "relative_fill": 0.430606,
+      "fill_fraction": 0.258364
+    },
+    {
+      "t": 4.05,
+      "tilt_deg": 50.7846,
+      "specific_force": [
+        -6.20013,
+        0.0,
+        7.59794
+      ],
+      "relative_flow": 0.55887,
+      "relative_fill": 0.42503,
+      "fill_fraction": 0.255018
+    },
+    {
+      "t": 4.1,
+      "tilt_deg": 51.5643,
+      "specific_force": [
+        -6.09616,
+        0.0,
+        7.68162
+      ],
+      "relative_flow": 0.55645,
+      "relative_fill": 0.419477,
+      "fill_fraction": 0.251686
+    },
+    {
+      "t": 4.15,
+      "tilt_deg": 52.3345,
+      "specific_force": [
+        -5.99236,
+        0.0,
+        7.76286
+      ],
+      "relative_flow": 0.554059,
+      "relative_fill": 0.413948,
+      "fill_fraction": 0.248369
+    },
+    {
+      "t": 4.2,
+      "tilt_deg": 53.0902,
+      "specific_force": [
+        -5.88946,
+        0.0,
+        7.84122
+      ],
+      "relative_flow": 0.551698,
+      "relative_fill": 0.408441,
+      "fill_fraction": 0.245065
+    },
+    {
+      "t": 4.25,
+      "tilt_deg": 53.8268,
+      "specific_force": [
+        -5.78816,
+        0.0,
+        7.91629
+      ],
+      "relative_flow": 0.549365,
+      "relative_fill": 0.402958,
+      "fill_fraction": 0.241775
+    },
+    {
+      "t": 4.3,
+      "tilt_deg": 54.5399,
+      "specific_force": [
+        -5.68919,
+        0.0,
+        7.98771
+      ],
+      "relative_flow": 0.54706,
+      "relative_fill": 0.397496,
+      "fill_fraction": 0.238498
+    },
+    {
+      "t": 4.35,
+      "tilt_deg": 55.225,
+      "specific_force": [
+        -5.59328,
+        0.0,
+        8.05516
+      ],
+      "relative_flow": 0.544783,
+      "relative_fill": 0.392057,
+      "fill_fraction": 0.235234
+    },
+    {
+      "t": 4.4,
+      "tilt_deg": 55.8779,
+      "specific_force": [
+        -5.50113,
+        0.0,
+        8.11837
+      ],
+      "relative_flow": 0.542532,
+      "relative_fill": 0.386639,
+      "fill_fraction": 0.231984
+    },
+    {
+      "t": 4.45,
+      "tilt_deg": 56.4945,
+      "specific_force": [
+        -5.41344,
+        0.0,
+        8.1771
+      ],
+      "relative_flow": 0.540308,
+      "relative_fill": 0.381244,
+      "fill_fraction": 0.228746
+    },
+    {
+      "t": 4.5,
+      "tilt_deg": 57.0711,
+      "specific_force": [
+        -5.33088,
+        0.0,
+        8.23117
+      ],
+      "relative_flow": 0.53811,
+      "relative_fill": 0.375869,
+      "fill_fraction": 0.225522
+    },
+    {
+      "t": 4.55,
+      "tilt_deg": 57.6041,
+      "specific_force": [
+        -5.25408,
+        0.0,
+        8.2804
+      ],
+      "relative_flow": 0.535937,
+      "relative_fill": 0.370516,
+      "fill_fraction": 0.22231
+    },
+    {
+      "t": 4.6,
+      "tilt_deg": 58.0902,
+      "specific_force": [
+        -5.18364,
+        0.0,
+        8.32468
+      ],
+      "relative_flow": 0.533789,
+      "relative_fill": 0.365184,
+      "fill_fraction": 0.21911
+    },
+    {
+      "t": 4.65,
+      "tilt_deg": 58.5264,
+      "specific_force": [
+        -5.12011,
+        0.0,
+        8.3639
+      ],
+      "relative_flow": 0.531665,
+      "relative_fill": 0.359872,
+      "fill_fraction": 0.215923
+    },
+    {
+      "t": 4.7,
+      "tilt_deg": 58.9101,
+      "specific_force": [
+        -5.06399,
+        0.0,
+        8.398
+      ],
+      "relative_flow": 0.529565,
+      "relative_fill": 0.354581,
+      "fill_fraction": 0.212749
+    },
+    {
+      "t": 4.75,
+      "tilt_deg": 59.2388,
+      "specific_force": [
+        -5.01572,
+        0.0,
+        8.42692
+      ],
+      "relative_flow": 0.527489,
+      "relative_fill": 0.34931,
+      "fill_fraction": 0.209586
+    },
+    {
+      "t": 4.8,
+      "tilt_deg": 59.5106,
+      "specific_force": [
+        -4.97569,
+        0.0,
+        8.45061
+      ],
+      "relative_flow": 0.525437,
+      "relative_fill": 0.344059,
+      "fill_fraction": 0.206436
+    },
+    {
+      "t": 4.85,
+      "tilt_deg": 59.7237,
+      "specific_force": [
+        -4.94422,
+        0.0,
+        8.46906
+      ],
+      "relative_flow": 0.523407,
+      "relative_fill": 0.338828,
+      "fill_fraction": 0.203297
+    },
+    {
+      "t": 4.9,
+      "tilt_deg": 59.8769,
+      "specific_force": [
+        -4.92156,
+        0.0,
+        8.48225
+      ],
+      "relative_flow": 0.521399,
+      "relative_fill": 0.333616,
+      "fill_fraction": 0.20017
+    },
+    {
+      "t": 4.95,
+      "tilt_deg": 59.9692,
+      "specific_force": [
+        -4.90789,
+        0.0,
+        8.49017
+      ],
+      "relative_flow": 0.519413,
+      "relative_fill": 0.328424,
+      "fill_fraction": 0.197054
+    },
+    {
+      "t": 5.0,
+      "tilt_deg": 60.0,
+      "specific_force": [
+        -4.90333,
+        0.0,
+        8.49281
+      ],
+      "relative_flow": 0.517448,
+      "relative_fill": 0.323251,
+      "fill_fraction": 0.193951
+    },
+    {
+      "t": 5.05,
+      "tilt_deg": 59.9692,
+      "specific_force": [
+        -4.90789,
+        0.0,
+        8.49017
+      ],
+      "relative_flow": 0.515505,
+      "relative_fill": 0.318097,
+      "fill_fraction": 0.190858
+    },
+    {
+      "t": 5.1,
+      "tilt_deg": 59.8769,
+      "specific_force": [
+        -4.92156,
+        0.0,
+        8.48225
+      ],
+      "relative_flow": 0.513582,
+      "relative_fill": 0.312961,
+      "fill_fraction": 0.187777
+    },
+    {
+      "t": 5.15,
+      "tilt_deg": 59.7237,
+      "specific_force": [
+        -4.94422,
+        0.0,
+        8.46906
+      ],
+      "relative_flow": 0.511679,
+      "relative_fill": 0.307844,
+      "fill_fraction": 0.184707
+    },
+    {
+      "t": 5.2,
+      "tilt_deg": 59.5106,
+      "specific_force": [
+        -4.97569,
+        0.0,
+        8.45061
+      ],
+      "relative_flow": 0.509797,
+      "relative_fill": 0.302746,
+      "fill_fraction": 0.181647
+    },
+    {
+      "t": 5.25,
+      "tilt_deg": 59.2388,
+      "specific_force": [
+        -5.01572,
+        0.0,
+        8.42692
+      ],
+      "relative_flow": 0.507934,
+      "relative_fill": 0.297665,
+      "fill_fraction": 0.178599
+    },
+    {
+      "t": 5.3,
+      "tilt_deg": 58.9101,
+      "specific_force": [
+        -5.06399,
+        0.0,
+        8.398
+      ],
+      "relative_flow": 0.50609,
+      "relative_fill": 0.292603,
+      "fill_fraction": 0.175562
+    },
+    {
+      "t": 5.35,
+      "tilt_deg": 58.5264,
+      "specific_force": [
+        -5.12011,
+        0.0,
+        8.3639
+      ],
+      "relative_flow": 0.504266,
+      "relative_fill": 0.287558,
+      "fill_fraction": 0.172535
+    },
+    {
+      "t": 5.4,
+      "tilt_deg": 58.0902,
+      "specific_force": [
+        -5.18364,
+        0.0,
+        8.32468
+      ],
+      "relative_flow": 0.502459,
+      "relative_fill": 0.282531,
+      "fill_fraction": 0.169519
+    },
+    {
+      "t": 5.45,
+      "tilt_deg": 57.6041,
+      "specific_force": [
+        -5.25408,
+        0.0,
+        8.2804
+      ],
+      "relative_flow": 0.500672,
+      "relative_fill": 0.277521,
+      "fill_fraction": 0.166513
+    },
+    {
+      "t": 5.5,
+      "tilt_deg": 57.0711,
+      "specific_force": [
+        -5.33088,
+        0.0,
+        8.23117
+      ],
+      "relative_flow": 0.498902,
+      "relative_fill": 0.272529,
+      "fill_fraction": 0.163517
+    },
+    {
+      "t": 5.55,
+      "tilt_deg": 56.4945,
+      "specific_force": [
+        -5.41344,
+        0.0,
+        8.1771
+      ],
+      "relative_flow": 0.49715,
+      "relative_fill": 0.267554,
+      "fill_fraction": 0.160532
+    },
+    {
+      "t": 5.6,
+      "tilt_deg": 55.8779,
+      "specific_force": [
+        -5.50113,
+        0.0,
+        8.11837
+      ],
+      "relative_flow": 0.495415,
+      "relative_fill": 0.262595,
+      "fill_fraction": 0.157557
+    },
+    {
+      "t": 5.65,
+      "tilt_deg": 55.225,
+      "specific_force": [
+        -5.59328,
+        0.0,
+        8.05516
+      ],
+      "relative_flow": 0.493697,
+      "relative_fill": 0.257654,
+      "fill_fraction": 0.154592
+    },
+    {
+      "t": 5.7,
+      "tilt_deg": 54.5399,
+      "specific_force": [
+        -5.68919,
+        0.0,
+        7.98771
+      ],
+      "relative_flow": 0.491996,
+      "relative_fill": 0.252729,
+      "fill_fraction": 0.151637
+    },
+    {
+      "t": 5.75,
+      "tilt_deg": 53.8268,
+      "specific_force": [
+        -5.78816,
+        0.0,
+        7.91629
+      ],
+      "relative_flow": 0.490312,
+      "relative_fill": 0.24782,
+      "fill_fraction": 0.148692
+    },
+    {
+      "t": 5.8,
+      "tilt_deg": 53.0902,
+      "specific_force": [
+        -5.88946,
+        0.0,
+        7.84122
+      ],
+      "relative_flow": 0.488644,
+      "relative_fill": 0.242928,
+      "fill_fraction": 0.145757
+    },
+    {
+      "t": 5.85,
+      "tilt_deg": 52.3345,
+      "specific_force": [
+        -5.99236,
+        0.0,
+        7.76286
+      ],
+      "relative_flow": 0.486993,
+      "relative_fill": 0.238052,
+      "fill_fraction": 0.142831
+    },
+    {
+      "t": 5.9,
+      "tilt_deg": 51.5643,
+      "specific_force": [
+        -6.09616,
+        0.0,
+        7.68162
+      ],
+      "relative_flow": 0.485357,
+      "relative_fill": 0.233191,
+      "fill_fraction": 0.139915
+    },
+    {
+      "t": 5.95,
+      "tilt_deg": 50.7846,
+      "specific_force": [
+        -6.20013,
+        0.0,
+        7.59794
+      ],
+      "relative_flow": 0.483736,
+      "relative_fill": 0.228347,
+      "fill_fraction": 0.137008
+    },
+    {
+      "t": 6.0,
+      "tilt_deg": 50.0,
+      "specific_force": [
+        -6.30359,
+        0.0,
+        7.51233
+      ],
+      "relative_flow": 0.482131,
+      "relative_fill": 0.223518,
+      "fill_fraction": 0.134111
+    },
+    {
+      "t": 6.05,
+      "tilt_deg": 49.2154,
+      "specific_force": [
+        -6.40587,
+        0.0,
+        7.42531
+      ],
+      "relative_flow": 0.48054,
+      "relative_fill": 0.218705,
+      "fill_fraction": 0.131223
+    },
+    {
+      "t": 6.1,
+      "tilt_deg": 48.4357,
+      "specific_force": [
+        -6.50633,
+        0.0,
+        7.33744
+      ],
+      "relative_flow": 0.478965,
+      "relative_fill": 0.213907,
+      "fill_fraction": 0.128344
+    },
+    {
+      "t": 6.15,
+      "tilt_deg": 47.6655,
+      "specific_force": [
+        -6.60436,
+        0.0,
+        7.24933
+      ],
+      "relative_flow": 0.477404,
+      "relative_fill": 0.209125,
+      "fill_fraction": 0.125475
+    },
+    {
+      "t": 6.2,
+      "tilt_deg": 46.9098,
+      "specific_force": [
+        -6.6994,
+        0.0,
+        7.1616
+      ],
+      "relative_flow": 0.475857,
+      "relative_fill": 0.204357,
+      "fill_fraction": 0.122614
+    },
+    {
+      "t": 6.25,
+      "tilt_deg": 46.1732,
+      "specific_force": [
+        -6.79092,
+        0.0,
+        7.07487
+      ],
+      "relative_flow": 0.474325,
+      "relative_fill": 0.199605,
+      "fill_fraction": 0.119763
+    },
+    {
+      "t": 6.3,
+      "tilt_deg": 45.4601,
+      "specific_force": [
+        -6.87844,
+        0.0,
+        6.98981
+      ],
+      "relative_flow": 0.472807,
+      "relative_fill": 0.194867,
+      "fill_fraction": 0.11692
+    },
+    {
+      "t": 6.35,
+      "tilt_deg": 44.775,
+      "specific_force": [
+        -6.96152,
+        0.0,
+        6.90707
+      ],
+      "relative_flow": 0.471303,
+      "relative_fill": 0.190144,
+      "fill_fraction": 0.114086
+    },
+    {
+      "t": 6.4,
+      "tilt_deg": 44.1221,
+      "specific_force": [
+        -7.03977,
+        0.0,
+        6.82729
+      ],
+      "relative_flow": 0.469812,
+      "relative_fill": 0.185436,
+      "fill_fraction": 0.111261
+    },
+    {
+      "t": 6.45,
+      "tilt_deg": 43.5055,
+      "specific_force": [
+        -7.11284,
+        0.0,
+        6.75114
+      ],
+      "relative_flow": 0.468334,
+      "relative_fill": 0.180742,
+      "fill_fraction": 0.108445
+    },
+    {
+      "t": 6.5,
+      "tilt_deg": 42.9289,
+      "specific_force": [
+        -7.18042,
+        0.0,
+        6.67922
+      ],
+      "relative_flow": 0.466869,
+      "relative_fill": 0.176062,
+      "fill_fraction": 0.105637
+    },
+    {
+      "t": 6.55,
+      "tilt_deg": 42.3959,
+      "specific_force": [
+        -7.24224,
+        0.0,
+        6.61213
+      ],
+      "relative_flow": 0.465417,
+      "relative_fill": 0.171396,
+      "fill_fraction": 0.102838
+    },
+    {
+      "t": 6.6,
+      "tilt_deg": 41.9098,
+      "specific_force": [
+        -7.29808,
+        0.0,
+        6.55045
+      ],
+      "relative_flow": 0.463978,
+      "relative_fill": 0.166745,
+      "fill_fraction": 0.100047
+    },
+    {
+      "t": 6.65,
+      "tilt_deg": 41.4736,
+      "specific_force": [
+        -7.34774,
+        0.0,
+        6.4947
+      ],
+      "relative_flow": 0.462552,
+      "relative_fill": 0.162107,
+      "fill_fraction": 0.0972645
+    },
+    {
+      "t": 6.7,
+      "tilt_deg": 41.0899,
+      "specific_force": [
+        -7.39106,
+        0.0,
+        6.44535
+      ],
+      "relative_flow": 0.461138,
+      "relative_fill": 0.157484,
+      "fill_fraction": 0.0944903
+    },
+    {
+      "t": 6.75,
+      "tilt_deg": 40.7612,
+      "specific_force": [
+        -7.42792,
+        0.0,
+        6.40284
+      ],
+      "relative_flow": 0.459736,
+      "relative_fill": 0.152874,
+      "fill_fraction": 0.0917243
+    },
+    {
+      "t": 6.8,
+      "tilt_deg": 40.4894,
+      "specific_force": [
+        -7.45821,
+        0.0,
+        6.36753
+      ],
+      "relative_flow": 0.458346,
+      "relative_fill": 0.148278,
+      "fill_fraction": 0.0889665
+    },
+    {
+      "t": 6.85,
+      "tilt_deg": 40.2763,
+      "specific_force": [
+        -7.48184,
+        0.0,
+        6.33975
+      ],
+      "relative_flow": 0.456968,
+      "relative_fill": 0.143695,
+      "fill_fraction": 0.0862168
+    },
+    {
+      "t": 6.9,
+      "tilt_deg": 40.1231,
+      "specific_force": [
+        -7.49877,
+        0.0,
+        6.31972
+      ],
+      "relative_flow": 0.455602,
+      "relative_fill": 0.139125,
+      "fill_fraction": 0.0834751
+    },
+    {
+      "t": 6.95,
+      "tilt_deg": 40.0308,
+      "specific_force": [
+        -7.50894,
+        0.0,
+        6.30763
+      ],
+      "relative_flow": 0.454247,
+      "relative_fill": 0.134569,
+      "fill_fraction": 0.0807413
+    },
+    {
+      "t": 7.0,
+      "tilt_deg": 40.0,
+      "specific_force": [
+        -7.51233,
+        0.0,
+        6.30359
+      ],
+      "relative_flow": 0.452904,
+      "relative_fill": 0.130026,
+      "fill_fraction": 0.0780155
+    },
+    {
+      "t": 7.05,
+      "tilt_deg": 40.0308,
+      "specific_force": [
+        -7.50894,
+        0.0,
+        6.30763
+      ],
+      "relative_flow": 0.451572,
+      "relative_fill": 0.125496,
+      "fill_fraction": 0.0752974
+    },
+    {
+      "t": 7.1,
+      "tilt_deg": 40.1231,
+      "specific_force": [
+        -7.49877,
+        0.0,
+        6.31972
+      ],
+      "relative_flow": 0.45025,
+      "relative_fill": 0.120978,
+      "fill_fraction": 0.0725871
+    },
+    {
+      "t": 7.15,
+      "tilt_deg": 40.2763,
+      "specific_force": [
+        -7.48184,
+        0.0,
+        6.33975
+      ],
+      "relative_flow": 0.44894,
+      "relative_fill": 0.116474,
+      "fill_fraction": 0.0698845
+    },
+    {
+      "t": 7.2,
+      "tilt_deg": 40.4894,
+      "specific_force": [
+        -7.45821,
+        0.0,
+        6.36753
+      ],
+      "relative_flow": 0.447641,
+      "relative_fill": 0.111983,
+      "fill_fraction": 0.0671895
+    },
+    {
+      "t": 7.25,
+      "tilt_deg": 40.7612,
+      "specific_force": [
+        -7.42792,
+        0.0,
+        6.40284
+      ],
+      "relative_flow": 0.446352,
+      "relative_fill": 0.107503,
+      "fill_fraction": 0.0645021
+    },
+    {
+      "t": 7.3,
+      "tilt_deg": 41.0899,
+      "specific_force": [
+        -7.39106,
+        0.0,
+        6.44535
+      ],
+      "relative_flow": 0.445073,
+      "relative_fill": 0.103037,
+      "fill_fraction": 0.0618222
+    },
+    {
+      "t": 7.35,
+      "tilt_deg": 41.4736,
+      "specific_force": [
+        -7.34774,
+        0.0,
+        6.4947
+      ],
+      "relative_flow": 0.443805,
+      "relative_fill": 0.0985829,
+      "fill_fraction": 0.0591497
+    },
+    {
+      "t": 7.4,
+      "tilt_deg": 41.9098,
+      "specific_force": [
+        -7.29808,
+        0.0,
+        6.55045
+      ],
+      "relative_flow": 0.442547,
+      "relative_fill": 0.0941411,
+      "fill_fraction": 0.0564847
+    },
+    {
+      "t": 7.45,
+      "tilt_deg": 42.3959,
+      "specific_force": [
+        -7.24224,
+        0.0,
+        6.61213
+      ],
+      "relative_flow": 0.441299,
+      "relative_fill": 0.0897115,
+      "fill_fraction": 0.0538269
+    },
+    {
+      "t": 7.5,
+      "tilt_deg": 42.9289,
+      "specific_force": [
+        -7.18042,
+        0.0,
+        6.67922
+      ],
+      "relative_flow": 0.440061,
+      "relative_fill": 0.0852941,
+      "fill_fraction": 0.0511764
+    },
+    {
+      "t": 7.55,
+      "tilt_deg": 43.5055,
+      "specific_force": [
+        -7.11284,
+        0.0,
+        6.75114
+      ],
+      "relative_flow": 0.438833,
+      "relative_fill": 0.0808886,
+      "fill_fraction": 0.0485332
+    },
+    {
+      "t": 7.6,
+      "tilt_deg": 44.1221,
+      "specific_force": [
+        -7.03977,
+        0.0,
+        6.82729
+      ],
+      "relative_flow": 0.437614,
+      "relative_fill": 0.0764951,
+      "fill_fraction": 0.0458971
+    },
+    {
+      "t": 7.65,
+      "tilt_deg": 44.775,
+      "specific_force": [
+        -6.96152,
+        0.0,
+        6.90707
+      ],
+      "relative_flow": 0.436405,
+      "relative_fill": 0.0721135,
+      "fill_fraction": 0.0432681
+    },
+    {
+      "t": 7.7,
+      "tilt_deg": 45.4601,
+      "specific_force": [
+        -6.87844,
+        0.0,
+        6.98981
+      ],
+      "relative_flow": 0.435206,
+      "relative_fill": 0.0677436,
+      "fill_fraction": 0.0406461
+    },
+    {
+      "t": 7.75,
+      "tilt_deg": 46.1732,
+      "specific_force": [
+        -6.79092,
+        0.0,
+        7.07487
+      ],
+      "relative_flow": 0.434015,
+      "relative_fill": 0.0633853,
+      "fill_fraction": 0.0380312
+    },
+    {
+      "t": 7.8,
+      "tilt_deg": 46.9098,
+      "specific_force": [
+        -6.6994,
+        0.0,
+        7.1616
+      ],
+      "relative_flow": 0.432834,
+      "relative_fill": 0.0590387,
+      "fill_fraction": 0.0354232
+    },
+    {
+      "t": 7.85,
+      "tilt_deg": 47.6655,
+      "specific_force": [
+        -6.60436,
+        0.0,
+        7.24933
+      ],
+      "relative_flow": 0.431662,
+      "relative_fill": 0.0547035,
+      "fill_fraction": 0.0328221
+    },
+    {
+      "t": 7.9,
+      "tilt_deg": 48.4357,
+      "specific_force": [
+        -6.50633,
+        0.0,
+        7.33744
+      ],
+      "relative_flow": 0.430499,
+      "relative_fill": 0.0503797,
+      "fill_fraction": 0.0302278
+    },
+    {
+      "t": 7.95,
+      "tilt_deg": 49.2154,
+      "specific_force": [
+        -6.40587,
+        0.0,
+        7.42531
+      ],
+      "relative_flow": 0.429344,
+      "relative_fill": 0.0460672,
+      "fill_fraction": 0.0276403
+    },
+    {
+      "t": 8.0,
+      "tilt_deg": 50.0,
+      "specific_force": [
+        -6.30359,
+        0.0,
+        7.51233
+      ],
+      "relative_flow": 0.428199,
+      "relative_fill": 0.0417659,
+      "fill_fraction": 0.0250595
+    },
+    {
+      "t": 8.05,
+      "tilt_deg": 50.7846,
+      "specific_force": [
+        -6.20013,
+        0.0,
+        7.59794
+      ],
+      "relative_flow": 0.427062,
+      "relative_fill": 0.0374758,
+      "fill_fraction": 0.0224855
+    },
+    {
+      "t": 8.1,
+      "tilt_deg": 51.5643,
+      "specific_force": [
+        -6.09616,
+        0.0,
+        7.68162
+      ],
+      "relative_flow": 0.425933,
+      "relative_fill": 0.0331967,
+      "fill_fraction": 0.019918
+    },
+    {
+      "t": 8.15,
+      "tilt_deg": 52.3345,
+      "specific_force": [
+        -5.99236,
+        0.0,
+        7.76286
+      ],
+      "relative_flow": 0.424813,
+      "relative_fill": 0.0289286,
+      "fill_fraction": 0.0173572
+    },
+    {
+      "t": 8.2,
+      "tilt_deg": 53.0902,
+      "specific_force": [
+        -5.88946,
+        0.0,
+        7.84122
+      ],
+      "relative_flow": 0.423701,
+      "relative_fill": 0.0246715,
+      "fill_fraction": 0.0148029
+    },
+    {
+      "t": 8.25,
+      "tilt_deg": 53.8268,
+      "specific_force": [
+        -5.78816,
+        0.0,
+        7.91629
+      ],
+      "relative_flow": 0.422598,
+      "relative_fill": 0.0204251,
+      "fill_fraction": 0.0122551
+    },
+    {
+      "t": 8.3,
+      "tilt_deg": 54.5399,
+      "specific_force": [
+        -5.68919,
+        0.0,
+        7.98771
+      ],
+      "relative_flow": 0.421502,
+      "relative_fill": 0.0161895,
+      "fill_fraction": 0.00971368
+    },
+    {
+      "t": 8.35,
+      "tilt_deg": 55.225,
+      "specific_force": [
+        -5.59328,
+        0.0,
+        8.05516
+      ],
+      "relative_flow": 0.420414,
+      "relative_fill": 0.0119645,
+      "fill_fraction": 0.0071787
+    },
+    {
+      "t": 8.4,
+      "tilt_deg": 55.8779,
+      "specific_force": [
+        -5.50113,
+        0.0,
+        8.11837
+      ],
+      "relative_flow": 0.419335,
+      "relative_fill": 0.00775012,
+      "fill_fraction": 0.00465007
+    },
+    {
+      "t": 8.45,
+      "tilt_deg": 56.4945,
+      "specific_force": [
+        -5.41344,
+        0.0,
+        8.1771
+      ],
+      "relative_flow": 0.418263,
+      "relative_fill": 0.00354626,
+      "fill_fraction": 0.00212775
+    },
+    {
+      "t": 8.5,
+      "tilt_deg": 57.0711,
+      "specific_force": [
+        -5.33088,
+        0.0,
+        8.23117
+      ],
+      "relative_flow": 0.0,
+      "relative_fill": 0.0,
+      "fill_fraction": 0.0
+    },
+    {
+      "t": 8.55,
+      "tilt_deg": 57.6041,
+      "specific_force": [
+        -5.25408,
+        0.0,
+        8.2804
+      ],
+      "relative_flow": 0.0,
+      "relative_fill": 0.0,
+      "fill_fraction": 0.0
+    },
+    {
+      "t": 8.6,
+      "tilt_deg": 58.0902,
+      "specific_force": [
+        -5.18364,
+        0.0,
+        8.32468
+      ],
+      "relative_flow": 0.0,
+      "relative_fill": 0.0,
+      "fill_fraction": 0.0
+    },
+    {
+      "t": 8.65,
+      "tilt_deg": 58.5264,
+      "specific_force": [
+        -5.12011,
+        0.0,
+        8.3639
+      ],
+      "relative_flow": 0.0,
+      "relative_fill": 0.0,
+      "fill_fraction": 0.0
+    },
+    {
+      "t": 8.7,
+      "tilt_deg": 58.9101,
+      "specific_force": [
+        -5.06399,
+        0.0,
+        8.398
+      ],
+      "relative_flow": 0.0,
+      "relative_fill": 0.0,
+      "fill_fraction": 0.0
+    },
+    {
+      "t": 8.75,
+      "tilt_deg": 59.2388,
+      "specific_force": [
+        -5.01572,
+        0.0,
+        8.42692
+      ],
+      "relative_flow": 0.0,
+      "relative_fill": 0.0,
+      "fill_fraction": 0.0
+    },
+    {
+      "t": 8.8,
+      "tilt_deg": 59.5106,
+      "specific_force": [
+        -4.97569,
+        0.0,
+        8.45061
+      ],
+      "relative_flow": 0.0,
+      "relative_fill": 0.0,
+      "fill_fraction": 0.0
+    },
+    {
+      "t": 8.85,
+      "tilt_deg": 59.7237,
+      "specific_force": [
+        -4.94422,
+        0.0,
+        8.46906
+      ],
+      "relative_flow": 0.0,
+      "relative_fill": 0.0,
+      "fill_fraction": 0.0
+    },
+    {
+      "t": 8.9,
+      "tilt_deg": 59.8769,
+      "specific_force": [
+        -4.92156,
+        0.0,
+        8.48225
+      ],
+      "relative_flow": 0.0,
+      "relative_fill": 0.0,
+      "fill_fraction": 0.0
+    },
+    {
+      "t": 8.95,
+      "tilt_deg": 59.9692,
+      "specific_force": [
+        -4.90789,
+        0.0,
+        8.49017
+      ],
+      "relative_flow": 0.0,
+      "relative_fill": 0.0,
+      "fill_fraction": 0.0
+    },
+    {
+      "t": 9.0,
+      "tilt_deg": 60.0,
+      "specific_force": [
+        -4.90333,
+        0.0,
+        8.49281
+      ],
+      "relative_flow": 0.0,
+      "relative_fill": 0.0,
+      "fill_fraction": 0.0
+    },
+    {
+      "t": 9.05,
+      "tilt_deg": 59.9692,
+      "specific_force": [
+        -4.90789,
+        0.0,
+        8.49017
+      ],
+      "relative_flow": 0.0,
+      "relative_fill": 0.0,
+      "fill_fraction": 0.0
+    },
+    {
+      "t": 9.1,
+      "tilt_deg": 59.8769,
+      "specific_force": [
+        -4.92156,
+        0.0,
+        8.48225
+      ],
+      "relative_flow": 0.0,
+      "relative_fill": 0.0,
+      "fill_fraction": 0.0
+    },
+    {
+      "t": 9.15,
+      "tilt_deg": 59.7237,
+      "specific_force": [
+        -4.94422,
+        0.0,
+        8.46906
+      ],
+      "relative_flow": 0.0,
+      "relative_fill": 0.0,
+      "fill_fraction": 0.0
+    },
+    {
+      "t": 9.2,
+      "tilt_deg": 59.5106,
+      "specific_force": [
+        -4.97569,
+        0.0,
+        8.45061
+      ],
+      "relative_flow": 0.0,
+      "relative_fill": 0.0,
+      "fill_fraction": 0.0
+    },
+    {
+      "t": 9.25,
+      "tilt_deg": 59.2388,
+      "specific_force": [
+        -5.01572,
+        0.0,
+        8.42692
+      ],
+      "relative_flow": 0.0,
+      "relative_fill": 0.0,
+      "fill_fraction": 0.0
+    },
+    {
+      "t": 9.3,
+      "tilt_deg": 58.9101,
+      "specific_force": [
+        -5.06399,
+        0.0,
+        8.398
+      ],
+      "relative_flow": 0.0,
+      "relative_fill": 0.0,
+      "fill_fraction": 0.0
+    },
+    {
+      "t": 9.35,
+      "tilt_deg": 58.5264,
+      "specific_force": [
+        -5.12011,
+        0.0,
+        8.3639
+      ],
+      "relative_flow": 0.0,
+      "relative_fill": 0.0,
+      "fill_fraction": 0.0
+    },
+    {
+      "t": 9.4,
+      "tilt_deg": 58.0902,
+      "specific_force": [
+        -5.18364,
+        0.0,
+        8.32468
+      ],
+      "relative_flow": 0.0,
+      "relative_fill": 0.0,
+      "fill_fraction": 0.0
+    },
+    {
+      "t": 9.45,
+      "tilt_deg": 57.6041,
+      "specific_force": [
+        -5.25408,
+        0.0,
+        8.2804
+      ],
+      "relative_flow": 0.0,
+      "relative_fill": 0.0,
+      "fill_fraction": 0.0
+    },
+    {
+      "t": 9.5,
+      "tilt_deg": 57.0711,
+      "specific_force": [
+        -5.33088,
+        0.0,
+        8.23117
+      ],
+      "relative_flow": 0.0,
+      "relative_fill": 0.0,
+      "fill_fraction": 0.0
+    },
+    {
+      "t": 9.55,
+      "tilt_deg": 56.4945,
+      "specific_force": [
+        -5.41344,
+        0.0,
+        8.1771
+      ],
+      "relative_flow": 0.0,
+      "relative_fill": 0.0,
+      "fill_fraction": 0.0
+    },
+    {
+      "t": 9.6,
+      "tilt_deg": 55.8779,
+      "specific_force": [
+        -5.50113,
+        0.0,
+        8.11837
+      ],
+      "relative_flow": 0.0,
+      "relative_fill": 0.0,
+      "fill_fraction": 0.0
+    },
+    {
+      "t": 9.65,
+      "tilt_deg": 55.225,
+      "specific_force": [
+        -5.59328,
+        0.0,
+        8.05516
+      ],
+      "relative_flow": 0.0,
+      "relative_fill": 0.0,
+      "fill_fraction": 0.0
+    },
+    {
+      "t": 9.7,
+      "tilt_deg": 54.5399,
+      "specific_force": [
+        -5.68919,
+        0.0,
+        7.98771
+      ],
+      "relative_flow": 0.0,
+      "relative_fill": 0.0,
+      "fill_fraction": 0.0
+    },
+    {
+      "t": 9.75,
+      "tilt_deg": 53.8268,
+      "specific_force": [
+        -5.78816,
+        0.0,
+        7.91629
+      ],
+      "relative_flow": 0.0,
+      "relative_fill": 0.0,
+      "fill_fraction": 0.0
+    },
+    {
+      "t": 9.8,
+      "tilt_deg": 53.0902,
+      "specific_force": [
+        -5.88946,
+        0.0,
+        7.84122
+      ],
+      "relative_flow": 0.0,
+      "relative_fill": 0.0,
+      "fill_fraction": 0.0
+    },
+    {
+      "t": 9.85,
+      "tilt_deg": 52.3345,
+      "specific_force": [
+        -5.99236,
+        0.0,
+        7.76286
+      ],
+      "relative_flow": 0.0,
+      "relative_fill": 0.0,
+      "fill_fraction": 0.0
+    },
+    {
+      "t": 9.9,
+      "tilt_deg": 51.5643,
+      "specific_force": [
+        -6.09616,
+        0.0,
+        7.68162
+      ],
+      "relative_flow": 0.0,
+      "relative_fill": 0.0,
+      "fill_fraction": 0.0
+    },
+    {
+      "t": 9.95,
+      "tilt_deg": 50.7846,
+      "specific_force": [
+        -6.20013,
+        0.0,
+        7.59794
+      ],
+      "relative_flow": 0.0,
+      "relative_fill": 0.0,
+      "fill_fraction": 0.0
+    },
+    {
+      "t": 10.0,
+      "tilt_deg": 50.0,
+      "specific_force": [
+        -6.30359,
+        0.0,
+        7.51233
+      ],
+      "relative_flow": 0.0,
+      "relative_fill": 0.0,
+      "fill_fraction": 0.0
+    }
+  ],
+  "assumptions": [
+    "Visual model · Not an engineering result: the liquid is an illustrative GPU particle simulation (MLS-MPM), not a CFD solution.",
+    "The tank drains with the engineering blowdown of engine `demo` (relative fill = liquid left over the initial liquid; burn time 8.49 s).",
+    "Relative flow is the blowdown's total propellant mass flow over its peak.",
+    "Attitude is a scripted tilt on a static stand: 50 deg ± 10 deg from vertical every 4 s; the liquid feels gravity only.",
+    "Streamlines through the feed line, engine inlet, and nozzle are illustrative, not computed."
+  ]
+}

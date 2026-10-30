@@ -1,0 +1,17 @@
+# Generator for the contract-fixture GLB the page 01 viewport falls back to
+# until rw-wasm `mesh_glb` lands (M1.32). Not a workspace member.
+#   cargo run --manifest-path app/apps/web/scripts/fixture-glb/Cargo.toml --release \
+#     > app/apps/web/public/fixtures/contract-vehicle.glb
+[package]
+name = "rw-fixture-glb"
+version = "0.0.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+
+[workspace]
+
+[dependencies]
+rw-geom = { path = "../../../../../crates/rw-geom" }
+rw-model = { path = "../../../../../crates/rw-model" }
+serde_json = "1"

@@ -1,0 +1,16 @@
+{
+  "kind": "provenance",
+  "schema": "rw/1",
+  "case": 4,
+  "source_example": "Tube fin rocket.ork",
+  "openrocket_version": "26.xx-SNAPSHOT+591c5e5f7b73",
+  "harness_commit": "f7274c1f27676a3e4226b0278a473545c9184d27",
+  "generic_motor": "RW_D10G",
+  "files": {
+    "case4-generic.json": "cc0baf0171eb5890f969a14f6804d5e4bbf1e8a8765ac63cd6c4876d4c295c1a",
+    "case4-generic.series.json": "351841f2972761b43f8713b254ff73041bf0f0e02ffd46d98a311e45043a38a1",
+    "case4-original.json": "f0f4afa9afa54a619fb1f201a094467a6a66a122f938817f946e4bd2d8e5c45a",
+    "case4.aero_sweep.json": "746db50a9fa977720abca62daffe67db1495a636facb325084048bc16249b702",
+    "case4.geometry.json": "1ca243fef6428750b2714d96bd015cc772add0aaa583cd57fc6d8b09b4a90701"
+  }
+}

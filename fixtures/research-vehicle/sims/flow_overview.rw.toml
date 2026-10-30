@@ -1,0 +1,14 @@
+# Page 06 visual flow study: a gentle rock, for the flow through the feed
+# line and nozzle (`attitude = "run"` with `replay = "<flight sim>"` would
+# replay a flight's attitude and specific force instead).
+name = "Flow overview"
+kind = "visual_flow"
+config = "baseline"
+
+[visual_flow]
+engine = "demo"
+attitude = "scripted_tilt"
+duration = "10 s"
+tilt = "35 deg"
+swing = "5 deg"
+period = "5 s"

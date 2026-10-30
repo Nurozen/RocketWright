@@ -1,0 +1,60 @@
+/*
+ * RocketWright design tokens (M1.19). Names are theme-agnostic (role, not
+ * hue): a light theme overrides the same custom properties. The values below
+ * are the dark studio theme, copied from `tests/bar/tokens.json` `value`
+ * fields (concepts.md §2). `src/tokens.test.ts` fails if they drift.
+ */
+:root {
+  color-scheme: dark;
+
+  /* ---- colour (tokens.json key in brackets) ---- */
+  --rw-bg-canvas: #1b1e20; /* [bg/canvas] header, rail, agent pane, history */
+  --rw-bg-viewport-top: #22282c; /* [bg/viewport-top] viewport vignette top */
+  --rw-bg-viewport-bottom: #171c20; /* [bg/viewport-bottom] viewport vignette bottom */
+  --rw-panel: #25292c; /* [panel] inspector, toolbar, editor surfaces */
+  --rw-line: #2a3034; /* [line] 1 px hairlines between panes */
+  --rw-text-primary: #e6e9ea; /* [text/primary] */
+  --rw-text-secondary: #8e989c; /* [text/secondary] labels, timestamps, units */
+  --rw-accent: #61b5ad; /* [accent/teal] selection, active tab, links, series A */
+  --rw-accent-fill: #134b4b; /* [accent/teal-fill] primary button fill */
+  --rw-on-accent: #ffffff; /* text on primary buttons */
+  --rw-selection-row: #283f41; /* [selection/row] selected row background */
+  --rw-bubble-user: #253c3f; /* [bubble/user] user message bubble */
+  --rw-series-a: var(--rw-accent); /* first compared run */
+  --rw-series-b: #f1ae6e; /* [series-b] second compared run */
+  --rw-series-b-row: #302d28; /* [series-b/row] selected series-B row */
+  --rw-ghost: #e8a94a; /* [amber/ghost] dashed previous geometry */
+  --rw-warning: #fac95e; /* [warning] Modified, Outdated, Missing inputs */
+  --rw-success: #61b5ad; /* [success] done checks are teal, never green */
+  --rw-material-parachute: #e8732a; /* [parachute] render material */
+  --rw-material-fluid: #26555c; /* [fluid] render material */
+  --rw-danger: #e5735c; /* not a bar token: Failed status and errors (state/status.ts danger tone) */
+
+  /* ---- typography (tokens.json typography) ---- */
+  --rw-font-sans: "Inter", "SF Pro Text", system-ui, sans-serif;
+  --rw-font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace; /* not a bar token: code and numbers in the embedded Lecturn pane (D17) */
+  --rw-font-size-body: 13px;
+  --rw-font-size-secondary: 12px;
+  --rw-font-size-pane-title: 16px;
+  --rw-font-size-page-title: 24px;
+  --rw-font-size-wordmark: 20px;
+  --rw-font-weight-regular: 400;
+  --rw-font-weight-strong: 600;
+
+  /* ---- shape and spacing (tokens.json shape, spacing) ---- */
+  --rw-radius: 6px;
+  --rw-radius-sm: 4px;
+  --rw-grid: 8px;
+  --rw-hairline: 1px;
+  --rw-tree-row-h: 44px;
+  --rw-table-row-h: 40px;
+
+  /* ---- shell layout (concepts.md §2; tests/bar/regions.json page 01) ---- */
+  --rw-header-h: 56px; /* plus a 1 px hairline below */
+  --rw-rail-w: 260px; /* about 17% at 1536; plus a 1 px hairline */
+  --rw-agent-w: 381px; /* about 25% at 1536; plus a 1 px hairline */
+  --rw-toolbar-h: 66px; /* viewport toolbar row; plus a 1 px hairline above */
+  --rw-history-h: 115px; /* history strip incl. the space below the steps; plus a 1 px hairline */
+  --rw-history-row-h: 70px; /* the step row itself */
+  --rw-local-tabs-h: 48px; /* plus a 1 px hairline */
+}

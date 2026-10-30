@@ -1,0 +1,52 @@
+{
+  "kind": "golden",
+  "schema": "rw/1",
+  "case": 5,
+  "matrix": "original",
+  "sim_name": "Simulation 5",
+  "config_id": "1654d8fb-f69f-43de-984a-d55765ad8a9d",
+  "geometry_sha256": "ecd33fc0d9c6fe8345f9f5486887dbc30c50874511dc4d672e83c1fe426bcee3",
+  "conditions": {
+    "rail_length_m": 3.048,
+    "rod_angle_deg": 0.0,
+    "rod_direction_deg": 90.0,
+    "site_altitude_m": 0.0,
+    "latitude_deg": 28.61,
+    "longitude_deg": -80.6,
+    "base_temperature_k": 288.15,
+    "base_pressure_pa": 101325.0,
+    "atmosphere": "ussa1976",
+    "geodetic": "flat",
+    "wind_speed_ms": 0.0,
+    "wind_direction_deg": 90.0,
+    "wind_turbulence": 0.0,
+    "time_step_s": 0.05,
+    "integrator": "rk4",
+    "gravity": {
+      "model": "wgs84"
+    },
+    "launch_into_wind": true
+  },
+  "conditions_hash": "sha256:881511566771fc3cb24d7d212499d12dcad4cb9da5e90386e32d39ec82faae85",
+  "motor_digest": "e31c8fdffb21430600156250a2b8e91c15ae1218390347419e55f10a6afc0177",
+  "motors": [
+    {
+      "mount": "Inner Tube",
+      "designation": "I1299N",
+      "digest": "65c821224348feaebed2272e686d5161dfbd0fa740e08a1583891a2282fe04dc",
+      "delay_s": null
+    }
+  ],
+  "summary": {
+    "max_altitude_m": 1156.8355705840927,
+    "max_velocity_ms": 242.74055577306473,
+    "max_accel_ms2": 867.135066269243,
+    "max_mach": 0.7134712253600514,
+    "time_to_apogee_s": 13.460804093750058,
+    "flight_time_s": 90.13029485543241,
+    "ground_hit_velocity_ms": 4.2849429954188,
+    "rod_clear_velocity_ms": 71.33573879428863,
+    "deployment_velocity_ms": 24.105228024610327,
+    "optimum_delay_s": 13.120804093750058
+  }
+}

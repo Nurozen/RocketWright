@@ -1,0 +1,82 @@
+{
+  "provenance": "contract-fixture",
+  "type": "tools/run_list.output",
+  "payload": {
+    "model_hash": "1ceb288e422bb33c662e66c9265157be29a006761136f05776dd3891e9ea8822",
+    "runs": [
+      {
+        "sim": "baseline",
+        "sim_name": "Baseline",
+        "config": "baseline",
+        "kind": "flight",
+        "status": "complete",
+        "run_id": "f8eb21388e28",
+        "model_hash": "1ceb288e422bb33c662e66c9265157be29a006761136f05776dd3891e9ea8822",
+        "provenance": "engineering",
+        "summary": {
+          "schema": "rw/1",
+          "apogee_m": 612.4,
+          "max_velocity_ms": 118.6,
+          "max_accel_ms2": 61.2,
+          "max_mach": 0.349,
+          "time_to_apogee_s": 10.84,
+          "flight_time_s": 62.3,
+          "landing_velocity_ms": 4.92,
+          "rail_exit_velocity_ms": 17.8,
+          "deployment_velocity_ms": 9.6,
+          "optimum_delay_s": 8.8,
+          "min_stability_cal": 1.62,
+          "burnout_time_s": 2.0,
+          "burnout_altitude_m": 104.7,
+          "landing_x_m": 0.0,
+          "landing_y_m": 0.0,
+          "drift_m": 0.0
+        }
+      },
+      {
+        "sim": "fin_revision",
+        "sim_name": "Fin revision",
+        "config": "baseline",
+        "kind": "flight",
+        "status": "outdated",
+        "run_id": "35b6e11742f6",
+        "model_hash": "e6a5e357af184d66b0f59d56efb8f1b5384cef29d3ec01c65372836ae29f8dd2",
+        "provenance": "engineering",
+        "summary": {
+          "schema": "rw/1",
+          "apogee_m": 598.0,
+          "max_velocity_ms": 118.6,
+          "max_accel_ms2": 61.2,
+          "max_mach": 0.349,
+          "time_to_apogee_s": 10.84,
+          "flight_time_s": 62.3,
+          "landing_velocity_ms": 4.92,
+          "rail_exit_velocity_ms": 17.8,
+          "deployment_velocity_ms": 9.6,
+          "optimum_delay_s": 8.8,
+          "min_stability_cal": 1.62,
+          "burnout_time_s": 2.0,
+          "burnout_altitude_m": 104.7,
+          "landing_x_m": 0.0,
+          "landing_y_m": 0.0,
+          "drift_m": 0.0
+        }
+      },
+      {
+        "sim": "higher_altitude",
+        "sim_name": "Higher altitude",
+        "config": "higher_altitude",
+        "kind": "flight",
+        "status": "running",
+        "job_id": "job-0008"
+      },
+      {
+        "sim": "recovery_test",
+        "sim_name": "Recovery test",
+        "config": "recovery_test",
+        "kind": "flight",
+        "status": "not_run"
+      }
+    ]
+  }
+}

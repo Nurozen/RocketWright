@@ -1,0 +1,358 @@
+{
+ "license": "Apache-2.0",
+ "materials": {
+  "carpet_thread": {
+   "doc": "Carpet Thread",
+   "line_density": "3.3E-4 kg/m"
+  },
+  "fiber_bulk": {
+   "density": "657.0 kg/m^3",
+   "doc": "Fiber, bulk"
+  },
+  "fiber_vulcanized_coupler_bt_50_bulk": {
+   "density": "819.47 kg/m^3",
+   "doc": "Fiber, vulcanized, Coupler, BT-50, bulk"
+  },
+  "fiber_vulcanized_coupler_bt_55_bulk": {
+   "density": "1100 kg/m^3",
+   "doc": "Fiber, vulcanized, Coupler, BT-55, bulk"
+  },
+  "fiber_vulcanized_coupler_bt_60_bulk": {
+   "density": "986.74 kg/m^3",
+   "doc": "Fiber, vulcanized, Coupler, BT-60, bulk"
+  },
+  "fiber_vulcanized_coupler_bt_70_bulk": {
+   "density": "793.27 kg/m^3",
+   "doc": "Fiber, vulcanized, Coupler, BT-70, bulk"
+  },
+  "fiber_vulcanized_coupler_bt_80_bulk": {
+   "density": "773.92 kg/m^3",
+   "doc": "Fiber, vulcanized, Coupler, BT-80, bulk"
+  },
+  "fiber_vulcanized_coupler_thick_bt_50_bulk": {
+   "density": "862.6 kg/m^3",
+   "doc": "Fiber, vulcanized, Coupler, thick, BT-50, bulk"
+  },
+  "fiber_vulcanized_motor_mount_bt_50_bulk": {
+   "density": "1638.94 kg/m^3",
+   "doc": "Fiber, vulcanized, Motor Mount, BT-50, bulk"
+  },
+  "paper_bulk": {
+   "density": ".0011 kg/m^3",
+   "doc": "Paper, bulk"
+  },
+  "paper_kraft_29mm_heavy_bulk": {
+   "density": "850.3 kg/m^3",
+   "doc": "Paper, kraft, 29mm, heavy, bulk"
+  },
+  "paper_kraft_2_6_bulk": {
+   "density": "666.668 kg/m^3",
+   "doc": "Paper, kraft, 2.6\", bulk"
+  },
+  "paper_kraft_heavy_bt_29_coupler_bulk": {
+   "density": "620.14 kg/m^3",
+   "doc": "Paper, kraft, heavy, BT-29, coupler, bulk"
+  },
+  "paper_kraft_heavy_bulk": {
+   "density": "937.5 kg/m^3",
+   "doc": "Paper, kraft, heavy, bulk"
+  },
+  "paper_spiral_kraft_bt_20_motor_mount_long_bulk": {
+   "density": "1145.11 kg/m^3",
+   "doc": "Paper, spiral kraft, BT-20, Motor Mount, long, bulk"
+  },
+  "paper_spiral_kraft_coupler_2_6_bulk": {
+   "density": "769.47 kg/m^3",
+   "doc": "Paper, spiral kraft, Coupler, 2.6\", bulk"
+  },
+  "paper_spiral_kraft_coupler_38mm_bulk": {
+   "density": "446.29 kg/m^3",
+   "doc": "Paper, spiral kraft, Coupler, 38mm, bulk"
+  },
+  "paper_spiral_kraft_coupler_3_bulk": {
+   "density": "1214.79 kg/m^3",
+   "doc": "Paper, spiral kraft, Coupler, 3\", bulk"
+  },
+  "paper_spiral_kraft_coupler_4_bulk": {
+   "density": "752.55 kg/m^3",
+   "doc": "Paper, spiral kraft, Coupler, 4\", bulk"
+  },
+  "paper_spiral_kraft_glassine_1_4_lugs_bulk": {
+   "density": "616.44 kg/m^3",
+   "doc": "Paper, spiral kraft glassine, 1/4\" Lugs, bulk"
+  },
+  "paper_spiral_kraft_glassine_1_8_lugs_bulk": {
+   "density": "2525.42 kg/m^3",
+   "doc": "Paper, spiral kraft glassine, 1/8\" Lugs, bulk"
+  },
+  "paper_spiral_kraft_glassine_3_16_lugs_bulk": {
+   "density": "1498.77 kg/m^3",
+   "doc": "Paper, spiral kraft glassine, 3/16\" Lugs, bulk"
+  },
+  "paper_spiral_kraft_glassine_3_bulk": {
+   "density": "910.05 kg/m^3",
+   "doc": "Paper, spiral kraft glassine, 3\", bulk"
+  },
+  "paper_spiral_kraft_glassine_4_bulk": {
+   "density": "786.07 kg/m^3",
+   "doc": "Paper, spiral kraft glassine, 4\", bulk"
+  },
+  "paper_spiral_kraft_glassine_bt_20_bulk": {
+   "density": "975.738 kg/m^3",
+   "doc": "Paper, spiral kraft glassine, BT-20, bulk"
+  },
+  "paper_spiral_kraft_glassine_bt_50_bulk": {
+   "density": "948.431 kg/m^3",
+   "doc": "Paper, spiral kraft glassine, BT-50, bulk"
+  },
+  "paper_spiral_kraft_glassine_bt_70_bulk": {
+   "density": "928.849 kg/m^3",
+   "doc": "Paper, spiral kraft glassine, BT-70, bulk"
+  },
+  "paper_spiral_kraft_glassine_bt_80_bulk": {
+   "density": "816.18 kg/m^3",
+   "doc": "Paper, spiral kraft glassine, BT-80, bulk"
+  },
+  "paper_spiral_kraft_glassine_bulk": {
+   "density": "782.88 kg/m^3",
+   "doc": "Paper, spiral kraft glassine, bulk"
+  },
+  "paper_spiral_kraft_glassine_rocketarium_bulk": {
+   "density": "782.88 kg/m^3",
+   "doc": "Paper, spiral kraft glassine, Rocketarium, bulk"
+  },
+  "paper_spiral_kraft_motor_mount_29mm_12_bulk": {
+   "density": "842.4 kg/m^3",
+   "doc": "Paper, spiral kraft, Motor Mount, 29mm, 12\", bulk"
+  },
+  "paper_spiral_kraft_motor_mount_29mm_12_thick_bulk": {
+   "density": "110.62 kg/m^3",
+   "doc": "Paper, spiral kraft, Motor Mount, 29mm, 12\", thick, bulk"
+  },
+  "paper_spiral_kraft_motor_mount_29mm_8_bulk": {
+   "density": "824.08 kg/m^3",
+   "doc": "Paper, spiral kraft, Motor Mount, 29mm, 8\", bulk"
+  },
+  "paper_spiral_kraft_motor_mount_29mm_bulk": {
+   "density": "719.7 kg/m^3",
+   "doc": "Paper, spiral kraft, Motor Mount, 29mm, bulk"
+  },
+  "paper_spiral_kraft_motor_mount_38mm_bulk": {
+   "density": "819.18 kg/m^3",
+   "doc": "Paper, spiral kraft, Motor Mount, 38mm, bulk"
+  },
+  "paper_spiral_kraft_motor_mount_54mm_bulk": {
+   "density": "850.16 kg/m^3",
+   "doc": "Paper, spiral kraft, Motor Mount, 54mm, bulk"
+  },
+  "paper_spiral_kraft_motor_mount_bt_50_bulk": {
+   "density": "9072 kg/m^3",
+   "doc": "Paper, spiral kraft, Motor Mount, BT-50, bulk"
+  },
+  "paper_spiral_kraft_motor_mount_bt_50_long_bulk": {
+   "density": "887.12 kg/m^3",
+   "doc": "Paper, spiral kraft, Motor Mount, BT-50, long, bulk"
+  },
+  "paper_spiral_kraft_motor_mount_bulk": {
+   "density": "1279.71 kg/m^3",
+   "doc": "Paper, spiral kraft, Motor Mount, bulk"
+  },
+  "phenolic_kraft_bulk": {
+   "density": "941.93 kg/m^3",
+   "doc": "Phenolic, kraft, bulk"
+  },
+  "plywood_aircraft_1_4_in_bulk": {
+   "density": "344.3 kg/m^3",
+   "doc": "Plywood, aircraft, 1/4 in. bulk"
+  },
+  "plywood_aircraft_1_8_in_bulk": {
+   "density": "337.5 kg/m^3",
+   "doc": "Plywood, aircraft, 1/8 in. bulk"
+  },
+  "plywood_baltic_birch_bulk": {
+   "density": "680.0 kg/m^3",
+   "doc": "Plywood, Baltic birch, bulk"
+  },
+  "plywood_light_bulk": {
+   "density": "352.4 kg/m^3",
+   "doc": "Plywood, light, bulk"
+  },
+  "polyethylene_film_hdpe_1_0_mil_bare": {
+   "doc": "Polyethylene film, HDPE, 1.0 mil, bare",
+   "surface_density": "0.0235 kg/m^2"
+  },
+  "polyethylene_hdpe_bulk": {
+   "density": "950.0 kg/m^3",
+   "doc": "Polyethylene, HDPE, bulk"
+  },
+  "polyethylene_hips_bulk": {
+   "density": "950.0 kg/m^3",
+   "doc": "Polyethylene, HIPS, bulk"
+  }
+ },
+ "source": "orc/ROCKETARIUM.ORC",
+ "upstream": "https://github.com/openrocket/openrocket-database @ c2e7c29",
+ "presets": [
+  {"component": {"id": "0.518 in", "length": "18 in", "material": "paper_spiral_kraft_glassine_rocketarium_bulk", "name": "Rocketarium BT-5", "od": "0.544 in", "type": "body_tube"}, "description": "BT-5 Body Tube. 18\". White, PN BT-5", "id": "bt_5", "manufacturer": "Rocketarium", "part_number": "BT-5"},
+  {"component": {"id": "0.710 in", "length": "18 in", "material": "paper_spiral_kraft_glassine_bt_20_bulk", "name": "Rocketarium BT-20", "od": "0.736 in", "type": "body_tube"}, "description": "BT-20 Body Tube. 18\". White, PN BT-20", "id": "bt_20", "manufacturer": "Rocketarium", "part_number": "BT-20"},
+  {"component": {"id": "0.950 in", "length": "18 in", "material": "paper_spiral_kraft_glassine_bt_50_bulk", "name": "Rocketarium BT-50", "od": "0.976 in", "type": "body_tube"}, "description": "BT-50 Body Tube. 18\". White, PN BT-50", "id": "bt_50", "manufacturer": "Rocketarium", "part_number": "BT-50"},
+  {"component": {"id": "0.950 in", "length": "17 in", "material": "paper_kraft_heavy_bulk", "name": "Rocketarium BT-50 Thick", "od": "1.000 in", "type": "body_tube"}, "description": "BT-50 Thick-Wall Body Tube. 17\". Kraft, PN BT-50 Thick", "id": "bt_50_thick", "manufacturer": "Rocketarium", "part_number": "BT-50 Thick"},
+  {"component": {"id": "1.283 in", "length": "18 in", "material": "paper_spiral_kraft_glassine_bulk", "name": "Rocketarium BT-55", "od": "1.325 in", "type": "body_tube"}, "description": "BT-55 Body Tube. 18\". White, PN BT-55", "id": "bt_55", "manufacturer": "Rocketarium", "part_number": "BT-55"},
+  {"component": {"id": "1.595 in", "length": "18 in", "material": "paper_spiral_kraft_glassine_bulk", "name": "Rocketarium BT-60", "od": "1.637 in", "type": "body_tube"}, "description": "BT-60 Body Tube. 18\". White, PN BT-60", "id": "bt_60", "manufacturer": "Rocketarium", "part_number": "BT-60"},
+  {"component": {"id": "2.180 in", "length": "18 in", "material": "paper_spiral_kraft_glassine_bt_70_bulk", "name": "Rocketarium BT-70", "od": "2.217 in", "type": "body_tube"}, "description": "BT-70 Body Tube. 18\". White, PN BT-70", "id": "bt_70", "manufacturer": "Rocketarium", "part_number": "BT-70"},
+  {"component": {"id": "2.558 in", "length": "18 in", "material": "paper_spiral_kraft_glassine_bt_80_bulk", "name": "Rocketarium BT-80", "od": "2.600 in", "type": "body_tube"}, "description": "BT-80 Body Tube. 18\". White, PN BT-80", "id": "bt_80", "manufacturer": "Rocketarium", "part_number": "BT-80"},
+  {"component": {"id": "1.140 in", "length": "20 in", "material": "paper_kraft_29mm_heavy_bulk", "name": "Rocketarium 29mm Kraft Thick", "od": "1.210 in", "type": "body_tube"}, "description": "29mm Thick-Wall Kraft Airframe 20\" Long, PN 29mm Kraft Thick", "id": "29mm_kraft_thick", "manufacturer": "Rocketarium", "part_number": "29mm Kraft Thick"},
+  {"component": {"id": "1.147 in", "length": "36 in", "material": "paper_kraft_29mm_heavy_bulk", "name": "Rocketarium 29mm White Thick", "od": "1.230 in", "type": "body_tube"}, "description": "1.1\" (29mm) Thick-Wall White Airframe 36\" Long, PN 29mm White Thick", "id": "29mm_white_thick", "manufacturer": "Rocketarium", "part_number": "29mm White Thick"},
+  {"component": {"id": "1.660 in", "length": "18.4 in", "material": "paper_kraft_29mm_heavy_bulk", "name": "Rocketarium 1.72\" Thick-Wall White", "od": "1.720 in", "type": "body_tube"}, "description": "1.72\" Thick-Wall White Tube,18.4\" Long, PN 29mm White Thick", "id": "1_72_thick_wall_white", "manufacturer": "Rocketarium", "part_number": "1.72\" Thick-Wall White"},
+  {"component": {"id": "1.800 in", "length": "18.4 in", "material": "paper_spiral_kraft_glassine_bulk", "name": "Rocketarium 1.9\" Body Tube", "od": "1.880 in", "type": "body_tube"}, "description": "Body Tube, paper, white, 1.9\", 22.75\" Long, made by Aerotech, PN 1.9\" Body Tube", "id": "1_9_body_tube", "manufacturer": "Rocketarium", "part_number": "1.9\" Body Tube"},
+  {"component": {"id": "2.140 in", "length": "18.4 in", "material": "paper_spiral_kraft_glassine_bulk", "name": "Rocketarium 54mm Body Tube", "od": "2.260 in", "type": "body_tube"}, "description": "54mm Body Tube. 24\" Long, PN 54mm Tube", "id": "54mm_body_tube", "manufacturer": "Rocketarium", "part_number": "54mm Body Tube"},
+  {"component": {"id": "2.530 in", "length": "24 in", "material": "paper_kraft_2_6_bulk", "name": "Rocketarium 2.6\" Body Tube", "od": "2.640 in", "type": "body_tube"}, "description": "2.6\" Body Tube. 24\" Long, PN 2.6\" Tube", "id": "2_6_body_tube", "manufacturer": "Rocketarium", "part_number": "2.6\" Body Tube"},
+  {"component": {"id": "3.000 in", "length": "36 in", "material": "paper_spiral_kraft_glassine_3_bulk", "name": "Rocketarium 3\" Body Tube(White)", "od": "3.100 in", "type": "body_tube"}, "description": "3\" Body Tube. 36\" (White), PN 3\" Tube (White)", "id": "3_body_tube_white", "manufacturer": "Rocketarium", "part_number": "3\" Body Tube(White)"},
+  {"component": {"id": "3.000 in", "length": "14.5 in", "material": "paper_spiral_kraft_glassine_3_bulk", "name": "Rocketarium 3\" Body Tube, Kraft", "od": "3.100 in", "type": "body_tube"}, "description": "3\" Body Tube. 14.5\" (Kraft), PN 3\" Body Tube, Kraft", "id": "3_body_tube_kraft", "manufacturer": "Rocketarium", "part_number": "3\" Body Tube, Kraft"},
+  {"component": {"id": "3.900 in", "length": "36 in", "material": "paper_spiral_kraft_glassine_4_bulk", "name": "Rocketarium 4\" Body Tube, White", "od": "4.010 in", "type": "body_tube"}, "description": "4\" Body Tube. 36\" Long (White), PN 4\" Body Tube, White", "id": "4_body_tube_white", "manufacturer": "Rocketarium", "part_number": "4\" Body Tube, White"},
+  {"component": {"id": "1.595 in", "length": "6 in", "material": "paper_spiral_kraft_glassine_bulk", "name": "Rocketarium BT-60, White, 6\"", "od": "1.637 in", "type": "body_tube"}, "description": "BT-60 Body Tube. 6\" White, PN BT-60, White, 6\"", "id": "bt_60_white_6", "manufacturer": "Rocketarium", "part_number": "BT-60, White, 6\""},
+  {"component": {"id": "1.595 in", "length": "9 in", "material": "paper_spiral_kraft_glassine_bulk", "name": "Rocketarium BT-60, White, 9\"", "od": "1.637 in", "type": "body_tube"}, "description": "BT-60 Body Tube. 9\" White, PN BT-60, White, 9\"", "id": "bt_60_white_9", "manufacturer": "Rocketarium", "part_number": "BT-60, White, 9\""},
+  {"component": {"id": "1.595 in", "length": "11.4 in", "material": "paper_spiral_kraft_glassine_bulk", "name": "Rocketarium BT-60, White, 11.4\"", "od": "1.637 in", "type": "body_tube"}, "description": "BT-60 Body Tube. 11.4\" White, PN BT-60, White, 11.4\"", "id": "bt_60_white_11_4", "manufacturer": "Rocketarium", "part_number": "BT-60, White, 11.4\""},
+  {"component": {"id": "1.595 in", "length": "16 in", "material": "paper_spiral_kraft_glassine_bulk", "name": "Rocketarium BT-60, White, 16\"", "od": "1.637 in", "type": "body_tube"}, "description": "BT-60 Body Tube. 16\" White, PN BT-60, White, 16\"", "id": "bt_60_white_16", "manufacturer": "Rocketarium", "part_number": "BT-60, White, 16\""},
+  {"component": {"id": "0.71 in", "length": "3.25 in", "material": "paper_spiral_kraft_bt_20_motor_mount_long_bulk", "name": "Rocketarium BT-20 Motor tubes 3.25\"", "od": "0.736 in", "type": "body_tube"}, "description": "BT-20 Motor tubes 3.25\" long, PN BT-20 Motor tubes", "id": "bt_20_motor_tubes_3_25", "manufacturer": "Rocketarium", "part_number": "BT-20 Motor tubes 3.25\""},
+  {"component": {"id": "0.71 in", "length": "2.75 in", "material": "paper_spiral_kraft_motor_mount_bulk", "name": "Rocketarium BT-20 Motor tubes 2.75\"", "od": "0.736 in", "type": "body_tube"}, "description": "BT-20 Motor tubes 2.75\" long, PN BT-20 Motor tubes", "id": "bt_20_motor_tubes_2_75", "manufacturer": "Rocketarium", "part_number": "BT-20 Motor tubes 2.75\""},
+  {"component": {"id": "0.95 in", "length": "3.25 in", "material": "paper_spiral_kraft_motor_mount_bt_50_bulk", "name": "Rocketarium BT-50 x 3.25 Motor tubes", "od": "0.976 in", "type": "body_tube"}, "description": "BT-50 Motor tubes x 3.25, PN BT-50 Motor tubes", "id": "bt_50_x_3_25_motor_tubes", "manufacturer": "Rocketarium", "part_number": "BT-50 x 3.25 Motor tubes"},
+  {"component": {"id": "0.95 in", "length": "4.25 in", "material": "paper_spiral_kraft_glassine_bulk", "name": "Rocketarium BT-50 'E' Motor tubes", "od": "0.976 in", "type": "body_tube"}, "description": "BT-50 Motor tubes x 4.25, PN BT-50 'E' Motor tubes", "id": "bt_50_e_motor_tubes", "manufacturer": "Rocketarium", "part_number": "BT-50 'E' Motor tubes"},
+  {"component": {"id": "0.95 in", "length": "4.25 in", "material": "fiber_vulcanized_motor_mount_bt_50_bulk", "name": "Rocketarium BT-50 Reinforced 'E' Motor tube", "od": "0.976 in", "type": "body_tube"}, "description": "BT-50 Reinforced 'E' Motor tube x 4.25, PN BT-50 Reinforced 'E' Motor tube", "id": "bt_50_reinforced_e_motor_tube", "manufacturer": "Rocketarium", "part_number": "BT-50 Reinforced 'E' Motor tube"},
+  {"component": {"id": "0.95 in", "length": "7 in", "material": "paper_spiral_kraft_motor_mount_bt_50_long_bulk", "name": "Rocketarium BT-50 x 7\" Long Motor tubes", "od": "0.976 in", "type": "body_tube"}, "description": "BT-50 Motor tube x 7, PN BT-50 x 7\" Long Motor tubes", "id": "bt_50_x_7_long_motor_tubes", "manufacturer": "Rocketarium", "part_number": "BT-50 x 7\" Long Motor tubes"},
+  {"component": {"id": "0.95 in", "length": "12 in", "material": "paper_spiral_kraft_glassine_bulk", "name": "Rocketarium BT-50 Thick Wall Engine Mount Tube. 12\"", "od": "1.000 in", "type": "body_tube"}, "description": "BT-50 Thick Wall Engine Mount Tube. 12\", PN BT-50 Thick Wall Engine Mount Tube. 12\"", "id": "bt_50_thick_wall_engine_mount_tube_12", "manufacturer": "Rocketarium", "part_number": "BT-50 Thick Wall Engine Mount Tube. 12\""},
+  {"component": {"id": "1.14 in", "length": "5.5 in", "material": "paper_spiral_kraft_motor_mount_29mm_bulk", "name": "Rocketarium 29mm Motor Mount tube 5.5\"", "od": "1.215 in", "type": "body_tube"}, "description": "29mm Motor Mount tube 5.5\", PN 29mm Motor Mount tube 5.5\"", "id": "29mm_motor_mount_tube_5_5", "manufacturer": "Rocketarium", "part_number": "29mm Motor Mount tube 5.5\""},
+  {"component": {"id": "1.14 in", "length": "8 in", "material": "paper_spiral_kraft_motor_mount_29mm_8_bulk", "name": "Rocketarium 29mm Motor Mount tube 8\"", "od": "1.215 in", "type": "body_tube"}, "description": "29mm Motor Mount tube 8\", PN 29mm Motor Mount tube 8\"", "id": "29mm_motor_mount_tube_8", "manufacturer": "Rocketarium", "part_number": "29mm Motor Mount tube 8\""},
+  {"component": {"id": "1.14 in", "length": "12 in", "material": "paper_spiral_kraft_motor_mount_29mm_12_bulk", "name": "Rocketarium 29mm Motor Mount tube 12\"", "od": "1.215 in", "type": "body_tube"}, "description": "29mm Motor Mount tube 12\", PN 29mm Motor Mount tube 12\"", "id": "29mm_motor_mount_tube_12", "manufacturer": "Rocketarium", "part_number": "29mm Motor Mount tube 12\""},
+  {"component": {"id": "1.147 in", "length": "12 in", "material": "paper_spiral_kraft_motor_mount_29mm_12_thick_bulk", "name": "Rocketarium 29mm Motor Mount tube 12\" (TW)", "od": "1.233 in", "type": "body_tube"}, "description": "29mm Motor Mount tube 12\" (TW), PN 29mm Motor Mount tube 12\" (TW)", "id": "29mm_motor_mount_tube_12_tw", "manufacturer": "Rocketarium", "part_number": "29mm Motor Mount tube 12\" (TW)"},
+  {"component": {"id": "1.147 in", "length": "18 in", "material": "paper_spiral_kraft_motor_mount_29mm_12_thick_bulk", "name": "Rocketarium 29mm Motor Mount tube 18\" (TW)", "od": "1.233 in", "type": "body_tube"}, "description": "29mm Motor Mount tube 18\" (TW), PN 29mm Motor Mount tube 18\" (TW)", "id": "29mm_motor_mount_tube_18_tw", "manufacturer": "Rocketarium", "part_number": "29mm Motor Mount tube 18\" (TW)"},
+  {"component": {"id": "1.145 in", "length": "17.750 in", "material": "phenolic_kraft_bulk", "name": "Rocketarium 1.1\" (29) Phenolic Motor Tube (P)", "od": "1.279 in", "type": "body_tube"}, "description": "1.1\" (29) X 17.75 Phenolic Motor Tube (P), PN 1.1\" (29) Phenolic Motor Tube (P)", "id": "1_1_29_phenolic_motor_tube_p", "manufacturer": "Rocketarium", "part_number": "1.1\" (29) Phenolic Motor Tube (P)"},
+  {"component": {"id": "1.525 in", "length": "11 in", "material": "phenolic_kraft_bulk", "name": "Rocketarium 38mm Motor Mount tube 11\" (S)", "od": "1.635 in", "type": "body_tube"}, "description": "38mm Motor Mount tube 11\" (S), PN 38mm Motor Mount tube 11\" (S)", "id": "38mm_motor_mount_tube_11_s", "manufacturer": "Rocketarium", "part_number": "38mm Motor Mount tube 11\" (S)"},
+  {"component": {"id": "1.525 in", "length": "24 in", "material": "paper_spiral_kraft_motor_mount_38mm_bulk", "name": "Rocketarium 38mm Motor Mount tube 24\" (T)", "od": "1.635 in", "type": "body_tube"}, "description": "38mm Motor Mount tube 24\" (T), PN 38mm Motor Mount tube 24\" (T)", "id": "38mm_motor_mount_tube_24_t", "manufacturer": "Rocketarium", "part_number": "38mm Motor Mount tube 24\" (T)"},
+  {"component": {"id": "1.525 in", "length": "17.750 in", "material": "phenolic_kraft_bulk", "name": "Rocketarium 1.5\" (38) X 17.75\" Phenolic Motor Tube (P)", "od": "1.649 in", "type": "body_tube"}, "description": "1.5\" (38) Phenolic Motor Tube (P), PN 31.5\" (38) Phenolic Motor Tube (P)", "id": "1_5_38_x_17_75_phenolic_motor_tube_p", "manufacturer": "Rocketarium", "part_number": "1.5\" (38) X 17.75\" Phenolic Motor Tube (P)"},
+  {"component": {"id": "2.14 in", "length": "24 in", "material": "paper_spiral_kraft_motor_mount_54mm_bulk", "name": "Rocketarium 54mm Motor Mount tube 24\" long", "od": "2.26 in", "type": "body_tube"}, "description": "54mm Motor Mount tube 24\" long, PN 54mm Motor Mount tube 24\" long", "id": "54mm_motor_mount_tube_24_long", "manufacturer": "Rocketarium", "part_number": "54mm Motor Mount tube 24\" long"},
+  {"component": {"id": "2.14 in", "length": "10 in", "material": "paper_spiral_kraft_glassine_bulk", "name": "Rocketarium 54mm Motor Mount tube 10\" long", "od": "2.265 in", "type": "body_tube"}, "description": "54mm Motor Mount tube 10\" long, PN 54mm Motor Mount tube 10\" long", "id": "54mm_motor_mount_tube_10_long", "manufacturer": "Rocketarium", "part_number": "54mm Motor Mount tube 10\" long"},
+  {"component": {"id": "2.14 in", "length": "36 in", "material": "phenolic_kraft_bulk", "name": "Rocketarium 2.1\" Phenolic Tube. 36\" (P)", "od": "2.265 in", "type": "body_tube"}, "description": "2.1\" Phenolic Tube. 36\" (P), PN 2.1\" Phenolic Tube. 36\" (P)", "id": "2_1_phenolic_tube_36_p", "manufacturer": "Rocketarium", "part_number": "2.1\" Phenolic Tube. 36\" (P)"},
+  {"component": {"id": "0.290 in", "length": "2 in", "material": "paper_spiral_kraft_glassine_1_4_lugs_bulk", "name": "Rocketarium 1/4'' Launch Lug", "od": "0.340 in", "type": "launch_lug"}, "description": "Launch lug, 1/4 inch Launch lug, PN 1/4'' Launch Lug", "id": "1_4_launch_lug", "manufacturer": "Rocketarium", "part_number": "1/4'' Launch Lug"},
+  {"component": {"id": "0.150 in", "length": "1.000 in", "material": "paper_spiral_kraft_glassine_1_8_lugs_bulk", "name": "Rocketarium 1/8'' Launch Lug", "od": "0.160 in", "type": "launch_lug"}, "description": "Launch lug, 1/8 x 1, PN 1/8'' Launch Lug", "id": "1_8_launch_lug", "manufacturer": "Rocketarium", "part_number": "1/8'' Launch Lug"},
+  {"component": {"id": "0.210 in", "length": "2 in", "material": "paper_spiral_kraft_glassine_3_16_lugs_bulk", "name": "Rocketarium 3/16'' Launch Lug.", "od": "0.222 in", "type": "launch_lug"}, "description": "Launch lug, 3/16 x 2, PN 3/16'' Launch Lug.", "id": "3_16_launch_lug", "manufacturer": "Rocketarium", "part_number": "3/16'' Launch Lug."},
+  {"component": {"id": "0.625 in", "length": "2 in", "material": "paper_kraft_heavy_bt_29_coupler_bulk", "name": "Rocketarium BT-20 Tube Couplers.", "od": "0.705 in", "type": "coupler"}, "description": "BT-20 Tube Couplers., PN BT-20 Tube Couplers.", "id": "bt_20_tube_couplers", "manufacturer": "Rocketarium", "part_number": "BT-20 Tube Couplers."},
+  {"component": {"id": "0.91 in", "length": "1.75 in", "material": "fiber_vulcanized_coupler_bt_50_bulk", "name": "Rocketarium BT-50 Tube Couplers", "od": "0.945 in", "type": "coupler"}, "description": "BT-50 X 1.75 Tube Couplers, PN BT-50 Tube Couplers", "id": "bt_50_tube_couplers", "manufacturer": "Rocketarium", "part_number": "BT-50 Tube Couplers"},
+  {"component": {"id": "0.92 in", "length": "2 in", "material": "fiber_vulcanized_coupler_thick_bt_50_bulk", "name": "Rocketarium BT-50 (T) Tube Couplers", "od": "0.949 in", "type": "coupler"}, "description": "BT-50 X 1.75 Tube Couplers, Thick, PN BT-50 Tube Couplers", "id": "bt_50_t_tube_couplers", "manufacturer": "Rocketarium", "part_number": "BT-50 (T) Tube Couplers"},
+  {"component": {"id": "1.245 in", "length": "2 in", "material": "fiber_vulcanized_coupler_bt_55_bulk", "name": "Rocketarium BT-55 Tube Couplers", "od": "1.28 in", "type": "coupler"}, "description": "BT-55 X 2 Tube Couplers, PN BT-55 Tube Couplers", "id": "bt_55_tube_couplers", "manufacturer": "Rocketarium", "part_number": "BT-55 Tube Couplers"},
+  {"component": {"id": "1.55 in", "length": "2 in", "material": "fiber_vulcanized_coupler_bt_60_bulk", "name": "Rocketarium BT-60 Tube Couplers", "od": "1.6 in", "type": "coupler"}, "description": "BT-60 Tube Couplers, PN BT-60 Tube Couplers", "id": "bt_60_tube_couplers", "manufacturer": "Rocketarium", "part_number": "BT-60 Tube Couplers"},
+  {"component": {"id": "2.075 in", "length": "3 in", "material": "fiber_vulcanized_coupler_bt_70_bulk", "name": "Rocketarium BT-70 Tube Couplers", "od": "2.160 in", "type": "coupler"}, "description": "BT-70 X 3 Tube Couplers, PN BT-70 Tube Couplers", "id": "bt_70_tube_couplers", "manufacturer": "Rocketarium", "part_number": "BT-70 Tube Couplers"},
+  {"component": {"id": "2.474 in", "length": "3 in", "material": "fiber_vulcanized_coupler_bt_80_bulk", "name": "Rocketarium BT-80 Tube Couplers", "od": "2.554 in", "type": "coupler"}, "description": "BT-80 X 3 Tube Couplers, PN BT-80 Tube Couplers", "id": "bt_80_tube_couplers", "manufacturer": "Rocketarium", "part_number": "BT-80 Tube Couplers"},
+  {"component": {"id": "1.430 in", "length": "4 in", "material": "paper_spiral_kraft_coupler_38mm_bulk", "name": "Rocketarium 1.6\" (38mm) Tube Coupler", "od": "1.515 in", "type": "coupler"}, "description": "1.6\" (38mm) X 4 Tube Coupler, PN 1.6\" (38mm) Tube Coupler", "id": "1_6_38mm_tube_coupler", "manufacturer": "Rocketarium", "part_number": "1.6\" (38mm) Tube Coupler"},
+  {"component": {"id": "1.595 in", "length": "4.5 in", "material": "paper_kraft_heavy_bulk", "name": "Rocketarium 1.66\" Tube Coupler for 1.72\" Tube. 4.5\" Long", "od": "1.655 in", "type": "coupler"}, "description": "1.66\" Tube Coupler for 1.72\" Tube. 4.5\" Long, PN 1.66\" Tube Coupler for 1.72\" Tube. 4.5\" Long", "id": "1_66_tube_coupler_for_1_72_tube_4_5_long", "manufacturer": "Rocketarium", "part_number": "1.66\" Tube Coupler for 1.72\" Tube. 4.5\" Long"},
+  {"component": {"id": "1.635 in", "length": "4 in", "material": "paper_kraft_heavy_bulk", "name": "Rocketarium 1.9\" Tube Coupler", "od": "1.805 in", "type": "coupler"}, "description": "1.9\" X 4 Tube Coupler, PN 1.9\" Tube Coupler", "id": "1_9_tube_coupler", "manufacturer": "Rocketarium", "part_number": "1.9\" Tube Coupler"},
+  {"component": {"id": "2.075 in", "length": "5 in", "material": "paper_kraft_heavy_bulk", "name": "Rocketarium 54mm Tube Coupler", "od": "2.135 in", "type": "coupler"}, "description": "54mm X 5 Tube Coupler, PN 54mm Tube Coupler", "id": "54mm_tube_coupler", "manufacturer": "Rocketarium", "part_number": "54mm Tube Coupler"},
+  {"component": {"id": "2.474 in", "length": "5 in", "material": "paper_spiral_kraft_coupler_2_6_bulk", "name": "Rocketarium 2.6\" Tube Coupler", "od": "2.554 in", "type": "coupler"}, "description": "2.6\" X 5 Tube Coupler, PN 2.6\" Tube Coupler", "id": "2_6_tube_coupler", "manufacturer": "Rocketarium", "part_number": "2.6\" Tube Coupler"},
+  {"component": {"id": "2.89 in", "length": "5 in", "material": "paper_spiral_kraft_coupler_3_bulk", "name": "Rocketarium 3\" Tube Coupler", "od": "2.99 in", "type": "coupler"}, "description": "3\" X 5 Tube Coupler, PN 3\" Tube Coupler", "id": "3_tube_coupler", "manufacturer": "Rocketarium", "part_number": "3\" Tube Coupler"},
+  {"component": {"id": "3.7 in", "length": "8 in", "material": "paper_spiral_kraft_coupler_4_bulk", "name": "Rocketarium 4\" Tube Coupler", "od": "3.9 in", "type": "coupler"}, "description": "4\" X 8 Tube Coupler, PN 4\" Tube Coupler", "id": "4_tube_coupler", "manufacturer": "Rocketarium", "part_number": "4\" Tube Coupler"},
+  {"component": {"diameter": "12.0 in", "line_count": 6, "line_length": "12.0 in", "line_material": "carpet_thread", "material": "polyethylene_film_hdpe_1_0_mil_bare", "name": "Rocketarium Parachute, 12 in, Plastic", "override": {"mass": "4 g"}, "type": "parachute"}, "description": "Parachute, 12 in., Plastic PN Parachute, 12 in, Plastic", "id": "parachute_12_in_plastic", "manufacturer": "Rocketarium", "part_number": "Parachute, 12 in, Plastic"},
+  {"component": {"diameter": "15.0 in", "line_count": 6, "line_length": "15.0 in", "line_material": "carpet_thread", "material": "polyethylene_film_hdpe_1_0_mil_bare", "name": "Rocketarium Parachute, 15 in, Plastic", "override": {"mass": "5 g"}, "type": "parachute"}, "description": "Parachute, 15 in, Plastic PN Parachute, 15 in, Plastic", "id": "parachute_15_in_plastic", "manufacturer": "Rocketarium", "part_number": "Parachute, 15 in, Plastic"},
+  {"component": {"diameter": "18.0 in", "line_count": 6, "line_length": "18.0 in", "line_material": "carpet_thread", "material": "polyethylene_film_hdpe_1_0_mil_bare", "name": "Rocketarium Parachute, 18 in, Plastic", "override": {"mass": "7.5 g"}, "type": "parachute"}, "description": "Parachute, 18 in, Plastic PN Parachute, 18 in, Plastic", "id": "parachute_18_in_plastic", "manufacturer": "Rocketarium", "part_number": "Parachute, 18 in, Plastic"},
+  {"component": {"id": "0.250 in", "length": "0.05 in", "material": "fiber_bulk", "name": "Rocketarium CR23-F", "od": "0.348 in", "type": "centering_ring"}, "description": ".348x.250x.05thk fiber", "id": "cr23_f", "manufacturer": "Rocketarium", "part_number": "CR23-F"},
+  {"component": {"id": "0.250 in", "length": "0.05 in", "material": "fiber_bulk", "name": "Rocketarium CR24-F", "od": "0.420 in", "type": "centering_ring"}, "description": ".420x.250x.05thk fiber", "id": "cr24_f", "manufacturer": "Rocketarium", "part_number": "CR24-F"},
+  {"component": {"id": "0.250 in", "length": "0.05 in", "material": "fiber_bulk", "name": "Rocketarium CR25-F", "od": "0.516 in", "type": "centering_ring"}, "description": ".516x.250x.05thk fiber", "id": "cr25_f", "manufacturer": "Rocketarium", "part_number": "CR25-F"},
+  {"component": {"id": "0.250 in", "length": "0.05 in", "material": "fiber_bulk", "name": "Rocketarium CR220-F", "od": "0.708 in", "type": "centering_ring"}, "description": ".708x.250x.05thk fiber", "id": "cr220_f", "manufacturer": "Rocketarium", "part_number": "CR220-F"},
+  {"component": {"id": "0.281 in", "length": "0.05 in", "material": "fiber_bulk", "name": "Rocketarium CR2+3-F", "od": "0.348 in", "type": "centering_ring"}, "description": ".348x.281x.05thk fiber", "id": "cr2_3_f", "manufacturer": "Rocketarium", "part_number": "CR2+3-F"},
+  {"component": {"id": "0.281 in", "length": "0.05 in", "material": "fiber_bulk", "name": "Rocketarium CR2+4-F", "od": "0.420 in", "type": "centering_ring"}, "description": ".420x.281x.05thk fiber", "id": "cr2_4_f", "manufacturer": "Rocketarium", "part_number": "CR2+4-F"},
+  {"component": {"id": "0.281 in", "length": "0.05 in", "material": "fiber_bulk", "name": "Rocketarium CR2+5-F", "od": "0.518 in", "type": "centering_ring"}, "description": ".518x.281x.05thk fiber", "id": "cr2_5_f", "manufacturer": "Rocketarium", "part_number": "CR2+5-F"},
+  {"component": {"id": "0.376 in", "length": "0.05 in", "material": "fiber_bulk", "name": "Rocketarium CR34-F", "od": "0.420 in", "type": "centering_ring"}, "description": ".420x.376x.05thk fiber", "id": "cr34_f", "manufacturer": "Rocketarium", "part_number": "CR34-F"},
+  {"component": {"id": "0.376 in", "length": "0.25 in", "material": "paper_bulk", "name": "Rocketarium CR35-P", "od": "0.516 in", "type": "centering_ring"}, "description": ".516x.376x.25thk paper (mini eng thrust ring)", "id": "cr35_p", "manufacturer": "Rocketarium", "part_number": "CR35-P"},
+  {"component": {"id": "0.376 in", "length": "0.05 in", "material": "fiber_bulk", "name": "Rocketarium CR35-F", "od": "0.516 in", "type": "centering_ring"}, "description": ".516x.376x.05thk fiber", "id": "cr35_f", "manufacturer": "Rocketarium", "part_number": "CR35-F"},
+  {"component": {"id": "0.376 in", "length": "0.05 in", "material": "fiber_bulk", "name": "Rocketarium CR320-F", "od": "0.708 in", "type": "centering_ring"}, "description": ".708x.376x.05thk fiber", "id": "cr320_f", "manufacturer": "Rocketarium", "part_number": "CR320-F"},
+  {"component": {"id": "0.450 in", "length": "0.05 in", "material": "fiber_bulk", "name": "Rocketarium CR45-F", "od": "0.516 in", "type": "centering_ring"}, "description": ".516x.450x.05thk fiber", "id": "cr45_f", "manufacturer": "Rocketarium", "part_number": "CR45-F"},
+  {"component": {"id": "0.450 in", "length": "0.05 in", "material": "fiber_bulk", "name": "Rocketarium CR420-F", "od": "0.708 in", "type": "centering_ring"}, "description": ".708x.450x.05thk fiber", "id": "cr420_f", "manufacturer": "Rocketarium", "part_number": "CR420-F"},
+  {"component": {"id": "0.450 in", "length": "0.05 in", "material": "fiber_bulk", "name": "Rocketarium CR450-F", "od": "0.95 in", "type": "centering_ring"}, "description": ".95x.450x.05thk fiber", "id": "cr450_f", "manufacturer": "Rocketarium", "part_number": "CR450-F"},
+  {"component": {"id": "0.542 in", "length": "0.25 in", "material": "paper_bulk", "name": "Rocketarium CR520-P", "od": "0.708 in", "type": "centering_ring"}, "description": ".708x.542x.25thk paper", "id": "cr520_p", "manufacturer": "Rocketarium", "part_number": "CR520-P"},
+  {"component": {"id": "0.546 in", "length": "0.25 in", "material": "fiber_bulk", "name": "Rocketarium CR520-F", "od": "0.708 in", "type": "centering_ring"}, "description": ".708x.546x.25thk fiber", "id": "cr520_f", "manufacturer": "Rocketarium", "part_number": "CR520-F"},
+  {"component": {"id": "0.546 in", "length": "0.125 in", "material": "plywood_light_bulk", "name": "Rocketarium CR520-W", "od": "0.708 in", "type": "centering_ring"}, "description": ".703x.546x.125thk lite-ply", "id": "cr520_w", "manufacturer": "Rocketarium", "part_number": "CR520-W"},
+  {"component": {"id": "0.546 in", "length": "0.05 in", "material": "fiber_bulk", "name": "Rocketarium CR550-F", "od": "0.946 in", "type": "centering_ring"}, "description": ".946x.546x.05thk fiber", "id": "cr550_f", "manufacturer": "Rocketarium", "part_number": "CR550-F"},
+  {"component": {"id": "0.546 in", "length": "0.125 in", "material": "plywood_light_bulk", "name": "Rocketarium CR550-W", "od": "0.946 in", "type": "centering_ring"}, "description": "..946x.546x.125thk lite ply", "id": "cr550_w", "manufacturer": "Rocketarium", "part_number": "CR550-W"},
+  {"component": {"id": "0.546 in", "length": "0.05 in", "material": "fiber_bulk", "name": "Rocketarium CR555-F", "od": "1.283 in", "type": "centering_ring"}, "description": "1.283x.546x.05thk fiber", "id": "cr555_f", "manufacturer": "Rocketarium", "part_number": "CR555-F"},
+  {"component": {"id": "0.546 in", "length": "0.05 in", "material": "fiber_bulk", "name": "Rocketarium CR560-F", "od": "1.595 in", "type": "centering_ring"}, "description": "1.595x.546x.05thk fiber", "id": "cr560_f", "manufacturer": "Rocketarium", "part_number": "CR560-F"},
+  {"component": {"id": "0.736 in", "length": "0.05 in", "material": "paper_bulk", "name": "Rocketarium CR2050-P", "od": "0.946 in", "type": "centering_ring"}, "description": ".946x.736x.25thk paper", "id": "cr2050_p", "manufacturer": "Rocketarium", "part_number": "CR2050-P"},
+  {"component": {"id": "0.736 in", "length": "0.125 in", "material": "paper_bulk", "name": "Rocketarium CR2050-P1", "od": "0.946 in", "type": "centering_ring"}, "description": ".946x.736x.25thk paper", "id": "cr2050_p1", "manufacturer": "Rocketarium", "part_number": "CR2050-P1"},
+  {"component": {"id": "0.736 in", "length": "0.05 in", "material": "fiber_bulk", "name": "Rocketarium CR2050-F", "od": "0.946 in", "type": "centering_ring"}, "description": ".946x.736x.05thk paper", "id": "cr2050_f", "manufacturer": "Rocketarium", "part_number": "CR2050-F"},
+  {"component": {"id": "0.736 in", "length": "0.125 in", "material": "plywood_light_bulk", "name": "Rocketarium CR2050-W", "od": "0.946 in", "type": "centering_ring"}, "description": ".946x.736x.125thk lite ply", "id": "cr2050_w", "manufacturer": "Rocketarium", "part_number": "CR2050-W"},
+  {"component": {"id": "0.736 in", "length": "0.250 in", "material": "plywood_light_bulk", "name": "Rocketarium CR2050-TW", "od": "0.946 in", "type": "centering_ring"}, "description": ".946x.736x.25thk lite ply", "id": "cr2050_tw", "manufacturer": "Rocketarium", "part_number": "CR2050-TW"},
+  {"component": {"id": "0.736 in", "length": "0.050 in", "material": "fiber_bulk", "name": "Rocketarium CR2055-F", "od": "1.283 in", "type": "centering_ring"}, "description": "1.283x.736x.05thk fiber", "id": "cr2055_f", "manufacturer": "Rocketarium", "part_number": "CR2055-F"},
+  {"component": {"id": "0.736 in", "length": "0.125 in", "material": "plywood_light_bulk", "name": "Rocketarium CR2055-W", "od": "1.283 in", "type": "centering_ring"}, "description": "1.283x.736x.125thk lite ply", "id": "cr2055_w", "manufacturer": "Rocketarium", "part_number": "CR2055-W"},
+  {"component": {"id": "0.736 in", "length": "0.05 in", "material": "fiber_bulk", "name": "Rocketarium CR20104-F", "od": "1.005 in", "type": "centering_ring"}, "description": "1.005x.736x.05thk fiber", "id": "cr20104_f", "manufacturer": "Rocketarium", "part_number": "CR20104-F"},
+  {"component": {"id": "0.736 in", "length": "0.05 in", "material": "fiber_bulk", "name": "Rocketarium CR2060-F", "od": "1.593 in", "type": "centering_ring"}, "description": "1.593x.736x.05thk fiber", "id": "cr2060_f", "manufacturer": "Rocketarium", "part_number": "CR2060-F"},
+  {"component": {"id": "0.736 in", "length": "0.125 in", "material": "plywood_light_bulk", "name": "Rocketarium CR2060-W", "od": "1.593 in", "type": "centering_ring"}, "description": "1.593x.736x.05thk fiber", "id": "cr2060_w", "manufacturer": "Rocketarium", "part_number": "CR2060-W"},
+  {"component": {"id": "0.736 in", "length": "0.05 in", "material": "fiber_bulk", "name": "Rocketarium CR2070-F", "od": "2.178 in", "type": "centering_ring"}, "description": "2.178x.736x.05thk fiber", "id": "cr2070_f", "manufacturer": "Rocketarium", "part_number": "CR2070-F"},
+  {"component": {"id": "0.736 in", "length": "0.05 in", "material": "fiber_bulk", "name": "Rocketarium CR2080-F", "od": "2.558 in", "type": "centering_ring"}, "description": "2.558x.736x.05thk fiber", "id": "cr2080_f", "manufacturer": "Rocketarium", "part_number": "CR2080-F"},
+  {"component": {"id": "0.736 in", "length": "0.05 in", "material": "fiber_bulk", "name": "Rocketarium CR20101-F", "od": "3.896 in", "type": "centering_ring"}, "description": "3.896x.736x.05thk fiber", "id": "cr20101_f", "manufacturer": "Rocketarium", "part_number": "CR20101-F"},
+  {"component": {"id": "0.736 in", "length": "0.05 in", "material": "fiber_bulk", "name": "Rocketarium CR20204-F", "od": "2.042 in", "type": "centering_ring"}, "description": "2.042x.736x.05thk fiber", "id": "cr20204_f", "manufacturer": "Rocketarium", "part_number": "CR20204-F"},
+  {"component": {"id": "0.736 in", "length": "0.125 in", "material": "plywood_light_bulk", "name": "Rocketarium CR20300-W", "od": "1.593 in", "type": "centering_ring"}, "description": "1.593X.736X.125thk lite-ply", "id": "cr20300_w", "manufacturer": "Rocketarium", "part_number": "CR20300-W"},
+  {"component": {"id": "1.635 in", "length": "0.250 in", "material": "plywood_light_bulk", "name": "Rocketarium CR3854-130", "od": "2.135 in", "type": "centering_ring"}, "description": "2.135x1.635x.25thk lite-ply (38mm mount)", "id": "cr3854_130", "manufacturer": "Rocketarium", "part_number": "CR3854-130"},
+  {"component": {"id": "1.635 in", "length": "0.250 in", "material": "plywood_light_bulk", "name": "Rocketarium CR38300-130", "od": "2.930 in", "type": "centering_ring"}, "description": "2.930x1.635x.25thk lite-ply (38mm mount)", "id": "cr38300_130", "manufacturer": "Rocketarium", "part_number": "CR38300-130"},
+  {"component": {"id": "0.977 in", "length": "0.250 in", "material": "paper_bulk", "name": "Rocketarium CR5052H-P", "od": "1.137 in", "type": "centering_ring"}, "description": "1.137x.977x.25thk paper", "id": "cr5052h_p", "manufacturer": "Rocketarium", "part_number": "CR5052H-P"},
+  {"component": {"id": "0.977 in", "length": "0.500 in", "material": "paper_bulk", "name": "Rocketarium CR5052H-P1", "od": "1.137 in", "type": "centering_ring"}, "description": "1.137x.977x.50thk paper", "id": "cr5052h_p1", "manufacturer": "Rocketarium", "part_number": "CR5052H-P1"},
+  {"component": {"id": "0.980 in", "length": "0.050 in", "material": "fiber_bulk", "name": "Rocketarium CR5052H-F", "od": "1.114 in", "type": "centering_ring"}, "description": "1.14x.980x.05thk fiber", "id": "cr5052h_f", "manufacturer": "Rocketarium", "part_number": "CR5052H-F"},
+  {"component": {"id": "0.978 in", "length": "0.250 in", "material": "paper_bulk", "name": "Rocketarium CR5055-P", "od": "1.238 in", "type": "centering_ring"}, "description": "1.283x.978x.25thk paper", "id": "cr5055_p", "manufacturer": "Rocketarium", "part_number": "CR5055-P"},
+  {"component": {"id": "0.978 in", "length": "0.050 in", "material": "fiber_bulk", "name": "Rocketarium CR5055-F", "od": "1.238 in", "type": "centering_ring"}, "description": "1.283x.978x.05thk fiber", "id": "cr5055_f", "manufacturer": "Rocketarium", "part_number": "CR5055-F"},
+  {"component": {"id": "0.978 in", "length": "0.125 in", "material": "plywood_light_bulk", "name": "Rocketarium CR5055-W", "od": "1.238 in", "type": "centering_ring"}, "description": "1.283x.978x.125thk lite-ply", "id": "cr5055_w", "manufacturer": "Rocketarium", "part_number": "CR5055-W"},
+  {"component": {"id": "0.990 in", "length": "0.125 in", "material": "plywood_light_bulk", "name": "Rocketarium CR50H55-W", "od": "1.238 in", "type": "centering_ring"}, "description": "1.283x.990x.125thk lite-ply", "id": "cr50h55_w", "manufacturer": "Rocketarium", "part_number": "CR50H55-W"},
+  {"component": {"id": "0.978 in", "length": "0.125 in", "material": "plywood_light_bulk", "name": "Rocketarium CR5060-W", "od": "1.238 in", "type": "centering_ring"}, "description": "1.593x.978x.125thk lite-ply", "id": "cr5060_w", "manufacturer": "Rocketarium", "part_number": "CR5060-W"},
+  {"component": {"id": "0.978 in", "length": "0.05 in", "material": "fiber_bulk", "name": "Rocketarium CR5060-F", "od": "1.593 in", "type": "centering_ring"}, "description": "1.593x.978x.05thk fiber", "id": "cr5060_f", "manufacturer": "Rocketarium", "part_number": "CR5060-F"},
+  {"component": {"id": "0.990 in", "length": "0.05 in", "material": "fiber_bulk", "name": "Rocketarium CR50H60-F", "od": "1.593 in", "type": "centering_ring"}, "description": "1.593x.990x.05thk fiber", "id": "cr50h60_f", "manufacturer": "Rocketarium", "part_number": "CR50H60-F"},
+  {"component": {"id": "0.978 in", "length": "0.05 in", "material": "fiber_bulk", "name": "Rocketarium CR5070-F", "od": "2.178 in", "type": "centering_ring"}, "description": "2.178x.978x.05thk fiber", "id": "cr5070_f", "manufacturer": "Rocketarium", "part_number": "CR5070-F"},
+  {"component": {"id": "0.990 in", "length": "0.125 in", "material": "plywood_light_bulk", "name": "Rocketarium CR50H70-W", "od": "2.178 in", "type": "centering_ring"}, "description": "2.178x.990x.125thk lite-ply", "id": "cr50h70_w", "manufacturer": "Rocketarium", "part_number": "CR50H70-W"},
+  {"component": {"id": "0.978 in", "length": "0.125 in", "material": "plywood_light_bulk", "name": "Rocketarium CR5070-W", "od": "2.178 in", "type": "centering_ring"}, "description": "2.178x.978x.125thk lite-ply", "id": "cr5070_w", "manufacturer": "Rocketarium", "part_number": "CR5070-W"},
+  {"component": {"id": "1.000 in", "length": "0.05 in", "material": "plywood_light_bulk", "name": "Rocketarium CR50MF70-W", "od": "2.178 in", "type": "centering_ring"}, "description": "2.178x1.00x.05thk lite-ply", "id": "cr50mf70_w", "manufacturer": "Rocketarium", "part_number": "CR50MF70-W"},
+  {"component": {"id": "1.000 in", "length": "0.05 in", "material": "plywood_light_bulk", "name": "Rocketarium CR5080-W", "od": "2.178 in", "type": "centering_ring"}, "description": "2.178x1.00x.05thk lite-ply", "id": "cr5080_w", "manufacturer": "Rocketarium", "part_number": "CR5080-W"},
+  {"component": {"id": "0.978 in", "length": "0.05 in", "material": "fiber_bulk", "name": "Rocketarium CR5080-F", "od": "2.556 in", "type": "centering_ring"}, "description": "2.556x.978x.05thk fiber", "id": "cr5080_f", "manufacturer": "Rocketarium", "part_number": "CR5080-F"},
+  {"component": {"id": "0.990 in", "length": "0.05 in", "material": "plywood_light_bulk", "name": "Rocketarium CR50H80-W", "od": "2.556 in", "type": "centering_ring"}, "description": "2.556x.990x.05thk lite-ply", "id": "cr50h80_w", "manufacturer": "Rocketarium", "part_number": "CR50H80-W"},
+  {"component": {"id": "1.000 in", "length": "0.125 in", "material": "plywood_light_bulk", "name": "Rocketarium CR50MF80-W", "od": "2.556 in", "type": "centering_ring"}, "description": "2.556x1.00x.125thk lite-ply", "id": "cr50mf80_w", "manufacturer": "Rocketarium", "part_number": "CR50MF80-W"},
+  {"component": {"id": "1.000 in", "length": "0.125 in", "material": "plywood_baltic_birch_bulk", "name": "Rocketarium CR50MF300-100", "od": "2.930 in", "type": "centering_ring"}, "description": "2.930x1.00x0.125thk 3-ply birch", "id": "cr50mf300_100", "manufacturer": "Rocketarium", "part_number": "CR50MF300-100"},
+  {"component": {"id": "0.978 in", "length": "0.125 in", "material": "fiber_bulk", "name": "Rocketarium CR50101-F", "od": "3.896 in", "type": "centering_ring"}, "description": "3.896x.978x.125thk fiber", "id": "cr50101_f", "manufacturer": "Rocketarium", "part_number": "CR50101-F"},
+  {"component": {"id": "1.210 in", "length": "0.125 in", "material": "plywood_light_bulk", "name": "Rocketarium CR52H38-W", "od": "1.525 in", "type": "centering_ring"}, "description": "1.525x1.210x.125thk lite-ply", "id": "cr52h38_w", "manufacturer": "Rocketarium", "part_number": "CR52H38-W"},
+  {"component": {"id": "1.215 in", "length": "0.05 in", "material": "fiber_bulk", "name": "Rocketarium CR52H55-F", "od": "1.283 in", "type": "centering_ring"}, "description": "1.283x1.215x.05thk fiber", "id": "cr52h55_f", "manufacturer": "Rocketarium", "part_number": "CR52H55-F"},
+  {"component": {"id": "1.215 in", "length": "0.05 in", "material": "fiber_bulk", "name": "Rocketarium CR52H60-F", "od": "1.592 in", "type": "centering_ring"}, "description": "1.592x1.215x.05thk fiber", "id": "cr52h60_f", "manufacturer": "Rocketarium", "part_number": "CR52H60-F"},
+  {"component": {"id": "1.215 in", "length": "0.125 in", "material": "plywood_light_bulk", "name": "Rocketarium CR52H70-W", "od": "2.217 in", "type": "centering_ring"}, "description": "2.217x1.215x.125thk lite-ply", "id": "cr52h70_w", "manufacturer": "Rocketarium", "part_number": "CR52H70-W"},
+  {"component": {"id": "1.215 in", "length": "0.125 in", "material": "plywood_light_bulk", "name": "Rocketarium CR52H80-W", "od": "2.558 in", "type": "centering_ring"}, "description": "2.558x1.215x.125thk lite-ply", "id": "cr52h80_w", "manufacturer": "Rocketarium", "part_number": "CR52H80-W"},
+  {"component": {"id": "1.215 in", "length": "0.25 in", "material": "plywood_light_bulk", "name": "Rocketarium CR52H300-W", "od": "2.930 in", "type": "centering_ring"}, "description": "2.930x1.215x.25thk lite-ply", "id": "cr52h300_w", "manufacturer": "Rocketarium", "part_number": "CR52H300-W"},
+  {"component": {"id": "1.283 in", "length": "0.125 in", "material": "fiber_bulk", "name": "Rocketarium CR5560-W", "od": "1.592 in", "type": "centering_ring"}, "description": "1.592x1.283x.125thk fiber", "id": "cr5560_w", "manufacturer": "Rocketarium", "part_number": "CR5560-W"},
+  {"component": {"id": "1.283 in", "length": "0.05 in", "material": "fiber_bulk", "name": "Rocketarium CR5560-F", "od": "1.592 in", "type": "centering_ring"}, "description": "1.592x1.283x.125thk fiber", "id": "cr5560_f", "manufacturer": "Rocketarium", "part_number": "CR5560-F"},
+  {"component": {"id": "1.283 in", "length": "0.05 in", "material": "fiber_bulk", "name": "Rocketarium CR5570-F", "od": "2.217 in", "type": "centering_ring"}, "description": "2.217x1.283x.05thk fiber", "id": "cr5570_f", "manufacturer": "Rocketarium", "part_number": "CR5570-F"},
+  {"component": {"id": "1.283 in", "length": "0.125 in", "material": "plywood_light_bulk", "name": "Rocketarium CR5570-W", "od": "2.217 in", "type": "centering_ring"}, "description": "2.217x1.283x.125thk lite-ply", "id": "cr5570_w", "manufacturer": "Rocketarium", "part_number": "CR5570-W"},
+  {"component": {"id": "1.283 in", "length": "0.05 in", "material": "fiber_bulk", "name": "Rocketarium CR5580-F", "od": "2.558 in", "type": "centering_ring"}, "description": "2.558x1.283x.05thk fiber", "id": "cr5580_f", "manufacturer": "Rocketarium", "part_number": "CR5580-F"},
+  {"component": {"id": "1.283 in", "length": "0.05 in", "material": "fiber_bulk", "name": "Rocketarium CR55101-F", "od": "3.896 in", "type": "centering_ring"}, "description": "3.896x1.283x.05thk fiber", "id": "cr55101_f", "manufacturer": "Rocketarium", "part_number": "CR55101-F"},
+  {"component": {"id": "1.637 in", "length": "0.05 in", "material": "fiber_bulk", "name": "Rocketarium CR6070-F", "od": "2.217 in", "type": "centering_ring"}, "description": "2.217x1.637x.05thk fiber", "id": "cr6070_f", "manufacturer": "Rocketarium", "part_number": "CR6070-F"},
+  {"component": {"id": "1.637 in", "length": "0.125 in", "material": "plywood_light_bulk", "name": "Rocketarium CR6070-W", "od": "2.217 in", "type": "centering_ring"}, "description": "2.175x1.637x.125thk lite-ply", "id": "cr6070_w", "manufacturer": "Rocketarium", "part_number": "CR6070-W"},
+  {"component": {"id": "1.637 in", "length": "0.05 in", "material": "fiber_bulk", "name": "Rocketarium CR6080-F", "od": "2.558 in", "type": "centering_ring"}, "description": "2.558x1.637x.05thk fiber", "id": "cr6080_f", "manufacturer": "Rocketarium", "part_number": "CR6080-F"},
+  {"component": {"id": "1.637 in", "length": "0.125 in", "material": "plywood_light_bulk", "name": "Rocketarium CR6080-W", "od": "2.558 in", "type": "centering_ring"}, "description": "2.558x1.637x.125 thk lite-ply", "id": "cr6080_w", "manufacturer": "Rocketarium", "part_number": "CR6080-W"},
+  {"component": {"id": "1.595 in", "length": "0.05 in", "material": "fiber_bulk", "name": "Rocketarium CR60101-F", "od": "3.896 in", "type": "centering_ring"}, "description": "3.896x1.595x.05thk fiber", "id": "cr60101_f", "manufacturer": "Rocketarium", "part_number": "CR60101-F"},
+  {"component": {"id": "2.175 in", "length": "0.05 in", "material": "fiber_bulk", "name": "Rocketarium CR7080-F", "od": "2.588 in", "type": "centering_ring"}, "description": "2.588x2.175x.05thk fiber", "id": "cr7080_f", "manufacturer": "Rocketarium", "part_number": "CR7080-F"},
+  {"component": {"id": "2.175 in", "length": "0.125 in", "material": "plywood_light_bulk", "name": "Rocketarium CR7080-W", "od": "2.588 in", "type": "centering_ring"}, "description": "2.588x2.175x.125 thk lite-ply", "id": "cr7080_w", "manufacturer": "Rocketarium", "part_number": "CR7080-W"},
+  {"component": {"id": "2.600 in", "length": "0.125 in", "material": "plywood_light_bulk", "name": "Rocketarium CR80300-W", "od": "2.930 in", "type": "centering_ring"}, "description": "2.930Xx2.600x.125thk lite-ply", "id": "cr80300_w", "manufacturer": "Rocketarium", "part_number": "CR80300-W"},
+  {"component": {"length": "0.125 in", "material": "plywood_aircraft_1_8_in_bulk", "name": "Rocketarium BT-60 Coupler bulkplate", "od": "1.52 in", "type": "bulkhead"}, "description": "BT-60 Coupler bulkplate (fits inside Rocketarium BT-60 Coupler)", "id": "bt_60_coupler_bulkplate", "manufacturer": "Rocketarium", "part_number": "BT-60 Coupler bulkplate"},
+  {"component": {"length": "0.125 in", "material": "plywood_aircraft_1_8_in_bulk", "name": "Rocketarium BT-80 Coupler bulkplate", "od": "2.471 in", "type": "bulkhead"}, "description": "BT-80 Coupler bulkplate (fits inside Rocketarium BT-80 Coupler)", "id": "bt_80_coupler_bulkplate", "manufacturer": "Rocketarium", "part_number": "BT-80 Coupler bulkplate"},
+  {"component": {"length": "0.125 in", "material": "plywood_aircraft_1_4_in_bulk", "name": "Rocketarium 1.1\" (29mm) bulkplate", "od": "1.144 in", "type": "bulkhead"}, "description": "1.1\" (29mm) bulkplate (fits inside Rocketarium 1.1\" (29mm))", "id": "1_1_29mm_bulkplate", "manufacturer": "Rocketarium", "part_number": "1.1\" (29mm) bulkplate"},
+  {"component": {"length": "0.25 in", "material": "plywood_aircraft_1_4_in_bulk", "name": "Rocketarium 1.6\" (38mm) bulkplate", "od": "1.144 in", "type": "bulkhead"}, "description": "1.6\" (38mm) bulkplate (fits inside Rocketarium 1.6\" (38mm))", "id": "1_6_38mm_bulkplate", "manufacturer": "Rocketarium", "part_number": "1.6\" (38mm) bulkplate"},
+  {"component": {"length": "0.25 in", "material": "plywood_aircraft_1_4_in_bulk", "name": "Rocketarium 1.6\" (38mm) bulkplate", "od": "1.496 in", "type": "bulkhead"}, "description": "1.6\" (38mm) bulkplate (fits inside Rocketarium 1.6\" (38mm))", "id": "1_6_38mm_bulkplate_2", "manufacturer": "Rocketarium", "part_number": "1.6\" (38mm) bulkplate"},
+  {"component": {"length": "0.25 in", "material": "plywood_aircraft_1_4_in_bulk", "name": "Rocketarium 1.9\" bulkplate", "od": "1.797 in", "type": "bulkhead"}, "description": "1.9\" bulkplate (fits inside Rocketarium 1.9\")", "id": "1_9_bulkplate", "manufacturer": "Rocketarium", "part_number": "1.9\" bulkplate"},
+  {"component": {"length": "0.125 in", "material": "plywood_light_bulk", "name": "Rocketarium BHT70-W", "od": "2.175 in", "type": "bulkhead"}, "description": "2.175x.125thk bulkhead lite-ply (fits inside body tube) bulkhead", "id": "bht70_w", "manufacturer": "Rocketarium", "part_number": "BHT70-W"},
+  {"component": {"length": "0.05 in", "material": "fiber_bulk", "name": "Rocketarium BHC70-F", "od": "2.104 in", "type": "bulkhead"}, "description": "2.104x.05thk fiber bulkhead(fits inside coupler)", "id": "bhc70_f", "manufacturer": "Rocketarium", "part_number": "BHC70-F"},
+  {"component": {"length": "0.125 in", "material": "plywood_light_bulk", "name": "Rocketarium BHC70-W", "od": "2.104 in", "type": "bulkhead"}, "description": "2.104x.125thk lite-ply bulkhead(fits inside coupler)", "id": "bhc70_w", "manufacturer": "Rocketarium", "part_number": "BHC70-W"},
+  {"component": {"length": "0.05 in", "material": "fiber_bulk", "name": "Rocketarium BHT80-F", "od": "2.558 in", "type": "bulkhead"}, "description": "2.558x.05thk fiber bulkhead(fits inside body tube)", "id": "bht80_f", "manufacturer": "Rocketarium", "part_number": "BHT80-F"},
+  {"component": {"length": "0.125 in", "material": "plywood_light_bulk", "name": "Rocketarium BHT80-W", "od": "2.558 in", "type": "bulkhead"}, "description": "2.558x.125 lite-ply(fits inside body tube)", "id": "bht80_w", "manufacturer": "Rocketarium", "part_number": "BHT80-W"},
+  {"component": {"length": "0.05 in", "material": "fiber_bulk", "name": "Rocketarium BHC80-F", "od": "2.474 in", "type": "bulkhead"}, "description": "2.474x.05thk fiber bulkhead(fits inside coupler)", "id": "bhc80_f", "manufacturer": "Rocketarium", "part_number": "BHC80-F"},
+  {"component": {"length": "0.125 in", "material": "plywood_light_bulk", "name": "Rocketarium BHC80-W", "od": "2.474 in", "type": "bulkhead"}, "description": "2.474x.125thk lite-ply bulkhead(fits inside coupler)", "id": "bhc80_w", "manufacturer": "Rocketarium", "part_number": "BHC80-W"},
+  {"component": {"length": "0.125 in", "material": "plywood_light_bulk", "name": "Rocketarium BHT300-W", "od": "2.930 in", "type": "bulkhead"}, "description": "2.930x.125thk lite-ply bulkhead(fits inside body tube)", "id": "bht300_w", "manufacturer": "Rocketarium", "part_number": "BHT300-W"},
+  {"component": {"length": "0.125 in", "material": "plywood_light_bulk", "name": "Rocketarium BHC300-W", "od": "2.855 in", "type": "bulkhead"}, "description": "2.855x.125thk lite-ply bulkhead(fits inside coupler)", "id": "bhc300_w", "manufacturer": "Rocketarium", "part_number": "BHC300-W"},
+  {"component": {"length": "2.835 in", "material": "polyethylene_hips_bulk", "name": "Rocketarium BT-20 2.9\" Single Piece Nose Cone", "od": "0.742 in", "override": {"mass": "3.5 g"}, "shape": "ogive", "shoulder": {"length": "0.571 in", "od": "0.707 in"}, "type": "nose_cone"}, "description": "BT-20 2.9\" Single Piece Nose Cone, fits BT20", "id": "bt_20_2_9_single_piece_nose_cone", "manufacturer": "Rocketarium", "part_number": "BT-20 2.9\" Single Piece Nose Cone"},
+  {"component": {"length": "3.091 in", "material": "polyethylene_hips_bulk", "name": "Rocketarium BT-50 3\" Long White Nose Cone", "od": "0.984 in", "override": {"mass": "10 g"}, "shape": "ogive", "shoulder": {"length": "0.768 in", "od": "0.948 in"}, "type": "nose_cone"}, "description": "BT-50 3\" Long White Nose Cone, fits BT50", "id": "bt_50_3_long_white_nose_cone", "manufacturer": "Rocketarium", "part_number": "BT-50 3\" Long White Nose Cone"},
+  {"component": {"length": "5.000 in", "material": "polyethylene_hips_bulk", "name": "Rocketarium BT-50T 5\" Long Conical Nose Cone", "od": "0.984 in", "override": {"mass": "13 g"}, "shape": "conical", "shoulder": {"length": "0.768 in", "od": "0.948 in"}, "type": "nose_cone"}, "description": "BT-50T 5\" Long Conical Nose Cone, fits BT50", "id": "bt_50t_5_long_conical_nose_cone", "manufacturer": "Rocketarium", "part_number": "BT-50T 5\" Long Conical Nose Cone"},
+  {"component": {"length": "5.512 in", "material": "polyethylene_hdpe_bulk", "name": "Rocketarium BT-60 HDPE Nose Cone 5.5\" Long", "od": "1.622 in", "override": {"mass": "15 g"}, "shape": "ogive", "shoulder": {"length": "1.220 in", "od": "1.593 in"}, "type": "nose_cone"}, "description": "BT-60 HDPE Nose Cone 5.5\" Long, fits BT60", "id": "bt_60_hdpe_nose_cone_5_5_long", "manufacturer": "Rocketarium", "part_number": "BT-60 HDPE Nose Cone 5.5\" Long"},
+  {"component": {"length": "5.512 in", "material": "polyethylene_hips_bulk", "name": "Rocketarium BT-60 HIPS Nose Cone 5.5\" Long", "od": "1.642 in", "override": {"mass": "32 g"}, "shape": "ogive", "shoulder": {"length": "1.220 in", "od": "1.591 in"}, "type": "nose_cone"}, "description": "BT-60 HIPS Nose Cone 5.5\" Long, fits BT60", "id": "bt_60_hips_nose_cone_5_5_long", "manufacturer": "Rocketarium", "part_number": "BT-60 HIPS Nose Cone 5.5\" Long"},
+  {"component": {"length": "7.5 in", "material": "polyethylene_hips_bulk", "name": "Rocketarium BT-70 Nose Cone. 7.5\" Long", "od": "2.224 in", "override": {"mass": "59 g"}, "shape": "ogive", "shoulder": {"length": "1.70 in", "od": "2.169 in"}, "type": "nose_cone"}, "description": "BT-70 Nose Cone. 7.5\" Long, fits BT70", "id": "bt_70_nose_cone_7_5_long", "manufacturer": "Rocketarium", "part_number": "BT-70 Nose Cone. 7.5\" Long"},
+  {"component": {"length": "8.268 in", "material": "polyethylene_hips_bulk", "name": "Rocketarium BT-80K Nose Cone. 8.25\" Long", "od": "2.610 in", "override": {"mass": "76 g"}, "shape": "ogive", "shoulder": {"length": "1.575 in", "od": "2.559 in"}, "type": "nose_cone"}, "description": "BT-80K Nose Cone. 8.25\" Long, fits BT80", "id": "bt_80k_nose_cone_8_25_long", "manufacturer": "Rocketarium", "part_number": "BT-80K Nose Cone. 8.25\" Long"},
+  {"component": {"length": "17.000 in", "material": "polyethylene_film_hdpe_1_0_mil_bare", "name": "Rocketarium 1.25 x 17\" Orange Plastic Streamer", "override": {"mass": "0.81 g"}, "type": "streamer", "width": "1.250 in"}, "description": "Streamer, 1.25 x 17\", PN 1.25\" x 17\" Orange Plastic Streamer", "id": "1_25_x_17_orange_plastic_streamer", "manufacturer": "Rocketarium", "part_number": "1.25 x 17\" Orange Plastic Streamer"}
+ ]
+}

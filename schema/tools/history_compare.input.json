@@ -1,0 +1,28 @@
+{
+  "type": "object",
+  "properties": {
+    "a": {
+      "type": "string"
+    },
+    "b": {
+      "type": "string"
+    },
+    "visual": {
+      "type": "boolean",
+      "description": "Also render a visual diff (M2).",
+      "default": false
+    },
+    "breakdown": {
+      "type": "boolean",
+      "description": "Also return the per-component mass and CG rows\n(`mass.components.<id>.mass|cg`) and the per-component aero terms\n(`aero.terms.<id>.cna|cp`) in `breakdown`.",
+      "default": false
+    }
+  },
+  "required": [
+    "a",
+    "b"
+  ],
+  "title": "HistoryCompareIn",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rocketwright.dev/schema/1/tools/history_compare.input.json"
+}

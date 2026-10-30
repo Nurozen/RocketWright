@@ -1,0 +1,263 @@
+{
+  "provenance": "contract-fixture",
+  "type": "check-report",
+  "payload": {
+    "schema": "rw/1",
+    "status": "warnings",
+    "tier": "static",
+    "model_hash": "1ceb288e422bb33c662e66c9265157be29a006761136f05776dd3891e9ea8822",
+    "config": "baseline",
+    "diagnostics": [
+      {
+        "code": "RW-W151",
+        "severity": "warning",
+        "path": "/c/ring_lower",
+        "file": "rocket.rw.toml",
+        "line": 88,
+        "col": 1,
+        "message": "Centering ring (lower) sits 6 mm from the motor retainer",
+        "hint": "Move it fore with attach.offset = \"-10 mm\" if the retainer needs room."
+      }
+    ],
+    "dims": {
+      "length": 0.84,
+      "max_diameter": 0.054,
+      "fin_span": 0.234,
+      "components": [
+        {
+          "component": "nose",
+          "x_fore": 0.0,
+          "x_aft": 0.22,
+          "length": 0.22,
+          "od": 0.054
+        },
+        {
+          "component": "recovery_bay",
+          "x_fore": 0.22,
+          "x_aft": 0.34,
+          "length": 0.12,
+          "od": 0.054,
+          "id": 0.0518
+        },
+        {
+          "component": "parachute",
+          "x_fore": 0.235,
+          "x_aft": 0.315,
+          "length": 0.08
+        },
+        {
+          "component": "airframe",
+          "x_fore": 0.34,
+          "x_aft": 0.64,
+          "length": 0.3,
+          "od": 0.054,
+          "id": 0.0518
+        },
+        {
+          "component": "bulkhead",
+          "x_fore": 0.34,
+          "x_aft": 0.346,
+          "length": 0.006,
+          "od": 0.0518
+        },
+        {
+          "component": "avionics",
+          "x_fore": 0.36,
+          "x_aft": 0.46,
+          "length": 0.1,
+          "od": 0.05
+        },
+        {
+          "component": "lug",
+          "x_fore": 0.5,
+          "x_aft": 0.55,
+          "length": 0.05,
+          "od": 0.008,
+          "id": 0.0065
+        },
+        {
+          "component": "fin_can",
+          "x_fore": 0.64,
+          "x_aft": 0.84,
+          "length": 0.2,
+          "od": 0.054,
+          "id": 0.0518
+        },
+        {
+          "component": "motor_mount",
+          "x_fore": 0.66,
+          "x_aft": 0.84,
+          "length": 0.18,
+          "od": 0.032,
+          "id": 0.0292
+        },
+        {
+          "component": "ring_upper",
+          "x_fore": 0.67,
+          "x_aft": 0.676,
+          "length": 0.006,
+          "od": 0.0518,
+          "id": 0.032
+        },
+        {
+          "component": "ring_lower",
+          "x_fore": 0.828,
+          "x_aft": 0.834,
+          "length": 0.006,
+          "od": 0.0518,
+          "id": 0.032
+        },
+        {
+          "component": "fins",
+          "x_fore": 0.7,
+          "x_aft": 0.84,
+          "length": 0.14
+        }
+      ]
+    },
+    "mass": {
+      "dry": 0.53,
+      "liftoff": 0.6219,
+      "burnout": 0.5829,
+      "propellant": 0.039,
+      "cg": 0.4851,
+      "cg_burnout": 0.4702,
+      "ixx": 0.00026,
+      "iyy": 0.0331,
+      "components": [
+        {
+          "component": "nose",
+          "mass": 0.071,
+          "cg": 0.152,
+          "override": false
+        },
+        {
+          "component": "recovery_bay",
+          "mass": 0.054,
+          "cg": 0.28,
+          "override": false
+        },
+        {
+          "component": "parachute",
+          "mass": 0.042,
+          "cg": 0.275,
+          "override": false
+        },
+        {
+          "component": "airframe",
+          "mass": 0.098,
+          "cg": 0.49,
+          "override": false
+        },
+        {
+          "component": "avionics",
+          "mass": 0.085,
+          "cg": 0.41,
+          "override": true
+        },
+        {
+          "component": "fins",
+          "mass": 0.078,
+          "cg": 0.79,
+          "override": false
+        }
+      ]
+    },
+    "aero": {
+      "cp": 0.5774,
+      "cna": 9.84,
+      "mach": 0.3,
+      "alpha": 0.0,
+      "cd": 0.52,
+      "terms": [
+        {
+          "component": "nose",
+          "cna": 2.0,
+          "cp": 0.103,
+          "model": "barrowman1967:nose"
+        },
+        {
+          "component": "fins",
+          "cna": 7.84,
+          "cp": 0.7398,
+          "model": "barrowman1967:fins"
+        }
+      ]
+    },
+    "stability": {
+      "liftoff": 1.71,
+      "burnout": 1.98,
+      "min": 1.71,
+      "liftoff_pct_length": 10.99,
+      "ref_diameter": 0.054
+    },
+    "motor": [
+      {
+        "mount": "motor_mount",
+        "designation": "F40",
+        "total_impulse": 80.0,
+        "burn_time": 2.0,
+        "thrust_to_weight": 6.56,
+        "fits_mount": true,
+        "retained": true,
+        "motor": "generic:RW_F40G",
+        "sha256": "e8cf2af56dcc1b4c56e45032b7d9efb67f3d6c92f8716655d242b0b92d995761"
+      }
+    ],
+    "interference": [],
+    "clearance": [
+      {
+        "rule": "recovery_volume",
+        "a": "parachute",
+        "b": "recovery_bay",
+        "required": 0.000127,
+        "actual": 0.000253,
+        "dim": "volume",
+        "pass": true
+      },
+      {
+        "rule": "coupler_fit",
+        "a": "nose",
+        "b": "recovery_bay",
+        "required": 0.0005,
+        "actual": 0.0,
+        "dim": "length",
+        "pass": true
+      }
+    ],
+    "assertions": [
+      {
+        "id": "stable",
+        "expr": "stability.liftoff >= 1.0 cal",
+        "value": 1.71,
+        "pass": true,
+        "severity": "error",
+        "needs_sim": false
+      },
+      {
+        "id": "rail_speed",
+        "expr": "rail_exit_velocity_ms >= 15 m/s",
+        "pass": true,
+        "severity": "warning",
+        "needs_sim": true,
+        "message": "needs --sim quick"
+      }
+    ],
+    "report": {
+      "= c.fins.span": {
+        "value": 0.09,
+        "dim": "length"
+      },
+      "= c.airframe.length": {
+        "value": 0.3,
+        "dim": "length"
+      }
+    },
+    "inputs": {
+      "rocketwright.toml": "05b3abf2579a5eb66403cd78be557fd860633a1fe2103c7642030defe32c657f",
+      "rocket.rw.toml": "c58dd0a3760008c901839e21a0a5ae6cc92e3765513823ca9553e6ef5f733b36",
+      "configs/baseline.rw.toml": "e67d23e7820c49a8051dac2831f38290f5e72f66c8db5079eeb60d82f14894c0",
+      "motor:generic:RW_F40G": "e8cf2af56dcc1b4c56e45032b7d9efb67f3d6c92f8716655d242b0b92d995761"
+    }
+  }
+}

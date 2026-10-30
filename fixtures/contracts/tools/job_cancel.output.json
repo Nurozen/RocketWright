@@ -1,0 +1,12 @@
+{
+  "provenance": "contract-fixture",
+  "type": "tools/job_cancel.output",
+  "payload": {
+    "job_id": "job-0007",
+    "kind": "simulate",
+    "state": "cancelled",
+    "progress": 0.42,
+    "sim": "baseline",
+    "run_id": "f8eb21388e28"
+  }
+}

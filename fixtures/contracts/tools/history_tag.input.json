@@ -1,0 +1,8 @@
+{
+  "provenance": "contract-fixture",
+  "type": "tools/history_tag.input",
+  "payload": {
+    "name": "Flight-ready fins",
+    "version": "step:4"
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "type": "object",
+  "properties": {
+    "path": {
+      "type": "string",
+      "description": "A CSV file (one step) or a directory of `<prefix>_t<seconds>.csv`\nsteps (R6.15); absolute or relative to the project."
+    },
+    "study": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Dataset id (`[a-z0-9_-]`); default: the file prefix before `_t<s>`."
+    },
+    "dry_run": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "path"
+  ],
+  "title": "CfdImportIn",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rocketwright.dev/schema/1/tools/cfd_import.input.json"
+}

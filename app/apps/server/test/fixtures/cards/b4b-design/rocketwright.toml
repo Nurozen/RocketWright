@@ -1,0 +1,4 @@
+# The smallest flyable project (`rw init --template minimum`).
+format = 1
+name = "Rocket"
+default_config = "default"

@@ -1,0 +1,33 @@
+{
+  "provenance": "contract-fixture",
+  "type": "render-result",
+  "payload": {
+    "view": "iso",
+    "path": "renders/baseline.iso.png",
+    "png_sha256": "8f8cbb7dcf46e0bc7d53265749a6c17d116093a6ba95e442764060c76fd4a86c",
+    "width": 1536,
+    "height": 1024,
+    "camera": {
+      "position": [
+        1.2,
+        -1.0,
+        0.8
+      ],
+      "target": [
+        0.42,
+        0.0,
+        0.0
+      ],
+      "up": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "orthographic": true,
+      "ortho_height": 0.6
+    },
+    "backend": "webgpu",
+    "adapter": "Apple M3 Pro (Metal)",
+    "model_hash": "1ceb288e422bb33c662e66c9265157be29a006761136f05776dd3891e9ea8822"
+  }
+}

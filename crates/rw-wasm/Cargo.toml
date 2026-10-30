@@ -1,0 +1,29 @@
+[package]
+name = "rw-wasm"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+wasm-bindgen.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+blake3.workspace = true
+rw-model.workspace = true
+rw-geom.workspace = true
+rw-mass.workspace = true
+rw-aero.workspace = true
+rw-motor.workspace = true
+rw-check.workspace = true
+rw-draw.workspace = true
+rw-api.workspace = true
+rw-thermo.workspace = true
+rw-liquid.workspace = true
+
+[dev-dependencies]
+rw-project.workspace = true

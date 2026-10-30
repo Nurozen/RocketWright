@@ -1,0 +1,114 @@
+{
+  "type": "object",
+  "properties": {
+    "a": {
+      "type": "string"
+    },
+    "b": {
+      "type": "string"
+    },
+    "mismatches": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Setup mismatches against a golden (geometry, conditions, config,\nsim, motor digest). Any mismatch means rows are not scored."
+    },
+    "rows": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/MetricDiffRow"
+      }
+    },
+    "phases": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/MetricDiffRow"
+      },
+      "description": "Flight phases in time order (rail exit, burnout, apogee, the last\ndeployment, landing): the time, altitude, and speed of each event of\nthe main flight on both sides (`burnout.velocity_ms`; no apogee speed,\nno landing altitude), so where the `a - b` gap opens is read from the\ntool. Compared, never gated."
+    },
+    "pass": {
+      "type": "boolean"
+    },
+    "notes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Notes on how the rows were computed (which model the static rows of a\ngolden diff came from, or why they are missing). Not verdicts."
+    }
+  },
+  "required": [
+    "a",
+    "b",
+    "mismatches",
+    "rows",
+    "pass"
+  ],
+  "title": "RunDiffOut",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rocketwright.dev/schema/1/tools/run_diff.output.json",
+  "$defs": {
+    "MetricDiffRow": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string",
+          "description": "Metric path (`apogee_m`, `stability.liftoff`)."
+        },
+        "a": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        },
+        "b": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        },
+        "delta": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        },
+        "delta_pct": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        },
+        "tol": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Tolerance as given (`3%`, `0.3 s`)."
+        },
+        "pass": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "unit": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Unit of `a`, `b`, and `delta` (`m`, `kg`, `cal`); absent for pure\nnumbers and unknown keys."
+        }
+      },
+      "required": [
+        "key"
+      ],
+      "description": "One metric compared between two runs, versions, or a run and a golden."
+    }
+  }
+}

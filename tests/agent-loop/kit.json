@@ -1,0 +1,16 @@
+{
+  "//": "B3 kit layout (spec B3, plan D8/D20/M2.11). Paths are relative to the kit root (default dist/kit, built by `make kit`). The runner fails loudly when any listed file is missing.",
+  "kit_root": "dist/kit",
+  "path": ["bin"],
+  "binaries": ["bin/rocketwright", "bin/rw", "bin/rocketwright-render"],
+  "skill_doc": "docs/rocketwright-model.md",
+  "data": {
+    "example_ork": "data/A simple model rocket.ork",
+    "variant_ork": "data/case1-generic.ork",
+    "golden": "data/case1-generic.json"
+  },
+  "tools": ["Bash", "Read", "Write", "Edit"],
+  "max_tool_calls": 40,
+  "max_turns": 80,
+  "env": { "RW_OFFLINE": "1" }
+}

@@ -1,0 +1,97 @@
+{
+  "type": "object",
+  "properties": {
+    "view": {
+      "$ref": "#/$defs/View"
+    },
+    "config": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "explode": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "format": "double",
+      "description": "0..1 (3D views).",
+      "minimum": 0.0,
+      "maximum": 1.0
+    },
+    "compare": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Version to diff against (red/amber/green)."
+    },
+    "width": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "uint32",
+      "minimum": 0
+    },
+    "height": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "uint32",
+      "minimum": 0
+    },
+    "scheme": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/RenderScheme"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "required": [
+    "view"
+  ],
+  "title": "RenderIn",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rocketwright.dev/schema/1/tools/render.input.json",
+  "$defs": {
+    "View": {
+      "type": "string",
+      "enum": [
+        "profile",
+        "fin",
+        "stations",
+        "anchors",
+        "iso",
+        "top",
+        "side",
+        "front",
+        "rear",
+        "exploded",
+        "section"
+      ],
+      "description": "2D views (Rust SVG/PNG, deterministic) and 3D views (shared TS renderer)."
+    },
+    "RenderScheme": {
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "pbr"
+          ]
+        },
+        {
+          "type": "string",
+          "const": "check",
+          "description": "Flat check materials (default for headless and goldens)."
+        }
+      ]
+    }
+  }
+}

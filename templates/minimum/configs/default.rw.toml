@@ -1,0 +1,5 @@
+name = "Default"
+
+[motors.mount]
+motor = "generic:RW_B4G"
+delay = "4 s"

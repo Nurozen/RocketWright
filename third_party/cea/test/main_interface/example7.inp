@@ -1,0 +1,26 @@
+!  EXAMPLE 7:
+!     (a)  Shock tube problem (shock).
+!     (b)  Reactants are H2, O2, and Ar gases at 300 K.  Note that for shock
+!          problems reactants must be gaseous species in the thermodynamic
+!          data base.  The program calculates properties of the
+!          reactants at the temperature given (300 K) using the thermo.lib
+!          coefficients.
+!     (c)  Reactants are given in moles (moles = ...).
+!     (d)  The initial gas pressure is 10 mm Hg (p,mmhg=10,).
+!     (e)  Six initial gas velocities are assigned (u1=1100,1200,1250,
+!          1300,1350,1400,).  Note units of u1 are always m/s.
+!     (f)  Equilibrium calculations are to be performed for incident shock
+!          conditions (incd  eql).
+!     (g)  Frozen calculations are to be performed for incident shock
+!          conditions (incd  froz).
+!     (h)  Long-format output is requested for validation.
+
+reac   name= H2  moles= 0.050  t(k) 300.00
+       name= O2  moles= 0.050  t(k) 300.00
+       name= Ar  moles= 0.900  t(k) 300.00
+
+problem  case=7 p,mmhg=10, shock u1=1100,1200,1250,1300,1350,1400,
+  incd eql froz
+output long
+
+end

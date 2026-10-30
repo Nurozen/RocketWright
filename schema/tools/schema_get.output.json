@@ -1,0 +1,18 @@
+{
+  "type": "object",
+  "properties": {
+    "names": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "schema": true
+  },
+  "required": [
+    "names"
+  ],
+  "title": "SchemaGetOut",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rocketwright.dev/schema/1/tools/schema_get.output.json"
+}

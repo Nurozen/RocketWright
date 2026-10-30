@@ -1,0 +1,10 @@
+{
+  "provenance": "contract-fixture",
+  "type": "tools/history_tag.output",
+  "payload": {
+    "number": 7,
+    "name": "Flight-ready fins",
+    "step": 4,
+    "id": "8ef5b826891c4a450d83641ab58ae1a18551fa4b"
+  }
+}

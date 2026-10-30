@@ -1,0 +1,43 @@
+{
+  "type": "object",
+  "properties": {
+    "query": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "kind": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/LibKind"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "limit": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "uint32",
+      "minimum": 0
+    }
+  },
+  "title": "LibrarySearchIn",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rocketwright.dev/schema/1/tools/library_search.input.json",
+  "$defs": {
+    "LibKind": {
+      "type": "string",
+      "enum": [
+        "component",
+        "material",
+        "preset",
+        "motor"
+      ]
+    }
+  }
+}

@@ -1,0 +1,50 @@
+<engine-database>
+  <engine-list>
+    <engine mfg="RocketWright" code="RW_I1294G" Type="reload" dia="38.0" len="306.0" initWt="457.284" propWt="240.466" delays="6,10,14" auto-calc-mass="0" auto-calc-cg="0" avgThrust="1294.116" peakThrust="1580.075" throatDia="0." exitDia="0." Itot="424.470" burn-time="0.328" massFrac="52.59" Isp="180.00">
+      <comments>RocketWright generic motor (class I). Authored from class, diameter, total impulse, and burn time only; recipe in lib/motors/generic/PROVENANCE.md. m = total motor mass (g), cg = mm from the forward end.</comments>
+      <data>
+        <eng-data t="0.0000" f="0.000" m="457.284" cg="153.0"/>
+        <eng-data t="0.0082" f="1236.581" m="454.412" cg="153.0"/>
+        <eng-data t="0.0164" f="1580.075" m="447.870" cg="153.0"/>
+        <eng-data t="0.0246" f="1562.900" m="440.569" cg="153.0"/>
+        <eng-data t="0.0328" f="1545.726" m="433.349" cg="153.0"/>
+        <eng-data t="0.0410" f="1528.551" m="426.209" cg="153.0"/>
+        <eng-data t="0.0492" f="1511.376" m="419.148" cg="153.0"/>
+        <eng-data t="0.0574" f="1506.469" m="412.138" cg="153.0"/>
+        <eng-data t="0.0656" f="1501.562" m="405.152" cg="153.0"/>
+        <eng-data t="0.0738" f="1496.655" m="398.188" cg="153.0"/>
+        <eng-data t="0.0820" f="1491.748" m="391.246" cg="153.0"/>
+        <eng-data t="0.0902" f="1486.841" m="384.328" cg="153.0"/>
+        <eng-data t="0.0984" f="1481.934" m="377.433" cg="153.0"/>
+        <eng-data t="0.1066" f="1477.027" m="370.560" cg="153.0"/>
+        <eng-data t="0.1148" f="1472.120" m="363.710" cg="153.0"/>
+        <eng-data t="0.1230" f="1467.213" m="356.883" cg="153.0"/>
+        <eng-data t="0.1312" f="1462.306" m="350.078" cg="153.0"/>
+        <eng-data t="0.1394" f="1457.398" m="343.297" cg="153.0"/>
+        <eng-data t="0.1476" f="1452.491" m="336.538" cg="153.0"/>
+        <eng-data t="0.1558" f="1447.584" m="329.802" cg="153.0"/>
+        <eng-data t="0.1640" f="1442.677" m="323.089" cg="153.0"/>
+        <eng-data t="0.1722" f="1431.227" m="316.414" cg="153.0"/>
+        <eng-data t="0.1804" f="1419.778" m="309.792" cg="153.0"/>
+        <eng-data t="0.1886" f="1408.328" m="303.223" cg="153.0"/>
+        <eng-data t="0.1968" f="1396.878" m="296.707" cg="153.0"/>
+        <eng-data t="0.2050" f="1385.428" m="290.245" cg="153.0"/>
+        <eng-data t="0.2132" f="1373.978" m="283.836" cg="153.0"/>
+        <eng-data t="0.2214" f="1362.529" m="277.480" cg="153.0"/>
+        <eng-data t="0.2296" f="1351.079" m="271.177" cg="153.0"/>
+        <eng-data t="0.2378" f="1339.629" m="264.927" cg="153.0"/>
+        <eng-data t="0.2460" f="1328.179" m="258.731" cg="153.0"/>
+        <eng-data t="0.2542" f="1316.729" m="252.587" cg="153.0"/>
+        <eng-data t="0.2624" f="1305.279" m="246.497" cg="153.0"/>
+        <eng-data t="0.2706" f="1219.406" m="240.633" cg="153.0"/>
+        <eng-data t="0.2788" f="1133.532" m="235.168" cg="153.0"/>
+        <eng-data t="0.2870" f="1047.658" m="230.102" cg="153.0"/>
+        <eng-data t="0.2952" f="961.785" m="225.435" cg="153.0"/>
+        <eng-data t="0.3034" f="709.889" m="221.552" cg="153.0"/>
+        <eng-data t="0.3116" f="457.993" m="218.839" cg="153.0"/>
+        <eng-data t="0.3198" f="206.097" m="217.297" cg="153.0"/>
+        <eng-data t="0.3280" f="0.000" m="216.818" cg="153.0"/>
+      </data>
+    </engine>
+  </engine-list>
+</engine-database>

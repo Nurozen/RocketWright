@@ -1,0 +1,16 @@
+{
+  "kind": "provenance",
+  "schema": "rw/1",
+  "case": 1,
+  "source_example": "A simple model rocket.ork",
+  "openrocket_version": "26.xx-SNAPSHOT+591c5e5f7b73",
+  "harness_commit": "f7274c1f27676a3e4226b0278a473545c9184d27",
+  "generic_motor": "RW_C6G",
+  "files": {
+    "case1-generic.json": "a26e632396585d7673261c19a22fd7fd798e9d02abf172b48fb80049a500c334",
+    "case1-generic.series.json": "c65785579179d37dcddfa1e64ead3edf1f5e19b821d82cfc242956bceb1381c8",
+    "case1.aero_sweep.json": "df2c803c638c886387e86f7eeabcbddc6735f3a894fd62286926cc296c7e1a14",
+    "case1.geometry.json": "a4b0c9d3141a5d72bade626faa6aef88bbcd5ead1711c96d01425960baf914bf",
+    "denylist.or.txt": "4aeeb21ca0b8222cf9b0cb12a9eb6a0a173675277deaee106e400096ae5af299"
+  }
+}

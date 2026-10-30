@@ -1,0 +1,9 @@
+{
+  "provenance": "contract-fixture",
+  "type": "tools/library_search.input",
+  "payload": {
+    "query": "54 mm",
+    "kind": "preset",
+    "limit": 5
+  }
+}

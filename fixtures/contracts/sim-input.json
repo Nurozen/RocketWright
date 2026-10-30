@@ -1,0 +1,1263 @@
+{
+  "provenance": "contract-fixture",
+  "type": "sim-input",
+  "payload": {
+    "schema": "rw/1",
+    "sim": {
+      "id": "baseline",
+      "name": "Baseline",
+      "kind": "flight",
+      "config": "baseline",
+      "conditions": {
+        "rail_length_m": 1.5,
+        "rod_angle_deg": 0.0,
+        "rod_direction_deg": 0.0,
+        "site_altitude_m": 0.0,
+        "latitude_deg": 0.0,
+        "longitude_deg": 0.0,
+        "base_temperature_k": 288.15,
+        "base_pressure_pa": 101325.0,
+        "atmosphere": "ussa1976",
+        "geodetic": "flat",
+        "wind_speed_ms": 0.0,
+        "wind_direction_deg": 0.0,
+        "wind_turbulence": 0.0,
+        "time_step_s": 0.01,
+        "integrator": "dp54",
+        "gravity": {
+          "model": "wgs84"
+        },
+        "launch_into_wind": false
+      },
+      "series_dt": 0.01,
+      "max_time": 600.0,
+      "rtol": 1e-06,
+      "atol": 1e-09,
+      "seed": 0
+    },
+    "config": {
+      "id": "baseline",
+      "name": "Baseline",
+      "motors": [
+        {
+          "mount": "motor_mount",
+          "motor": "generic:RW_F40G",
+          "delay": 7.0,
+          "ignition": "launch",
+          "ignition_delay": 0.0
+        }
+      ],
+      "stages": [
+        {
+          "stage": "sustainer",
+          "active": true,
+          "separation": "never",
+          "separation_delay": 0.0
+        }
+      ],
+      "deployments": [
+        {
+          "component": "parachute",
+          "event": "ejection",
+          "delay": 0.0
+        }
+      ]
+    },
+    "model": {
+      "schema": "rw/1",
+      "model_hash": "1ceb288e422bb33c662e66c9265157be29a006761136f05776dd3891e9ea8822",
+      "name": "Research vehicle",
+      "config": "baseline",
+      "reference": {
+        "length": 0.84,
+        "diameter": 0.054,
+        "area": 0.002290221
+      },
+      "params": {
+        "fin_span": {
+          "value": 0.09,
+          "dim": "length"
+        },
+        "body_od": {
+          "value": 0.054,
+          "dim": "length"
+        }
+      },
+      "components": [
+        {
+          "id": "nose",
+          "name": "Nosecone",
+          "children": [
+            "recovery_bay"
+          ],
+          "stage": "sustainer",
+          "containment": "axial",
+          "aero": true,
+          "cut": false,
+          "x_fore": 0.0,
+          "x_aft": 0.22,
+          "radial": 0.0,
+          "roll": 0.0,
+          "instances": [
+            {
+              "index": 0,
+              "offset": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "roll": 0.0
+            }
+          ],
+          "anchors": [
+            {
+              "name": "tip",
+              "kind": "axial",
+              "x": 0.0,
+              "r": 0.0
+            },
+            {
+              "name": "base",
+              "kind": "axial",
+              "x": 0.22,
+              "r": 0.027
+            },
+            {
+              "name": "shoulder_fore",
+              "kind": "axial",
+              "x": 0.22,
+              "r": 0.0259
+            },
+            {
+              "name": "shoulder_aft",
+              "kind": "axial",
+              "x": 0.28,
+              "r": 0.0259
+            }
+          ],
+          "material": "fiberglass",
+          "roughness": 2e-05,
+          "appearance": {
+            "preset": "composite_white"
+          },
+          "shape": {
+            "type": "nose_cone",
+            "shape": "ogive",
+            "shape_param": 1.0,
+            "length": 0.22,
+            "od": 0.054,
+            "thickness": 0.002,
+            "shoulder": {
+              "length": 0.06,
+              "od": 0.0518,
+              "thickness": 0.002,
+              "capped": false
+            }
+          }
+        },
+        {
+          "id": "recovery_bay",
+          "name": "Recovery bay",
+          "children": [
+            "parachute",
+            "airframe"
+          ],
+          "stage": "sustainer",
+          "containment": "axial",
+          "aero": true,
+          "cut": false,
+          "x_fore": 0.22,
+          "x_aft": 0.34,
+          "radial": 0.0,
+          "roll": 0.0,
+          "instances": [
+            {
+              "index": 0,
+              "offset": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "roll": 0.0
+            }
+          ],
+          "anchors": [
+            {
+              "name": "fore",
+              "kind": "axial",
+              "x": 0.22,
+              "r": 0.027
+            },
+            {
+              "name": "aft",
+              "kind": "axial",
+              "x": 0.34,
+              "r": 0.027
+            },
+            {
+              "name": "mid",
+              "kind": "axial",
+              "x": 0.28,
+              "r": 0.027
+            },
+            {
+              "name": "inner",
+              "kind": "inner",
+              "x": 0.22,
+              "r": 0.0259
+            },
+            {
+              "name": "outer",
+              "kind": "surface",
+              "x": 0.22,
+              "r": 0.027
+            }
+          ],
+          "parent": "nose",
+          "attach": {
+            "to": "nose.base",
+            "at": "fore",
+            "offset": 0.0
+          },
+          "material": "polycarbonate",
+          "roughness": 1e-06,
+          "appearance": {
+            "preset": "clear_polycarbonate"
+          },
+          "joint": {
+            "type": "twist_lock",
+            "count": 4
+          },
+          "shape": {
+            "type": "body_tube",
+            "length": 0.12,
+            "od": 0.054,
+            "id": 0.0518
+          }
+        },
+        {
+          "id": "parachute",
+          "name": "Parachute (stowed)",
+          "children": [],
+          "stage": "sustainer",
+          "containment": "inner",
+          "aero": false,
+          "cut": false,
+          "x_fore": 0.235,
+          "x_aft": 0.315,
+          "radial": 0.0,
+          "roll": 0.0,
+          "instances": [
+            {
+              "index": 0,
+              "offset": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "roll": 0.0
+            }
+          ],
+          "anchors": [
+            {
+              "name": "attach",
+              "kind": "inner",
+              "x": 0.235,
+              "r": 0.0
+            }
+          ],
+          "parent": "recovery_bay",
+          "attach": {
+            "to": "recovery_bay.inner",
+            "at": "attach",
+            "offset": 0.015
+          },
+          "material": "ripstop_nylon",
+          "appearance": {
+            "preset": "nylon_orange"
+          },
+          "shape": {
+            "type": "parachute",
+            "diameter": 0.61,
+            "cd": 0.8,
+            "spill_hole": 0.0,
+            "packed_length": 0.08,
+            "packed_diameter": 0.045
+          }
+        },
+        {
+          "id": "airframe",
+          "name": "Airframe tube",
+          "children": [
+            "bulkhead",
+            "avionics",
+            "lug",
+            "fin_can"
+          ],
+          "stage": "sustainer",
+          "containment": "axial",
+          "aero": true,
+          "cut": false,
+          "x_fore": 0.34,
+          "x_aft": 0.64,
+          "radial": 0.0,
+          "roll": 0.0,
+          "instances": [
+            {
+              "index": 0,
+              "offset": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "roll": 0.0
+            }
+          ],
+          "anchors": [
+            {
+              "name": "fore",
+              "kind": "axial",
+              "x": 0.34,
+              "r": 0.027
+            },
+            {
+              "name": "aft",
+              "kind": "axial",
+              "x": 0.64,
+              "r": 0.027
+            },
+            {
+              "name": "mid",
+              "kind": "axial",
+              "x": 0.49,
+              "r": 0.027
+            },
+            {
+              "name": "inner",
+              "kind": "inner",
+              "x": 0.34,
+              "r": 0.0259
+            },
+            {
+              "name": "outer",
+              "kind": "surface",
+              "x": 0.34,
+              "r": 0.027
+            }
+          ],
+          "parent": "recovery_bay",
+          "attach": {
+            "to": "recovery_bay.aft",
+            "at": "fore",
+            "offset": 0.0
+          },
+          "material": "fiberglass",
+          "roughness": 2e-05,
+          "appearance": {
+            "preset": "composite_white"
+          },
+          "shape": {
+            "type": "body_tube",
+            "length": 0.3,
+            "od": 0.054,
+            "id": 0.0518
+          }
+        },
+        {
+          "id": "bulkhead",
+          "name": "Bulkhead",
+          "children": [],
+          "stage": "sustainer",
+          "containment": "inner",
+          "aero": false,
+          "cut": false,
+          "x_fore": 0.34,
+          "x_aft": 0.346,
+          "radial": 0.0,
+          "roll": 0.0,
+          "instances": [
+            {
+              "index": 0,
+              "offset": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "roll": 0.0
+            }
+          ],
+          "anchors": [
+            {
+              "name": "fore",
+              "kind": "axial",
+              "x": 0.34,
+              "r": 0.0
+            },
+            {
+              "name": "aft",
+              "kind": "axial",
+              "x": 0.346,
+              "r": 0.0
+            }
+          ],
+          "parent": "airframe",
+          "attach": {
+            "to": "airframe.inner",
+            "at": "fore",
+            "offset": 0.0
+          },
+          "material": "plywood",
+          "appearance": {
+            "preset": "composite_gray"
+          },
+          "shape": {
+            "type": "bulkhead",
+            "length": 0.006,
+            "od": 0.0518
+          }
+        },
+        {
+          "id": "avionics",
+          "name": "Electronics bay",
+          "children": [],
+          "stage": "sustainer",
+          "containment": "inner",
+          "aero": false,
+          "cut": false,
+          "x_fore": 0.36,
+          "x_aft": 0.46,
+          "radial": 0.0,
+          "roll": 0.0,
+          "instances": [
+            {
+              "index": 0,
+              "offset": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "roll": 0.0
+            }
+          ],
+          "anchors": [
+            {
+              "name": "fore",
+              "kind": "axial",
+              "x": 0.36,
+              "r": 0.0
+            },
+            {
+              "name": "aft",
+              "kind": "axial",
+              "x": 0.46,
+              "r": 0.0
+            },
+            {
+              "name": "cg",
+              "kind": "inner",
+              "x": 0.41,
+              "r": 0.0
+            }
+          ],
+          "parent": "airframe",
+          "attach": {
+            "to": "airframe.inner",
+            "at": "fore",
+            "offset": 0.02
+          },
+          "appearance": {
+            "preset": "pcb_green"
+          },
+          "shape": {
+            "type": "mass_component",
+            "mass": 0.085,
+            "length": 0.1,
+            "od": 0.05,
+            "role": "flight_computer"
+          }
+        },
+        {
+          "id": "lug",
+          "name": "Launch lug",
+          "children": [],
+          "stage": "sustainer",
+          "containment": "surface",
+          "aero": true,
+          "cut": false,
+          "x_fore": 0.5,
+          "x_aft": 0.55,
+          "radial": 0.0,
+          "roll": 0.0,
+          "instances": [
+            {
+              "index": 0,
+              "offset": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "roll": 0.0
+            }
+          ],
+          "anchors": [
+            {
+              "name": "fore",
+              "kind": "axial",
+              "x": 0.5,
+              "r": 0.031
+            },
+            {
+              "name": "aft",
+              "kind": "axial",
+              "x": 0.55,
+              "r": 0.031
+            }
+          ],
+          "parent": "airframe",
+          "attach": {
+            "to": "airframe.outer",
+            "at": "fore",
+            "offset": 0.16
+          },
+          "material": "cardboard",
+          "appearance": {
+            "preset": "black_gloss"
+          },
+          "shape": {
+            "type": "launch_lug",
+            "length": 0.05,
+            "od": 0.008,
+            "id": 0.0065
+          }
+        },
+        {
+          "id": "fin_can",
+          "name": "Fin can",
+          "children": [
+            "motor_mount",
+            "ring_upper",
+            "ring_lower",
+            "fins"
+          ],
+          "stage": "sustainer",
+          "containment": "axial",
+          "aero": true,
+          "cut": false,
+          "x_fore": 0.64,
+          "x_aft": 0.84,
+          "radial": 0.0,
+          "roll": 0.0,
+          "instances": [
+            {
+              "index": 0,
+              "offset": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "roll": 0.0
+            }
+          ],
+          "anchors": [
+            {
+              "name": "fore",
+              "kind": "axial",
+              "x": 0.64,
+              "r": 0.027
+            },
+            {
+              "name": "aft",
+              "kind": "axial",
+              "x": 0.84,
+              "r": 0.027
+            },
+            {
+              "name": "mid",
+              "kind": "axial",
+              "x": 0.74,
+              "r": 0.027
+            },
+            {
+              "name": "inner",
+              "kind": "inner",
+              "x": 0.64,
+              "r": 0.0259
+            },
+            {
+              "name": "outer",
+              "kind": "surface",
+              "x": 0.64,
+              "r": 0.027
+            }
+          ],
+          "parent": "airframe",
+          "attach": {
+            "to": "airframe.aft",
+            "at": "fore",
+            "offset": 0.0
+          },
+          "material": "fiberglass",
+          "roughness": 2e-05,
+          "appearance": {
+            "preset": "composite_white"
+          },
+          "joint": {
+            "type": "friction"
+          },
+          "shape": {
+            "type": "body_tube",
+            "length": 0.2,
+            "od": 0.054,
+            "id": 0.0518
+          }
+        },
+        {
+          "id": "motor_mount",
+          "name": "Motor casing",
+          "children": [],
+          "stage": "sustainer",
+          "containment": "inner",
+          "aero": false,
+          "cut": false,
+          "x_fore": 0.66,
+          "x_aft": 0.84,
+          "radial": 0.0,
+          "roll": 0.0,
+          "instances": [
+            {
+              "index": 0,
+              "offset": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "roll": 0.0
+            }
+          ],
+          "anchors": [
+            {
+              "name": "fore",
+              "kind": "axial",
+              "x": 0.66,
+              "r": 0.016
+            },
+            {
+              "name": "aft",
+              "kind": "axial",
+              "x": 0.84,
+              "r": 0.016
+            },
+            {
+              "name": "motor_retainer",
+              "kind": "inner",
+              "x": 0.84,
+              "r": 0.0146
+            },
+            {
+              "name": "inner",
+              "kind": "inner",
+              "x": 0.66,
+              "r": 0.0146
+            },
+            {
+              "name": "outer",
+              "kind": "surface",
+              "x": 0.66,
+              "r": 0.016
+            }
+          ],
+          "parent": "fin_can",
+          "attach": {
+            "to": "fin_can.aft",
+            "at": "aft",
+            "offset": 0.0
+          },
+          "material": "aluminium",
+          "appearance": {
+            "preset": "aluminium_brushed"
+          },
+          "shape": {
+            "type": "inner_tube",
+            "length": 0.18,
+            "od": 0.032,
+            "id": 0.0292,
+            "motor_mount": true,
+            "overhang": 0.0
+          }
+        },
+        {
+          "id": "ring_upper",
+          "name": "Centering ring (upper)",
+          "children": [],
+          "stage": "sustainer",
+          "containment": "inner",
+          "aero": false,
+          "cut": false,
+          "x_fore": 0.67,
+          "x_aft": 0.676,
+          "radial": 0.0,
+          "roll": 0.0,
+          "instances": [
+            {
+              "index": 0,
+              "offset": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "roll": 0.0
+            }
+          ],
+          "anchors": [
+            {
+              "name": "fore",
+              "kind": "axial",
+              "x": 0.67,
+              "r": 0.0
+            },
+            {
+              "name": "aft",
+              "kind": "axial",
+              "x": 0.676,
+              "r": 0.0
+            }
+          ],
+          "parent": "fin_can",
+          "attach": {
+            "to": "motor_mount.fore",
+            "at": "fore",
+            "offset": 0.01
+          },
+          "material": "plywood",
+          "appearance": {
+            "preset": "composite_gray"
+          },
+          "shape": {
+            "type": "centering_ring",
+            "length": 0.006,
+            "od": 0.0518,
+            "id": 0.032
+          }
+        },
+        {
+          "id": "ring_lower",
+          "name": "Centering ring (lower)",
+          "children": [],
+          "stage": "sustainer",
+          "containment": "inner",
+          "aero": false,
+          "cut": false,
+          "x_fore": 0.828,
+          "x_aft": 0.834,
+          "radial": 0.0,
+          "roll": 0.0,
+          "instances": [
+            {
+              "index": 0,
+              "offset": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "roll": 0.0
+            }
+          ],
+          "anchors": [
+            {
+              "name": "fore",
+              "kind": "axial",
+              "x": 0.828,
+              "r": 0.0
+            },
+            {
+              "name": "aft",
+              "kind": "axial",
+              "x": 0.834,
+              "r": 0.0
+            }
+          ],
+          "parent": "fin_can",
+          "attach": {
+            "to": "motor_mount.aft",
+            "at": "aft",
+            "offset": -0.006
+          },
+          "material": "plywood",
+          "appearance": {
+            "preset": "composite_gray"
+          },
+          "shape": {
+            "type": "centering_ring",
+            "length": 0.006,
+            "od": 0.0518,
+            "id": 0.032
+          }
+        },
+        {
+          "id": "fins",
+          "name": "Fins (4)",
+          "children": [],
+          "stage": "sustainer",
+          "containment": "surface",
+          "aero": true,
+          "cut": false,
+          "x_fore": 0.7,
+          "x_aft": 0.84,
+          "radial": 0.0,
+          "roll": 0.0,
+          "instances": [
+            {
+              "index": 0,
+              "pattern": "radial",
+              "offset": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "roll": 0.0
+            },
+            {
+              "index": 1,
+              "pattern": "radial",
+              "offset": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "roll": 1.5707963267948966
+            },
+            {
+              "index": 2,
+              "pattern": "radial",
+              "offset": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "roll": 3.141592653589793
+            },
+            {
+              "index": 3,
+              "pattern": "radial",
+              "offset": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "roll": 4.71238898038469
+            }
+          ],
+          "anchors": [
+            {
+              "name": "root_le",
+              "kind": "surface",
+              "x": 0.7,
+              "r": 0.027
+            },
+            {
+              "name": "root_te",
+              "kind": "surface",
+              "x": 0.84,
+              "r": 0.027
+            },
+            {
+              "name": "tip_le",
+              "kind": "surface",
+              "x": 0.745,
+              "r": 0.11699999999999999
+            },
+            {
+              "name": "tip_te",
+              "kind": "surface",
+              "x": 0.805,
+              "r": 0.11699999999999999
+            },
+            {
+              "name": "fin0",
+              "kind": "surface",
+              "x": 0.7,
+              "r": 0.027
+            },
+            {
+              "name": "fin1",
+              "kind": "surface",
+              "x": 0.7,
+              "r": 0.027
+            },
+            {
+              "name": "fin2",
+              "kind": "surface",
+              "x": 0.7,
+              "r": 0.027
+            },
+            {
+              "name": "fin3",
+              "kind": "surface",
+              "x": 0.7,
+              "r": 0.027
+            }
+          ],
+          "parent": "fin_can",
+          "attach": {
+            "to": "fin_can.aft",
+            "at": "root_te",
+            "offset": 0.0
+          },
+          "material": "g10",
+          "roughness": 2e-05,
+          "appearance": {
+            "preset": "composite_white"
+          },
+          "shape": {
+            "type": "trapezoidal_fin_set",
+            "count": 4,
+            "thickness": 0.003,
+            "cross_section": "rounded",
+            "cant": 0.0,
+            "fillet_radius": 0.0,
+            "root_chord": 0.14,
+            "tip_chord": 0.06,
+            "span": 0.09,
+            "sweep": 0.045
+          }
+        }
+      ],
+      "stages": [
+        {
+          "id": "sustainer",
+          "name": "Sustainer",
+          "first": "nose",
+          "members": [
+            "nose",
+            "recovery_bay",
+            "parachute",
+            "airframe",
+            "bulkhead",
+            "avionics",
+            "lug",
+            "fin_can",
+            "motor_mount",
+            "ring_upper",
+            "ring_lower",
+            "fins"
+          ],
+          "x_fore": 0.0,
+          "x_aft": 0.84
+        }
+      ],
+      "configs": {
+        "baseline": {
+          "id": "baseline",
+          "name": "Baseline",
+          "motors": [
+            {
+              "mount": "motor_mount",
+              "motor": "generic:RW_F40G",
+              "delay": 7.0,
+              "ignition": "launch",
+              "ignition_delay": 0.0
+            }
+          ],
+          "stages": [
+            {
+              "stage": "sustainer",
+              "active": true,
+              "separation": "never",
+              "separation_delay": 0.0
+            }
+          ],
+          "deployments": [
+            {
+              "component": "parachute",
+              "event": "ejection",
+              "delay": 0.0
+            }
+          ]
+        },
+        "higher_altitude": {
+          "id": "higher_altitude",
+          "name": "Higher altitude",
+          "motors": [
+            {
+              "mount": "motor_mount",
+              "motor": "generic:RW_F40G",
+              "delay": 9.0,
+              "ignition": "launch",
+              "ignition_delay": 0.0
+            }
+          ],
+          "stages": [
+            {
+              "stage": "sustainer",
+              "active": true,
+              "separation": "never",
+              "separation_delay": 0.0
+            }
+          ],
+          "deployments": [
+            {
+              "component": "parachute",
+              "event": "ejection",
+              "delay": 0.0
+            }
+          ]
+        },
+        "recovery_test": {
+          "id": "recovery_test",
+          "name": "Recovery test",
+          "motors": [
+            {
+              "mount": "motor_mount",
+              "motor": "generic:RW_F40G",
+              "delay": 5.0,
+              "ignition": "launch",
+              "ignition_delay": 0.0
+            }
+          ],
+          "stages": [
+            {
+              "stage": "sustainer",
+              "active": true,
+              "separation": "never",
+              "separation_delay": 0.0
+            }
+          ],
+          "deployments": [
+            {
+              "component": "parachute",
+              "event": "ejection",
+              "delay": 0.0
+            }
+          ]
+        }
+      },
+      "sims": {
+        "baseline": {
+          "id": "baseline",
+          "name": "Baseline",
+          "kind": "flight",
+          "config": "baseline",
+          "conditions": {
+            "rail_length_m": 1.5,
+            "rod_angle_deg": 0.0,
+            "rod_direction_deg": 0.0,
+            "site_altitude_m": 0.0,
+            "latitude_deg": 0.0,
+            "longitude_deg": 0.0,
+            "base_temperature_k": 288.15,
+            "base_pressure_pa": 101325.0,
+            "atmosphere": "ussa1976",
+            "geodetic": "flat",
+            "wind_speed_ms": 0.0,
+            "wind_direction_deg": 0.0,
+            "wind_turbulence": 0.0,
+            "time_step_s": 0.01,
+            "integrator": "dp54"
+          },
+          "series_dt": 0.01,
+          "max_time": 600.0,
+          "rtol": 1e-06,
+          "atol": 1e-09,
+          "seed": 0
+        },
+        "higher_altitude": {
+          "id": "higher_altitude",
+          "name": "Higher altitude",
+          "kind": "flight",
+          "config": "higher_altitude",
+          "conditions": {
+            "rail_length_m": 1.5,
+            "rod_angle_deg": 0.0,
+            "rod_direction_deg": 0.0,
+            "site_altitude_m": 0.0,
+            "latitude_deg": 0.0,
+            "longitude_deg": 0.0,
+            "base_temperature_k": 288.15,
+            "base_pressure_pa": 101325.0,
+            "atmosphere": "ussa1976",
+            "geodetic": "flat",
+            "wind_speed_ms": 0.0,
+            "wind_direction_deg": 0.0,
+            "wind_turbulence": 0.0,
+            "time_step_s": 0.01,
+            "integrator": "dp54"
+          },
+          "series_dt": 0.01,
+          "max_time": 600.0,
+          "rtol": 1e-06,
+          "atol": 1e-09,
+          "seed": 0
+        },
+        "fin_revision": {
+          "id": "fin_revision",
+          "name": "Fin revision",
+          "kind": "flight",
+          "config": "baseline",
+          "conditions": {
+            "rail_length_m": 1.5,
+            "rod_angle_deg": 0.0,
+            "rod_direction_deg": 0.0,
+            "site_altitude_m": 0.0,
+            "latitude_deg": 0.0,
+            "longitude_deg": 0.0,
+            "base_temperature_k": 288.15,
+            "base_pressure_pa": 101325.0,
+            "atmosphere": "ussa1976",
+            "geodetic": "flat",
+            "wind_speed_ms": 0.0,
+            "wind_direction_deg": 0.0,
+            "wind_turbulence": 0.0,
+            "time_step_s": 0.01,
+            "integrator": "dp54"
+          },
+          "series_dt": 0.01,
+          "max_time": 600.0,
+          "rtol": 1e-06,
+          "atol": 1e-09,
+          "seed": 0
+        },
+        "recovery_test": {
+          "id": "recovery_test",
+          "name": "Recovery test",
+          "kind": "flight",
+          "config": "recovery_test",
+          "conditions": {
+            "rail_length_m": 1.5,
+            "rod_angle_deg": 0.0,
+            "rod_direction_deg": 0.0,
+            "site_altitude_m": 0.0,
+            "latitude_deg": 0.0,
+            "longitude_deg": 0.0,
+            "base_temperature_k": 288.15,
+            "base_pressure_pa": 101325.0,
+            "atmosphere": "ussa1976",
+            "geodetic": "flat",
+            "wind_speed_ms": 0.0,
+            "wind_direction_deg": 0.0,
+            "wind_turbulence": 0.0,
+            "time_step_s": 0.01,
+            "integrator": "dp54"
+          },
+          "series_dt": 0.01,
+          "max_time": 600.0,
+          "rtol": 1e-06,
+          "atol": 1e-09,
+          "seed": 0
+        }
+      },
+      "materials": {
+        "fiberglass": {
+          "density": 1850.0
+        },
+        "polycarbonate": {
+          "density": 1200.0
+        },
+        "plywood": {
+          "density": 630.0
+        },
+        "aluminium": {
+          "density": 2700.0
+        },
+        "g10": {
+          "density": 1800.0
+        },
+        "cardboard": {
+          "density": 680.0
+        },
+        "ripstop_nylon": {
+          "surface_density": 0.067
+        }
+      },
+      "asserts": [
+        {
+          "id": "stable",
+          "expr": "stability.liftoff >= 1.0 cal",
+          "severity": "error",
+          "needs_sim": false
+        },
+        {
+          "id": "rail_speed",
+          "expr": "rail_exit_velocity_ms >= 15 m/s",
+          "severity": "warning",
+          "needs_sim": true
+        }
+      ],
+      "report": [
+        "= c.fins.span",
+        "= c.airframe.length"
+      ],
+      "units": {
+        "length": "m",
+        "mass": "kg",
+        "time": "s",
+        "angle": "rad",
+        "area": "m^2",
+        "density": "kg/m^3",
+        "area_density": "kg/m^2"
+      },
+      "diagnostics": []
+    },
+    "motors": [
+      {
+        "mount": "motor_mount",
+        "curve": {
+          "designation": "F40",
+          "manufacturer": "RocketWright generic",
+          "class": "F",
+          "diameter": 0.029,
+          "length": 0.124,
+          "delays": [
+            4.0,
+            7.0,
+            10.0
+          ],
+          "prop_mass": 0.039,
+          "total_mass": 0.0919,
+          "total_impulse": 80.0,
+          "burn_time": 2.0,
+          "average_thrust": 40.0,
+          "max_thrust": 62.0,
+          "points": [
+            {
+              "t": 0.0,
+              "thrust": 0.0
+            },
+            {
+              "t": 0.05,
+              "thrust": 62.0
+            },
+            {
+              "t": 0.2,
+              "thrust": 48.0
+            },
+            {
+              "t": 1.0,
+              "thrust": 41.0
+            },
+            {
+              "t": 1.6,
+              "thrust": 38.0
+            },
+            {
+              "t": 1.9,
+              "thrust": 12.0
+            },
+            {
+              "t": 2.0,
+              "thrust": 0.0
+            }
+          ],
+          "sha256": "e8cf2af56dcc1b4c56e45032b7d9efb67f3d6c92f8716655d242b0b92d995761",
+          "source": {
+            "kind": "generic",
+            "id": "RW_F40G"
+          }
+        },
+        "x_fore": 0.716,
+        "ignition_time": 0.0,
+        "delay": 7.0,
+        "count": 1
+      }
+    ]
+  }
+}

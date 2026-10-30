@@ -1,0 +1,1017 @@
+{
+  "kind": "aero_sweep",
+  "schema": "rw/1",
+  "case": 2,
+  "config_id": "5d9a2765-395d-4d9c-9678-38eed0988c72",
+  "alpha_deg": 0.0,
+  "points": [
+    {
+      "mach": 0.05,
+      "cd_total": 0.7553981869853434,
+      "cd_friction": 0.55552642520248,
+      "cd_pressure": 0.05711096850198875,
+      "cd_base": 0.1427607932808747,
+      "cna": 14.982196078247016,
+      "cp_m": 0.2687865754075954,
+      "components": [
+        {
+          "name": "Printable nose cone",
+          "cd_total": 0.09699736820815436,
+          "cd_friction": 0.09699736820814014,
+          "cd_pressure": 1.4210854715202004e-14,
+          "cd_base": 0.0,
+          "cna": 2.0037775688859303,
+          "cp_m": 0.04646465323815995
+        },
+        {
+          "name": "Paper Body Tube -- DO NOT PRINT",
+          "cd_total": 0.17270158301703153,
+          "cd_friction": 0.17270158301703153,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.008610018641521977,
+          "cp_m": 0.17620000000000008
+        },
+        {
+          "name": "Printable Fin Can and Motor Mount",
+          "cd_total": 0.23018562661951314,
+          "cd_friction": 0.10986062661951312,
+          "cd_pressure": 0.0,
+          "cd_base": 0.120325,
+          "cna": 0.004305009320760988,
+          "cp_m": 0.2905
+        },
+        {
+          "name": "Launch lug",
+          "cd_total": 0.05688412267997224,
+          "cd_friction": 0.0,
+          "cd_pressure": 0.05688412267997224,
+          "cd_base": 0.0,
+          "cna": null,
+          "cp_m": null
+        },
+        {
+          "name": "Trapezoidal fin set",
+          "cd_total": 0.06620982882022404,
+          "cd_friction": 0.05865561578593171,
+          "cd_pressure": 7.56152740007653e-05,
+          "cd_base": 0.007478597760291568,
+          "cna": 12.965503481398802,
+          "cp_m": 0.3031999999999999
+        }
+      ]
+    },
+    {
+      "mach": 0.1,
+      "cd_total": 0.7562478135237408,
+      "cd_friction": 0.5551096761963266,
+      "cd_pressure": 0.05722054559693342,
+      "cd_base": 0.14391759173048077,
+      "cna": 14.992386299770972,
+      "cp_m": 0.26880996597484613,
+      "components": [
+        {
+          "name": "Printable nose cone",
+          "cd_total": 0.09692460199044384,
+          "cd_friction": 0.09692460199042963,
+          "cd_pressure": 1.4210854715202004e-14,
+          "cd_base": 0.0,
+          "cna": 2.0037775688859303,
+          "cp_m": 0.04646465323815995
+        },
+        {
+          "name": "Paper Body Tube -- DO NOT PRINT",
+          "cd_total": 0.17257202444012454,
+          "cd_friction": 0.17257202444012454,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.008610018641521977,
+          "cp_m": 0.17620000000000008
+        },
+        {
+          "name": "Printable Fin Can and Motor Mount",
+          "cd_total": 0.23107821054552996,
+          "cd_friction": 0.10977821054552998,
+          "cd_pressure": 0.0,
+          "cd_base": 0.12129999999999999,
+          "cna": 0.004305009320760988,
+          "cp_m": 0.2905
+        },
+        {
+          "name": "Launch lug",
+          "cd_total": 0.05630830033303824,
+          "cd_friction": 0.0,
+          "cd_pressure": 0.05630830033303824,
+          "cd_base": 0.0,
+          "cna": null,
+          "cp_m": null
+        },
+        {
+          "name": "Trapezoidal fin set",
+          "cd_total": 0.06645489207153472,
+          "cd_friction": 0.058611613073414136,
+          "cd_pressure": 0.0003040817546269894,
+          "cd_base": 0.007539197243493597,
+          "cna": 12.975693702922758,
+          "cp_m": 0.3031999999999999
+        }
+      ]
+    },
+    {
+      "mach": 0.15,
+      "cd_total": 0.7585283133539187,
+      "cd_friction": 0.5544150945194042,
+      "cd_pressure": 0.058267629688023515,
+      "cd_base": 0.14584558914649093,
+      "cna": 15.00943772892697,
+      "cp_m": 0.2688490346754493,
+      "components": [
+        {
+          "name": "Printable nose cone",
+          "cd_total": 0.09680332496092627,
+          "cd_friction": 0.09680332496091205,
+          "cd_pressure": 1.4210854715202004e-14,
+          "cd_base": 0.0,
+          "cna": 2.0037775688859303,
+          "cp_m": 0.04646465323815995
+        },
+        {
+          "name": "Paper Body Tube -- DO NOT PRINT",
+          "cd_total": 0.1723560934786129,
+          "cd_friction": 0.1723560934786129,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.008610018641521977,
+          "cp_m": 0.17620000000000008
+        },
+        {
+          "name": "Printable Fin Can and Motor Mount",
+          "cd_total": 0.23256585042222475,
+          "cd_friction": 0.10964085042222475,
+          "cd_pressure": 0.0,
+          "cd_base": 0.12292499999999999,
+          "cna": 0.004305009320760988,
+          "cp_m": 0.2905
+        },
+        {
+          "name": "Launch lug",
+          "cd_total": 0.0561965457037368,
+          "cd_friction": 0.0,
+          "cd_pressure": 0.0561965457037368,
+          "cd_base": 0.0,
+          "cna": null,
+          "cp_m": null
+        },
+        {
+          "name": "Trapezoidal fin set",
+          "cd_total": 0.06686883292947264,
+          "cd_friction": 0.058538275219218165,
+          "cd_pressure": 0.0006903613280908339,
+          "cd_base": 0.007640196382163647,
+          "cna": 12.992745132078758,
+          "cp_m": 0.3031999999999999
+        }
+      ]
+    },
+    {
+      "mach": 0.2,
+      "cd_total": 0.7619588735373652,
+      "cd_friction": 0.5534426801717129,
+      "cd_pressure": 0.05997140783674714,
+      "cd_base": 0.14854478552890515,
+      "cna": 15.033453263834605,
+      "cp_m": 0.26890390941330117,
+      "components": [
+        {
+          "name": "Printable nose cone",
+          "cd_total": 0.0966335371196017,
+          "cd_friction": 0.09663353711958748,
+          "cd_pressure": 1.4210854715202004e-14,
+          "cd_base": 0.0,
+          "cna": 2.0037775688859303,
+          "cp_m": 0.04646465323815995
+        },
+        {
+          "name": "Paper Body Tube -- DO NOT PRINT",
+          "cd_total": 0.17205379013249658,
+          "cd_friction": 0.17205379013249658,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.008610018641521977,
+          "cp_m": 0.17620000000000008
+        },
+        {
+          "name": "Printable Fin Can and Motor Mount",
+          "cd_total": 0.23464854624959747,
+          "cd_friction": 0.10944854624959746,
+          "cd_pressure": 0.0,
+          "cd_base": 0.1252,
+          "cna": 0.004305009320760988,
+          "cp_m": 0.2905
+        },
+        {
+          "name": "Launch lug",
+          "cd_total": 0.05624220011943192,
+          "cd_friction": 0.0,
+          "cd_pressure": 0.05624220011943192,
+          "cd_base": 0.0,
+          "cna": null,
+          "cp_m": null
+        },
+        {
+          "name": "Trapezoidal fin set",
+          "cd_total": 0.06746026663874588,
+          "cd_friction": 0.05843560222334382,
+          "cd_pressure": 0.0012430692391003357,
+          "cd_base": 0.0077815951763017185,
+          "cna": 13.016760666986391,
+          "cp_m": 0.3031999999999999
+        }
+      ]
+    },
+    {
+      "mach": 0.25,
+      "cd_total": 0.76651369933157,
+      "cd_friction": 0.5521924331532527,
+      "cd_pressure": 0.0623060853005938,
+      "cd_base": 0.15201518087772342,
+      "cna": 15.064579629824276,
+      "cp_m": 0.26897477183985724,
+      "components": [
+        {
+          "name": "Printable nose cone",
+          "cd_total": 0.0964152384664701,
+          "cd_friction": 0.09641523846645589,
+          "cd_pressure": 1.4210854715202004e-14,
+          "cd_base": 0.0,
+          "cna": 2.0037775688859303,
+          "cp_m": 0.04646465323815995
+        },
+        {
+          "name": "Paper Body Tube -- DO NOT PRINT",
+          "cd_total": 0.17166511440177554,
+          "cd_friction": 0.17166511440177554,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.008610018641521977,
+          "cp_m": 0.17620000000000008
+        },
+        {
+          "name": "Printable Fin Can and Motor Mount",
+          "cd_total": 0.23732629802764804,
+          "cd_friction": 0.10920129802764805,
+          "cd_pressure": 0.0,
+          "cd_base": 0.128125,
+          "cna": 0.004305009320760988,
+          "cp_m": 0.2905
+        },
+        {
+          "name": "Launch lug",
+          "cd_total": 0.056380970525925764,
+          "cd_friction": 0.0,
+          "cd_pressure": 0.056380970525925764,
+          "cd_base": 0.0,
+          "cna": null,
+          "cp_m": null
+        },
+        {
+          "name": "Trapezoidal fin set",
+          "cd_total": 0.06824202596991683,
+          "cd_friction": 0.058303594085791076,
+          "cd_pressure": 0.0019750382582179415,
+          "cd_base": 0.007963393625907807,
+          "cna": 13.047887032976062,
+          "cp_m": 0.3031999999999999
+        }
+      ]
+    },
+    {
+      "mach": 0.3,
+      "cd_total": 0.7722247851814936,
+      "cd_friction": 0.5506643534640235,
+      "cd_pressure": 0.06530365652452443,
+      "cd_base": 0.15625677519294573,
+      "cna": 15.103010171212624,
+      "cp_m": 0.2690618600449518,
+      "components": [
+        {
+          "name": "Printable nose cone",
+          "cd_total": 0.09614842900153148,
+          "cd_friction": 0.09614842900151727,
+          "cd_pressure": 1.4210854715202004e-14,
+          "cd_base": 0.0,
+          "cna": 2.0037775688859303,
+          "cp_m": 0.04646465323815995
+        },
+        {
+          "name": "Paper Body Tube -- DO NOT PRINT",
+          "cd_total": 0.17119006628644987,
+          "cd_friction": 0.17119006628644987,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.008610018641521977,
+          "cp_m": 0.17620000000000008
+        },
+        {
+          "name": "Printable Fin Can and Motor Mount",
+          "cd_total": 0.24059910575637655,
+          "cd_friction": 0.10889910575637658,
+          "cd_pressure": 0.0,
+          "cd_base": 0.13169999999999998,
+          "cna": 0.004305009320760988,
+          "cp_m": 0.2905
+        },
+        {
+          "name": "Launch lug",
+          "cd_total": 0.05659102407164421,
+          "cd_friction": 0.0,
+          "cd_pressure": 0.05659102407164421,
+          "cd_base": 0.0,
+          "cna": null,
+          "cp_m": null
+        },
+        {
+          "name": "Trapezoidal fin set",
+          "cd_total": 0.06923205335516389,
+          "cd_friction": 0.058142250806559964,
+          "cd_pressure": 0.002904210817622003,
+          "cd_base": 0.008185591730981918,
+          "cna": 13.08631757436441,
+          "cp_m": 0.30319999999999997
+        }
+      ]
+    },
+    {
+      "mach": 0.35,
+      "cd_total": 0.7791560656321381,
+      "cd_friction": 0.5488584411040256,
+      "cd_pressure": 0.06902805605354033,
+      "cd_base": 0.16126956847457213,
+      "cna": 15.148988626906144,
+      "cp_m": 0.26916547217339404,
+      "components": [
+        {
+          "name": "Printable nose cone",
+          "cd_total": 0.09583310872478583,
+          "cd_friction": 0.09583310872477162,
+          "cd_pressure": 1.4210854715202004e-14,
+          "cd_base": 0.0,
+          "cna": 2.0037775688859303,
+          "cp_m": 0.04646465323815995
+        },
+        {
+          "name": "Paper Body Tube -- DO NOT PRINT",
+          "cd_total": 0.17062864578651954,
+          "cd_friction": 0.17062864578651954,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.008610018641521977,
+          "cp_m": 0.17620000000000008
+        },
+        {
+          "name": "Printable Fin Can and Motor Mount",
+          "cd_total": 0.244466969435783,
+          "cd_friction": 0.10854196943578302,
+          "cd_pressure": 0.0,
+          "cd_base": 0.135925,
+          "cna": 0.004305009320760988,
+          "cp_m": 0.2905
+        },
+        {
+          "name": "Launch lug",
+          "cd_total": 0.056863089343996365,
+          "cd_friction": 0.0,
+          "cd_pressure": 0.056863089343996365,
+          "cd_base": 0.0,
+          "cna": null,
+          "cp_m": null
+        },
+        {
+          "name": "Trapezoidal fin set",
+          "cd_total": 0.0704547507803511,
+          "cd_friction": 0.05795157238565046,
+          "cd_pressure": 0.004054988903176584,
+          "cd_base": 0.008448189491524049,
+          "cna": 13.13229603005793,
+          "cp_m": 0.3031999999999999
+        }
+      ]
+    },
+    {
+      "mach": 0.4,
+      "cd_total": 0.7874017979958808,
+      "cd_friction": 0.5467746960732587,
+      "cd_pressure": 0.07357354120001952,
+      "cd_base": 0.1670535607226026,
+      "cna": 15.20281404679398,
+      "cp_m": 0.26928597109848207,
+      "components": [
+        {
+          "name": "Printable nose cone",
+          "cd_total": 0.09546927763623317,
+          "cd_friction": 0.09546927763621896,
+          "cd_pressure": 1.4210854715202004e-14,
+          "cd_base": 0.0,
+          "cna": 2.0037775688859303,
+          "cp_m": 0.04646465323815995
+        },
+        {
+          "name": "Paper Body Tube -- DO NOT PRINT",
+          "cd_total": 0.16998085290198453,
+          "cd_friction": 0.16998085290198453,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.008610018641521977,
+          "cp_m": 0.17620000000000008
+        },
+        {
+          "name": "Printable Fin Can and Motor Mount",
+          "cd_total": 0.24892988906586738,
+          "cd_friction": 0.10812988906586737,
+          "cd_pressure": 0.0,
+          "cd_base": 0.1408,
+          "cna": 0.004305009320760988,
+          "cp_m": 0.2905
+        },
+        {
+          "name": "Launch lug",
+          "cd_total": 0.05719276523230585,
+          "cd_friction": 0.0,
+          "cd_pressure": 0.05719276523230585,
+          "cd_base": 0.0,
+          "cna": null,
+          "cp_m": null
+        },
+        {
+          "name": "Trapezoidal fin set",
+          "cd_total": 0.0719430043864966,
+          "cd_friction": 0.05773155882306258,
+          "cd_pressure": 0.00546025865589982,
+          "cd_base": 0.008751186907534202,
+          "cna": 13.186121449945766,
+          "cp_m": 0.3031999999999999
+        }
+      ]
+    },
+    {
+      "mach": 0.45,
+      "cd_total": 0.7970931413305146,
+      "cd_friction": 0.5444131183717227,
+      "cd_pressure": 0.0790712710217548,
+      "cd_base": 0.1736087519370371,
+      "cna": 15.26484706228373,
+      "cp_m": 0.2694237903292666,
+      "components": [
+        {
+          "name": "Printable nose cone",
+          "cd_total": 0.09505693573587347,
+          "cd_friction": 0.09505693573585926,
+          "cd_pressure": 1.4210854715202004e-14,
+          "cd_base": 0.0,
+          "cna": 2.0037775688859303,
+          "cp_m": 0.04646465323815995
+        },
+        {
+          "name": "Paper Body Tube -- DO NOT PRINT",
+          "cd_total": 0.1692466876328449,
+          "cd_friction": 0.1692466876328449,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.008610018641521977,
+          "cp_m": 0.17620000000000008
+        },
+        {
+          "name": "Printable Fin Can and Motor Mount",
+          "cd_total": 0.2539878646466296,
+          "cd_friction": 0.10766286464662962,
+          "cd_pressure": 0.0,
+          "cd_base": 0.14632499999999998,
+          "cna": 0.004305009320760988,
+          "cp_m": 0.2905
+        },
+        {
+          "name": "Launch lug",
+          "cd_total": 0.05757790198809994,
+          "cd_friction": 0.0,
+          "cd_pressure": 0.05757790198809994,
+          "cd_base": 0.0,
+          "cna": null,
+          "cp_m": null
+        },
+        {
+          "name": "Trapezoidal fin set",
+          "cd_total": 0.07374125044235555,
+          "cd_friction": 0.05748221011879629,
+          "cd_pressure": 0.007164456344546884,
+          "cd_base": 0.009094583979012371,
+          "cna": 13.248154465435515,
+          "cp_m": 0.30319999999999986
+        }
+      ]
+    },
+    {
+      "mach": 0.5,
+      "cd_total": 0.8084113248374407,
+      "cd_friction": 0.5417737079994178,
+      "cd_pressure": 0.08570247472014725,
+      "cd_base": 0.18093514211787567,
+      "cna": 15.335517797201103,
+      "cp_m": 0.26957944138661727,
+      "components": [
+        {
+          "name": "Printable nose cone",
+          "cd_total": 0.09459608302370677,
+          "cd_friction": 0.09459608302369256,
+          "cd_pressure": 1.4210854715202004e-14,
+          "cd_base": 0.0,
+          "cna": 2.0037775688859303,
+          "cp_m": 0.04646465323815995
+        },
+        {
+          "name": "Paper Body Tube -- DO NOT PRINT",
+          "cd_total": 0.16842614997910052,
+          "cd_friction": 0.16842614997910052,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.008610018641521977,
+          "cp_m": 0.17620000000000008
+        },
+        {
+          "name": "Printable Fin Can and Motor Mount",
+          "cd_total": 0.2596408961780698,
+          "cd_friction": 0.1071408961780698,
+          "cd_pressure": 0.0,
+          "cd_base": 0.1525,
+          "cna": 0.004305009320760988,
+          "cp_m": 0.2905
+        },
+        {
+          "name": "Launch lug",
+          "cd_total": 0.058017535487020794,
+          "cd_friction": 0.0,
+          "cd_pressure": 0.058017535487020794,
+          "cd_base": 0.0,
+          "cna": null,
+          "cp_m": null
+        },
+        {
+          "name": "Trapezoidal fin set",
+          "cd_total": 0.07591022005651428,
+          "cd_friction": 0.057203526272851635,
+          "cd_pressure": 0.009228313077704081,
+          "cd_base": 0.009478380705958562,
+          "cna": 13.31882520035289,
+          "cp_m": 0.3031999999999999
+        }
+      ]
+    },
+    {
+      "mach": 0.55,
+      "cd_total": 0.8216098859258212,
+      "cd_friction": 0.538856464956344,
+      "cd_pressure": 0.09372068970435893,
+      "cd_base": 0.18903273126511833,
+      "cna": 15.41533580160625,
+      "cp_m": 0.2698231749594069,
+      "components": [
+        {
+          "name": "Printable nose cone",
+          "cd_total": 0.09408671949973303,
+          "cd_friction": 0.09408671949971882,
+          "cd_pressure": 1.4210854715202004e-14,
+          "cd_base": 0.0,
+          "cna": 2.0037775688859303,
+          "cp_m": 0.04646465323815995
+        },
+        {
+          "name": "Paper Body Tube -- DO NOT PRINT",
+          "cd_total": 0.16751923994075155,
+          "cd_friction": 0.16751923994075155,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.008610018641521977,
+          "cp_m": 0.17620000000000008
+        },
+        {
+          "name": "Printable Fin Can and Motor Mount",
+          "cd_total": 0.26588898366018787,
+          "cd_friction": 0.10656398366018786,
+          "cd_pressure": 0.0,
+          "cd_base": 0.159325,
+          "cna": 0.004305009320760988,
+          "cp_m": 0.2905
+        },
+        {
+          "name": "Launch lug",
+          "cd_total": 0.05851139573888768,
+          "cd_friction": 0.0,
+          "cd_pressure": 0.05851139573888768,
+          "cd_base": 0.0,
+          "cna": null,
+          "cp_m": null
+        },
+        {
+          "name": "Trapezoidal fin set",
+          "cd_total": 0.07853451569542036,
+          "cd_friction": 0.05689550728522858,
+          "cd_pressure": 0.011736431321819011,
+          "cd_base": 0.009902577088372774,
+          "cna": 13.398643204758036,
+          "cp_m": 0.30328013564946554
+        }
+      ]
+    },
+    {
+      "mach": 0.6,
+      "cd_total": 0.8370522291361915,
+      "cd_friction": 0.5356613892425013,
+      "cd_pressure": 0.10348932051492515,
+      "cd_base": 0.19790151937876502,
+      "cna": 15.504902520948857,
+      "cp_m": 0.2702080808507178,
+      "components": [
+        {
+          "name": "Printable nose cone",
+          "cd_total": 0.09352884516395228,
+          "cd_friction": 0.09352884516393807,
+          "cd_pressure": 1.4210854715202004e-14,
+          "cd_base": 0.0,
+          "cna": 2.0037775688859303,
+          "cp_m": 0.04646465323815995
+        },
+        {
+          "name": "Paper Body Tube -- DO NOT PRINT",
+          "cd_total": 0.16652595751779783,
+          "cd_friction": 0.16652595751779783,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.008610018641521977,
+          "cp_m": 0.17620000000000008
+        },
+        {
+          "name": "Printable Fin Can and Motor Mount",
+          "cd_total": 0.2727321270929839,
+          "cd_friction": 0.10593212709298386,
+          "cd_pressure": 0.0,
+          "cd_base": 0.1668,
+          "cna": 0.004305009320760988,
+          "cp_m": 0.2905
+        },
+        {
+          "name": "Launch lug",
+          "cd_total": 0.05905965804226994,
+          "cd_friction": 0.0,
+          "cd_pressure": 0.05905965804226994,
+          "cd_base": 0.0,
+          "cna": null,
+          "cp_m": null
+        },
+        {
+          "name": "Trapezoidal fin set",
+          "cd_total": 0.08173521377306249,
+          "cd_friction": 0.056558153155927146,
+          "cd_pressure": 0.014809887490880335,
+          "cd_base": 0.010367173126255005,
+          "cna": 13.488209924100644,
+          "cp_m": 0.3035004241927971
+        }
+      ]
+    },
+    {
+      "mach": 0.65,
+      "cd_total": 0.8552777118902718,
+      "cd_friction": 0.5321884808578896,
+      "cd_pressure": 0.11554772457356645,
+      "cd_base": 0.20754150645881575,
+      "cna": 15.604926991201394,
+      "cp_m": 0.27071103856555284,
+      "components": [
+        {
+          "name": "Printable nose cone",
+          "cd_total": 0.09292246001636453,
+          "cd_friction": 0.09292246001635032,
+          "cd_pressure": 1.4210854715202004e-14,
+          "cd_base": 0.0,
+          "cna": 2.0037775688859303,
+          "cp_m": 0.04646465323815995
+        },
+        {
+          "name": "Paper Body Tube -- DO NOT PRINT",
+          "cd_total": 0.16544630271023952,
+          "cd_friction": 0.16544630271023952,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.008610018641521977,
+          "cp_m": 0.17620000000000008
+        },
+        {
+          "name": "Printable Fin Can and Motor Mount",
+          "cd_total": 0.2801703264764578,
+          "cd_friction": 0.10524532647645779,
+          "cd_pressure": 0.0,
+          "cd_base": 0.174925,
+          "cna": 0.004305009320760988,
+          "cp_m": 0.2905
+        },
+        {
+          "name": "Launch lug",
+          "cd_total": 0.05966280749850508,
+          "cd_friction": 0.0,
+          "cd_pressure": 0.05966280749850508,
+          "cd_base": 0.0,
+          "cna": null,
+          "cp_m": null
+        },
+        {
+          "name": "Trapezoidal fin set",
+          "cd_total": 0.08569193839623498,
+          "cd_friction": 0.056191463884947335,
+          "cd_pressure": 0.018628305691682386,
+          "cd_base": 0.010872168819605257,
+          "cna": 13.58823439435318,
+          "cp_m": 0.30383295962619256
+        }
+      ]
+    },
+    {
+      "mach": 0.7,
+      "cd_total": 0.8771253994451547,
+      "cd_friction": 0.528437739802509,
+      "cd_pressure": 0.13073496713737515,
+      "cd_base": 0.21795269250527055,
+      "cna": 15.716245699382874,
+      "cp_m": 0.27131156733418205,
+      "components": [
+        {
+          "name": "Printable nose cone",
+          "cd_total": 0.09226756405696973,
+          "cd_friction": 0.09226756405695552,
+          "cd_pressure": 1.4210854715202004e-14,
+          "cd_base": 0.0,
+          "cna": 2.0037775688859303,
+          "cp_m": 0.04646465323815995
+        },
+        {
+          "name": "Paper Body Tube -- DO NOT PRINT",
+          "cd_total": 0.1642802755180765,
+          "cd_friction": 0.1642802755180765,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.008610018641521977,
+          "cp_m": 0.17620000000000008
+        },
+        {
+          "name": "Printable Fin Can and Motor Mount",
+          "cd_total": 0.28820358181060957,
+          "cd_friction": 0.10450358181060962,
+          "cd_pressure": 0.0,
+          "cd_base": 0.18369999999999997,
+          "cna": 0.004305009320760988,
+          "cp_m": 0.2905
+        },
+        {
+          "name": "Launch lug",
+          "cd_total": 0.060321560818590705,
+          "cd_friction": 0.0,
+          "cd_pressure": 0.060321560818590705,
+          "cd_base": 0.0,
+          "cna": null,
+          "cp_m": null
+        },
+        {
+          "name": "Trapezoidal fin set",
+          "cd_total": 0.09068413908030273,
+          "cd_friction": 0.05579543947228913,
+          "cd_pressure": 0.02347113543959008,
+          "cd_base": 0.011417564168423527,
+          "cna": 13.699553102534663,
+          "cp_m": 0.3042527520215592
+        }
+      ]
+    },
+    {
+      "mach": 0.75,
+      "cd_total": 0.9039860383645513,
+      "cd_friction": 0.5244091660763596,
+      "cd_pressure": 0.15044179477006225,
+      "cd_base": 0.22913507751812945,
+      "cna": 15.839847902170114,
+      "cp_m": 0.2719917220260977,
+      "components": [
+        {
+          "name": "Printable nose cone",
+          "cd_total": 0.0915641572857679,
+          "cd_friction": 0.09156415728575369,
+          "cd_pressure": 1.4210854715202004e-14,
+          "cd_base": 0.0,
+          "cna": 2.0037775688859303,
+          "cp_m": 0.04646465323815995
+        },
+        {
+          "name": "Paper Body Tube -- DO NOT PRINT",
+          "cd_total": 0.16302787594130885,
+          "cd_friction": 0.16302787594130885,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.008610018641521977,
+          "cp_m": 0.17620000000000008
+        },
+        {
+          "name": "Printable Fin Can and Motor Mount",
+          "cd_total": 0.29683189309543934,
+          "cd_friction": 0.10370689309543936,
+          "cd_pressure": 0.0,
+          "cd_base": 0.193125,
+          "cna": 0.004305009320760988,
+          "cp_m": 0.2905
+        },
+        {
+          "name": "Launch lug",
+          "cd_total": 0.061036818982976505,
+          "cd_friction": 0.0,
+          "cd_pressure": 0.061036818982976505,
+          "cd_base": 0.0,
+          "cna": null,
+          "cp_m": null
+        },
+        {
+          "name": "Trapezoidal fin set",
+          "cd_total": 0.09717509768635288,
+          "cd_friction": 0.05537007991795254,
+          "cd_pressure": 0.029801658595690516,
+          "cd_base": 0.012003359172709819,
+          "cna": 13.823155305321897,
+          "cp_m": 0.30473758661482536
+        }
+      ]
+    },
+    {
+      "mach": 0.8,
+      "cd_total": 0.9383765770917938,
+      "cd_friction": 0.5201027596794412,
+      "cd_pressure": 0.1771851559149602,
+      "cd_base": 0.2410886614973924,
+      "cna": 15.97690820608245,
+      "cp_m": 0.272735996725345,
+      "components": [
+        {
+          "name": "Printable nose cone",
+          "cd_total": 0.09081223970275908,
+          "cd_friction": 0.09081223970274487,
+          "cd_pressure": 1.4210854715202004e-14,
+          "cd_base": 0.0,
+          "cna": 2.0037775688859303,
+          "cp_m": 0.04646465323815995
+        },
+        {
+          "name": "Paper Body Tube -- DO NOT PRINT",
+          "cd_total": 0.16168910397993652,
+          "cd_friction": 0.16168910397993652,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.008610018641521977,
+          "cp_m": 0.17620000000000008
+        },
+        {
+          "name": "Printable Fin Can and Motor Mount",
+          "cd_total": 0.306055260330947,
+          "cd_friction": 0.10285526033094702,
+          "cd_pressure": 0.0,
+          "cd_base": 0.2032,
+          "cna": 0.004305009320760988,
+          "cp_m": 0.2905
+        },
+        {
+          "name": "Launch lug",
+          "cd_total": 0.06180963740910341,
+          "cd_friction": 0.0,
+          "cd_pressure": 0.06180963740910341,
+          "cd_base": 0.0,
+          "cna": null,
+          "cp_m": null
+        },
+        {
+          "name": "Trapezoidal fin set",
+          "cd_total": 0.10600344522301589,
+          "cd_friction": 0.05491538522193756,
+          "cd_pressure": 0.038458506168614195,
+          "cd_base": 0.01262955383246413,
+          "cna": 13.960215609234238,
+          "cp_m": 0.30526788289425266
+        }
+      ]
+    },
+    {
+      "mach": 0.85,
+      "cd_total": 0.9854790039632826,
+      "cd_friction": 0.5155185206117536,
+      "cd_pressure": 0.2161470389084697,
+      "cd_base": 0.25381344444305937,
+      "cna": 16.128828965573923,
+      "cp_m": 0.2735312378007492,
+      "components": [
+        {
+          "name": "Printable nose cone",
+          "cd_total": 0.09001181130794322,
+          "cd_friction": 0.09001181130792901,
+          "cd_pressure": 1.4210854715202004e-14,
+          "cd_base": 0.0,
+          "cna": 2.0037775688859303,
+          "cp_m": 0.04646465323815995
+        },
+        {
+          "name": "Paper Body Tube -- DO NOT PRINT",
+          "cd_total": 0.1602639596339595,
+          "cd_friction": 0.1602639596339595,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.008610018641521977,
+          "cp_m": 0.17620000000000008
+        },
+        {
+          "name": "Printable Fin Can and Motor Mount",
+          "cd_total": 0.3158736835171326,
+          "cd_friction": 0.10194868351713259,
+          "cd_pressure": 0.0,
+          "cd_base": 0.21392499999999998,
+          "cna": 0.004305009320760988,
+          "cp_m": 0.2905
+        },
+        {
+          "name": "Launch lug",
+          "cd_total": 0.06264120650079553,
+          "cd_friction": 0.0,
+          "cd_pressure": 0.06264120650079553,
+          "cd_base": 0.0,
+          "cna": null,
+          "cp_m": null
+        },
+        {
+          "name": "Trapezoidal fin set",
+          "cd_total": 0.118896114334484,
+          "cd_friction": 0.05443135538424421,
+          "cd_pressure": 0.05116861080255332,
+          "cd_base": 0.013296148147686461,
+          "cna": 14.112136368725713,
+          "cp_m": 0.30582655368874667
+        }
+      ]
+    },
+    {
+      "mach": 0.9,
+      "cd_total": 1.058711110569711,
+      "cd_friction": 0.5106564488732976,
+      "cd_pressure": 0.28074523534128293,
+      "cd_base": 0.26730942635513044,
+      "cna": 16.297296188471826,
+      "cp_m": 0.2743665691567906,
+      "components": [
+        {
+          "name": "Printable nose cone",
+          "cd_total": 0.08916287210132036,
+          "cd_friction": 0.08916287210130615,
+          "cd_pressure": 1.4210854715202004e-14,
+          "cd_base": 0.0,
+          "cna": 2.0037775688859303,
+          "cp_m": 0.04646465323815995
+        },
+        {
+          "name": "Paper Body Tube -- DO NOT PRINT",
+          "cd_total": 0.1587524429033779,
+          "cd_friction": 0.1587524429033779,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.008610018641521977,
+          "cp_m": 0.17620000000000008
+        },
+        {
+          "name": "Printable Fin Can and Motor Mount",
+          "cd_total": 0.3262871626539961,
+          "cd_friction": 0.10098716265399608,
+          "cd_pressure": 0.0,
+          "cd_base": 0.2253,
+          "cna": 0.004305009320760988,
+          "cp_m": 0.2905
+        },
+        {
+          "name": "Launch lug",
+          "cd_total": 0.06353283858941773,
+          "cd_friction": 0.0,
+          "cd_pressure": 0.06353283858941773,
+          "cd_base": 0.0,
+          "cna": null,
+          "cp_m": null
+        },
+        {
+          "name": "Trapezoidal fin set",
+          "cd_total": 0.14032526477386628,
+          "cd_friction": 0.053917990404872475,
+          "cd_pressure": 0.072404132250617,
+          "cd_base": 0.014003142118376815,
+          "cna": 14.280603591623613,
+          "cp_m": 0.30639886425616947
+        }
+      ]
+    }
+  ]
+}

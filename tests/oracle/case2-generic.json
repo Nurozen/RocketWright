@@ -1,0 +1,224 @@
+{
+  "kind": "golden",
+  "schema": "rw/1",
+  "case": 2,
+  "matrix": "generic",
+  "sim_name": "Simulation 5",
+  "config_id": "5d9a2765-395d-4d9c-9678-38eed0988c72",
+  "geometry_sha256": "b43024eabd29d3f50af7d31ecd22f27624a4c94a92f7c4f61630c8d002a156cd",
+  "conditions": {
+    "rail_length_m": 1.0,
+    "rod_angle_deg": 0.0,
+    "rod_direction_deg": 90.0,
+    "site_altitude_m": 0.0,
+    "latitude_deg": 45.0,
+    "longitude_deg": 0.0,
+    "base_temperature_k": 288.15,
+    "base_pressure_pa": 101325.0,
+    "atmosphere": "ussa1976",
+    "geodetic": "flat",
+    "wind_speed_ms": 0.0,
+    "wind_direction_deg": 90.0,
+    "wind_turbulence": 0.0,
+    "time_step_s": 0.05,
+    "integrator": "rk4",
+    "gravity": {
+      "model": "wgs84"
+    },
+    "launch_into_wind": true
+  },
+  "conditions_hash": "sha256:3deb085651939a41cace89b33874137dd2b03d76bb0d82bb2bd6282bd08262de",
+  "motor_digest": "69c07ae4765d0039790ab7d4fcea5d49ec49e7221d03d9d2406f3b199ad25fe2",
+  "motors": [
+    {
+      "mount": "Inner Tube",
+      "designation": "RW_C6G",
+      "digest": "025d61aa8d954cbb564b70b0f03a2add19e7495f043028ccdf120c0309b4c92b",
+      "delay_s": 7.0
+    }
+  ],
+  "summary": {
+    "max_altitude_m": 298.39076910449455,
+    "max_velocity_ms": 91.21899378138465,
+    "max_accel_ms2": 190.86097327229365,
+    "max_mach": 0.2682614178281234,
+    "time_to_apogee_s": 7.3519780246245325,
+    "flight_time_s": 75.78091303055498,
+    "ground_hit_velocity_ms": 4.290478869232972,
+    "rod_clear_velocity_ms": 17.7236375776013,
+    "deployment_velocity_ms": 10.590271586401737,
+    "optimum_delay_s": 5.751978024624533
+  },
+  "static": {
+    "cg_m": 0.24039572617859917,
+    "cp_m": 0.2690618600449518,
+    "cna": 15.103010171212624,
+    "stability_cal": 1.1563401101374984,
+    "mass_kg": 0.08165660425393523,
+    "ref_diameter_m": 0.024790399999999997,
+    "mach": 0.3
+  },
+  "events": [
+    {
+      "kind": "ignition",
+      "t_s": 0.0,
+      "altitude_m": 0.0,
+      "velocity_ms": 0.0
+    },
+    {
+      "kind": "liftoff",
+      "t_s": 0.060000000000000005,
+      "altitude_m": 0.027407596431907322,
+      "velocity_ms": 1.5876486863443353
+    },
+    {
+      "kind": "launch_rod_clearance",
+      "t_s": 0.17960106293243347,
+      "altitude_m": 1.0141394433535156,
+      "velocity_ms": 17.7236375776013
+    },
+    {
+      "kind": "burnout",
+      "t_s": 1.6,
+      "altitude_m": 97.79127830778232,
+      "velocity_ms": 89.33194545435155
+    },
+    {
+      "kind": "apogee",
+      "t_s": 7.3519780246245325,
+      "altitude_m": 298.39076910449455,
+      "velocity_ms": 0.05303170122009837
+    },
+    {
+      "kind": "ejection_charge",
+      "t_s": 8.6,
+      "altitude_m": 291.0060385619896,
+      "velocity_ms": 10.587367413916514
+    },
+    {
+      "kind": "recovery_device_deployment",
+      "t_s": 8.600999999999999,
+      "altitude_m": 290.99547093104667,
+      "velocity_ms": 10.590271586401737
+    },
+    {
+      "kind": "ground_hit",
+      "t_s": 75.78091303055498,
+      "altitude_m": 0.0,
+      "velocity_ms": 4.290478869232972
+    },
+    {
+      "kind": "simulation_end",
+      "t_s": 75.78091303055498,
+      "altitude_m": 0.0,
+      "velocity_ms": 4.290478869232972
+    }
+  ],
+  "components": [
+    {
+      "name": "Printable nose cone",
+      "mass_kg": 0.015607946851266215,
+      "cg_m": 0.07774774693910072,
+      "cna": 2.0037775688859303,
+      "cp_m": 0.04646465323815995
+    },
+    {
+      "name": "Screw Eye",
+      "mass_kg": 0.0009000000000000001,
+      "cg_m": 0.125,
+      "cna": null,
+      "cp_m": null
+    },
+    {
+      "name": "Paper Body Tube -- DO NOT PRINT",
+      "mass_kg": 0.0034586268041611285,
+      "cg_m": 0.1762,
+      "cna": 0.008610018641521977,
+      "cp_m": 0.17620000000000008
+    },
+    {
+      "name": "Parachute",
+      "mass_kg": 0.0035590705400997914,
+      "cg_m": 0.15300000000000002,
+      "cna": null,
+      "cp_m": null
+    },
+    {
+      "name": "Shock cord",
+      "mass_kg": 0.00072,
+      "cg_m": 0.186,
+      "cna": null,
+      "cp_m": null
+    },
+    {
+      "name": "Wadding",
+      "mass_kg": 0.002,
+      "cg_m": 0.225,
+      "cna": null,
+      "cp_m": null
+    },
+    {
+      "name": "Printable Fin Can and Motor Mount",
+      "mass_kg": 0.005743046507027056,
+      "cg_m": 0.2905,
+      "cna": 0.004305009320760988,
+      "cp_m": 0.2905
+    },
+    {
+      "name": "Launch lug",
+      "mass_kg": 0.0008246680715673209,
+      "cg_m": 0.2774,
+      "cna": 0.0,
+      "cp_m": null
+    },
+    {
+      "name": "Trapezoidal fin set",
+      "mass_kg": 0.011315699999999998,
+      "cg_m": 0.31589999999999996,
+      "cna": 13.08631757436441,
+      "cp_m": 0.30319999999999997
+    },
+    {
+      "name": "Centering ring",
+      "mass_kg": 0.000328417443307556,
+      "cg_m": 0.28109999999999996,
+      "cna": null,
+      "cp_m": null
+    },
+    {
+      "name": "Centering ring",
+      "mass_kg": 0.000328417443307556,
+      "cg_m": 0.32609999999999995,
+      "cna": null,
+      "cp_m": null
+    },
+    {
+      "name": "Inner Tube",
+      "mass_kg": 0.008924086631603503,
+      "cg_m": 0.2960999999999999,
+      "cna": null,
+      "cp_m": null
+    },
+    {
+      "name": "Engine block",
+      "mass_kg": 0.0009248063374004955,
+      "cg_m": 0.26309999999999995,
+      "cna": null,
+      "cp_m": null
+    },
+    {
+      "name": "Tube Coupler",
+      "mass_kg": 0.0027848176241946103,
+      "cg_m": 0.25109999999999993,
+      "cna": null,
+      "cp_m": null
+    },
+    {
+      "name": "RW_C6G",
+      "mass_kg": 0.024236999999999998,
+      "cg_m": 0.3015999999999999,
+      "cna": null,
+      "cp_m": null
+    }
+  ]
+}

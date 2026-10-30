@@ -1,0 +1,174 @@
+# Oracle case 3 ('Clustered motors', generic-curve variant), re-authored
+# from tests/oracle/case3.geometry.json by scripts/fixtures/oracle_case.py.
+# Do not edit; modelling choices are listed in fixtures/README.md.
+
+name = "Clustered motors"
+
+[c.nose_cone]
+type = "nose_cone"
+name = "Nose cone"
+material = "polystyrene"
+finish = { roughness = "0.00006 m" }
+shape = "ellipsoid"
+length = "0.1 m"
+od = "0.055 m"
+thickness = "0.002 m"
+shoulder = { length = "0.035 m", od = "0.048 m", thickness = "0.002 m", capped = true }
+
+[c.body_tube]
+type = "body_tube"
+name = "Body tube"
+attach = { to = "nose_cone.base" }
+material = "cardboard"
+finish = { roughness = "0.00006 m" }
+length = "0.6 m"
+od = "0.055 m"
+thickness = "0.001 m"
+
+[c.clustered_inner_tube]
+type = "inner_tube"
+name = "Clustered Inner Tube"
+attach = { to = "body_tube.fore", at = "fore", offset = "0.53 m" }
+instances = { count = 4, pattern = "cluster", preset = "4-square", scale = "0.020900000000000002 m" }
+material = "cardboard"
+length = "0.075 m"
+od = "0.019 m"
+thickness = "0.0005000000000000004 m"
+motor_mount = true
+overhang = "0.003 m"
+
+[c.engine_block]
+type = "engine_block"
+name = "Engine block"
+attach = { to = "clustered_inner_tube.inner", at = "fore", offset = "0.0020000000000000018 m" }
+material = "cardboard"
+length = "0.005 m"
+od = "0.018 m"
+id = "0.011999999999999999 m"
+
+[c.centering_ring]
+type = "centering_ring"
+name = "Centering ring"
+attach = { to = "body_tube.fore", at = "fore", offset = "0.598 m" }
+material = "cardboard"
+length = "0.002 m"
+od = "0.053 m"
+id = "0.019 m"
+
+[c.centering_ring_2]
+type = "centering_ring"
+name = "Centering ring"
+attach = { to = "body_tube.fore", at = "fore", offset = "0.5529999999999999 m" }
+material = "cardboard"
+length = "0.002 m"
+od = "0.053 m"
+id = "0.019 m"
+
+[c.shock_cord]
+type = "shock_cord"
+name = "Shock cord"
+attach = { to = "body_tube.fore", at = "attach", offset = "0.035 m" }
+material = "elastic_cord_flat_6mm_1"
+cord_length = "0.6 m"
+packed_length = "0.052000000000000005 m"
+packed_diameter = "0.016 m"
+
+[c.parachute]
+type = "parachute"
+name = "Parachute"
+attach = { to = "body_tube.fore", at = "attach", offset = "0.04000000000000001 m" }
+material = "ripstop_nylon"
+diameter = "0.4 m"
+cd = 0.8
+line_count = 6
+line_length = "0.3 m"
+line_material = "shroud_lines"
+packed_length = "0.042 m"
+packed_diameter = "0.03 m"
+
+[c.wadding]
+type = "mass_component"
+name = "Wadding"
+attach = { to = "body_tube.fore", at = "fore", offset = "0.09 m" }
+mass = "0.002 kg"
+length = "0.03 m"
+od = "0.047 m"
+
+[c.launch_lug]
+type = "launch_lug"
+name = "Launch lug"
+attach = { to = "body_tube.fore", at = "fore", offset = "0.2825 m", spin = "0.17453292519943295 rad" }
+material = "cardboard"
+finish = { roughness = "0.00006 m" }
+length = "0.035 m"
+od = "0.007 m"
+thickness = "0.001 m"
+
+[c.launch_lug_2]
+type = "launch_lug"
+name = "Launch lug"
+attach = { to = "body_tube.fore", at = "fore", offset = "0.5549999999999999 m", spin = "0.17453292519943295 rad" }
+material = "cardboard"
+finish = { roughness = "0.00006 m" }
+length = "0.035 m"
+od = "0.007 m"
+thickness = "0.001 m"
+
+[c.pressure_distribution_tube]
+type = "inner_tube"
+name = "Pressure distribution tube"
+attach = { to = "body_tube.fore", at = "fore", offset = "0.11999999999999997 m" }
+material = "cardboard"
+length = "0.38 m"
+od = "0.02 m"
+thickness = "0.0005000000000000004 m"
+
+[c.centering_ring_3]
+type = "centering_ring"
+name = "Centering ring"
+attach = { to = "body_tube.fore", at = "fore", offset = "0.493 m" }
+material = "cardboard"
+length = "0.002 m"
+od = "0.053 m"
+id = "0.02 m"
+
+[c.centering_ring_4]
+type = "centering_ring"
+name = "Centering ring"
+attach = { to = "body_tube.fore", at = "fore", offset = "0.12799999999999995 m" }
+material = "cardboard"
+length = "0.002 m"
+od = "0.053 m"
+id = "0.02 m"
+
+[c.elliptical_fin_set]
+type = "elliptical_fin_set"
+name = "Elliptical fin set"
+attach = { to = "body_tube.fore", at = "root_le", offset = "0.54 m" }
+material = "cardboard"
+finish = { roughness = "0.00006 m" }
+count = 3
+root_chord = "0.06 m"
+span = "0.06 m"
+thickness = "0.003 m"
+cross_section = "square"
+
+[materials.polystyrene]
+density = "1050 kg/m^3"
+name = "Polystyrene"
+
+[materials.cardboard]
+density = "680 kg/m^3"
+name = "Cardboard"
+
+[materials.elastic_cord_flat_6mm_1]
+line_density = "0.0043 kg/m"
+name = "Elastic cord (flat  6mm, 1/4 in)"
+
+[materials.ripstop_nylon]
+surface_density = "0.067 kg/m^2"
+name = "Ripstop nylon"
+
+[materials.shroud_lines]
+line_density = "0.001 kg/m"
+name = "shroud lines"

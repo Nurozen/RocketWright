@@ -1,0 +1,25 @@
+# Fins and motor mount, included by rocket.rw.toml.
+[c.fins]
+type = "trapezoidal_fin_set"
+attach = { to = "body.aft", at = "root_te" }
+count = 3
+root_chord = "70 mm"
+tip_chord = "30 mm"
+span = "= params.span"
+sweep = "35 mm"
+thickness = "3 mm"
+cross_section = "rounded"
+
+[c.mount]
+type = "inner_tube"
+attach = { to = "body.aft", at = "aft" }
+length = "70 mm"
+od = "19.7 mm"
+id = "18.7 mm"
+motor_mount = true
+
+[c.ring]
+type = "centering_ring"
+attach = { to = "mount.fore", at = "fore", offset = "5 mm" }
+length = "3 mm"
+id = "19.7 mm"

@@ -1,0 +1,126 @@
+# Incomplete copy of demo.rw.toml (plan D10b): `fluid_model` and the first
+# feed edge's `bc` are unset, so `rw check` reports exactly two missing inputs
+# (RW-W210, RW-W211) and page 05 shows "Missing inputs · 2".
+#
+# Liquid-engine variant of the research vehicle (spec R6.13, plan M4.4/M4.6b):
+# a pressure-fed N2O/ethanol engine. The thrust, chamber pressure, O/F,
+# expansion ratio, L*, and injector drop are the spec's targets; the throat,
+# exit, chamber, injector areas, valve areas, and the blowdown come from
+# `rw engine design demo` (SP-125). The tanks and lines form the propulsion
+# module of concept page 05 (docs/dev/page05-layout.md); they sit outside the
+# 54 mm airframe, so they are inline tanks, not rocket components.
+name = "Demo engine (incomplete)"
+propellants = { oxidizer = "n2o", fuel = "ethanol" }
+mixture_ratio = 4.0
+chamber_pressure = "20 bar"
+thrust = "1.5 kN"
+expansion_ratio = 4
+contraction_ratio = 4
+l_star = "1.5 m"
+injector = { type = "impinging", pressure_drop_fraction = 0.2, cd = 0.7 }
+
+# Tank A: N2O, 6 L, N2 at 50 bar.
+[feed.node.tank_a]
+kind = "tank"
+fluid = "n2o"
+volume = "6 L"
+pressure = "50 bar"
+pressurant = "n2"
+station = "360 mm"
+radial = "-350 mm"
+tank = { length = "411.2 mm", od = "152.4 mm", wall = "3 mm", end_cap = "hemispherical", fill = { propellant = "n2o", fraction = 0.6 } }
+material = "aluminium"
+
+# Tank B: ethanol, 2.5 L, N2 at 35 bar.
+[feed.node.tank_b]
+kind = "tank"
+fluid = "ethanol"
+volume = "2.5 L"
+pressure = "35 bar"
+pressurant = "n2"
+station = "360 mm"
+radial = "350 mm"
+tank = { length = "313.5 mm", od = "114.3 mm", wall = "3 mm", end_cap = "hemispherical", fill = { propellant = "ethanol", fraction = 0.76 } }
+material = "aluminium"
+
+# Main valves; no flow area given, so `rw engine design` sizes each to take
+# the tank pressure the chamber, injector, and lines leave over.
+[feed.node.valve_a]
+kind = "valve"
+cd = 0.8
+station = "390 mm"
+radial = "-110 mm"
+
+[feed.node.valve_b]
+kind = "valve"
+cd = 0.8
+station = "390 mm"
+radial = "110 mm"
+
+# Engine node at the injector face.
+[feed.node.engine]
+kind = "engine"
+station = "420 mm"
+radial = "0 mm"
+
+# Pressure transducers.
+[feed.node.pt_a]
+kind = "sensor"
+station = "290 mm"
+radial = "-350 mm"
+
+[feed.node.pt_c]
+kind = "sensor"
+station = "440 mm"
+radial = "60 mm"
+
+[[feed.edge]]
+from = "tank_a"
+to = "valve_a"
+diameter = "10 mm"
+length = "0.45 m"
+waypoints = [
+  { station = "175 mm", radial = "-190 mm" },
+  { station = "175 mm", radial = "-110 mm" },
+]
+
+[[feed.edge]]
+from = "valve_a"
+to = "engine"
+diameter = "10 mm"
+length = "0.12 m"
+bc = "check_valve"
+waypoints = [{ station = "405 mm", radial = "-110 mm" }, { station = "405 mm", radial = "-30 mm" }]
+
+[[feed.edge]]
+from = "tank_b"
+to = "valve_b"
+diameter = "6 mm"
+length = "0.35 m"
+bc = "open"
+waypoints = [
+  { station = "200 mm", radial = "170 mm" },
+  { station = "200 mm", radial = "110 mm" },
+]
+
+[[feed.edge]]
+from = "valve_b"
+to = "engine"
+diameter = "6 mm"
+length = "0.12 m"
+bc = "check_valve"
+waypoints = [{ station = "405 mm", radial = "110 mm" }, { station = "405 mm", radial = "30 mm" }]
+
+[[feed.edge]]
+from = "tank_a"
+to = "pt_a"
+diameter = "3 mm"
+length = "0.12 m"
+bc = "closed"
+
+[[feed.edge]]
+from = "engine"
+to = "pt_c"
+diameter = "3 mm"
+length = "0.05 m"
+bc = "closed"

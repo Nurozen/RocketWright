@@ -1,0 +1,7 @@
+{
+  "provenance": "contract-fixture",
+  "type": "tools/job_status.input",
+  "payload": {
+    "job_id": "job-0007"
+  }
+}

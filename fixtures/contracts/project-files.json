@@ -1,0 +1,11 @@
+{
+  "provenance": "contract-fixture",
+  "type": "project-files",
+  "payload": {
+    "model_hash": "1ceb288e422bb33c662e66c9265157be29a006761136f05776dd3891e9ea8822",
+    "files": {
+      "rocketwright.toml": "format = 1\nname = \"Research vehicle\"\ndefault_config = \"baseline\"\n",
+      "rocket.rw.toml": "name = \"Research vehicle\"\n\n[c.fins]\ntype = \"trapezoidal_fin_set\"\nattach = { to = \"fin_can.aft\", at = \"root_te\" }\ncount = 4\nroot_chord = \"140 mm\"\ntip_chord = \"60 mm\"\nspan = \"= params.fin_span\"\nsweep = \"45 mm\"\nthickness = \"3 mm\"\n"
+    }
+  }
+}

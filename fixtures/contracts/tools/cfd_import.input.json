@@ -1,0 +1,9 @@
+{
+  "provenance": "contract-fixture",
+  "type": "tools/cfd_import.input",
+  "payload": {
+    "path": "fixtures/cfd/tank_t0.5.csv",
+    "study": "tank_flow",
+    "dry_run": true
+  }
+}

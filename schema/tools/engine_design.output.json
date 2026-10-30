@@ -1,0 +1,891 @@
+{
+  "type": "object",
+  "properties": {
+    "engine": {
+      "type": "string"
+    },
+    "performance": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/EnginePerformance"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Absent while the chamber inputs (area ratio or exit pressure, L*,\ncontraction ratio, injector drop) are missing or the thermochemistry\nis unavailable. `isp_*` in seconds."
+    },
+    "missing_inputs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Source pointers of unset inputs (`Missing inputs · N`)."
+    },
+    "diagnostics": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Diagnostic"
+      }
+    },
+    "design": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/LiquidEngineDesign"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The full design (SI): sizing, injector, feed budget per propellant,\ntanks, blowdown totals, assumptions. The feed, tank, and blowdown\nparts are absent while feed inputs are missing (M4.6)."
+    }
+  },
+  "required": [
+    "engine",
+    "missing_inputs",
+    "diagnostics"
+  ],
+  "title": "EngineDesignOut",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rocketwright.dev/schema/1/tools/engine_design.output.json",
+  "$defs": {
+    "EnginePerformance": {
+      "type": "object",
+      "properties": {
+        "isp_vac": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "time"
+        },
+        "isp_sl": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "time"
+        },
+        "c_star": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "velocity"
+        },
+        "thrust": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "force"
+        },
+        "mdot": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "mass_flow"
+        },
+        "mdot_ox": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "mass_flow"
+        },
+        "mdot_fuel": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "mass_flow"
+        },
+        "chamber_temperature": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "temperature"
+        },
+        "throat_diameter": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "exit_diameter": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "chamber_diameter": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "chamber_length": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "expansion_ratio": {
+          "type": "number",
+          "format": "double"
+        }
+      },
+      "required": [
+        "isp_vac",
+        "isp_sl",
+        "c_star",
+        "thrust",
+        "mdot",
+        "mdot_ox",
+        "mdot_fuel",
+        "chamber_temperature",
+        "throat_diameter",
+        "exit_diameter",
+        "chamber_diameter",
+        "chamber_length",
+        "expansion_ratio"
+      ]
+    },
+    "Diagnostic": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string",
+          "description": "Stable code, e.g. `RW-E021`.",
+          "pattern": "^RW-[EWI][0-9]{3}$"
+        },
+        "severity": {
+          "$ref": "#/$defs/Severity"
+        },
+        "path": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "JSON pointer into the source model, e.g. `/c/fins/span`."
+        },
+        "file": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Project-relative file."
+        },
+        "line": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "minimum": 0
+        },
+        "col": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "minimum": 0
+        },
+        "message": {
+          "type": "string"
+        },
+        "hint": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Next action for an agent."
+        }
+      },
+      "required": [
+        "code",
+        "severity",
+        "message"
+      ],
+      "description": "One finding, phrased for an agent (`hint` says what to do next)."
+    },
+    "Severity": {
+      "type": "string",
+      "enum": [
+        "error",
+        "warning",
+        "info"
+      ]
+    },
+    "LiquidEngineDesign": {
+      "type": "object",
+      "properties": {
+        "engine": {
+          "type": "string"
+        },
+        "thermo": {
+          "type": "string",
+          "description": "Thermochemistry provenance (`table:n2o-ethanol`, `cea:native`)."
+        },
+        "sizing": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EngineSizing"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "injector": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/InjectorDesign"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "feed": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/FeedBranch"
+          },
+          "description": "Oxidizer then fuel feed path, when the feed inputs are complete."
+        },
+        "tanks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TankReport"
+          }
+        },
+        "blowdown": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BlowdownSummary"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "assumptions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Modelling assumptions shown with the results (page 06 Assumptions)."
+        }
+      },
+      "required": [
+        "engine",
+        "thermo",
+        "assumptions"
+      ],
+      "description": "A liquid engine design (`engine_design`, SI)."
+    },
+    "EngineSizing": {
+      "type": "object",
+      "properties": {
+        "ambient_pressure": {
+          "type": "number",
+          "format": "double",
+          "description": "Ambient pressure the thrust target holds at, Pa."
+        },
+        "chamber_pressure": {
+          "type": "number",
+          "format": "double"
+        },
+        "mixture_ratio": {
+          "type": "number",
+          "format": "double"
+        },
+        "expansion_ratio": {
+          "type": "number",
+          "format": "double"
+        },
+        "exit_pressure": {
+          "type": "number",
+          "format": "double"
+        },
+        "c_star": {
+          "type": "number",
+          "format": "double"
+        },
+        "cf_vac": {
+          "type": "number",
+          "format": "double"
+        },
+        "cf": {
+          "type": "number",
+          "format": "double",
+          "description": "At `ambient_pressure`."
+        },
+        "isp_vac": {
+          "type": "number",
+          "format": "double"
+        },
+        "isp": {
+          "type": "number",
+          "format": "double",
+          "description": "At `ambient_pressure` (m/s)."
+        },
+        "thrust": {
+          "type": "number",
+          "format": "double"
+        },
+        "thrust_vac": {
+          "type": "number",
+          "format": "double"
+        },
+        "mdot": {
+          "type": "number",
+          "format": "double"
+        },
+        "mdot_ox": {
+          "type": "number",
+          "format": "double"
+        },
+        "mdot_fuel": {
+          "type": "number",
+          "format": "double"
+        },
+        "chamber_temperature": {
+          "type": "number",
+          "format": "double"
+        },
+        "gamma_c": {
+          "type": "number",
+          "format": "double"
+        },
+        "throat_area": {
+          "type": "number",
+          "format": "double"
+        },
+        "throat_diameter": {
+          "type": "number",
+          "format": "double"
+        },
+        "exit_area": {
+          "type": "number",
+          "format": "double"
+        },
+        "exit_diameter": {
+          "type": "number",
+          "format": "double"
+        },
+        "contraction_ratio": {
+          "type": "number",
+          "format": "double"
+        },
+        "chamber_area": {
+          "type": "number",
+          "format": "double"
+        },
+        "chamber_diameter": {
+          "type": "number",
+          "format": "double"
+        },
+        "l_star": {
+          "type": "number",
+          "format": "double"
+        },
+        "chamber_volume": {
+          "type": "number",
+          "format": "double"
+        },
+        "chamber_length": {
+          "type": "number",
+          "format": "double",
+          "description": "Cylindrical section (injector face to the start of the convergence)."
+        },
+        "convergent_length": {
+          "type": "number",
+          "format": "double"
+        },
+        "nozzle_length": {
+          "type": "number",
+          "format": "double"
+        },
+        "total_length": {
+          "type": "number",
+          "format": "double",
+          "description": "Injector face to the exit plane."
+        }
+      },
+      "required": [
+        "ambient_pressure",
+        "chamber_pressure",
+        "mixture_ratio",
+        "expansion_ratio",
+        "exit_pressure",
+        "c_star",
+        "cf_vac",
+        "cf",
+        "isp_vac",
+        "isp",
+        "thrust",
+        "thrust_vac",
+        "mdot",
+        "mdot_ox",
+        "mdot_fuel",
+        "chamber_temperature",
+        "gamma_c",
+        "throat_area",
+        "throat_diameter",
+        "exit_area",
+        "exit_diameter",
+        "contraction_ratio",
+        "chamber_area",
+        "chamber_diameter",
+        "l_star",
+        "chamber_volume",
+        "chamber_length",
+        "convergent_length",
+        "nozzle_length",
+        "total_length"
+      ],
+      "description": "The thrust-chamber design at the design point (SI)."
+    },
+    "InjectorDesign": {
+      "type": "object",
+      "properties": {
+        "pressure_drop": {
+          "type": "number",
+          "format": "double"
+        },
+        "ox": {
+          "$ref": "#/$defs/InjectorSide"
+        },
+        "fuel": {
+          "$ref": "#/$defs/InjectorSide"
+        }
+      },
+      "required": [
+        "pressure_drop",
+        "ox",
+        "fuel"
+      ],
+      "description": "Both sides of the injector."
+    },
+    "InjectorSide": {
+      "type": "object",
+      "properties": {
+        "mdot": {
+          "type": "number",
+          "format": "double"
+        },
+        "density": {
+          "type": "number",
+          "format": "double"
+        },
+        "cd": {
+          "type": "number",
+          "format": "double"
+        },
+        "pressure_drop": {
+          "type": "number",
+          "format": "double"
+        },
+        "area": {
+          "type": "number",
+          "format": "double",
+          "description": "Total orifice area."
+        },
+        "velocity": {
+          "type": "number",
+          "format": "double"
+        }
+      },
+      "required": [
+        "mdot",
+        "density",
+        "cd",
+        "pressure_drop",
+        "area",
+        "velocity"
+      ],
+      "description": "One propellant's injector elements at the design point."
+    },
+    "FeedBranch": {
+      "type": "object",
+      "properties": {
+        "tank": {
+          "type": "string",
+          "description": "Tank node id."
+        },
+        "fluid": {
+          "type": "string"
+        },
+        "density": {
+          "type": "number",
+          "format": "double"
+        },
+        "path": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Node ids from the tank to the engine node."
+        },
+        "elements": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/FeedElement"
+          }
+        },
+        "mdot": {
+          "type": "number",
+          "format": "double"
+        },
+        "tank_pressure": {
+          "type": "number",
+          "format": "double"
+        },
+        "chamber_pressure": {
+          "type": "number",
+          "format": "double"
+        },
+        "injector_pressure_drop": {
+          "type": "number",
+          "format": "double"
+        },
+        "line_pressure_drop": {
+          "type": "number",
+          "format": "double"
+        },
+        "valve_pressure_drop": {
+          "type": "number",
+          "format": "double"
+        },
+        "required_pressure": {
+          "type": "number",
+          "format": "double",
+          "description": "Tank pressure needed: Pc + injector + lines + given valves."
+        },
+        "margin": {
+          "type": "number",
+          "format": "double",
+          "description": "Pressure left over that no element takes (0 once a valve is sized)."
+        },
+        "valves": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ValveSizing"
+          }
+        },
+        "resistance": {
+          "type": "number",
+          "format": "double",
+          "description": "Total resistance tank → chamber incl. the injector (ΔP = R ṁ²)."
+        }
+      },
+      "required": [
+        "tank",
+        "fluid",
+        "density",
+        "path",
+        "elements",
+        "mdot",
+        "tank_pressure",
+        "chamber_pressure",
+        "injector_pressure_drop",
+        "line_pressure_drop",
+        "valve_pressure_drop",
+        "required_pressure",
+        "margin",
+        "valves",
+        "resistance"
+      ],
+      "description": "One propellant's feed path and its design-point pressure budget (SI)."
+    },
+    "FeedElement": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "line"
+            },
+            "edge": {
+              "type": "integer",
+              "format": "uint",
+              "minimum": 0
+            },
+            "diameter": {
+              "type": "number",
+              "format": "double"
+            },
+            "length": {
+              "type": "number",
+              "format": "double"
+            }
+          },
+          "required": [
+            "kind",
+            "edge",
+            "diameter",
+            "length"
+          ],
+          "description": "A line (edge with `diameter` and `length`)."
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "orifice"
+            },
+            "edge": {
+              "type": "integer",
+              "format": "uint",
+              "minimum": 0
+            },
+            "cd": {
+              "type": "number",
+              "format": "double"
+            },
+            "area": {
+              "type": "number",
+              "format": "double"
+            }
+          },
+          "required": [
+            "kind",
+            "edge",
+            "cd",
+            "area"
+          ],
+          "description": "An orifice edge (`bc = \"orifice\"`, the edge diameter)."
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "valve"
+            },
+            "node": {
+              "type": "string"
+            },
+            "cd": {
+              "type": "number",
+              "format": "double"
+            },
+            "area": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            }
+          },
+          "required": [
+            "kind",
+            "node",
+            "cd"
+          ],
+          "description": "A valve node; `area` is `None` until the budget sizes it."
+        }
+      ],
+      "description": "One element on a feed path."
+    },
+    "ValveSizing": {
+      "type": "object",
+      "properties": {
+        "node": {
+          "type": "string"
+        },
+        "cd": {
+          "type": "number",
+          "format": "double"
+        },
+        "area": {
+          "type": "number",
+          "format": "double"
+        },
+        "pressure_drop": {
+          "type": "number",
+          "format": "double"
+        },
+        "sized": {
+          "type": "boolean",
+          "description": "True when the budget computed the area (no `flow_area` given)."
+        }
+      },
+      "required": [
+        "node",
+        "cd",
+        "area",
+        "pressure_drop",
+        "sized"
+      ],
+      "description": "A valve on a path at the design point."
+    },
+    "TankReport": {
+      "type": "object",
+      "properties": {
+        "node": {
+          "type": "string"
+        },
+        "fluid": {
+          "type": "string"
+        },
+        "component": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "volume": {
+          "type": "number",
+          "format": "double"
+        },
+        "liquid_volume": {
+          "type": "number",
+          "format": "double"
+        },
+        "liquid_density": {
+          "type": "number",
+          "format": "double"
+        },
+        "propellant_mass": {
+          "type": "number",
+          "format": "double"
+        },
+        "ullage_fraction": {
+          "type": "number",
+          "format": "double"
+        },
+        "pressure": {
+          "type": "number",
+          "format": "double"
+        },
+        "pressurant": {
+          "type": "string"
+        },
+        "polytropic_exponent": {
+          "type": "number",
+          "format": "double",
+          "description": "Polytropic exponent of the ullage expansion (γ of the gas: adiabatic)."
+        },
+        "pressurant_mass": {
+          "type": "number",
+          "format": "double"
+        },
+        "final_pressure": {
+          "type": "number",
+          "format": "double",
+          "description": "Ullage pressure once the load is gone (polytropic)."
+        },
+        "shell_mass": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        },
+        "hoop_stress": {
+          "type": "number",
+          "format": "double"
+        },
+        "hoop_safety_factor": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        },
+        "station": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        },
+        "liquid_centroid": {
+          "type": "number",
+          "format": "double",
+          "description": "Liquid CG from the tank's aft inner pole."
+        }
+      },
+      "required": [
+        "node",
+        "fluid",
+        "volume",
+        "liquid_volume",
+        "liquid_density",
+        "propellant_mass",
+        "ullage_fraction",
+        "pressure",
+        "pressurant",
+        "polytropic_exponent",
+        "pressurant_mass",
+        "final_pressure",
+        "hoop_stress",
+        "liquid_centroid"
+      ],
+      "description": "One tank at ignition (SI)."
+    },
+    "BlowdownSummary": {
+      "type": "object",
+      "properties": {
+        "burn_time": {
+          "type": "number",
+          "format": "double"
+        },
+        "total_impulse": {
+          "type": "number",
+          "format": "double"
+        },
+        "average_thrust": {
+          "type": "number",
+          "format": "double"
+        },
+        "peak_thrust": {
+          "type": "number",
+          "format": "double"
+        },
+        "initial_chamber_pressure": {
+          "type": "number",
+          "format": "double"
+        },
+        "final_chamber_pressure": {
+          "type": "number",
+          "format": "double"
+        },
+        "ox_used": {
+          "type": "number",
+          "format": "double"
+        },
+        "fuel_used": {
+          "type": "number",
+          "format": "double"
+        },
+        "end": {
+          "$ref": "#/$defs/EndReason"
+        }
+      },
+      "required": [
+        "burn_time",
+        "total_impulse",
+        "average_thrust",
+        "peak_thrust",
+        "initial_chamber_pressure",
+        "final_chamber_pressure",
+        "ox_used",
+        "fuel_used",
+        "end"
+      ],
+      "description": "Blowdown totals."
+    },
+    "EndReason": {
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "oxidizer_depleted",
+            "fuel_depleted",
+            "time_limit"
+          ]
+        },
+        {
+          "type": "string",
+          "const": "thrust_zero",
+          "description": "The thrust at ambient pressure fell to zero (deep over-expansion)."
+        },
+        {
+          "type": "string",
+          "const": "no_balance",
+          "description": "No chamber pressure balances the flows (a tank fell below the chamber)."
+        }
+      ],
+      "description": "Why the burn ended."
+    }
+  }
+}

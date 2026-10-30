@@ -1,0 +1,137 @@
+{
+  "type": "object",
+  "properties": {
+    "cn_alpha": {
+      "type": "number",
+      "format": "double",
+      "description": "Normal-force slope, per radian."
+    },
+    "cn": {
+      "type": "number",
+      "format": "double"
+    },
+    "cp": {
+      "type": "number",
+      "format": "double",
+      "description": "Center of pressure station.",
+      "x-unit-dimension": "length"
+    },
+    "cd": {
+      "type": "number",
+      "format": "double",
+      "description": "Axial drag coefficient (total)."
+    },
+    "drag": {
+      "$ref": "#/$defs/DragBreakdown"
+    },
+    "cm_damping": {
+      "type": "number",
+      "format": "double",
+      "description": "Pitch damping moment coefficient."
+    },
+    "cl_forcing": {
+      "type": "number",
+      "format": "double",
+      "description": "Roll forcing (fin cant) and damping."
+    },
+    "cl_damping": {
+      "type": "number",
+      "format": "double"
+    },
+    "ref_area": {
+      "type": "number",
+      "format": "double",
+      "x-unit-dimension": "area"
+    },
+    "ref_length": {
+      "type": "number",
+      "format": "double",
+      "x-unit-dimension": "length"
+    },
+    "components": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ComponentAero"
+      },
+      "description": "Per-component normal-force terms (for check `aero.terms`)."
+    }
+  },
+  "required": [
+    "cn_alpha",
+    "cn",
+    "cp",
+    "cd",
+    "drag",
+    "cm_damping",
+    "cl_forcing",
+    "cl_damping",
+    "ref_area",
+    "ref_length",
+    "components"
+  ],
+  "description": "Coefficients referenced to [`AeroCoeffs::ref_area`] and `ref_length`.",
+  "title": "AeroCoeffs",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rocketwright.dev/schema/1/aero-coeffs.json",
+  "$defs": {
+    "DragBreakdown": {
+      "type": "object",
+      "properties": {
+        "friction": {
+          "type": "number",
+          "format": "double"
+        },
+        "pressure": {
+          "type": "number",
+          "format": "double"
+        },
+        "base": {
+          "type": "number",
+          "format": "double"
+        },
+        "parasitic": {
+          "type": "number",
+          "format": "double"
+        },
+        "total": {
+          "type": "number",
+          "format": "double"
+        }
+      },
+      "required": [
+        "friction",
+        "pressure",
+        "base",
+        "parasitic",
+        "total"
+      ]
+    },
+    "ComponentAero": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "cn_alpha": {
+          "type": "number",
+          "format": "double"
+        },
+        "cp": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "model": {
+          "type": "string",
+          "description": "Cited model id (`docs/dev/citations.toml`), e.g. `barrowman1967:nose`."
+        }
+      },
+      "required": [
+        "id",
+        "cn_alpha",
+        "cp",
+        "model"
+      ]
+    }
+  }
+}

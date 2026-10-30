@@ -1,0 +1,361 @@
+# RocketWright release (docs/dev/releasing.md): the desktop app with
+# electron-builder (macOS arm64 dmg + zip; Linux x64 AppImage), the macOS CLI
+# kit (`make kit`), SHA256SUMS, and a GitHub Release.
+#
+# - A `v*` tag push publishes a release for that tag (a prerelease when the
+#   version has a suffix, e.g. v0.2.0-rc.1).
+# - workflow_dispatch builds the current ref as a draft (by default) tagged
+#   v<version>; GitHub creates the tag when the draft is published.
+#
+# macOS is signed and notarized when every signing secret is set (CSC_LINK,
+# CSC_KEY_PASSWORD, APPLE_API_KEY, APPLE_API_KEY_ID, APPLE_API_ISSUER);
+# otherwise it is ad-hoc signed, and the release notes say how to open it.
+# The macOS app is the release: Linux and the kit are published when they
+# build, and the notes name any that did not.
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version without the v (default: the desktop package version plus -dev.<run number>)"
+        required: false
+        type: string
+      draft:
+        description: "Create the release as a draft"
+        required: false
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+
+# Never cancel a release in flight; a second run for the same ref waits.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  meta:
+    name: Release metadata
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+      tag: ${{ steps.meta.outputs.tag }}
+      draft: ${{ steps.meta.outputs.draft }}
+      prerelease: ${{ steps.meta.outputs.prerelease }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: app/apps/desktop/package.json
+          sparse-checkout-cone-mode: false
+
+      - name: Resolve version and tag
+        id: meta
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+          INPUT_DRAFT: ${{ inputs.draft }}
+        run: |
+          if [[ "$GITHUB_EVENT_NAME" == push ]]; then
+            tag="$GITHUB_REF_NAME"
+            version="${tag#v}"
+            draft=false
+          else
+            base=$(node -p 'require("./app/apps/desktop/package.json").version')
+            version="${INPUT_VERSION:-$base-dev.$GITHUB_RUN_NUMBER}"
+            version="${version#v}"
+            tag="v$version"
+            draft="$INPUT_DRAFT"
+          fi
+          if ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::'$version' is not a semver version (tag v<major>.<minor>.<patch>[-suffix])"
+            exit 1
+          fi
+          prerelease=false
+          if [[ "$version" == *-* ]]; then prerelease=true; fi
+          {
+            echo "version=$version"
+            echo "tag=$tag"
+            echo "draft=$draft"
+            echo "prerelease=$prerelease"
+          } >> "$GITHUB_OUTPUT"
+          echo "RocketWright $version ($tag; draft=$draft, prerelease=$prerelease)" >> "$GITHUB_STEP_SUMMARY"
+
+  lecturn-kit:
+    name: Lecturn kit
+    uses: ./.github/workflows/lecturn-kit.yml
+
+  desktop-macos:
+    name: Desktop (macOS arm64)
+    needs: [meta, lecturn-kit]
+    runs-on: macos-15
+    timeout-minutes: 90
+    outputs:
+      signed: ${{ steps.build.outputs.signed }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Rust
+        uses: ./.github/actions/setup-rust
+        with:
+          cache-key: release-macos
+          wasm-bindgen: "true"
+
+      - name: Setup app
+        uses: ./.github/actions/setup-app
+        with:
+          electron: "true"
+
+      # Lecturn's signing setup (its release.yml): the certificate goes into a
+      # throwaway keychain electron-builder finds through CSC_KEYCHAIN, and the
+      # App Store Connect key into a .p8 file whose path notarization reads.
+      - name: Build
+        id: build
+        env:
+          VERSION: ${{ needs.meta.outputs.version }}
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APPLE_TEAM_ID: ${{ vars.APPLE_TEAM_ID }}
+        run: |
+          set -euo pipefail
+          secrets=("$CSC_LINK" "$CSC_KEY_PASSWORD" "$APPLE_API_KEY" "$APPLE_API_KEY_ID" "$APPLE_API_ISSUER")
+          set_count=0
+          for value in "${secrets[@]}"; do
+            if [[ -n "$value" ]]; then set_count=$((set_count + 1)); fi
+          done
+
+          signed=
+          if (( set_count == ${#secrets[@]} )); then
+            umask 077
+            signing_dir=$(mktemp -d "$RUNNER_TEMP/rw-signing.XXXXXX")
+            keychain="$signing_dir/signing.keychain-db"
+            keychain_password=$(openssl rand -hex 32)
+            echo "::add-mask::$keychain_password"
+            original_keychains=()
+            while IFS= read -r k; do original_keychains+=("$k"); done < <(security list-keychains -d user | sed -E 's/^[[:space:]]*"//; s/"[[:space:]]*$//')
+            cleanup_signing() {
+              security list-keychains -d user -s "${original_keychains[@]}" >/dev/null 2>&1 || true
+              security delete-keychain "$keychain" >/dev/null 2>&1 || true
+              rm -rf "$signing_dir"
+            }
+            trap cleanup_signing EXIT
+            printf '%s' "$CSC_LINK" | base64 -D > "$signing_dir/certificate.p12"
+            security create-keychain -p "$keychain_password" "$keychain"
+            security set-keychain-settings -lut 21600 "$keychain"
+            security unlock-keychain -p "$keychain_password" "$keychain"
+            # codesign searches the user's keychain list; keep the originals so chains resolve.
+            security list-keychains -d user -s "$keychain" "${original_keychains[@]}"
+            security import "$signing_dir/certificate.p12" -k "$keychain" -T /usr/bin/codesign -T /usr/bin/productbuild -P "$CSC_KEY_PASSWORD"
+            security set-key-partition-list -S apple-tool:,apple: -s -k "$keychain_password" "$keychain" >/dev/null
+            export CSC_KEYCHAIN="$keychain"
+            unset CSC_LINK CSC_KEY_PASSWORD
+            printf '%s' "$APPLE_API_KEY" > "$signing_dir/AuthKey_${APPLE_API_KEY_ID}.p8"
+            export APPLE_API_KEY="$signing_dir/AuthKey_${APPLE_API_KEY_ID}.p8"
+            umask 022
+            signed=1
+            echo "macOS signing and notarization enabled."
+          else
+            if (( set_count > 0 )); then
+              echo "::warning::Only $set_count of the ${#secrets[@]} macOS signing secrets are set (CSC_LINK, CSC_KEY_PASSWORD, APPLE_API_KEY, APPLE_API_KEY_ID, APPLE_API_ISSUER): building unsigned."
+            else
+              echo "No macOS signing secrets: building unsigned (ad-hoc signature, not notarized)."
+            fi
+            unset CSC_LINK CSC_KEY_PASSWORD APPLE_API_KEY APPLE_API_KEY_ID APPLE_API_ISSUER
+            export CSC_IDENTITY_AUTO_DISCOVERY=false
+          fi
+          if [[ -n "$signed" ]]; then echo "signed=true"; else echo "signed=false"; fi >> "$GITHUB_OUTPUT"
+          make package VERSION="$VERSION" SIGNED="$signed"
+
+      - name: Verify the app
+        env:
+          SIGNED: ${{ steps.build.outputs.signed }}
+        run: |
+          app=dist/desktop/mac-arm64/RocketWright.app
+          codesign --verify --deep --strict --verbose=2 "$app"
+          codesign -dv "$app" 2>&1 | grep -E '^(Identifier|Authority|TeamIdentifier|Signature)' || true
+          if [[ "$SIGNED" == true ]]; then
+            xcrun stapler validate "$app"
+            spctl --assess --type execute --verbose=2 "$app"
+          fi
+
+      - name: Upload
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-desktop-macos
+          path: |
+            dist/desktop/*.dmg
+            dist/desktop/*.zip
+          if-no-files-found: error
+          retention-days: 7
+
+  desktop-linux:
+    name: Desktop (Linux x64)
+    needs: [meta, lecturn-kit]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Rust
+        uses: ./.github/actions/setup-rust
+        with:
+          cache-key: release-linux
+          wasm-bindgen: "true"
+
+      - name: Setup app
+        uses: ./.github/actions/setup-app
+        with:
+          electron: "true"
+
+      - name: Build
+        env:
+          VERSION: ${{ needs.meta.outputs.version }}
+        run: make package VERSION="$VERSION"
+
+      - name: Upload
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-desktop-linux
+          path: dist/desktop/*.AppImage
+          if-no-files-found: error
+          retention-days: 7
+
+  # `make kit` (macOS: the renderer is a .app). CI has no OpenRocket checkout
+  # and no oracle cache, so the kit ships without data/ (RW_KIT_NO_DATA=1).
+  kit-macos:
+    name: CLI kit (macOS arm64)
+    needs: [meta, lecturn-kit]
+    runs-on: macos-15
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Rust
+        uses: ./.github/actions/setup-rust
+        with:
+          cache-key: release-kit
+          wasm-bindgen: "true"
+
+      - name: Setup app
+        uses: ./.github/actions/setup-app
+        with:
+          electron: "true"
+
+      # Native CEA (rw-cea-sys --features cea) needs gfortran; cmake is on the image.
+      - name: Install gfortran
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: "1"
+          HOMEBREW_NO_INSTALL_CLEANUP: "1"
+        run: |
+          brew install gcc
+          gfortran --version | head -1
+          cmake --version | head -1
+
+      - name: Build
+        env:
+          VERSION: ${{ needs.meta.outputs.version }}
+        run: |
+          RW_KIT_NO_DATA=1 make kit
+          name="rocketwright-kit-$VERSION-macos-arm64"
+          mkdir -p dist/release
+          mv dist/kit "dist/$name"
+          tar -C dist -czf "dist/release/$name.tar.gz" "$name"
+
+      - name: Upload
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-kit-macos
+          path: dist/release/*.tar.gz
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    name: Publish
+    needs: [meta, desktop-macos, desktop-linux, kit-macos]
+    if: ${{ !cancelled() && needs.meta.result == 'success' && needs.desktop-macos.result == 'success' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - name: Download
+        uses: actions/download-artifact@v8
+        with:
+          pattern: release-*
+          merge-multiple: true
+          path: release
+
+      - name: Checksums
+        working-directory: release
+        run: |
+          sha256sum -- * > SHA256SUMS
+          cat SHA256SUMS
+
+      - name: Release notes
+        env:
+          VERSION: ${{ needs.meta.outputs.version }}
+          SIGNED: ${{ needs.desktop-macos.outputs.signed }}
+          LINUX: ${{ needs.desktop-linux.result }}
+          KIT: ${{ needs.kit-macos.result }}
+        run: |
+          {
+            echo "## Downloads"
+            echo
+            echo "- macOS (Apple Silicon): \`RocketWright-$VERSION-mac-arm64.dmg\` (or the \`.zip\`)"
+            if compgen -G "release/*.AppImage" >/dev/null; then
+              echo "- Linux (x64): \`$(basename release/*.AppImage)\` (\`chmod +x\` it, then run it; on Ubuntu 24.04 and later, if it exits at once, run it with \`--no-sandbox\`)"
+            fi
+            if compgen -G "release/rocketwright-kit-*.tar.gz" >/dev/null; then
+              echo "- CLI kit (macOS Apple Silicon): \`$(basename release/rocketwright-kit-*.tar.gz)\`: \`bin/rocketwright\` (also \`bin/rw\`, native CEA), the headless renderer, and the agent docs"
+            fi
+            echo "- \`SHA256SUMS\`: \`shasum -a 256 -c SHA256SUMS\`"
+            [[ "$LINUX" == success ]] || echo "- No Linux build this time (the job ended: $LINUX)."
+            [[ "$KIT" == success ]] || echo "- No CLI kit this time (the job ended: $KIT)."
+            echo
+            if [[ "$SIGNED" == true ]]; then
+              echo "The macOS app is signed with a Developer ID and notarized by Apple."
+            else
+              echo "> [!WARNING]"
+              echo "> **Unsigned build.** The macOS app is not signed with a Developer ID or notarized, so macOS blocks it on first open."
+              echo "> To open it: drag RocketWright to Applications, then Control-click (right-click) it and choose **Open**, and **Open** again."
+              echo "> On macOS 15 and later, if there is no Open button, choose **Done**, then go to System Settings > Privacy & Security and click **Open Anyway**."
+              echo "> Or clear the quarantine flag in Terminal: \`xattr -dr com.apple.quarantine /Applications/RocketWright.app\`"
+              echo "> (for the kit: \`xattr -dr com.apple.quarantine rocketwright-kit-*\` after unpacking)."
+            fi
+          } > notes.md
+          cat notes.md
+
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.meta.outputs.tag }}
+          VERSION: ${{ needs.meta.outputs.version }}
+          DRAFT: ${{ needs.meta.outputs.draft }}
+          PRERELEASE: ${{ needs.meta.outputs.prerelease }}
+        run: |
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            # A re-run: refresh the assets and notes of the release it made.
+            gh release upload "$TAG" release/* --repo "$GITHUB_REPOSITORY" --clobber
+            gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --notes-file notes.md
+          else
+            args=(--repo "$GITHUB_REPOSITORY" --title "RocketWright $VERSION" --notes-file notes.md --generate-notes)
+            if [[ "$DRAFT" == true ]]; then args+=(--draft); fi
+            if [[ "$PRERELEASE" == true ]]; then args+=(--prerelease); fi
+            if [[ "$GITHUB_EVENT_NAME" == push ]]; then args+=(--verify-tag); else args+=(--target "$GITHUB_SHA"); fi
+            gh release create "$TAG" "${args[@]}" release/*
+          fi
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json url,isDraft,assets --jq '{url, isDraft, assets: [.assets[].name]}'

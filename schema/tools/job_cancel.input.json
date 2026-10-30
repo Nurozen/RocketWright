@@ -1,0 +1,14 @@
+{
+  "type": "object",
+  "properties": {
+    "job_id": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "job_id"
+  ],
+  "title": "JobRef",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rocketwright.dev/schema/1/tools/job_cancel.input.json"
+}

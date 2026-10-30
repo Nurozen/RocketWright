@@ -1,0 +1,12 @@
+name = "Higher altitude"
+description = "Class C generic motor; the parachute opens at the ejection charge"
+
+[motors.motor_casing]
+motor = "generic:RW_C6G"
+delay = "5 s"
+
+[deploy.chute]
+event = "ejection"
+
+[deploy.streamer]
+event = "never"

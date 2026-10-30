@@ -1,0 +1,2313 @@
+{
+  "kind": "aero_sweep",
+  "schema": "rw/1",
+  "case": 7,
+  "config_id": "fadeeef3-4aa4-49e9-9581-71e14fa91c14",
+  "alpha_deg": 0.0,
+  "points": [
+    {
+      "mach": 0.05,
+      "cd_total": 0.8770956627495886,
+      "cd_friction": 0.42046065282471384,
+      "cd_pressure": 0.29271287729280565,
+      "cd_base": 0.1639221326320691,
+      "cna": 35.00767032685397,
+      "cp_m": 1.5561840052455695,
+      "components": [
+        {
+          "name": "Nose Cone",
+          "cd_total": 0.03504627357889603,
+          "cd_friction": 0.03504627357888182,
+          "cd_pressure": 1.4210854715202004e-14,
+          "cd_base": 0.0,
+          "cna": 2.002990411896022,
+          "cp_m": 0.15000287263613798
+        },
+        {
+          "name": "Payload Bay",
+          "cd_total": 0.012190530520004062,
+          "cd_friction": 0.012190530520004062,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.0010504222742656812,
+          "cp_m": 0.36195000000000005
+        },
+        {
+          "name": "Sustainer Forward Airframe",
+          "cd_total": 0.06907967294668968,
+          "cd_friction": 0.06907967294668968,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.0059523928875055265,
+          "cp_m": 0.6159500000000003
+        },
+        {
+          "name": "Sustainer Switch Band",
+          "cd_total": 0.004063510173334687,
+          "cd_friction": 0.004063510173334687,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.00035014075808856044,
+          "cp_m": 0.84455
+        },
+        {
+          "name": "Rail Button",
+          "cd_total": 0.0004803051478439036,
+          "cd_friction": 0.0,
+          "cd_pressure": 0.0004803051478439036,
+          "cd_base": 0.0,
+          "cna": null,
+          "cp_m": null
+        },
+        {
+          "name": "Sustainer Aft Airframe",
+          "cd_total": 0.060952652600020314,
+          "cd_friction": 0.060952652600020314,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.005252111371328406,
+          "cp_m": 1.0477499999999997
+        },
+        {
+          "name": "Sustainer Fin Section",
+          "cd_total": 0.02844457121334281,
+          "cd_friction": 0.02844457121334281,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.0024509853066199223,
+          "cp_m": 1.3271499999999998
+        },
+        {
+          "name": "Trapezoidal Fin Set",
+          "cd_total": 0.0724392431695628,
+          "cd_friction": 0.017481541781951934,
+          "cd_pressure": 0.04777633193978625,
+          "cd_base": 0.007181369447824614,
+          "cna": 15.647305494025563,
+          "cp_m": 1.3080592241037898
+        },
+        {
+          "name": "Interstage",
+          "cd_total": 0.012190530520004062,
+          "cd_friction": 0.012190530520004062,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.0010504222742656812,
+          "cp_m": 1.4541499999999998
+        },
+        {
+          "name": "Rail Button",
+          "cd_total": 0.0002103380232754049,
+          "cd_friction": 0.0,
+          "cd_pressure": 0.0002103380232754049,
+          "cd_base": 0.0,
+          "cna": null,
+          "cp_m": null
+        },
+        {
+          "name": "Booster airframe",
+          "cd_total": 0.060952652600020314,
+          "cd_friction": 0.060952652600020314,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.005252111371328406,
+          "cp_m": 1.6827499999999997
+        },
+        {
+          "name": "Booster fin section",
+          "cd_total": 0.1487695712133428,
+          "cd_friction": 0.02844457121334281,
+          "cd_pressure": 0.0,
+          "cd_base": 0.120325,
+          "cna": 0.0024509853066199223,
+          "cp_m": 1.96215
+        },
+        {
+          "name": "Trapezoidal Fin Set",
+          "cd_total": 0.07556889384433563,
+          "cd_friction": 0.018883687371072513,
+          "cd_pressure": 0.049334198377064695,
+          "cd_base": 0.007351008096198422,
+          "cna": 17.33356484938236,
+          "cp_m": 1.9431690850105832
+        }
+      ]
+    },
+    {
+      "mach": 0.1,
+      "cd_total": 0.8791017941261494,
+      "cd_friction": 0.4201452284790089,
+      "cd_pressure": 0.2937061630851627,
+      "cd_base": 0.16525040256197782,
+      "cna": 35.060717034138094,
+      "cp_m": 1.5563270398511284,
+      "components": [
+        {
+          "name": "Nose Cone",
+          "cd_total": 0.03501998230089238,
+          "cd_friction": 0.03501998230087817,
+          "cd_pressure": 1.4210854715202004e-14,
+          "cd_base": 0.0,
+          "cna": 2.002990411896022,
+          "cp_m": 0.15000287263613798
+        },
+        {
+          "name": "Payload Bay",
+          "cd_total": 0.012181385335818012,
+          "cd_friction": 0.012181385335818012,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.0010504222742656812,
+          "cp_m": 0.36195000000000005
+        },
+        {
+          "name": "Sustainer Forward Airframe",
+          "cd_total": 0.06902785023630208,
+          "cd_friction": 0.06902785023630208,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.0059523928875055265,
+          "cp_m": 0.6159500000000003
+        },
+        {
+          "name": "Sustainer Switch Band",
+          "cd_total": 0.004060461778606004,
+          "cd_friction": 0.004060461778606004,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.00035014075808856044,
+          "cp_m": 0.84455
+        },
+        {
+          "name": "Rail Button",
+          "cd_total": 0.0006357132543337096,
+          "cd_friction": 0.0,
+          "cd_pressure": 0.0006357132543337096,
+          "cd_base": 0.0,
+          "cna": null,
+          "cp_m": null
+        },
+        {
+          "name": "Sustainer Aft Airframe",
+          "cd_total": 0.06090692667909006,
+          "cd_friction": 0.06090692667909006,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.005252111371328406,
+          "cp_m": 1.0477499999999997
+        },
+        {
+          "name": "Sustainer Fin Section",
+          "cd_total": 0.028423232450242027,
+          "cd_friction": 0.028423232450242027,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.0024509853066199223,
+          "cp_m": 1.3271499999999998
+        },
+        {
+          "name": "Trapezoidal Fin Set",
+          "cd_total": 0.07257395632199412,
+          "cd_friction": 0.017468427347006734,
+          "cd_pressure": 0.04786596850109479,
+          "cd_base": 0.007239560473892587,
+          "cna": 15.671515891434243,
+          "cp_m": 1.3080546030359659
+        },
+        {
+          "name": "Interstage",
+          "cd_total": 0.012181385335818012,
+          "cd_friction": 0.012181385335818012,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.0010504222742656812,
+          "cp_m": 1.4541499999999998
+        },
+        {
+          "name": "Rail Button",
+          "cd_total": 0.00027827889364160816,
+          "cd_friction": 0.0,
+          "cd_pressure": 0.00027827889364160816,
+          "cd_base": 0.0,
+          "cna": null,
+          "cp_m": null
+        },
+        {
+          "name": "Booster airframe",
+          "cd_total": 0.06090692667909006,
+          "cd_friction": 0.06090692667909006,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.005252111371328406,
+          "cp_m": 1.6827499999999997
+        },
+        {
+          "name": "Booster fin section",
+          "cd_total": 0.14972323245024202,
+          "cd_friction": 0.028423232450242027,
+          "cd_pressure": 0.0,
+          "cd_base": 0.12129999999999999,
+          "cna": 0.0024509853066199223,
+          "cp_m": 1.96215
+        },
+        {
+          "name": "Trapezoidal Fin Set",
+          "cd_total": 0.07570685253937194,
+          "cd_friction": 0.018869521063967432,
+          "cd_pressure": 0.04942675776197115,
+          "cd_base": 0.007410573713433355,
+          "cna": 17.3624011592578,
+          "cp_m": 1.9431653581557045
+        }
+      ]
+    },
+    {
+      "mach": 0.15,
+      "cd_total": 0.8820338109475306,
+      "cd_friction": 0.4196195212361673,
+      "cd_pressure": 0.29495010393287097,
+      "cd_base": 0.16746418577849234,
+      "cna": 35.14981108495353,
+      "cp_m": 1.556566486064826,
+      "components": [
+        {
+          "name": "Nose Cone",
+          "cd_total": 0.03497616350421961,
+          "cd_friction": 0.0349761635042054,
+          "cd_pressure": 1.4210854715202004e-14,
+          "cd_base": 0.0,
+          "cna": 2.002990411896022,
+          "cp_m": 0.15000287263613798
+        },
+        {
+          "name": "Payload Bay",
+          "cd_total": 0.012166143362174597,
+          "cd_friction": 0.012166143362174597,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.0010504222742656812,
+          "cp_m": 0.36195000000000005
+        },
+        {
+          "name": "Sustainer Forward Airframe",
+          "cd_total": 0.06894147905232272,
+          "cd_friction": 0.06894147905232272,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.0059523928875055265,
+          "cp_m": 0.6159500000000003
+        },
+        {
+          "name": "Sustainer Switch Band",
+          "cd_total": 0.004055381120724865,
+          "cd_friction": 0.004055381120724865,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.00035014075808856044,
+          "cp_m": 0.84455
+        },
+        {
+          "name": "Rail Button",
+          "cd_total": 0.0007509792586388366,
+          "cd_friction": 0.0,
+          "cd_pressure": 0.0007509792586388366,
+          "cd_base": 0.0,
+          "cna": null,
+          "cp_m": null
+        },
+        {
+          "name": "Sustainer Aft Airframe",
+          "cd_total": 0.06083071681087299,
+          "cd_friction": 0.06083071681087299,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.005252111371328406,
+          "cp_m": 1.0477499999999997
+        },
+        {
+          "name": "Sustainer Fin Section",
+          "cd_total": 0.028387667845074058,
+          "cd_friction": 0.028387667845074058,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.0024509853066199223,
+          "cp_m": 1.3271499999999998
+        },
+        {
+          "name": "Trapezoidal Fin Set",
+          "cd_total": 0.0727987766582313,
+          "cd_friction": 0.0174465699554314,
+          "cd_pressure": 0.04801566118546068,
+          "cd_base": 0.007336545517339211,
+          "cna": 15.71216735747024,
+          "cp_m": 1.308046862184953
+        },
+        {
+          "name": "Interstage",
+          "cd_total": 0.012166143362174597,
+          "cd_friction": 0.012166143362174597,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.0010504222742656812,
+          "cp_m": 1.4541499999999998
+        },
+        {
+          "name": "Rail Button",
+          "cd_total": 0.0003285836052250015,
+          "cd_friction": 0.0,
+          "cd_pressure": 0.0003285836052250015,
+          "cd_base": 0.0,
+          "cna": null,
+          "cp_m": null
+        },
+        {
+          "name": "Booster airframe",
+          "cd_total": 0.06083071681087299,
+          "cd_friction": 0.06083071681087299,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.005252111371328406,
+          "cp_m": 1.6827499999999997
+        },
+        {
+          "name": "Booster fin section",
+          "cd_total": 0.15131266784507402,
+          "cd_friction": 0.028387667845074058,
+          "cd_pressure": 0.0,
+          "cd_base": 0.12292499999999998,
+          "cna": 0.0024509853066199223,
+          "cp_m": 1.96215
+        },
+        {
+          "name": "Trapezoidal Fin Set",
+          "cd_total": 0.07593709184386621,
+          "cd_friction": 0.01884591055212563,
+          "cd_pressure": 0.04958133154958234,
+          "cd_base": 0.007509849742158246,
+          "cna": 17.410843744037244,
+          "cp_m": 1.9431591152202066
+        }
+      ]
+    },
+    {
+      "mach": 0.2,
+      "cd_total": 0.8859558522495714,
+      "cd_friction": 0.41888353109618903,
+      "cd_pressure": 0.29650883887176976,
+      "cd_base": 0.17056348228161272,
+      "cna": 35.2760018613422,
+      "cp_m": 1.556903960375155,
+      "components": [
+        {
+          "name": "Nose Cone",
+          "cd_total": 0.03491481718887773,
+          "cd_friction": 0.034914817188863516,
+          "cd_pressure": 1.4210854715202004e-14,
+          "cd_base": 0.0,
+          "cna": 2.002990411896022,
+          "cp_m": 0.15000287263613798
+        },
+        {
+          "name": "Payload Bay",
+          "cd_total": 0.012144804599073815,
+          "cd_friction": 0.012144804599073815,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.0010504222742656812,
+          "cp_m": 0.36195000000000005
+        },
+        {
+          "name": "Sustainer Forward Airframe",
+          "cd_total": 0.06882055939475162,
+          "cd_friction": 0.06882055939475162,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.0059523928875055265,
+          "cp_m": 0.6159500000000003
+        },
+        {
+          "name": "Sustainer Switch Band",
+          "cd_total": 0.004048268199691272,
+          "cd_friction": 0.004048268199691272,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.00035014075808856044,
+          "cp_m": 0.84455
+        },
+        {
+          "name": "Rail Button",
+          "cd_total": 0.0008474499201329824,
+          "cd_friction": 0.0,
+          "cd_pressure": 0.0008474499201329824,
+          "cd_base": 0.0,
+          "cna": null,
+          "cp_m": null
+        },
+        {
+          "name": "Sustainer Aft Airframe",
+          "cd_total": 0.060724022995369074,
+          "cd_friction": 0.060724022995369074,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.005252111371328406,
+          "cp_m": 1.0477499999999997
+        },
+        {
+          "name": "Sustainer Fin Section",
+          "cd_total": 0.0283378773978389,
+          "cd_friction": 0.0283378773978389,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.0024509853066199223,
+          "cp_m": 1.3271499999999998
+        },
+        {
+          "name": "Trapezoidal Fin Set",
+          "cd_total": 0.07311415180155177,
+          "cd_friction": 0.017415969607225936,
+          "cd_pressure": 0.04822585761616135,
+          "cd_base": 0.007472324578164486,
+          "cna": 15.76972176533288,
+          "cp_m": 1.3080359413587166
+        },
+        {
+          "name": "Interstage",
+          "cd_total": 0.012144804599073815,
+          "cd_friction": 0.012144804599073815,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.0010504222742656812,
+          "cp_m": 1.4541499999999998
+        },
+        {
+          "name": "Rail Button",
+          "cd_total": 0.00037061015292952495,
+          "cd_friction": 0.0,
+          "cd_pressure": 0.00037061015292952495,
+          "cd_base": 0.0,
+          "cna": null,
+          "cp_m": null
+        },
+        {
+          "name": "Booster airframe",
+          "cd_total": 0.060724022995369074,
+          "cd_friction": 0.060724022995369074,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.005252111371328406,
+          "cp_m": 1.6827499999999997
+        },
+        {
+          "name": "Booster fin section",
+          "cd_total": 0.15353787739783892,
+          "cd_friction": 0.0283378773978389,
+          "cd_pressure": 0.0,
+          "cd_base": 0.1252,
+          "cna": 0.0024509853066199223,
+          "cp_m": 1.96215
+        },
+        {
+          "name": "Trapezoidal Fin Set",
+          "cd_total": 0.07626007397696904,
+          "cd_friction": 0.018812855835547114,
+          "cd_pressure": 0.04979838195904883,
+          "cd_base": 0.007648836182373093,
+          "cna": 17.47948011256327,
+          "cp_m": 1.943150307659684
+        }
+      ]
+    },
+    {
+      "mach": 0.25,
+      "cd_total": 0.8908948729203731,
+      "cd_friction": 0.41793725805907417,
+      "cd_pressure": 0.2984093227899599,
+      "cd_base": 0.1745482920713389,
+      "cna": 35.44081051441188,
+      "cp_m": 1.557341719250961,
+      "components": [
+        {
+          "name": "Nose Cone",
+          "cd_total": 0.03483594335486674,
+          "cd_friction": 0.03483594335485253,
+          "cd_pressure": 1.4210854715202004e-14,
+          "cd_base": 0.0,
+          "cna": 2.002990411896022,
+          "cp_m": 0.15000287263613798
+        },
+        {
+          "name": "Payload Bay",
+          "cd_total": 0.012117369046515666,
+          "cd_friction": 0.012117369046515666,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.0010504222742656812,
+          "cp_m": 0.36195000000000005
+        },
+        {
+          "name": "Sustainer Forward Airframe",
+          "cd_total": 0.06866509126358877,
+          "cd_friction": 0.06866509126358877,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.0059523928875055265,
+          "cp_m": 0.6159500000000003
+        },
+        {
+          "name": "Sustainer Switch Band",
+          "cd_total": 0.004039123015505222,
+          "cd_friction": 0.004039123015505222,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.00035014075808856044,
+          "cp_m": 0.84455
+        },
+        {
+          "name": "Rail Button",
+          "cd_total": 0.0009331662181841894,
+          "cd_friction": 0.0,
+          "cd_pressure": 0.0009331662181841894,
+          "cd_base": 0.0,
+          "cna": null,
+          "cp_m": null
+        },
+        {
+          "name": "Sustainer Aft Airframe",
+          "cd_total": 0.06058684523257834,
+          "cd_friction": 0.06058684523257834,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.005252111371328406,
+          "cp_m": 1.0477499999999997
+        },
+        {
+          "name": "Sustainer Fin Section",
+          "cd_total": 0.028273861108536552,
+          "cd_friction": 0.028273861108536552,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.0024509853066199223,
+          "cp_m": 1.3271499999999998
+        },
+        {
+          "name": "Trapezoidal Fin Set",
+          "cd_total": 0.07352070842454395,
+          "cd_friction": 0.017376626302390334,
+          "cd_pressure": 0.048497184465785215,
+          "cd_base": 0.007646897656368407,
+          "cna": 15.84484784031264,
+          "cp_m": 1.3080215820844958
+        },
+        {
+          "name": "Interstage",
+          "cd_total": 0.012117369046515666,
+          "cd_friction": 0.012117369046515666,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.0010504222742656812,
+          "cp_m": 1.4541499999999998
+        },
+        {
+          "name": "Rail Button",
+          "cd_total": 0.0004078843323386928,
+          "cd_friction": 0.0,
+          "cd_pressure": 0.0004078843323386928,
+          "cd_base": 0.0,
+          "cna": null,
+          "cp_m": null
+        },
+        {
+          "name": "Booster airframe",
+          "cd_total": 0.06058684523257834,
+          "cd_friction": 0.06058684523257834,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.005252111371328406,
+          "cp_m": 1.6827499999999997
+        },
+        {
+          "name": "Booster fin section",
+          "cd_total": 0.15639886110853654,
+          "cd_friction": 0.028273861108536552,
+          "cd_pressure": 0.0,
+          "cd_base": 0.128125,
+          "cna": 0.0024509853066199223,
+          "cp_m": 1.96215
+        },
+        {
+          "name": "Trapezoidal Fin Set",
+          "cd_total": 0.07667644604549122,
+          "cd_friction": 0.01877035691423187,
+          "cd_pressure": 0.05007855609718145,
+          "cd_base": 0.007827533034077894,
+          "cna": 17.56916269065319,
+          "cp_m": 1.9431388648342311
+        }
+      ]
+    },
+    {
+      "mach": 0.3,
+      "cd_total": 0.8968675621647375,
+      "cd_friction": 0.4167807021248226,
+      "cd_pressure": 0.300668244892244,
+      "cd_base": 0.17941861514767088,
+      "cna": 35.646286578019684,
+      "cp_m": 1.5578827329844227,
+      "components": [
+        {
+          "name": "Nose Cone",
+          "cd_total": 0.034739542002186645,
+          "cd_friction": 0.034739542002172434,
+          "cd_pressure": 1.4210854715202004e-14,
+          "cd_base": 0.0,
+          "cna": 2.002990411896022,
+          "cp_m": 0.15000287263613798
+        },
+        {
+          "name": "Payload Bay",
+          "cd_total": 0.012083836704500148,
+          "cd_friction": 0.012083836704500148,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.0010504222742656812,
+          "cp_m": 0.36195000000000005
+        },
+        {
+          "name": "Sustainer Forward Airframe",
+          "cd_total": 0.06847507465883418,
+          "cd_friction": 0.06847507465883418,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.0059523928875055265,
+          "cp_m": 0.6159500000000003
+        },
+        {
+          "name": "Sustainer Switch Band",
+          "cd_total": 0.004027945568166717,
+          "cd_friction": 0.004027945568166717,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.00035014075808856044,
+          "cp_m": 0.84455
+        },
+        {
+          "name": "Rail Button",
+          "cd_total": 0.0010122214250948029,
+          "cd_friction": 0.0,
+          "cd_pressure": 0.0010122214250948029,
+          "cd_base": 0.0,
+          "cna": null,
+          "cp_m": null
+        },
+        {
+          "name": "Sustainer Aft Airframe",
+          "cd_total": 0.060419183522500745,
+          "cd_friction": 0.060419183522500745,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.005252111371328406,
+          "cp_m": 1.0477499999999997
+        },
+        {
+          "name": "Sustainer Fin Section",
+          "cd_total": 0.028195618977167016,
+          "cd_friction": 0.028195618977167016,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.0024509853066199223,
+          "cp_m": 1.3271499999999998
+        },
+        {
+          "name": "Trapezoidal Fin Set",
+          "cd_total": 0.07401925224910726,
+          "cd_friction": 0.017328540040924597,
+          "cd_pressure": 0.04883044745623168,
+          "cd_base": 0.00786026475195098,
+          "cna": 15.938445147851077,
+          "cp_m": 1.3080037134865816
+        },
+        {
+          "name": "Interstage",
+          "cd_total": 0.012083836704500148,
+          "cd_friction": 0.012083836704500148,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.0010504222742656812,
+          "cp_m": 1.4541499999999998
+        },
+        {
+          "name": "Rail Button",
+          "cd_total": 0.0004422008989956433,
+          "cd_friction": 0.0,
+          "cd_pressure": 0.0004422008989956433,
+          "cd_base": 0.0,
+          "cna": null,
+          "cp_m": null
+        },
+        {
+          "name": "Booster airframe",
+          "cd_total": 0.060419183522500745,
+          "cd_friction": 0.060419183522500745,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.005252111371328406,
+          "cp_m": 1.6827499999999997
+        },
+        {
+          "name": "Booster fin section",
+          "cd_total": 0.159895618977167,
+          "cd_friction": 0.028195618977167016,
+          "cd_pressure": 0.0,
+          "cd_base": 0.13169999999999998,
+          "cna": 0.0024509853066199223,
+          "cp_m": 1.96215
+        },
+        {
+          "name": "Trapezoidal Fin Set",
+          "cd_total": 0.07718704004390384,
+          "cd_friction": 0.018718413788179906,
+          "cd_pressure": 0.050422685958451285,
+          "cd_base": 0.008045940297272654,
+          "cna": 17.681041446722563,
+          "cp_m": 1.943124336112238
+        }
+      ]
+    },
+    {
+      "mach": 0.35,
+      "cd_total": 0.9038869689144473,
+      "cd_friction": 0.41541386329343455,
+      "cd_pressure": 0.303298654110404,
+      "cd_base": 0.1851744515106087,
+      "cna": 35.895087985456726,
+      "cp_m": 1.5585310074232084,
+      "components": [
+        {
+          "name": "Nose Cone",
+          "cd_total": 0.034625613130837445,
+          "cd_friction": 0.034625613130823234,
+          "cd_pressure": 1.4210854715202004e-14,
+          "cd_base": 0.0,
+          "cna": 2.002990411896022,
+          "cp_m": 0.15000287263613798
+        },
+        {
+          "name": "Payload Bay",
+          "cd_total": 0.01204420757302727,
+          "cd_friction": 0.01204420757302727,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.0010504222742656812,
+          "cp_m": 0.36195000000000005
+        },
+        {
+          "name": "Sustainer Forward Airframe",
+          "cd_total": 0.06825050958048787,
+          "cd_friction": 0.06825050958048787,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.0059523928875055265,
+          "cp_m": 0.6159500000000003
+        },
+        {
+          "name": "Sustainer Switch Band",
+          "cd_total": 0.004014735857675756,
+          "cd_friction": 0.004014735857675756,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.00035014075808856044,
+          "cp_m": 0.84455
+        },
+        {
+          "name": "Rail Button",
+          "cd_total": 0.001087064247626718,
+          "cd_friction": 0.0,
+          "cd_pressure": 0.001087064247626718,
+          "cd_base": 0.0,
+          "cna": null,
+          "cp_m": null
+        },
+        {
+          "name": "Sustainer Aft Airframe",
+          "cd_total": 0.06022103786513635,
+          "cd_friction": 0.06022103786513635,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.005252111371328406,
+          "cp_m": 1.0477499999999997
+        },
+        {
+          "name": "Sustainer Fin Section",
+          "cd_total": 0.028103151003730294,
+          "cd_friction": 0.028103151003730294,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.0024509853066199223,
+          "cp_m": 1.3271499999999998
+        },
+        {
+          "name": "Trapezoidal Fin Set",
+          "cd_total": 0.07461076804645207,
+          "cd_friction": 0.01727171082282873,
+          "cd_pressure": 0.04922663135871114,
+          "cd_base": 0.0081124258649122,
+          "cna": 16.0516778894449,
+          "cp_m": 1.3079822442668416
+        },
+        {
+          "name": "Interstage",
+          "cd_total": 0.01204420757302727,
+          "cd_friction": 0.01204420757302727,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.0010504222742656812,
+          "cp_m": 1.4541499999999998
+        },
+        {
+          "name": "Rail Button",
+          "cd_total": 0.00047463313201704727,
+          "cd_friction": 0.0,
+          "cd_pressure": 0.00047463313201704727,
+          "cd_base": 0.0,
+          "cna": null,
+          "cp_m": null
+        },
+        {
+          "name": "Booster airframe",
+          "cd_total": 0.06022103786513635,
+          "cd_friction": 0.06022103786513635,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.005252111371328406,
+          "cp_m": 1.6827499999999997
+        },
+        {
+          "name": "Booster fin section",
+          "cd_total": 0.16402815100373028,
+          "cd_friction": 0.028103151003730294,
+          "cd_pressure": 0.0,
+          "cd_base": 0.135925,
+          "cna": 0.0024509853066199223,
+          "cp_m": 1.96215
+        },
+        {
+          "name": "Trapezoidal Fin Set",
+          "cd_total": 0.07779287285433822,
+          "cd_friction": 0.018657026457391222,
+          "cd_pressure": 0.05083178842498962,
+          "cd_base": 0.008304057971957369,
+          "cna": 17.81661011256578,
+          "cp_m": 1.9431065033877137
+        }
+      ]
+    },
+    {
+      "mach": 0.4,
+      "cd_total": 0.9119648716294968,
+      "cd_friction": 0.4138367415649096,
+      "cd_pressure": 0.30631232890443494,
+      "cd_base": 0.19181580116015234,
+      "cna": 36.19059120763534,
+      "cp_m": 1.5592896782675787,
+      "components": [
+        {
+          "name": "Nose Cone",
+          "cd_total": 0.034494156740819126,
+          "cd_friction": 0.034494156740804915,
+          "cd_pressure": 1.4210854715202004e-14,
+          "cd_base": 0.0,
+          "cna": 2.002990411896022,
+          "cp_m": 0.15000287263613798
+        },
+        {
+          "name": "Payload Bay",
+          "cd_total": 0.01199848165209702,
+          "cd_friction": 0.01199848165209702,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.0010504222742656812,
+          "cp_m": 0.36195000000000005
+        },
+        {
+          "name": "Sustainer Forward Airframe",
+          "cd_total": 0.06799139602854978,
+          "cd_friction": 0.06799139602854978,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.0059523928875055265,
+          "cp_m": 0.6159500000000003
+        },
+        {
+          "name": "Sustainer Switch Band",
+          "cd_total": 0.00399949388403234,
+          "cd_friction": 0.00399949388403234,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.00035014075808856044,
+          "cp_m": 0.84455
+        },
+        {
+          "name": "Rail Button",
+          "cd_total": 0.0011593225720251006,
+          "cd_friction": 0.0,
+          "cd_pressure": 0.0011593225720251006,
+          "cd_base": 0.0,
+          "cna": null,
+          "cp_m": null
+        },
+        {
+          "name": "Sustainer Aft Airframe",
+          "cd_total": 0.05999240826048511,
+          "cd_friction": 0.05999240826048511,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.005252111371328406,
+          "cp_m": 1.0477499999999997
+        },
+        {
+          "name": "Sustainer Fin Section",
+          "cd_total": 0.02799645718822638,
+          "cd_friction": 0.02799645718822638,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.0024509853066199223,
+          "cp_m": 1.3271499999999998
+        },
+        {
+          "name": "Trapezoidal Fin Set",
+          "cd_total": 0.07529641963709974,
+          "cd_friction": 0.017206138648102727,
+          "cd_pressure": 0.04968689999374495,
+          "cd_base": 0.008403380995252074,
+          "cna": 16.186021232966542,
+          "cp_m": 1.3079569718511455
+        },
+        {
+          "name": "Interstage",
+          "cd_total": 0.01199848165209702,
+          "cd_friction": 0.01199848165209702,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.0010504222742656812,
+          "cp_m": 1.4541499999999998
+        },
+        {
+          "name": "Rail Button",
+          "cd_total": 0.0005058939896858055,
+          "cd_friction": 0.0,
+          "cd_pressure": 0.0005058939896858055,
+          "cd_base": 0.0,
+          "cna": null,
+          "cp_m": null
+        },
+        {
+          "name": "Booster airframe",
+          "cd_total": 0.05999240826048511,
+          "cd_friction": 0.05999240826048511,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.005252111371328406,
+          "cp_m": 1.6827499999999997
+        },
+        {
+          "name": "Booster fin section",
+          "cd_total": 0.1687964571882264,
+          "cd_friction": 0.02799645718822638,
+          "cd_pressure": 0.0,
+          "cd_base": 0.1408,
+          "cna": 0.0024509853066199223,
+          "cp_m": 1.96215
+        },
+        {
+          "name": "Trapezoidal Fin Set",
+          "cd_total": 0.07849514624658589,
+          "cd_friction": 0.01858619492186582,
+          "cd_pressure": 0.05130706526658803,
+          "cd_base": 0.00860188605813204,
+          "cna": 17.977769991222754,
+          "cp_m": 1.94308131809166
+        }
+      ]
+    },
+    {
+      "mach": 0.45,
+      "cd_total": 0.9211128188586055,
+      "cd_friction": 0.4120493369392483,
+      "cd_pressure": 0.3097208178230555,
+      "cd_base": 0.19934266409630177,
+      "cna": 36.537041496390025,
+      "cp_m": 1.5601662433197112,
+      "components": [
+        {
+          "name": "Nose Cone",
+          "cd_total": 0.03434517283213171,
+          "cd_friction": 0.0343451728321175,
+          "cd_pressure": 1.4210854715202004e-14,
+          "cd_base": 0.0,
+          "cna": 2.002990411896022,
+          "cp_m": 0.15000287263613798
+        },
+        {
+          "name": "Payload Bay",
+          "cd_total": 0.011946658941709407,
+          "cd_friction": 0.011946658941709407,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.0010504222742656812,
+          "cp_m": 0.36195000000000005
+        },
+        {
+          "name": "Sustainer Forward Airframe",
+          "cd_total": 0.06769773400301997,
+          "cd_friction": 0.06769773400301997,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.0059523928875055265,
+          "cp_m": 0.6159500000000003
+        },
+        {
+          "name": "Sustainer Switch Band",
+          "cd_total": 0.003982219647236469,
+          "cd_friction": 0.003982219647236469,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.00035014075808856044,
+          "cp_m": 0.84455
+        },
+        {
+          "name": "Rail Button",
+          "cd_total": 0.001230165142994942,
+          "cd_friction": 0.0,
+          "cd_pressure": 0.001230165142994942,
+          "cd_base": 0.0,
+          "cna": null,
+          "cp_m": null
+        },
+        {
+          "name": "Sustainer Aft Airframe",
+          "cd_total": 0.05973329470854703,
+          "cd_friction": 0.05973329470854703,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.005252111371328406,
+          "cp_m": 1.0477499999999997
+        },
+        {
+          "name": "Sustainer Fin Section",
+          "cd_total": 0.02787553753065528,
+          "cd_friction": 0.02787553753065528,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.0024509853066199223,
+          "cp_m": 1.3271499999999998
+        },
+        {
+          "name": "Trapezoidal Fin Set",
+          "cd_total": 0.07607754989088263,
+          "cd_friction": 0.017131823516746594,
+          "cd_pressure": 0.05021259623116544,
+          "cd_base": 0.008733130142970592,
+          "cna": 16.343324202677856,
+          "cp_m": 1.3079271869382318
+        },
+        {
+          "name": "Interstage",
+          "cd_total": 0.011946658941709407,
+          "cd_friction": 0.011946658941709407,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.0010504222742656812,
+          "cp_m": 1.4541499999999998
+        },
+        {
+          "name": "Rail Button",
+          "cd_total": 0.0005364947107301273,
+          "cd_friction": 0.0,
+          "cd_pressure": 0.0005364947107301273,
+          "cd_base": 0.0,
+          "cna": null,
+          "cp_m": null
+        },
+        {
+          "name": "Booster airframe",
+          "cd_total": 0.05973329470854703,
+          "cd_friction": 0.05973329470854703,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.005252111371328406,
+          "cp_m": 1.6827499999999997
+        },
+        {
+          "name": "Booster fin section",
+          "cd_total": 0.17420053753065526,
+          "cd_friction": 0.02787553753065528,
+          "cd_pressure": 0.0,
+          "cd_base": 0.14632499999999998,
+          "cna": 0.0024509853066199223,
+          "cp_m": 1.96215
+        },
+        {
+          "name": "Trapezoidal Fin Set",
+          "cd_total": 0.07929524687809864,
+          "cd_friction": 0.018505919181603697,
+          "cd_pressure": 0.05184990314069827,
+          "cd_base": 0.008939424555796667,
+          "cna": 18.166917310266122,
+          "cp_m": 1.9430513790294814
+        }
+      ]
+    },
+    {
+      "mach": 0.5,
+      "cd_total": 0.931342651600641,
+      "cd_friction": 0.4100516494164501,
+      "cd_pressure": 0.31353596186513394,
+      "cd_base": 0.20775504031905703,
+      "cna": 36.939758123464514,
+      "cp_m": 1.5611684646862676,
+      "components": [
+        {
+          "name": "Nose Cone",
+          "cd_total": 0.034178661404775185,
+          "cd_friction": 0.034178661404760974,
+          "cd_pressure": 1.4210854715202004e-14,
+          "cd_base": 0.0,
+          "cna": 2.002990411896022,
+          "cp_m": 0.15000287263613798
+        },
+        {
+          "name": "Payload Bay",
+          "cd_total": 0.011888739441864426,
+          "cd_friction": 0.011888739441864426,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.0010504222742656812,
+          "cp_m": 0.36195000000000005
+        },
+        {
+          "name": "Sustainer Forward Airframe",
+          "cd_total": 0.06736952350389842,
+          "cd_friction": 0.06736952350389842,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.0059523928875055265,
+          "cp_m": 0.6159500000000003
+        },
+        {
+          "name": "Sustainer Switch Band",
+          "cd_total": 0.003962913147288142,
+          "cd_friction": 0.003962913147288142,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.00035014075808856044,
+          "cp_m": 0.84455
+        },
+        {
+          "name": "Rail Button",
+          "cd_total": 0.0013004831178424347,
+          "cd_friction": 0.0,
+          "cd_pressure": 0.0013004831178424347,
+          "cd_base": 0.0,
+          "cna": null,
+          "cp_m": null
+        },
+        {
+          "name": "Sustainer Aft Airframe",
+          "cd_total": 0.05944369720932213,
+          "cd_friction": 0.05944369720932213,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.005252111371328406,
+          "cp_m": 1.0477499999999997
+        },
+        {
+          "name": "Sustainer Fin Section",
+          "cd_total": 0.027740392031016994,
+          "cd_friction": 0.027740392031016994,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.0024509853066199223,
+          "cp_m": 1.3271499999999998
+        },
+        {
+          "name": "Trapezoidal Fin Set",
+          "cd_total": 0.076955680726944,
+          "cd_friction": 0.017048765428760326,
+          "cd_pressure": 0.050805241990115914,
+          "cd_base": 0.009101673308067763,
+          "cna": 16.525895085946992,
+          "cp_m": 1.3078922787935963
+        },
+        {
+          "name": "Interstage",
+          "cd_total": 0.011888739441864426,
+          "cd_friction": 0.011888739441864426,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.0010504222742656812,
+          "cp_m": 1.4541499999999998
+        },
+        {
+          "name": "Rail Button",
+          "cd_total": 0.0005668244408950072,
+          "cd_friction": 0.0,
+          "cd_pressure": 0.0005668244408950072,
+          "cd_base": 0.0,
+          "cna": null,
+          "cp_m": null
+        },
+        {
+          "name": "Booster airframe",
+          "cd_total": 0.05944369720932213,
+          "cd_friction": 0.05944369720932213,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.005252111371328406,
+          "cp_m": 1.6827499999999997
+        },
+        {
+          "name": "Booster fin section",
+          "cd_total": 0.180240392031017,
+          "cd_friction": 0.027740392031016994,
+          "cd_pressure": 0.0,
+          "cd_base": 0.1525,
+          "cna": 0.0024509853066199223,
+          "cp_m": 1.96215
+        },
+        {
+          "name": "Trapezoidal Fin Set",
+          "cd_total": 0.08019474629398847,
+          "cd_friction": 0.01841619923660485,
+          "cd_pressure": 0.052461873592432366,
+          "cd_base": 0.00931667346495125,
+          "cna": 18.387063054071476,
+          "cp_m": 1.9430165544101399
+        }
+      ]
+    },
+    {
+      "mach": 0.55,
+      "cd_total": 0.9426719440395388,
+      "cd_friction": 0.4078436789965154,
+      "cd_pressure": 0.3177753352146054,
+      "cd_base": 0.21705292982841812,
+      "cna": 37.40541712498153,
+      "cp_m": 1.56249154223735,
+      "components": [
+        {
+          "name": "Nose Cone",
+          "cd_total": 0.03399462245874955,
+          "cd_friction": 0.03399462245873534,
+          "cd_pressure": 1.4210854715202004e-14,
+          "cd_base": 0.0,
+          "cna": 2.002990411896022,
+          "cp_m": 0.15000287263613798
+        },
+        {
+          "name": "Payload Bay",
+          "cd_total": 0.01182472315256208,
+          "cd_friction": 0.01182472315256208,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.0010504222742656812,
+          "cp_m": 0.36195000000000005
+        },
+        {
+          "name": "Sustainer Forward Airframe",
+          "cd_total": 0.06700676453118512,
+          "cd_friction": 0.06700676453118512,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.0059523928875055265,
+          "cp_m": 0.6159500000000003
+        },
+        {
+          "name": "Sustainer Switch Band",
+          "cd_total": 0.0039415743841873605,
+          "cd_friction": 0.0039415743841873605,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.00035014075808856044,
+          "cp_m": 0.84455
+        },
+        {
+          "name": "Rail Button",
+          "cd_total": 0.001373566443783018,
+          "cd_friction": 0.0,
+          "cd_pressure": 0.001373566443783018,
+          "cd_base": 0.0,
+          "cna": null,
+          "cp_m": null
+        },
+        {
+          "name": "Sustainer Aft Airframe",
+          "cd_total": 0.0591236157628104,
+          "cd_friction": 0.0591236157628104,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.005252111371328406,
+          "cp_m": 1.0477499999999997
+        },
+        {
+          "name": "Sustainer Fin Section",
+          "cd_total": 0.02759102068931152,
+          "cd_friction": 0.02759102068931152,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.0024509853066199223,
+          "cp_m": 1.3271499999999998
+        },
+        {
+          "name": "Trapezoidal Fin Set",
+          "cd_total": 0.07793251311373821,
+          "cd_friction": 0.016956964384143926,
+          "cd_pressure": 0.0514665382390507,
+          "cd_base": 0.009509010490543583,
+          "cna": 16.736618279664956,
+          "cp_m": 1.3080378203997096
+        },
+        {
+          "name": "Interstage",
+          "cd_total": 0.01182472315256208,
+          "cd_friction": 0.01182472315256208,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.0010504222742656812,
+          "cp_m": 1.4541499999999998
+        },
+        {
+          "name": "Rail Button",
+          "cd_total": 0.0005971942230926173,
+          "cd_friction": 0.0,
+          "cd_pressure": 0.0005971942230926173,
+          "cd_base": 0.0,
+          "cna": null,
+          "cp_m": null
+        },
+        {
+          "name": "Booster airframe",
+          "cd_total": 0.0591236157628104,
+          "cd_friction": 0.0591236157628104,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.005252111371328406,
+          "cp_m": 1.6827499999999997
+        },
+        {
+          "name": "Booster fin section",
+          "cd_total": 0.1869160206893115,
+          "cd_friction": 0.02759102068931152,
+          "cd_pressure": 0.0,
+          "cd_base": 0.159325,
+          "cna": 0.0024509853066199223,
+          "cp_m": 1.96215
+        },
+        {
+          "name": "Trapezoidal Fin Set",
+          "cd_total": 0.08119540092702768,
+          "cd_friction": 0.01831703508686929,
+          "cd_pressure": 0.0531447330545626,
+          "cd_base": 0.00973363278559579,
+          "cna": 18.641998861870533,
+          "cp_m": 1.9431817088540464
+        }
+      ]
+    },
+    {
+      "mach": 0.6,
+      "cd_total": 0.955111303465782,
+      "cd_friction": 0.4054254256794441,
+      "cd_pressure": 0.3224495451619528,
+      "cd_base": 0.22723633262438503,
+      "cna": 37.942446272734955,
+      "cp_m": 1.5642854203478924,
+      "components": [
+        {
+          "name": "Nose Cone",
+          "cd_total": 0.0337930559940548,
+          "cd_friction": 0.03379305599404059,
+          "cd_pressure": 1.4210854715202004e-14,
+          "cd_base": 0.0,
+          "cna": 2.002990411896022,
+          "cp_m": 0.15000287263613798
+        },
+        {
+          "name": "Payload Bay",
+          "cd_total": 0.011754610073802367,
+          "cd_friction": 0.011754610073802367,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.0010504222742656812,
+          "cp_m": 0.36195000000000005
+        },
+        {
+          "name": "Sustainer Forward Airframe",
+          "cd_total": 0.06660945708488007,
+          "cd_friction": 0.06660945708488007,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.0059523928875055265,
+          "cp_m": 0.6159500000000003
+        },
+        {
+          "name": "Sustainer Switch Band",
+          "cd_total": 0.003918203357934122,
+          "cd_friction": 0.003918203357934122,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.00035014075808856044,
+          "cp_m": 0.84455
+        },
+        {
+          "name": "Rail Button",
+          "cd_total": 0.0014487276903661598,
+          "cd_friction": 0.0,
+          "cd_pressure": 0.0014487276903661598,
+          "cd_base": 0.0,
+          "cna": null,
+          "cp_m": null
+        },
+        {
+          "name": "Sustainer Aft Airframe",
+          "cd_total": 0.05877305036901184,
+          "cd_friction": 0.05877305036901184,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.005252111371328406,
+          "cp_m": 1.0477499999999997
+        },
+        {
+          "name": "Sustainer Fin Section",
+          "cd_total": 0.027427423505538853,
+          "cd_friction": 0.027427423505538853,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.0024509853066199223,
+          "cp_m": 1.3271499999999998
+        },
+        {
+          "name": "Trapezoidal Fin Set",
+          "cd_total": 0.07900992706903048,
+          "cd_friction": 0.01685642038289739,
+          "cd_pressure": 0.05219836499573505,
+          "cd_base": 0.009955141690398052,
+          "cna": 16.97911619425343,
+          "cp_m": 1.3085023856148394
+        },
+        {
+          "name": "Interstage",
+          "cd_total": 0.011754610073802367,
+          "cd_friction": 0.011754610073802367,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.0010504222742656812,
+          "cp_m": 1.4541499999999998
+        },
+        {
+          "name": "Rail Button",
+          "cd_total": 0.0006278631257184553,
+          "cd_friction": 0.0,
+          "cd_pressure": 0.0006278631257184553,
+          "cd_base": 0.0,
+          "cna": null,
+          "cp_m": null
+        },
+        {
+          "name": "Booster airframe",
+          "cd_total": 0.05877305036901184,
+          "cd_friction": 0.05877305036901184,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.005252111371328406,
+          "cp_m": 1.6827499999999997
+        },
+        {
+          "name": "Booster fin section",
+          "cd_total": 0.19422742350553884,
+          "cd_friction": 0.027427423505538853,
+          "cd_pressure": 0.0,
+          "cd_base": 0.1668,
+          "cna": 0.0024509853066199223,
+          "cp_m": 1.96215
+        },
+        {
+          "name": "Trapezoidal Fin Set",
+          "cd_total": 0.08229915209764871,
+          "cd_friction": 0.018208426732397,
+          "cd_pressure": 0.05390042284752142,
+          "cd_base": 0.010190302517730288,
+          "cna": 18.936530095035486,
+          "cp_m": 1.9436968808359332
+        }
+      ]
+    },
+    {
+      "mach": 0.65,
+      "cd_total": 0.9686730398186747,
+      "cd_friction": 0.4027968894652361,
+      "cd_pressure": 0.32757090164648084,
+      "cd_base": 0.2383052487069577,
+      "cna": 38.56158722634606,
+      "cp_m": 1.566492250880522,
+      "components": [
+        {
+          "name": "Nose Cone",
+          "cd_total": 0.033573962010690954,
+          "cd_friction": 0.03357396201067674,
+          "cd_pressure": 1.4210854715202004e-14,
+          "cd_base": 0.0,
+          "cna": 2.002990411896022,
+          "cp_m": 0.15000287263613798
+        },
+        {
+          "name": "Payload Bay",
+          "cd_total": 0.011678400205585287,
+          "cd_friction": 0.011678400205585287,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.0010504222742656812,
+          "cp_m": 0.36195000000000005
+        },
+        {
+          "name": "Sustainer Forward Airframe",
+          "cd_total": 0.0661776011649833,
+          "cd_friction": 0.0661776011649833,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.0059523928875055265,
+          "cp_m": 0.6159500000000003
+        },
+        {
+          "name": "Sustainer Switch Band",
+          "cd_total": 0.003892800068528429,
+          "cd_friction": 0.003892800068528429,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.00035014075808856044,
+          "cp_m": 0.84455
+        },
+        {
+          "name": "Rail Button",
+          "cd_total": 0.0015256203883193154,
+          "cd_friction": 0.0,
+          "cd_pressure": 0.0015256203883193154,
+          "cd_base": 0.0,
+          "cna": null,
+          "cp_m": null
+        },
+        {
+          "name": "Sustainer Aft Airframe",
+          "cd_total": 0.058392001027926445,
+          "cd_friction": 0.058392001027926445,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.005252111371328406,
+          "cp_m": 1.0477499999999997
+        },
+        {
+          "name": "Sustainer Fin Section",
+          "cd_total": 0.027249600479699005,
+          "cd_friction": 0.027249600479699005,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.0024509853066199223,
+          "cp_m": 1.3271499999999998
+        },
+        {
+          "name": "Trapezoidal Fin Set",
+          "cd_total": 0.08018998165989712,
+          "cd_friction": 0.01674713342502072,
+          "cd_pressure": 0.05300278132724522,
+          "cd_base": 0.010440066907631171,
+          "cna": 17.25797750354749,
+          "cp_m": 1.3092294793384187
+        },
+        {
+          "name": "Interstage",
+          "cd_total": 0.011678400205585287,
+          "cd_friction": 0.011678400205585287,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.0010504222742656812,
+          "cp_m": 1.4541499999999998
+        },
+        {
+          "name": "Rail Button",
+          "cd_total": 0.0006590546749437691,
+          "cd_friction": 0.0,
+          "cd_pressure": 0.0006590546749437691,
+          "cd_base": 0.0,
+          "cna": null,
+          "cp_m": null
+        },
+        {
+          "name": "Booster airframe",
+          "cd_total": 0.058392001027926445,
+          "cd_friction": 0.058392001027926445,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.005252111371328406,
+          "cp_m": 1.6827499999999997
+        },
+        {
+          "name": "Booster fin section",
+          "cd_total": 0.202174600479699,
+          "cd_friction": 0.027249600479699005,
+          "cd_pressure": 0.0,
+          "cd_base": 0.174925,
+          "cna": 0.0024509853066199223,
+          "cp_m": 1.96215
+        },
+        {
+          "name": "Trapezoidal Fin Set",
+          "cd_total": 0.08350812601394435,
+          "cd_friction": 0.018090374173187995,
+          "cd_pressure": 0.05473106917940161,
+          "cd_base": 0.010686682661354738,
+          "cna": 19.276809739352526,
+          "cp_m": 1.9444632273574365
+        }
+      ]
+    },
+    {
+      "mach": 0.7,
+      "cd_total": 0.9833734245818881,
+      "cd_friction": 0.3999580703538914,
+      "cd_pressure": 0.3331556761518605,
+      "cd_base": 0.2502596780761362,
+      "cna": 39.276714591981204,
+      "cp_m": 1.5690686003818957,
+      "components": [
+        {
+          "name": "Nose Cone",
+          "cd_total": 0.03333734050865799,
+          "cd_friction": 0.03333734050864378,
+          "cd_pressure": 1.4210854715202004e-14,
+          "cd_base": 0.0,
+          "cna": 2.002990411896022,
+          "cp_m": 0.15000287263613798
+        },
+        {
+          "name": "Payload Bay",
+          "cd_total": 0.01159609354791084,
+          "cd_friction": 0.01159609354791084,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.0010504222742656812,
+          "cp_m": 0.36195000000000005
+        },
+        {
+          "name": "Sustainer Forward Airframe",
+          "cd_total": 0.06571119677149477,
+          "cd_friction": 0.06571119677149477,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.0059523928875055265,
+          "cp_m": 0.6159500000000003
+        },
+        {
+          "name": "Sustainer Switch Band",
+          "cd_total": 0.00386536451597028,
+          "cd_friction": 0.00386536451597028,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.00035014075808856044,
+          "cp_m": 0.84455
+        },
+        {
+          "name": "Rail Button",
+          "cd_total": 0.0016053576499405063,
+          "cd_friction": 0.0,
+          "cd_pressure": 0.0016053576499405063,
+          "cd_base": 0.0,
+          "cna": null,
+          "cp_m": null
+        },
+        {
+          "name": "Sustainer Aft Airframe",
+          "cd_total": 0.0579804677395542,
+          "cd_friction": 0.0579804677395542,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.005252111371328406,
+          "cp_m": 1.0477499999999997
+        },
+        {
+          "name": "Sustainer Fin Section",
+          "cd_total": 0.02705755161179196,
+          "cd_friction": 0.02705755161179196,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.0024509853066199223,
+          "cp_m": 1.3271499999999998
+        },
+        {
+          "name": "Trapezoidal Fin Set",
+          "cd_total": 0.08147491500272529,
+          "cd_friction": 0.016629103510513915,
+          "cd_pressure": 0.053882025349968436,
+          "cd_base": 0.010963786142242938,
+          "cna": 17.579086000897664,
+          "cp_m": 1.3101529497087152
+        },
+        {
+          "name": "Interstage",
+          "cd_total": 0.01159609354791084,
+          "cd_friction": 0.01159609354791084,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.0010504222742656812,
+          "cp_m": 1.4541499999999998
+        },
+        {
+          "name": "Rail Button",
+          "cd_total": 0.000690967682095832,
+          "cd_friction": 0.0,
+          "cd_pressure": 0.000690967682095832,
+          "cd_base": 0.0,
+          "cna": null,
+          "cp_m": null
+        },
+        {
+          "name": "Booster airframe",
+          "cd_total": 0.0579804677395542,
+          "cd_friction": 0.0579804677395542,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.005252111371328406,
+          "cp_m": 1.6827499999999997
+        },
+        {
+          "name": "Booster fin section",
+          "cd_total": 0.21075755161179194,
+          "cd_friction": 0.02705755161179196,
+          "cd_pressure": 0.0,
+          "cd_base": 0.18369999999999997,
+          "cna": 0.0024509853066199223,
+          "cp_m": 1.96215
+        },
+        {
+          "name": "Trapezoidal Fin Set",
+          "cd_total": 0.0848246337716675,
+          "cd_friction": 0.01796287740924227,
+          "cd_pressure": 0.0556389831459561,
+          "cd_base": 0.011222773216469145,
+          "cna": 19.670828607637493,
+          "cp_m": 1.945410739278044
+        }
+      ]
+    },
+    {
+      "mach": 0.75,
+      "cd_total": 0.9992348836741944,
+      "cd_friction": 0.39690896834541006,
+      "cd_pressure": 0.33922629459686376,
+      "cd_base": 0.26309962073192056,
+      "cna": 40.10606391024254,
+      "cp_m": 1.5719847376113931,
+      "components": [
+        {
+          "name": "Nose Cone",
+          "cd_total": 0.033083191487955924,
+          "cd_friction": 0.03308319148794171,
+          "cd_pressure": 1.4210854715202004e-14,
+          "cd_base": 0.0,
+          "cna": 2.002990411896022,
+          "cp_m": 0.15000287263613798
+        },
+        {
+          "name": "Payload Bay",
+          "cd_total": 0.011507690100779028,
+          "cd_friction": 0.011507690100779028,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.0010504222742656812,
+          "cp_m": 0.36195000000000005
+        },
+        {
+          "name": "Sustainer Forward Airframe",
+          "cd_total": 0.06521024390441449,
+          "cd_friction": 0.06521024390441449,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.0059523928875055265,
+          "cp_m": 0.6159500000000003
+        },
+        {
+          "name": "Sustainer Switch Band",
+          "cd_total": 0.003835896700259676,
+          "cd_friction": 0.003835896700259676,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.00035014075808856044,
+          "cp_m": 0.84455
+        },
+        {
+          "name": "Rail Button",
+          "cd_total": 0.0016915245747252468,
+          "cd_friction": 0.0,
+          "cd_pressure": 0.0016915245747252468,
+          "cd_base": 0.0,
+          "cna": null,
+          "cp_m": null
+        },
+        {
+          "name": "Sustainer Aft Airframe",
+          "cd_total": 0.057538450503895146,
+          "cd_friction": 0.057538450503895146,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.005252111371328406,
+          "cp_m": 1.0477499999999997
+        },
+        {
+          "name": "Sustainer Fin Section",
+          "cd_total": 0.026851276901817732,
+          "cd_friction": 0.026851276901817732,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.0024509853066199223,
+          "cp_m": 1.3271499999999998
+        },
+        {
+          "name": "Trapezoidal Fin Set",
+          "cd_total": 0.08286714426321326,
+          "cd_friction": 0.016502330639376984,
+          "cd_pressure": 0.05483851422960291,
+          "cd_base": 0.011526299394233356,
+          "cna": 17.95010713174643,
+          "cp_m": 1.3111924002489612
+        },
+        {
+          "name": "Interstage",
+          "cd_total": 0.011507690100779028,
+          "cd_friction": 0.011507690100779028,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.0010504222742656812,
+          "cp_m": 1.4541499999999998
+        },
+        {
+          "name": "Rail Button",
+          "cd_total": 0.0007238602833979647,
+          "cd_friction": 0.0,
+          "cd_pressure": 0.0007238602833979647,
+          "cd_base": 0.0,
+          "cna": null,
+          "cp_m": null
+        },
+        {
+          "name": "Booster airframe",
+          "cd_total": 0.057538450503895146,
+          "cd_friction": 0.057538450503895146,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.005252111371328406,
+          "cp_m": 1.6827499999999997
+        },
+        {
+          "name": "Booster fin section",
+          "cd_total": 0.21997627690181773,
+          "cd_friction": 0.026851276901817732,
+          "cd_pressure": 0.0,
+          "cd_base": 0.193125,
+          "cna": 0.0024509853066199223,
+          "cp_m": 1.96215
+        },
+        {
+          "name": "Trapezoidal Fin Set",
+          "cd_total": 0.08625117135423145,
+          "cd_friction": 0.017825936440559822,
+          "cd_pressure": 0.05662666073059812,
+          "cd_base": 0.01179857418307351,
+          "cna": 20.12915679505006,
+          "cp_m": 1.9464972976920076
+        }
+      ]
+    },
+    {
+      "mach": 0.8,
+      "cd_total": 1.0162736884113437,
+      "cd_friction": 0.39364958343979223,
+      "cd_pressure": 0.34579902829724063,
+      "cd_base": 0.2768250766743108,
+      "cna": 41.074137745329956,
+      "cp_m": 1.5751964164795962,
+      "components": [
+        {
+          "name": "Nose Cone",
+          "cd_total": 0.03281151494858474,
+          "cd_friction": 0.03281151494857053,
+          "cd_pressure": 1.4210854715202004e-14,
+          "cd_base": 0.0,
+          "cna": 2.002990411896022,
+          "cp_m": 0.15000287263613798
+        },
+        {
+          "name": "Payload Bay",
+          "cd_total": 0.011413189864189849,
+          "cd_friction": 0.011413189864189849,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.0010504222742656812,
+          "cp_m": 0.36195000000000005
+        },
+        {
+          "name": "Sustainer Forward Airframe",
+          "cd_total": 0.06467474256374249,
+          "cd_friction": 0.06467474256374249,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.0059523928875055265,
+          "cp_m": 0.6159500000000003
+        },
+        {
+          "name": "Sustainer Switch Band",
+          "cd_total": 0.0038043966213966163,
+          "cd_friction": 0.0038043966213966163,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.00035014075808856044,
+          "cp_m": 0.84455
+        },
+        {
+          "name": "Rail Button",
+          "cd_total": 0.0017830852963336165,
+          "cd_friction": 0.0,
+          "cd_pressure": 0.0017830852963336165,
+          "cd_base": 0.0,
+          "cna": null,
+          "cp_m": null
+        },
+        {
+          "name": "Sustainer Aft Airframe",
+          "cd_total": 0.05706594932094925,
+          "cd_friction": 0.05706594932094925,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.005252111371328406,
+          "cp_m": 1.0477499999999997
+        },
+        {
+          "name": "Sustainer Fin Section",
+          "cd_total": 0.026630776349776314,
+          "cd_friction": 0.026630776349776314,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.0024509853066199223,
+          "cp_m": 1.3271499999999998
+        },
+        {
+          "name": "Trapezoidal Fin Set",
+          "cd_total": 0.08436926565637017,
+          "cd_friction": 0.016366814811609915,
+          "cd_pressure": 0.05587484418115784,
+          "cd_base": 0.012127606663602422,
+          "cna": 18.38123122704755,
+          "cp_m": 1.3122641522614618
+        },
+        {
+          "name": "Interstage",
+          "cd_total": 0.011413189864189849,
+          "cd_friction": 0.011413189864189849,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.0010504222742656812,
+          "cp_m": 1.4541499999999998
+        },
+        {
+          "name": "Rail Button",
+          "cd_total": 0.000758988373941167,
+          "cd_friction": 0.0,
+          "cd_pressure": 0.000758988373941167,
+          "cd_base": 0.0,
+          "cna": null,
+          "cp_m": null
+        },
+        {
+          "name": "Booster airframe",
+          "cd_total": 0.05706594932094925,
+          "cd_friction": 0.05706594932094925,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.005252111371328406,
+          "cp_m": 1.6827499999999997
+        },
+        {
+          "name": "Booster fin section",
+          "cd_total": 0.2298307763497763,
+          "cd_friction": 0.026630776349776314,
+          "cd_pressure": 0.0,
+          "cd_base": 0.2032,
+          "cna": 0.0024509853066199223,
+          "cp_m": 1.96215
+        },
+        {
+          "name": "Trapezoidal Fin Set",
+          "cd_total": 0.0877904196327096,
+          "cd_friction": 0.01767955126714066,
+          "cd_pressure": 0.05769678280440112,
+          "cd_base": 0.012414085561167831,
+          "cna": 20.66610653483636,
+          "cp_m": 1.9476371474964045
+        }
+      ]
+    },
+    {
+      "mach": 0.85,
+      "cd_total": 1.0345025461736628,
+      "cd_friction": 0.39017991563703763,
+      "cd_pressure": 0.3528865846333184,
+      "cd_base": 0.29143604590330674,
+      "cna": 42.21479239529429,
+      "cp_m": 1.5787054380582723,
+      "components": [
+        {
+          "name": "Nose Cone",
+          "cd_total": 0.03252231089054446,
+          "cd_friction": 0.03252231089053025,
+          "cd_pressure": 1.4210854715202004e-14,
+          "cd_base": 0.0,
+          "cna": 2.002990411896022,
+          "cp_m": 0.15000287263613798
+        },
+        {
+          "name": "Payload Bay",
+          "cd_total": 0.011312592838143305,
+          "cd_friction": 0.011312592838143305,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.0010504222742656812,
+          "cp_m": 0.36195000000000005
+        },
+        {
+          "name": "Sustainer Forward Airframe",
+          "cd_total": 0.06410469274947872,
+          "cd_friction": 0.06410469274947872,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.0059523928875055265,
+          "cp_m": 0.6159500000000003
+        },
+        {
+          "name": "Sustainer Switch Band",
+          "cd_total": 0.0037708642793811012,
+          "cd_friction": 0.0037708642793811012,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.00035014075808856044,
+          "cp_m": 0.84455
+        },
+        {
+          "name": "Rail Button",
+          "cd_total": 0.0018788059611431801,
+          "cd_friction": 0.0,
+          "cd_pressure": 0.0018788059611431801,
+          "cd_base": 0.0,
+          "cna": null,
+          "cp_m": null
+        },
+        {
+          "name": "Sustainer Aft Airframe",
+          "cd_total": 0.056562964190716526,
+          "cd_friction": 0.056562964190716526,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.005252111371328406,
+          "cp_m": 1.0477499999999997
+        },
+        {
+          "name": "Sustainer Fin Section",
+          "cd_total": 0.026396049955667706,
+          "cd_friction": 0.026396049955667706,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.0024509853066199223,
+          "cp_m": 1.3271499999999998
+        },
+        {
+          "name": "Trapezoidal Fin Set",
+          "cd_total": 0.0859840544465162,
+          "cd_friction": 0.016222556027212707,
+          "cd_pressure": 0.056993790468953365,
+          "cd_base": 0.012767707950350139,
+          "cna": 18.886353823566527,
+          "cp_m": 1.3133507569673948
+        },
+        {
+          "name": "Interstage",
+          "cd_total": 0.011312592838143305,
+          "cd_friction": 0.011312592838143305,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.0010504222742656812,
+          "cp_m": 1.4541499999999998
+        },
+        {
+          "name": "Rail Button",
+          "cd_total": 0.0007954779629307236,
+          "cd_friction": 0.0,
+          "cd_pressure": 0.0007954779629307236,
+          "cd_base": 0.0,
+          "cna": null,
+          "cp_m": null
+        },
+        {
+          "name": "Booster airframe",
+          "cd_total": 0.056562964190716526,
+          "cd_friction": 0.056562964190716526,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.005252111371328406,
+          "cp_m": 1.6827499999999997
+        },
+        {
+          "name": "Booster fin section",
+          "cd_total": 0.2403210499556677,
+          "cd_friction": 0.026396049955667706,
+          "cd_pressure": 0.0,
+          "cd_base": 0.21392499999999998,
+          "cna": 0.0024509853066199223,
+          "cp_m": 1.96215
+        },
+        {
+          "name": "Trapezoidal Fin Set",
+          "cd_total": 0.08944524436583563,
+          "cd_friction": 0.01752372188898477,
+          "cd_pressure": 0.05885221512609876,
+          "cd_base": 0.013069307350752107,
+          "cna": 21.301638588281715,
+          "cp_m": 1.9487509407782768
+        }
+      ]
+    },
+    {
+      "mach": 0.9,
+      "cd_total": 1.0539406816893484,
+      "cd_friction": 0.3864999649371465,
+      "cd_pressure": 0.36050818833329346,
+      "cd_base": 0.3069325284189085,
+      "cna": 43.57650618257529,
+      "cp_m": 1.5824865151721368,
+      "components": [
+        {
+          "name": "Nose Cone",
+          "cd_total": 0.032215579313835084,
+          "cd_friction": 0.03221557931382087,
+          "cd_pressure": 1.4210854715202004e-14,
+          "cd_base": 0.0,
+          "cna": 2.002990411896022,
+          "cp_m": 0.15000287263613798
+        },
+        {
+          "name": "Payload Bay",
+          "cd_total": 0.011205899022639397,
+          "cd_friction": 0.011205899022639397,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.0010504222742656812,
+          "cp_m": 0.36195000000000005
+        },
+        {
+          "name": "Sustainer Forward Airframe",
+          "cd_total": 0.06350009446162325,
+          "cd_friction": 0.06350009446162325,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.0059523928875055265,
+          "cp_m": 0.6159500000000003
+        },
+        {
+          "name": "Sustainer Switch Band",
+          "cd_total": 0.003735299674213132,
+          "cd_friction": 0.003735299674213132,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.00035014075808856044,
+          "cp_m": 0.84455
+        },
+        {
+          "name": "Rail Button",
+          "cd_total": 0.0019791278690734168,
+          "cd_friction": 0.0,
+          "cd_pressure": 0.0019791278690734168,
+          "cd_base": 0.0,
+          "cna": null,
+          "cp_m": null
+        },
+        {
+          "name": "Sustainer Aft Airframe",
+          "cd_total": 0.056029495113196985,
+          "cd_friction": 0.056029495113196985,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.005252111371328406,
+          "cp_m": 1.0477499999999997
+        },
+        {
+          "name": "Sustainer Fin Section",
+          "cd_total": 0.026147097719491925,
+          "cd_friction": 0.026147097719491925,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.0024509853066199223,
+          "cp_m": 1.3271499999999998
+        },
+        {
+          "name": "Trapezoidal Fin Set",
+          "cd_total": 0.08771446494728254,
+          "cd_friction": 0.01606955428618538,
+          "cd_pressure": 0.05819830740662065,
+          "cd_base": 0.013446603254476506,
+          "cna": 19.48504159591637,
+          "cp_m": 1.314306740018933
+        },
+        {
+          "name": "Interstage",
+          "cd_total": 0.011205899022639397,
+          "cd_friction": 0.011205899022639397,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.0010504222742656812,
+          "cp_m": 1.4541499999999998
+        },
+        {
+          "name": "Rail Button",
+          "cd_total": 0.0008334926745077521,
+          "cd_friction": 0.0,
+          "cd_pressure": 0.0008334926745077521,
+          "cd_base": 0.0,
+          "cna": null,
+          "cp_m": null
+        },
+        {
+          "name": "Booster airframe",
+          "cd_total": 0.056029495113196985,
+          "cd_friction": 0.056029495113196985,
+          "cd_pressure": 0.0,
+          "cd_base": 0.0,
+          "cna": 0.005252111371328406,
+          "cp_m": 1.6827499999999997
+        },
+        {
+          "name": "Booster fin section",
+          "cd_total": 0.2514470977194919,
+          "cd_friction": 0.026147097719491925,
+          "cd_pressure": 0.0,
+          "cd_base": 0.2253,
+          "cna": 0.0024509853066199223,
+          "cp_m": 1.96215
+        },
+        {
+          "name": "Trapezoidal Fin Set",
+          "cd_total": 0.0912186962000035,
+          "cd_friction": 0.017358448306092168,
+          "cd_pressure": 0.06009600834208499,
+          "cd_base": 0.01376423955182634,
+          "cna": 22.064664603212872,
+          "cp_m": 1.9497774244676254
+        }
+      ]
+    }
+  ]
+}

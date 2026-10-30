@@ -1,0 +1,21 @@
+{
+  "provenance": "contract-fixture",
+  "type": "tools/run_diff.output",
+  "payload": {
+    "a": "baseline/f8eb21388e28",
+    "b": "tests/oracle/case1-generic.json",
+    "mismatches": [],
+    "rows": [
+      {
+        "key": "apogee_m",
+        "a": 612.4,
+        "b": 605.0,
+        "delta": 7.4,
+        "delta_pct": 1.22,
+        "tol": "3%",
+        "pass": true
+      }
+    ],
+    "pass": true
+  }
+}

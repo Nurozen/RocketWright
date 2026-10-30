@@ -1,0 +1,161 @@
+# Research vehicle: nosecone, clear recovery bay with a stowed parachute,
+# airframe with bulkhead and electronics bay, and a four-fin fin can
+# (parts/fin_can.rw.toml) around an 18 mm motor casing.
+name = "Research vehicle"
+include = ["parts/fin_can.rw.toml"]
+
+[params.fin_span]
+value = "90 mm"
+min = "60 mm"
+max = "120 mm"
+step = "5 mm"
+group = "Fins"
+doc = "Fin height, root to tip"
+
+[params.fin_sweep]
+value = "45 mm"
+min = "0 mm"
+max = "80 mm"
+step = "5 mm"
+group = "Fins"
+doc = "Leading-edge sweep length"
+
+# The fin set before the fin revision (concept page 02).
+[variants.previous_fins]
+fin_span = "120 mm"
+fin_sweep = "30 mm"
+
+[c.nose]
+type = "nose_cone"
+name = "Nosecone"
+material = "polystyrene"
+finish = "smooth_paint"
+appearance = { preset = "composite_white" }
+shape = "ogive"
+length = "150 mm"
+od = "54 mm"
+thickness = "0.6 mm"
+shoulder = { length = "30 mm", od = "52.8 mm", thickness = "0.6 mm" }
+
+[c.recovery_bay]
+type = "body_tube"
+name = "Recovery bay"
+attach = { to = "nose.base" }
+material = "polycarbonate"
+finish = "polished"
+appearance = { preset = "clear_polycarbonate" }
+joint = { type = "twist_lock", count = 4 }
+length = "110 mm"
+od = "54 mm"
+id = "53.2 mm"
+
+[c.chute]
+type = "parachute"
+name = "Parachute (stowed)"
+attach = { to = "recovery_bay.inner", at = "attach", offset = "20 mm" }
+material = "ripstop_nylon"
+appearance = { preset = "nylon_orange" }
+diameter = "380 mm"
+cd = 0.8
+line_count = 6
+line_length = "380 mm"
+line_material = "shroud_line"
+packed_length = "55 mm"
+packed_diameter = "44 mm"
+
+[c.streamer]
+type = "streamer"
+name = "Streamer"
+attach = { to = "recovery_bay.inner", at = "attach", offset = "80 mm" }
+material = "ripstop_nylon"
+appearance = { preset = "nylon_orange" }
+length = "800 mm"
+width = "60 mm"
+packed_length = "20 mm"
+packed_diameter = "40 mm"
+
+[c.airframe]
+type = "body_tube"
+name = "Airframe tube"
+attach = { to = "recovery_bay.aft" }
+material = "cardboard"
+finish = "smooth_paint"
+appearance = { preset = "composite_white" }
+length = "300 mm"
+od = "54 mm"
+id = "53 mm"
+
+[c.bulkhead]
+type = "bulkhead"
+name = "Bulkhead"
+attach = { to = "airframe.fore", at = "fore" }
+material = "plywood"
+appearance = { preset = "wood" }
+length = "2 mm"
+
+[c.ebay]
+type = "coupler"
+name = "Electronics bay"
+attach = { to = "airframe.aft", at = "aft" }
+material = "cardboard"
+appearance = { preset = "pcb_green" }
+length = "100 mm"
+od = "53 mm"
+id = "52 mm"
+
+[c.flight_computer]
+type = "mass_component"
+name = "Flight computer"
+attach = { to = "ebay.inner", at = "fore", offset = "20 mm" }
+appearance = { preset = "pcb_green" }
+mass = "15 g"
+length = "60 mm"
+od = "32 mm"
+role = "flight_computer"
+
+[c.lug]
+type = "launch_lug"
+name = "Launch lug"
+attach = { to = "airframe.mid", at = "fore", spin = "45 deg" }
+material = "cardboard"
+appearance = { preset = "composite_gray" }
+length = "50 mm"
+od = "5.6 mm"
+id = "4.4 mm"
+
+[materials.polystyrene]
+density = "1050 kg/m^3"
+doc = "Moulded nosecone"
+
+[materials.polycarbonate]
+density = "1200 kg/m^3"
+doc = "Clear recovery bay tube"
+
+[materials.cardboard]
+density = "680 kg/m^3"
+doc = "Spiral-wound tube, painted"
+
+[materials.plywood]
+density = "630 kg/m^3"
+
+[materials.balsa]
+density = "160 kg/m^3"
+
+[materials.aluminium]
+density = "2700 kg/m^3"
+yield_strength = "276 MPa"
+doc = "6061-T6 (tank walls of the liquid-engine variant)"
+
+[materials.ripstop_nylon]
+surface_density = "67 g/m^2"
+
+[materials.shroud_line]
+line_density = "1.8 g/m"
+
+[[assert]]
+id = "stable"
+expr = "stability.liftoff >= 1 cal"
+message = "keep at least one caliber of static margin at liftoff"
+
+[report]
+values = ["= c.fins.span", "= c.fins.sweep"]

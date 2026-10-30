@@ -1,0 +1,16 @@
+{
+  "kind": "provenance",
+  "schema": "rw/1",
+  "case": 5,
+  "source_example": "Dual parachute deployment.ork",
+  "openrocket_version": "26.xx-SNAPSHOT+591c5e5f7b73",
+  "harness_commit": "f7274c1f27676a3e4226b0278a473545c9184d27",
+  "generic_motor": "RW_I1294G",
+  "files": {
+    "case5-generic.json": "e4c21bb3669b30a4cb913310f70b22039219797978ec1537ea280d8eb6ebaf7d",
+    "case5-generic.series.json": "4127f97f3a89840279474ec4ac82a775b6f9c7f731eb1370accde042da78d5d7",
+    "case5-original.json": "db7a01e1225e75cbf4f8d9b5e54cf20dcd0ae79a3d5812f8b851d63b6e88173f",
+    "case5.aero_sweep.json": "888c79928eb88699c537b66475e5e1006d1be0e1374214b3a9a5795782eff854",
+    "case5.geometry.json": "ecd33fc0d9c6fe8345f9f5486887dbc30c50874511dc4d672e83c1fe426bcee3"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "provenance": "contract-fixture",
+  "type": "tools/model_diff.output",
+  "payload": {
+    "a": "step:3",
+    "b": "live",
+    "added": [],
+    "removed": [],
+    "changed": [
+      {
+        "component": "fins",
+        "path": "/c/fins/span",
+        "old": "80 mm",
+        "new": "= params.fin_span"
+      }
+    ]
+  }
+}

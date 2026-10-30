@@ -1,0 +1,16 @@
+{
+  "description": "What seed.sh produces (plan M1.55): step titles, origins, times, the revision, run statuses, and hash relationships. No physics numbers, so aero changes never break it. Checked by scripts/fixtures/seed.ts --check.",
+  "steps": [
+    { "seq": 1, "title": "Initial concept", "origin": "watcher", "ts": "2026-10-12T09:30:00Z" },
+    { "seq": 2, "title": "Assembly layout", "origin": "cli", "ts": "2026-10-13T10:15:00Z" },
+    { "seq": 3, "title": "Fin revision", "origin": "cli", "ts": "2026-10-14T11:05:00Z" },
+    { "seq": 4, "title": "Flight runs", "origin": "cli", "ts": "2026-10-15T14:02:00Z", "rev": "rev:07" }
+  ],
+  "revisions": [{ "number": 7, "name": "Flight-ready fins", "step": 4 }],
+  "runs": {
+    "baseline": { "status": "complete", "model_step": 4, "started": "2026-10-15T14:04:00Z" },
+    "higher_altitude": { "status": "complete", "model_step": 4, "started": "2026-10-15T14:04:00Z" },
+    "fin_revision": { "status": "outdated", "model_step": 2, "started": "2026-10-13T16:40:00Z" },
+    "recovery_test": { "status": "not_run" }
+  }
+}

@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RocketWright step</title>
+<!--
+  ui://rw/step-card (B3, D7, D8): a recorded design step (component_add,
+  component_remove, model_patch, import_file, history_restore) as an MCP Apps
+  card. Self-contained; renders from the tool input (what the edit did) and
+  the result (step, check status, delta.changed). Compare opens the step
+  through ui/open-link rw:step/<n>, which Lecturn turns into lecturn/navigate.
+  history_show renders the step it names (its title, Step <n>, a count of the
+  model diff when it has one). With nothing to list under the head (no
+  changed metric, no diagnostic), the card is one row (data-form="compact"):
+  the title over the subtitle with the status, and Compare at the row's
+  end, as tall as Lecturn's 80 px minimum card frame (CPW1R3A, CPW1R4A,
+  CP-W1 r4: the embedded pane keeps a turn's cards in view).
+-->
+<style>
+  :root {
+    color-scheme: dark;
+    --rw-bg: var(--color-background-secondary, #23272a);
+    --rw-fg: var(--color-text-primary, #e6e8e9);
+    --rw-muted: var(--color-text-secondary, #9aa3a8);
+    --rw-border: var(--color-border-primary, #353b3f);
+    --rw-ring: var(--color-ring-primary, #3fb6a8);
+    --rw-danger: var(--color-text-danger, #e5736b);
+    --rw-warning: var(--color-text-warning, #e0b252);
+    --rw-radius: var(--border-radius-md, 8px);
+    --rw-sans: var(--font-sans, Inter, system-ui, -apple-system, "Segoe UI", sans-serif);
+    --rw-mono: var(--font-mono, ui-monospace, "SF Mono", Menlo, monospace);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: transparent; }
+  body { font: 14px/1.4 var(--rw-sans); color: var(--rw-fg); }
+  .card { background: var(--rw-bg); border-radius: var(--rw-radius); padding: 14px 16px; }
+  .head { display: flex; align-items: center; gap: 10px; }
+  .icon { flex: none; width: 22px; height: 22px; color: var(--rw-ring); }
+  .titles { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+  .title { font-weight: 600; font-size: 14.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .subtitle { color: var(--rw-muted); font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  /* Compact: one row (the title over the muted subtitle, Compare at its end) that fills Lecturn's
+     80 px minimum card frame (MCP_APP_MIN_HEIGHT; CP-W1 r4: a shorter card left the rest of the frame empty). */
+  .card[data-form="compact"] { padding: 10px 12px 10px 14px; min-height: 80px; display: flex; flex-direction: column; justify-content: center; }
+  .chip { flex: none; border: 1px solid var(--rw-border); border-radius: 999px; padding: 1px 9px; font-size: 12px; color: var(--rw-muted); }
+  .chip[data-status="errors"] { color: var(--rw-danger); border-color: var(--rw-danger); }
+  .chip[data-status="warnings"] { color: var(--rw-warning); border-color: var(--rw-warning); }
+  .changes { margin: 12px 0 0; padding: 0; list-style: none; display: grid; grid-template-columns: minmax(0, 1fr) max-content; column-gap: 16px; row-gap: 4px; }
+  .changes li { display: contents; }
+  .changes .key { font-family: var(--rw-mono); font-size: 12.5px; color: var(--rw-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .changes .delta { font-variant-numeric: tabular-nums; font-size: 13px; text-align: right; }
+  .changes .delta .arrow { color: var(--rw-ring); padding: 0 4px; }
+  .more, .empty { color: var(--rw-muted); font-size: 12.5px; margin-top: 8px; }
+  .diag { margin-top: 8px; font-size: 12.5px; color: var(--rw-warning); }
+  .actions { display: flex; justify-content: flex-end; margin-top: 12px; }
+  .compare { all: unset; cursor: pointer; border: 1px solid var(--rw-border); border-radius: calc(var(--rw-radius) - 2px); padding: 4px 12px; font-size: 13px; }
+  .compare:hover, .compare:focus-visible { border-color: var(--rw-ring); color: var(--rw-ring); }
+  .compare[disabled] { opacity: 0.5; cursor: default; }
+  .error { color: var(--rw-danger); margin-top: 10px; font-size: 13px; }
+  .note { color: var(--rw-muted); margin-top: 8px; font: 12.5px var(--rw-mono); }
+</style>
+</head>
+<body>
+<div id="root" class="card" data-testid="rw.step-card"></div>
+<script>
+(() => {
+  "use strict";
+
+  const host = window.parent;
+  let nextId = 1;
+  const waiting = new Map();
+  const post = (m) => host.postMessage(m, "*");
+  const request = (method, params) =>
+    new Promise((resolve, reject) => {
+      const id = `rw-${nextId++}`;
+      waiting.set(id, { resolve, reject });
+      post({ jsonrpc: "2.0", id, method, params });
+    });
+  const notify = (method, params) => post({ jsonrpc: "2.0", method, params });
+
+  const BASES = ["component_add", "component_remove", "model_patch", "import_file", "history_restore", "history_show"];
+  const st = { ctx: {}, args: {}, result: undefined };
+  const MAX_ROWS = 6;
+
+  function baseTool() {
+    const name = st.ctx.toolInfo && st.ctx.toolInfo.tool && st.ctx.toolInfo.tool.name;
+    if (typeof name === "string") for (const b of BASES) if (name.endsWith(b)) return b;
+    const shown = st.result && st.result.structuredContent && st.result.structuredContent.step;
+    if (shown && typeof shown === "object") return "history_show";
+    const a = st.args;
+    if (Array.isArray(a.ops)) return "model_patch";
+    if (a.component && typeof a.id === "string") return "component_add";
+    if (typeof a.version === "string") return "history_restore";
+    if (typeof a.path === "string" && typeof a.kind === "string") return "import_file";
+    if (typeof a.id === "string") return "component_remove";
+    return undefined;
+  }
+
+  const basename = (p) => String(p).split(/[\\/]/).pop();
+  const pointer = (p) => String(p).replace(/^\/c\//, "").replace(/\//g, ".");
+  function valueText(v) {
+    if (typeof v === "string") return v;
+    if (typeof v === "number" || typeof v === "boolean") return String(v);
+    return "…";
+  }
+
+  // What the edit did, from the tool input.
+  function action(tool) {
+    const a = st.args;
+    switch (tool) {
+      case "component_add": {
+        const type = a.component && a.component.type ? ` (${String(a.component.type).replace(/_/g, " ")})` : "";
+        return `Added ${a.id}${type}`;
+      }
+      case "component_remove":
+        return `Removed ${a.id}`;
+      case "history_restore":
+        return `Restored ${a.version}`;
+      case "history_show": {
+        const s = st.result && st.result.structuredContent && st.result.structuredContent.step;
+        if (s && typeof s.title === "string" && s.title.trim() !== "") return s.title.trim();
+        return s && s.seq !== undefined ? `Step ${s.seq}` : "Design step";
+      }
+      case "import_file":
+        return `Imported ${basename(a.path)}`;
+      case "model_patch": {
+        if (typeof a.label === "string" && a.label.trim() !== "") return a.label.trim();
+        const ops = Array.isArray(a.ops) ? a.ops : [];
+        if (ops.length === 1) {
+          const o = ops[0];
+          if (o.op === "replace" || o.op === "add") return `Set ${pointer(o.path)} to ${valueText(o.value)}`;
+          if (o.op === "remove") return `Removed ${pointer(o.path)}`;
+          return `${o.op} ${pointer(o.path)}`;
+        }
+        return `${ops.length} edits`;
+      }
+      default:
+        return "Design edit";
+    }
+  }
+
+  const statusText = (s) => (s === "clean" ? "Check clean" : s === "warnings" ? "Warnings" : "Errors");
+
+  // history_show's model diff against the step before, as a count.
+  function diffText(d) {
+    const n = (k) => (d && Array.isArray(d[k]) ? d[k].length : 0);
+    const parts = [];
+    if (n("added")) parts.push(`${n("added")} added`);
+    if (n("removed")) parts.push(`${n("removed")} removed`);
+    if (n("changed")) parts.push(`${n("changed")} changed`);
+    return parts.length ? parts.join(" · ") : "No component changes";
+  }
+
+  const diffCount = (d) => ["added", "removed", "changed"].reduce((c, k) => c + (d && Array.isArray(d[k]) ? d[k].length : 0), 0);
+
+  function stepNumber(step) {
+    const m = /(\d+)$/.exec(String(step || ""));
+    return m ? Number(m[1]) : undefined;
+  }
+
+  function fmt(v) {
+    if (v === null || v === undefined || !Number.isFinite(v)) return "–";
+    if (v === 0) return "0";
+    const a = Math.abs(v);
+    if (a >= 1e5 || a < 1e-3) return v.toExponential(3);
+    return String(Number(v.toPrecision(4)));
+  }
+
+  function el(tag, cls, text) {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text !== undefined) e.textContent = text;
+    return e;
+  }
+
+  function render() {
+    const root = document.getElementById("root");
+    root.replaceChildren();
+    const tool = baseTool();
+    const r = st.result;
+    const sc = (r && r.structuredContent) || {};
+    const delta = sc.delta || {};
+    const shown = tool === "history_show" && sc.step && typeof sc.step === "object" ? sc.step : null;
+    const n = shown ? stepNumber(shown.seq) : stepNumber(sc.step || delta.step);
+    root.setAttribute("data-tool", tool || "");
+    const changed = Object.entries(delta.changed || {});
+    const nd = Array.isArray(delta.new_diagnostics) ? delta.new_diagnostics.length : 0;
+    const imported = Array.isArray(sc.imported) && sc.imported.length > 0;
+    // Nothing to list under the head: one compact row.
+    const compact = !!r && !r.isError && (shown !== null || (changed.length === 0 && nd === 0 && !imported));
+    root.setAttribute("data-form", compact ? "compact" : "full");
+
+    const head = el("div", "head");
+    head.setAttribute("data-card-title", "");
+    const icon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    icon.setAttribute("class", "icon");
+    icon.setAttribute("viewBox", "0 0 24 24");
+    icon.setAttribute("aria-hidden", "true");
+    icon.setAttribute("data-card-icon", "");
+    const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    for (const [k, v] of [["cx", 12], ["cy", 12], ["r", 8], ["fill", "none"], ["stroke", "currentColor"], ["stroke-width", 2]]) circle.setAttribute(k, String(v));
+    icon.appendChild(circle);
+    head.appendChild(icon);
+    const titles = el("div", "titles");
+    const title = el("span", "title", r ? action(tool) : "Design edit");
+    title.setAttribute("data-testid", "rw.step-card.title");
+    titles.appendChild(title);
+    let sub;
+    if (!r) sub = "Waiting for the result";
+    else if (r.isError) sub = "Not applied";
+    else if (shown) sub = diffCount(sc.diff) === 0 ? `Step ${n === undefined ? "?" : n}` : `Step ${n === undefined ? "?" : n} · ${diffText(sc.diff)}`;
+    else if (sc.dry_run) sub = "Dry run · nothing recorded";
+    else if (n !== undefined) sub = compact && delta.status ? `Step ${n} · ${statusText(delta.status)}` : `Step ${n}`;
+    else sub = "No change";
+    const subtitle = el("span", "subtitle", sub);
+    if (compact && !shown && !sc.dry_run && n !== undefined) subtitle.title = "No metric changed.";
+    subtitle.setAttribute("data-testid", "rw.step-card.subtitle");
+    subtitle.setAttribute("data-card-subtitle", "");
+    titles.appendChild(subtitle);
+    head.appendChild(titles);
+    if (r && !r.isError && delta.status && !compact) {
+      const chip = el("span", "chip", statusText(delta.status));
+      chip.setAttribute("data-status", delta.status);
+      chip.setAttribute("data-card-chip", "");
+      head.appendChild(chip);
+    }
+    root.appendChild(head);
+
+    if (r && r.isError) {
+      const req = r._meta && r._meta["lecturn/approval-required"];
+      const e = r._meta && r._meta["rw/error"];
+      if (req) root.appendChild(el("div", "note", req.reason));
+      else {
+        const x = el("div", "error", (e && e.message) || "The edit failed.");
+        x.setAttribute("role", "alert");
+        root.appendChild(x);
+      }
+    } else if (r && !compact) {
+      if (changed.length > 0) {
+        const list = el("ul", "changes");
+        list.setAttribute("data-testid", "rw.step-card.changes");
+        for (const [key, pair] of changed.slice(0, MAX_ROWS)) {
+          const li = el("li");
+          li.setAttribute("data-key", key);
+          li.appendChild(el("span", "key", key));
+          const d = el("span", "delta");
+          d.append(fmt(pair && pair[0]), el("span", "arrow", "→"), fmt(pair && pair[1]));
+          li.appendChild(d);
+          list.appendChild(li);
+        }
+        root.appendChild(list);
+        if (changed.length > MAX_ROWS) root.appendChild(el("div", "more", `+${changed.length - MAX_ROWS} more`));
+      } else {
+        root.appendChild(el("div", "empty", "No metric changed."));
+      }
+      if (nd > 0) root.appendChild(el("div", "diag", `${nd} new diagnostic${nd === 1 ? "" : "s"}`));
+      if (imported) root.appendChild(el("div", "note", sc.imported.join(", ")));
+    }
+
+    const actions = compact ? head : el("div", "actions");
+    const compare = el("button", "compare", "Compare");
+    compare.type = "button";
+    compare.setAttribute("data-testid", "rw.step-card.compare");
+    if (n === undefined) compare.disabled = true;
+    compare.addEventListener("click", () => {
+      if (n !== undefined) request("ui/open-link", { url: `rw:step/${n}` }).catch(() => undefined);
+    });
+    actions.appendChild(compare);
+    if (!compact) root.appendChild(actions);
+    const rect = document.documentElement.getBoundingClientRect();
+    // The content height: the root's scrollHeight never drops below the host frame's (initially 320 px).
+    notify("ui/notifications/size-changed", { width: Math.ceil(rect.width), height: Math.ceil(document.body.getBoundingClientRect().height || rect.height) });
+  }
+
+  function applyContext(ctx) {
+    if (!ctx || typeof ctx !== "object") return;
+    st.ctx = Object.assign({}, st.ctx, ctx);
+    const vars = ctx.styles && ctx.styles.variables;
+    if (vars && typeof vars === "object") {
+      for (const k in vars) if (typeof vars[k] === "string") document.documentElement.style.setProperty(k, vars[k]);
+    }
+    const fonts = ctx.styles && ctx.styles.css && ctx.styles.css.fonts;
+    if (typeof fonts === "string" && fonts.trim() !== "") {
+      let s = document.getElementById("host-fonts");
+      if (!s) {
+        s = document.createElement("style");
+        s.id = "host-fonts";
+        document.head.appendChild(s);
+      }
+      s.textContent = fonts;
+    }
+    if (ctx.theme === "light" || ctx.theme === "dark") document.documentElement.style.colorScheme = ctx.theme;
+  }
+
+  window.addEventListener("message", (ev) => {
+    if (ev.source !== host) return;
+    const m = ev.data;
+    if (!m || m.jsonrpc !== "2.0") return;
+    if (m.id !== undefined && m.method === undefined) {
+      const w = waiting.get(m.id);
+      if (!w) return;
+      waiting.delete(m.id);
+      if (m.error) w.reject(m.error);
+      else w.resolve(m.result);
+      return;
+    }
+    if (m.id !== undefined) {
+      if (m.method === "ui/resource-teardown" || m.method === "ping") post({ jsonrpc: "2.0", id: m.id, result: {} });
+      else post({ jsonrpc: "2.0", id: m.id, error: { code: -32601, message: `Method not found: ${m.method}` } });
+      return;
+    }
+    const p = m.params || {};
+    if (m.method === "ui/notifications/tool-input") {
+      st.args = (p.arguments && typeof p.arguments === "object" && p.arguments) || {};
+      render();
+    } else if (m.method === "ui/notifications/tool-result") {
+      st.result = p;
+      render();
+    } else if (m.method === "ui/notifications/host-context-changed") {
+      applyContext(p);
+      render();
+    }
+  });
+
+  render();
+  request("ui/initialize", {
+    protocolVersion: "2026-01-26",
+    appInfo: { name: "rocketwright-step-card", version: "1" },
+    appCapabilities: { availableDisplayModes: ["inline"] },
+  }).then(
+    (r) => {
+      applyContext(r && r.hostContext);
+      render();
+      notify("ui/notifications/initialized", {});
+    },
+    () => notify("ui/notifications/initialized", {}),
+  );
+})();
+</script>
+</body>
+</html>

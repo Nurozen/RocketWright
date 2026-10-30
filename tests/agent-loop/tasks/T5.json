@@ -1,0 +1,16 @@
+{
+  "id": "T5",
+  "title": "Import an OpenRocket example and diff against the golden",
+  "setup": [],
+  "prompt": "The working directory is empty. The RocketWright CLI (`rw`) is on your PATH and its skill doc is at {skill_doc}. Import the OpenRocket example {data:example_ork}; a variant that uses the built-in generic motor curves is at {data:variant_ork} and the OpenRocket golden results for that variant are at {data:golden}. Simulate the imported rocket and report how its results differ from the OpenRocket golden.",
+  "predicates": [
+    { "kind": "sequence", "desc": "an .ork was imported, simulated, and diffed against the golden", "steps": [
+      { "input": "\\bimport\\b[^\\n]*\\.ork|import_file" },
+      { "input": "\\b(rw|rocketwright)\\b[^\\n]*\\bsim\\b|\"simulate\"", "ok": true },
+      { "input": "--golden|\"golden\"", "ok": true }
+    ] },
+    { "kind": "last_check", "desc": "the final design check is clean (an import may exit 1 on substitution warnings until they are accepted)", "ok": true, "not_output": "RW-E\\d{3}" },
+    { "kind": "answer", "desc": "the answer reports the apogee difference", "pattern": "apogee" },
+    { "kind": "answer", "desc": "the answer reports numbers", "pattern": "\\d" }
+  ]
+}

@@ -1,0 +1,9 @@
+# e2e fixture (REV2-web): a vented airframe (four cut slots through the tube
+# wall) and a freeform fin set, for page 02's outline editor and viewport cuts.
+format = 1
+name = "Vented freeform"
+default_config = "c6"
+
+[display_units]
+length = "mm"
+mass = "g"

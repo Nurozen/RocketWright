@@ -1,0 +1,8 @@
+{
+  "provenance": "contract-fixture",
+  "type": "tools/history_restore.input",
+  "payload": {
+    "version": "rev:07",
+    "dry_run": true
+  }
+}

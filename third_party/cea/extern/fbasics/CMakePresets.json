@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 19,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "dev",
+      "inherits": "gnu",
+      "displayName": "Sofware Development Config",
+      "description": "Default configuration for software developers.",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_Fortran_COMPILER": "gfortran",
+        "CMAKE_Fortran_FLAGS_DEBUG": "-g -O0 -Wall -Wextra -Wcharacter-truncation -Wno-maybe-uninitialized -Werror=conversion -fcheck=all -fbacktrace -fimplicit-none"
+      }
+    },
+    {
+      "name": "dev-ninja",
+      "inherits": "dev",
+      "displayName": "Sofware Development Config (Ninja)",
+      "description": "Default developer configuration using Ninja build system.",
+      "generator": "Ninja"
+    },
+    { "name": "gnu",
+      "displayName": "Baseline GNU/GFortran Config",
+      "description": "Default configuration for GNU-like compiliers.",
+      "binaryDir": "build",
+      "generator": "Unix Makefiles",
+      "cacheVariables": {
+        "CMAKE_Fortran_COMPILER": "gfortran",
+        "CMAKE_Fortran_FLAGS": "-std=f2008 -Wpedantic"
+      }
+    }
+  ]
+}

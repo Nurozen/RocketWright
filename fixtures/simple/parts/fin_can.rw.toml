@@ -1,0 +1,50 @@
+# Fins and the 18 mm motor mount, included by rocket.rw.toml.
+[c.fins]
+type = "trapezoidal_fin_set"
+name = "Fins"
+attach = { to = "body.aft", at = "root_te" }
+material = "balsa"
+appearance = { preset = "composite_white" }
+count = 3
+root_chord = "70 mm"
+tip_chord = "30 mm"
+span = "= params.fin_span"
+sweep = "35 mm"
+thickness = "2.4 mm"
+cross_section = "rounded"
+
+[c.mount]
+type = "inner_tube"
+name = "Motor mount"
+attach = { to = "body.aft", at = "aft", offset = "3 mm" }
+material = "cardboard"
+appearance = { preset = "kraft_paper" }
+length = "75 mm"
+od = "19.6 mm"
+id = "18.8 mm"
+motor_mount = true
+
+[c.ring_fore]
+type = "centering_ring"
+name = "Centering ring"
+attach = { to = "mount.fore", at = "fore", offset = "5 mm" }
+material = "cardboard"
+length = "3 mm"
+id = "19.6 mm"
+
+[c.ring_aft]
+type = "centering_ring"
+name = "Centering ring"
+attach = { to = "body.aft", at = "aft" }
+material = "cardboard"
+length = "3 mm"
+id = "19.6 mm"
+
+[c.lug]
+type = "launch_lug"
+name = "Launch lug"
+attach = { to = "body.mid", at = "fore", spin = "60 deg" }
+material = "cardboard"
+length = "35 mm"
+od = "5.6 mm"
+id = "4.4 mm"

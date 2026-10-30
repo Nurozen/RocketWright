@@ -1,0 +1,7 @@
+{
+  "variables": {
+    "--destructive": "#e5735c",
+    "--success": "#61b5ad",
+    "--success-foreground": "#61b5ad"
+  }
+}

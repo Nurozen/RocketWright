@@ -1,0 +1,563 @@
+/* Propulsion > Liquid propulsion design (M4.7, concepts.md §4.5). Tokens only (@rw/ui tokens.css). */
+
+.rw-liq {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.rw-liq__head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: none;
+  height: 58px;
+  padding: 0 18px;
+}
+
+.rw-liq__head .rw-page-title {
+  flex: 1;
+  margin: 0;
+  font-size: var(--rw-font-size-page-title);
+  font-weight: var(--rw-font-weight-strong);
+  letter-spacing: -0.01em;
+}
+
+.rw-liq__engine {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--rw-text-secondary);
+  font-size: var(--rw-font-size-secondary);
+}
+
+.rw-liq__engine select {
+  height: 30px;
+  padding: 0 8px;
+  border: var(--rw-hairline) solid var(--rw-line);
+  border-radius: var(--rw-radius-sm);
+  background: var(--rw-panel);
+  color: var(--rw-text-primary);
+  font: inherit;
+  font-size: var(--rw-font-size-body);
+}
+
+.rw-liq__tabs {
+  display: flex;
+  flex: none;
+  height: 36px;
+  padding: 0 10px;
+  border-bottom: var(--rw-hairline) solid var(--rw-line);
+}
+
+.rw-liq__tabs .rw-tab {
+  min-width: 96px;
+}
+
+.rw-liq__empty {
+  margin: 0;
+  padding: 16px 20px;
+  color: var(--rw-text-secondary);
+}
+
+.rw-liq__body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.rw-liq__body--assembly {
+  flex-direction: row;
+}
+
+.rw-liq__viewport {
+  position: relative;
+  flex: 0 0 56%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.rw-liq__body--assembly .rw-liq__viewport {
+  flex: 1;
+}
+
+.rw-liq__lower {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 12px;
+  padding: 0 6px 8px 14px;
+  border-top: var(--rw-hairline) solid var(--rw-line);
+  background: var(--rw-bg-canvas);
+}
+
+/* ---- panels --------------------------------------------------------------- */
+
+.rw-liq-panel__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 44px;
+  border-bottom: var(--rw-hairline) solid var(--rw-line);
+}
+
+.rw-liq-panel__title {
+  flex: 1;
+  margin: 0;
+  color: var(--rw-text-primary);
+  font-size: var(--rw-font-size-pane-title);
+  font-weight: var(--rw-font-weight-strong);
+}
+
+.rw-liq-legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--rw-text-secondary);
+  font-size: 11px;
+}
+
+.rw-liq-legend__swatch {
+  width: 14px;
+  height: 2px;
+  margin-left: 6px;
+  border-radius: 1px;
+  background: var(--rw-accent);
+}
+
+.rw-liq-legend__swatch[data-role="fuel"] {
+  background: var(--rw-warning);
+}
+
+/* ---- connectivity diagram -------------------------------------------------- */
+
+.rw-liq-diagram {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.rw-liq-diagram__canvas {
+  position: relative;
+  flex: none;
+  margin: 10px auto 0;
+}
+
+.rw-liq-diagram__edges {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+}
+
+.rw-liq-edge {
+  fill: none;
+  stroke: var(--rw-accent);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+  opacity: 0.55;
+}
+
+.rw-liq-edge[data-role="fuel"] {
+  stroke: var(--rw-warning);
+}
+
+.rw-liq-edge[data-role="none"] {
+  stroke: var(--rw-text-secondary);
+}
+
+.rw-liq-edge[data-selected="true"] {
+  stroke-width: 2;
+  opacity: 1;
+}
+
+.rw-liq-edge__hit {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 12;
+  pointer-events: stroke;
+  cursor: pointer;
+}
+
+.rw-liq-arrow {
+  fill: var(--rw-accent);
+}
+
+.rw-liq-arrow[data-role="fuel"] {
+  fill: var(--rw-warning);
+}
+
+.rw-liq-arrow[data-role="none"] {
+  fill: var(--rw-text-secondary);
+}
+
+.rw-liq-node {
+  position: absolute;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 14px;
+  border: var(--rw-hairline) solid #3a4246;
+  border-radius: var(--rw-radius);
+  background: var(--rw-panel);
+  color: var(--rw-text-primary);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.rw-liq-node:hover {
+  border-color: var(--rw-text-secondary);
+}
+
+.rw-liq-node[data-role="ox"] {
+  border-color: var(--rw-accent);
+}
+
+.rw-liq-node[data-role="fuel"] {
+  border-color: var(--rw-warning);
+}
+
+.rw-liq-node[data-selected="true"] {
+  border-color: var(--rw-accent);
+  box-shadow: 0 0 0 1px var(--rw-accent);
+  background: var(--rw-selection-row);
+}
+
+.rw-liq-node__icon {
+  display: inline-flex;
+  color: var(--rw-text-primary);
+}
+
+/* ---- inspector -------------------------------------------------------------- */
+
+.rw-liq-insp {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  margin-top: 10px;
+  border: var(--rw-hairline) solid var(--rw-line);
+  border-radius: var(--rw-radius);
+  background: var(--rw-bg-canvas);
+  overflow: hidden;
+}
+
+.rw-liq-insp__tabs {
+  display: flex;
+  flex: none;
+  height: 38px;
+  border-bottom: var(--rw-hairline) solid var(--rw-line);
+}
+
+.rw-liq-insp__tab {
+  flex: 1;
+  padding: 0 8px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--rw-text-secondary);
+  font-size: var(--rw-font-size-body);
+  white-space: nowrap;
+}
+
+.rw-liq-insp__tab[aria-selected="true"] {
+  border-bottom-color: var(--rw-accent);
+  background: var(--rw-panel);
+  color: var(--rw-text-primary);
+  font-weight: var(--rw-font-weight-strong);
+}
+
+.rw-liq-insp__body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 4px 14px 0;
+}
+
+.rw-liq-insp__hint,
+.rw-liq-insp__blocked {
+  margin: 4px 0;
+  color: var(--rw-text-secondary);
+  font-size: var(--rw-font-size-secondary);
+}
+
+.rw-liq-conn {
+  margin: 0;
+  padding: 6px 0;
+  border-bottom: var(--rw-hairline) solid var(--rw-line);
+}
+
+.rw-liq-conn__row {
+  display: grid;
+  grid-template-columns: 84px 1fr;
+  align-items: center;
+  min-height: 32px;
+}
+
+.rw-liq-conn__row dt {
+  color: var(--rw-text-secondary);
+}
+
+.rw-liq-conn__row dd {
+  margin: 0;
+}
+
+.rw-liq-conn__value {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.rw-liq-conn__end {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.rw-liq-inputs {
+  padding: 4px 0;
+}
+
+.rw-liq-input {
+  display: grid;
+  grid-template-columns: 124px 1fr 22px;
+  align-items: center;
+  min-height: 32px;
+}
+
+.rw-liq-input__label {
+  color: var(--rw-text-secondary);
+}
+
+.rw-liq-input__icon {
+  display: inline-flex;
+  justify-content: center;
+  color: var(--rw-text-secondary);
+}
+
+.rw-liq-input__icon[data-tone="warn"] {
+  color: var(--rw-warning);
+}
+
+.rw-liq-input__icon[data-tone="ok"] {
+  color: var(--rw-success);
+}
+
+.rw-liq-analysis {
+  display: flex;
+  flex-direction: column;
+}
+
+.rw-liq-analysis__run {
+  margin-left: 10px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--rw-accent);
+  font: inherit;
+  cursor: pointer;
+}
+
+.rw-liq-analysis__run:disabled {
+  color: var(--rw-text-secondary);
+  cursor: default;
+}
+
+.rw-liq-sources {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: none;
+  height: 44px;
+  margin: 0 14px;
+  padding: 0 2px;
+  border: 0;
+  border-top: var(--rw-hairline) solid var(--rw-line);
+  background: none;
+  color: var(--rw-accent);
+  font-size: var(--rw-font-size-body);
+  text-align: left;
+}
+
+.rw-liq-sources span {
+  flex: 1;
+}
+
+.rw-liq-sources .rw-icon:last-child {
+  color: var(--rw-text-primary);
+}
+
+.rw-liq-sources__list {
+  margin: 0;
+  padding: 0 14px 10px;
+  list-style: none;
+  max-height: 140px;
+  overflow: auto;
+}
+
+.rw-liq-sources__list li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 0;
+  border-top: var(--rw-hairline) solid var(--rw-line);
+  font-size: var(--rw-font-size-secondary);
+}
+
+.rw-liq-sources__list a {
+  color: var(--rw-accent);
+  text-decoration: none;
+}
+
+.rw-liq-sources__list span {
+  color: var(--rw-text-secondary);
+}
+
+.rw-liq-list dl,
+.rw-liq-params dl,
+.rw-liq-props dl {
+  margin: 0;
+}
+
+.rw-liq-list__title {
+  margin: 10px 0 2px;
+  color: var(--rw-text-secondary);
+  font-size: var(--rw-font-size-secondary);
+  font-weight: var(--rw-font-weight-regular);
+}
+
+.rw-liq-list__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: baseline;
+  padding: 6px 0;
+  border-bottom: var(--rw-hairline) solid var(--rw-line);
+}
+
+.rw-liq-list__row dt {
+  color: var(--rw-text-secondary);
+}
+
+.rw-liq-list__row dd {
+  margin: 0;
+  color: var(--rw-text-primary);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.rw-liq-list__row[data-warn="true"] dd {
+  color: var(--rw-warning);
+}
+
+.rw-liq-assumptions {
+  margin: 6px 0;
+  padding-left: 18px;
+  color: var(--rw-text-primary);
+  line-height: 1.5;
+}
+
+.rw-liq-assumptions li + li {
+  margin-top: 6px;
+}
+
+.rw-liq-unit {
+  color: var(--rw-text-secondary);
+}
+
+/* ---- assembly parameters ---------------------------------------------------------- */
+
+.rw-liq-params {
+  flex: none;
+  width: 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 16px;
+  border-left: var(--rw-hairline) solid var(--rw-line);
+  overflow: auto;
+}
+
+.rw-liq-params .rw-liq-panel__title {
+  flex: none;
+  margin-top: 8px;
+  font-size: 14px;
+}
+
+/* ---- properties ---------------------------------------------------------------------- */
+
+.rw-liq-props {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 12px 18px 16px;
+}
+
+.rw-liq-props__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 14px 24px;
+}
+
+.rw-liq-props__group {
+  padding: 10px 14px;
+  border: var(--rw-hairline) solid var(--rw-line);
+  border-radius: var(--rw-radius);
+}
+
+.rw-liq-props__group .rw-liq-panel__title {
+  flex: none;
+  margin-bottom: 6px;
+  font-size: 14px;
+}
+
+.rw-liq-props__foot {
+  margin: 14px 0 6px;
+  color: var(--rw-text-secondary);
+  font-size: var(--rw-font-size-secondary);
+}
+
+.rw-liq-props__sources {
+  max-width: 720px;
+}
+
+.rw-liq-props__sources .rw-liq-sources__list {
+  max-height: none;
+  padding: 4px 0 0;
+}
+
+/* ---- agent pane ------------------------------------------------------------------------ */
+
+.rw-liq-missing {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 2px 0 18px 32px;
+  padding: 6px 6px 6px 14px;
+  border: var(--rw-hairline) solid var(--rw-warning);
+  border-radius: var(--rw-radius);
+  background: rgba(250, 201, 94, 0.05);
+}
+
+.rw-liq-missing__icon {
+  flex: none;
+  color: var(--rw-warning);
+}
+
+.rw-liq-missing__text {
+  flex: 1;
+  color: var(--rw-text-primary);
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.rw-liq-missing__review {
+  min-width: 0;
+  height: 34px;
+  padding: 0 14px;
+  font-size: 13px;
+}

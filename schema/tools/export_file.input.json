@@ -1,0 +1,48 @@
+{
+  "type": "object",
+  "properties": {
+    "format": {
+      "$ref": "#/$defs/ExportFormat"
+    },
+    "path": {
+      "type": "string",
+      "description": "Output path, project-relative (or absolute inside the project)."
+    },
+    "config": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "run": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Run ref (CSV export)."
+    },
+    "allow_outside": {
+      "type": "boolean",
+      "description": "Allow a path outside the project (absolute or `..`); the gated\napproval names the path. Default: the path must stay inside."
+    }
+  },
+  "required": [
+    "format",
+    "path"
+  ],
+  "title": "ExportFileIn",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rocketwright.dev/schema/1/tools/export_file.input.json",
+  "$defs": {
+    "ExportFormat": {
+      "type": "string",
+      "enum": [
+        "ork",
+        "rasp",
+        "glb",
+        "stl",
+        "csv"
+      ]
+    }
+  }
+}

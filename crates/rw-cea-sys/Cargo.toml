@@ -1,0 +1,21 @@
+[package]
+name = "rw-cea-sys"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+# One native CEA per link: `cargo:data` reaches dependents as DEP_CEA_BINDC_DATA.
+links = "cea_bindc"
+build = "build.rs"
+
+[features]
+# Builds and statically links the vendored NASA CEA (third_party/cea) when
+# enabled; off by default. Needs gfortran and cmake (docs/dev/environment.md).
+cea = []
+
+[[bin]]
+name = "rw-cea-probe"
+required-features = ["cea"]
+
+[dependencies]

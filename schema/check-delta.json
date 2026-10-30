@@ -1,0 +1,137 @@
+{
+  "type": "object",
+  "properties": {
+    "status": {
+      "$ref": "#/$defs/CheckStatus"
+    },
+    "model_hash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "step": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "The history step this mutation recorded; `None` for dry runs and no-op edits."
+    },
+    "changed": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "array",
+        "items": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        },
+        "minItems": 2,
+        "maxItems": 2
+      },
+      "description": "Metric path → `[before, after]` (SI); `null` when absent on one side."
+    },
+    "new_diagnostics": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Diagnostic"
+      }
+    },
+    "resolved_diagnostics": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "`<code>@<path>` keys of diagnostics that went away."
+    }
+  },
+  "required": [
+    "status",
+    "model_hash",
+    "changed",
+    "new_diagnostics",
+    "resolved_diagnostics"
+  ],
+  "description": "The post-edit check delta every mutating tool returns (S:86, I6; DA:118-123):\n\n```json\n{\"status\":\"warnings\",\"model_hash\":\"…\",\"step\":\"s0004\",\n \"changed\":{\"stability.liftoff\":[1.42,1.18],\"mass.liftoff\":[0.512,0.498]},\n \"new_diagnostics\":[{\"code\":\"RW-E101\",\"severity\":\"error\",\"path\":\"/c/fins/span\",\"message\":\"…\",\"hint\":\"…\"}],\n \"resolved_diagnostics\":[\"RW-W012@/c/body\"]}\n```",
+  "title": "CheckDelta",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rocketwright.dev/schema/1/check-delta.json",
+  "$defs": {
+    "CheckStatus": {
+      "type": "string",
+      "enum": [
+        "errors",
+        "warnings",
+        "clean"
+      ],
+      "description": "Overall status: `errors` if any error diagnostic or failed error-severity\nassertion, else `warnings` if any warning, else `clean`."
+    },
+    "Diagnostic": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string",
+          "description": "Stable code, e.g. `RW-E021`.",
+          "pattern": "^RW-[EWI][0-9]{3}$"
+        },
+        "severity": {
+          "$ref": "#/$defs/Severity"
+        },
+        "path": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "JSON pointer into the source model, e.g. `/c/fins/span`."
+        },
+        "file": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Project-relative file."
+        },
+        "line": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "minimum": 0
+        },
+        "col": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "minimum": 0
+        },
+        "message": {
+          "type": "string"
+        },
+        "hint": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Next action for an agent."
+        }
+      },
+      "required": [
+        "code",
+        "severity",
+        "message"
+      ],
+      "description": "One finding, phrased for an agent (`hint` says what to do next)."
+    },
+    "Severity": {
+      "type": "string",
+      "enum": [
+        "error",
+        "warning",
+        "info"
+      ]
+    }
+  }
+}

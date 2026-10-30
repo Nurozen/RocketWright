@@ -1,0 +1,38 @@
+{
+  "type": "object",
+  "properties": {
+    "mass": {
+      "type": "number",
+      "format": "double",
+      "x-unit-dimension": "mass"
+    },
+    "cg": {
+      "type": "number",
+      "format": "double",
+      "description": "CG station.",
+      "x-unit-dimension": "length"
+    },
+    "ixx": {
+      "type": "number",
+      "format": "double",
+      "description": "Roll (longitudinal) moment of inertia.",
+      "x-unit-dimension": "inertia"
+    },
+    "iyy": {
+      "type": "number",
+      "format": "double",
+      "description": "Pitch/yaw (transverse) moment of inertia.",
+      "x-unit-dimension": "inertia"
+    }
+  },
+  "required": [
+    "mass",
+    "cg",
+    "ixx",
+    "iyy"
+  ],
+  "description": "Mass properties about the CG. Inertia about the body axes through the CG.",
+  "title": "MassProps",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rocketwright.dev/schema/1/mass-props.json"
+}

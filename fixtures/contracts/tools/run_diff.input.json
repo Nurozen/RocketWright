@@ -1,0 +1,11 @@
+{
+  "provenance": "contract-fixture",
+  "type": "tools/run_diff.input",
+  "payload": {
+    "a": "baseline/f8eb21388e28",
+    "golden": "tests/oracle/case1-generic.json",
+    "tol": {
+      "apogee_m": "3%"
+    }
+  }
+}

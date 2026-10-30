@@ -1,0 +1,10 @@
+name = "C6 flight"
+config = "c6"
+
+[launch]
+rail_length = "1 m"
+rod_angle = "5 deg"
+
+[wind]
+speed = "2 m/s"
+direction = "270 deg"

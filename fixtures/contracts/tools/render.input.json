@@ -1,0 +1,12 @@
+{
+  "provenance": "contract-fixture",
+  "type": "tools/render.input",
+  "payload": {
+    "view": "iso",
+    "config": "baseline",
+    "explode": 0.6,
+    "width": 1536,
+    "height": 1024,
+    "scheme": "check"
+  }
+}

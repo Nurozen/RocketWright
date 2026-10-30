@@ -1,0 +1,42 @@
+{
+  "provenance": "contract-fixture",
+  "type": "tools/history_restore.output",
+  "payload": {
+    "model_hash": "1ceb288e422bb33c662e66c9265157be29a006761136f05776dd3891e9ea8822",
+    "dry_run": true,
+    "files": [],
+    "delta": {
+      "status": "warnings",
+      "model_hash": "1ceb288e422bb33c662e66c9265157be29a006761136f05776dd3891e9ea8822",
+      "changed": {
+        "stability.liftoff": [
+          1.42,
+          1.71
+        ],
+        "mass.liftoff": [
+          0.6188,
+          0.6219
+        ],
+        "aero.cp": [
+          0.5552,
+          0.5774
+        ]
+      },
+      "new_diagnostics": [
+        {
+          "code": "RW-W151",
+          "severity": "warning",
+          "path": "/c/ring_lower",
+          "file": "rocket.rw.toml",
+          "line": 88,
+          "col": 1,
+          "message": "Centering ring (lower) sits 6 mm from the motor retainer",
+          "hint": "Move it fore with attach.offset = \"-10 mm\" if the retainer needs room."
+        }
+      ],
+      "resolved_diagnostics": [
+        "RW-E101@/c/fins/span"
+      ]
+    }
+  }
+}

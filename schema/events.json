@@ -1,0 +1,92 @@
+{
+  "type": "object",
+  "properties": {
+    "schema": {
+      "type": "string",
+      "const": "rw/1"
+    },
+    "events": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/FlightEvent"
+      }
+    }
+  },
+  "required": [
+    "schema",
+    "events"
+  ],
+  "description": "`events.json`.",
+  "title": "RunEvents",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rocketwright.dev/schema/1/events.json",
+  "$defs": {
+    "FlightEvent": {
+      "type": "object",
+      "properties": {
+        "t": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "time"
+        },
+        "kind": {
+          "$ref": "#/$defs/EventKind"
+        },
+        "altitude": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "velocity": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "velocity"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RwRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Component that caused the event (rw:c/<id>), when one did."
+        },
+        "branch": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The released stage whose branch flew the event (`branches/<stage>/`,\nM2.3); absent on the main (top-stage) flight."
+        }
+      },
+      "required": [
+        "t",
+        "kind",
+        "altitude",
+        "velocity"
+      ]
+    },
+    "EventKind": {
+      "type": "string",
+      "enum": [
+        "ignition",
+        "liftoff",
+        "rail_exit",
+        "burnout",
+        "ejection",
+        "apogee",
+        "stage_separation",
+        "deployment",
+        "tumble",
+        "landing"
+      ]
+    },
+    "RwRef": {
+      "type": "string",
+      "description": "An rw: ref string (rw:c/fins).",
+      "pattern": "^rw:(c|cfg|sim|run|step|rev|thread|eng)/[A-Za-z0-9_.-]+(#[A-Za-z0-9_<>]+)?(@[A-Za-z0-9_.:-]+)?(/[^\\s]*)?$"
+    }
+  }
+}

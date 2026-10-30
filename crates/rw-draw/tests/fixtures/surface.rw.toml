@@ -1,0 +1,51 @@
+# Surface parts for the profile golden (B3 round 8): two rail buttons on +Y
+# (roll 0, which the side view once drew on the centreline), a launch lug at
+# 60 deg (upper outline), and one at 240 deg (lower outline).
+name = "Surface parts"
+
+[c.nose]
+type = "nose_cone"
+material = "plastic"
+shape = "ogive"
+length = "120 mm"
+od = "41.6 mm"
+thickness = "2 mm"
+
+[c.body]
+type = "body_tube"
+attach = { to = "nose.base" }
+material = "cardboard"
+length = "400 mm"
+od = "41.6 mm"
+id = "40 mm"
+
+[c.buttons]
+type = "rail_button"
+attach = { to = "body.outer", offset = "60 mm" }
+instances = { count = 2, pattern = "linear", spacing = "250 mm" }
+material = "plastic"
+od = "10 mm"
+id = "6 mm"
+height = "8 mm"
+
+[c.lug]
+type = "launch_lug"
+attach = { to = "body.mid", at = "fore", spin = "60 deg" }
+material = "cardboard"
+length = "50 mm"
+od = "6 mm"
+id = "4.8 mm"
+
+[c.lug_low]
+type = "launch_lug"
+attach = { to = "body.mid", at = "fore", offset = "-120 mm", spin = "240 deg" }
+material = "cardboard"
+length = "30 mm"
+od = "6 mm"
+id = "4.8 mm"
+
+[materials.plastic]
+density = "1050 kg/m^3"
+
+[materials.cardboard]
+density = "680 kg/m^3"

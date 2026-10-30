@@ -1,0 +1,15 @@
+{
+  "type": "object",
+  "properties": {
+    "engine": {
+      "type": "string",
+      "description": "Engine id (`engines/<id>.rw.toml`)."
+    }
+  },
+  "required": [
+    "engine"
+  ],
+  "title": "EngineDesignIn",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rocketwright.dev/schema/1/tools/engine_design.input.json"
+}

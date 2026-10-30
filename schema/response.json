@@ -1,0 +1,6813 @@
+{
+  "oneOf": [
+    {
+      "type": "object",
+      "properties": {
+        "command": {
+          "type": "string",
+          "const": "project_create"
+        },
+        "output": {
+          "$ref": "#/$defs/MutationOut"
+        }
+      },
+      "required": [
+        "command",
+        "output"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "command": {
+          "type": "string",
+          "const": "project_validate"
+        },
+        "output": {
+          "$ref": "#/$defs/ValidateOut"
+        }
+      },
+      "required": [
+        "command",
+        "output"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "command": {
+          "type": "string",
+          "const": "fmt"
+        },
+        "output": {
+          "$ref": "#/$defs/FmtOut"
+        }
+      },
+      "required": [
+        "command",
+        "output"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "command": {
+          "type": "string",
+          "const": "model_get"
+        },
+        "output": {
+          "$ref": "#/$defs/ModelGetOut"
+        }
+      },
+      "required": [
+        "command",
+        "output"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "command": {
+          "type": "string",
+          "const": "model_patch"
+        },
+        "output": {
+          "$ref": "#/$defs/MutationOut"
+        }
+      },
+      "required": [
+        "command",
+        "output"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "command": {
+          "type": "string",
+          "const": "component_add"
+        },
+        "output": {
+          "$ref": "#/$defs/MutationOut"
+        }
+      },
+      "required": [
+        "command",
+        "output"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "command": {
+          "type": "string",
+          "const": "component_remove"
+        },
+        "output": {
+          "$ref": "#/$defs/MutationOut"
+        }
+      },
+      "required": [
+        "command",
+        "output"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "command": {
+          "type": "string",
+          "const": "component_move"
+        },
+        "output": {
+          "$ref": "#/$defs/MutationOut"
+        }
+      },
+      "required": [
+        "command",
+        "output"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "command": {
+          "type": "string",
+          "const": "design_check"
+        },
+        "output": {
+          "$ref": "#/$defs/CheckReport"
+        }
+      },
+      "required": [
+        "command",
+        "output"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "command": {
+          "type": "string",
+          "const": "render"
+        },
+        "output": {
+          "$ref": "#/$defs/RenderResult"
+        }
+      },
+      "required": [
+        "command",
+        "output"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "command": {
+          "type": "string",
+          "const": "library_search"
+        },
+        "output": {
+          "$ref": "#/$defs/LibrarySearchOut"
+        }
+      },
+      "required": [
+        "command",
+        "output"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "command": {
+          "type": "string",
+          "const": "library_show"
+        },
+        "output": {
+          "$ref": "#/$defs/LibItem"
+        }
+      },
+      "required": [
+        "command",
+        "output"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "command": {
+          "type": "string",
+          "const": "motor_search"
+        },
+        "output": {
+          "$ref": "#/$defs/MotorSearchOut"
+        }
+      },
+      "required": [
+        "command",
+        "output"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "command": {
+          "type": "string",
+          "const": "motor_show"
+        },
+        "output": {
+          "$ref": "#/$defs/MotorShowOut"
+        }
+      },
+      "required": [
+        "command",
+        "output"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "command": {
+          "type": "string",
+          "const": "simulate"
+        },
+        "output": {
+          "$ref": "#/$defs/SimulateOut"
+        }
+      },
+      "required": [
+        "command",
+        "output"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "command": {
+          "type": "string",
+          "const": "job_status"
+        },
+        "output": {
+          "$ref": "#/$defs/JobInfo"
+        }
+      },
+      "required": [
+        "command",
+        "output"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "command": {
+          "type": "string",
+          "const": "job_cancel"
+        },
+        "output": {
+          "$ref": "#/$defs/JobInfo"
+        }
+      },
+      "required": [
+        "command",
+        "output"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "command": {
+          "type": "string",
+          "const": "run_list"
+        },
+        "output": {
+          "$ref": "#/$defs/RunListOut"
+        }
+      },
+      "required": [
+        "command",
+        "output"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "command": {
+          "type": "string",
+          "const": "run_diff"
+        },
+        "output": {
+          "$ref": "#/$defs/RunDiffOut"
+        }
+      },
+      "required": [
+        "command",
+        "output"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "command": {
+          "type": "string",
+          "const": "model_diff"
+        },
+        "output": {
+          "$ref": "#/$defs/ModelDiff"
+        }
+      },
+      "required": [
+        "command",
+        "output"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "command": {
+          "type": "string",
+          "const": "history_list"
+        },
+        "output": {
+          "$ref": "#/$defs/HistoryListOut"
+        }
+      },
+      "required": [
+        "command",
+        "output"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "command": {
+          "type": "string",
+          "const": "history_show"
+        },
+        "output": {
+          "$ref": "#/$defs/HistoryShowOut"
+        }
+      },
+      "required": [
+        "command",
+        "output"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "command": {
+          "type": "string",
+          "const": "history_compare"
+        },
+        "output": {
+          "$ref": "#/$defs/CompareOut"
+        }
+      },
+      "required": [
+        "command",
+        "output"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "command": {
+          "type": "string",
+          "const": "history_tag"
+        },
+        "output": {
+          "$ref": "#/$defs/Revision"
+        }
+      },
+      "required": [
+        "command",
+        "output"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "command": {
+          "type": "string",
+          "const": "history_restore"
+        },
+        "output": {
+          "$ref": "#/$defs/MutationOut"
+        }
+      },
+      "required": [
+        "command",
+        "output"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "command": {
+          "type": "string",
+          "const": "import_file"
+        },
+        "output": {
+          "$ref": "#/$defs/ImportOut"
+        }
+      },
+      "required": [
+        "command",
+        "output"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "command": {
+          "type": "string",
+          "const": "export_file"
+        },
+        "output": {
+          "$ref": "#/$defs/ExportOut"
+        }
+      },
+      "required": [
+        "command",
+        "output"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "command": {
+          "type": "string",
+          "const": "schema_get"
+        },
+        "output": {
+          "$ref": "#/$defs/SchemaGetOut"
+        }
+      },
+      "required": [
+        "command",
+        "output"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "command": {
+          "type": "string",
+          "const": "engine_design"
+        },
+        "output": {
+          "$ref": "#/$defs/EngineDesignOut"
+        }
+      },
+      "required": [
+        "command",
+        "output"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "command": {
+          "type": "string",
+          "const": "engine_simulate"
+        },
+        "output": {
+          "$ref": "#/$defs/SimulateOut"
+        }
+      },
+      "required": [
+        "command",
+        "output"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "command": {
+          "type": "string",
+          "const": "cfd_import"
+        },
+        "output": {
+          "$ref": "#/$defs/CfdImportOut"
+        }
+      },
+      "required": [
+        "command",
+        "output"
+      ]
+    }
+  ],
+  "description": "The result of a [`Command`], same variant.",
+  "title": "Response",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rocketwright.dev/schema/1/response.json",
+  "$defs": {
+    "MutationOut": {
+      "type": "object",
+      "properties": {
+        "step": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Recorded step (`None` for dry runs and edits that change nothing, D3)."
+        },
+        "model_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "dry_run": {
+          "type": "boolean"
+        },
+        "files": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/FileChange"
+          }
+        },
+        "delta": {
+          "$ref": "#/$defs/CheckDelta"
+        }
+      },
+      "required": [
+        "model_hash",
+        "dry_run",
+        "files",
+        "delta"
+      ],
+      "description": "Output of every mutating tool (S:86)."
+    },
+    "FileChange": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/FileStatus"
+        }
+      },
+      "required": [
+        "path",
+        "status"
+      ]
+    },
+    "FileStatus": {
+      "type": "string",
+      "enum": [
+        "A",
+        "M",
+        "D"
+      ]
+    },
+    "CheckDelta": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "$ref": "#/$defs/CheckStatus"
+        },
+        "model_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "step": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The history step this mutation recorded; `None` for dry runs and no-op edits."
+        },
+        "changed": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "description": "Metric path → `[before, after]` (SI); `null` when absent on one side."
+        },
+        "new_diagnostics": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Diagnostic"
+          }
+        },
+        "resolved_diagnostics": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "`<code>@<path>` keys of diagnostics that went away."
+        }
+      },
+      "required": [
+        "status",
+        "model_hash",
+        "changed",
+        "new_diagnostics",
+        "resolved_diagnostics"
+      ],
+      "description": "The post-edit check delta every mutating tool returns (S:86, I6; DA:118-123):\n\n```json\n{\"status\":\"warnings\",\"model_hash\":\"…\",\"step\":\"s0004\",\n \"changed\":{\"stability.liftoff\":[1.42,1.18],\"mass.liftoff\":[0.512,0.498]},\n \"new_diagnostics\":[{\"code\":\"RW-E101\",\"severity\":\"error\",\"path\":\"/c/fins/span\",\"message\":\"…\",\"hint\":\"…\"}],\n \"resolved_diagnostics\":[\"RW-W012@/c/body\"]}\n```"
+    },
+    "CheckStatus": {
+      "type": "string",
+      "enum": [
+        "errors",
+        "warnings",
+        "clean"
+      ],
+      "description": "Overall status: `errors` if any error diagnostic or failed error-severity\nassertion, else `warnings` if any warning, else `clean`."
+    },
+    "Diagnostic": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string",
+          "description": "Stable code, e.g. `RW-E021`.",
+          "pattern": "^RW-[EWI][0-9]{3}$"
+        },
+        "severity": {
+          "$ref": "#/$defs/Severity"
+        },
+        "path": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "JSON pointer into the source model, e.g. `/c/fins/span`."
+        },
+        "file": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Project-relative file."
+        },
+        "line": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "minimum": 0
+        },
+        "col": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "minimum": 0
+        },
+        "message": {
+          "type": "string"
+        },
+        "hint": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Next action for an agent."
+        }
+      },
+      "required": [
+        "code",
+        "severity",
+        "message"
+      ],
+      "description": "One finding, phrased for an agent (`hint` says what to do next)."
+    },
+    "Severity": {
+      "type": "string",
+      "enum": [
+        "error",
+        "warning",
+        "info"
+      ]
+    },
+    "ValidateOut": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "files": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "diagnostics": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Diagnostic"
+          }
+        }
+      },
+      "required": [
+        "ok",
+        "files",
+        "diagnostics"
+      ]
+    },
+    "FmtOut": {
+      "type": "object",
+      "properties": {
+        "changed": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "changed"
+      ]
+    },
+    "ModelGetOut": {
+      "type": "object",
+      "properties": {
+        "model_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "path": {
+          "type": "string"
+        },
+        "model": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EvaluatedModel"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The whole model, when `path` is empty."
+        },
+        "value": {
+          "description": "The selected subtree, when `path` is set."
+        }
+      },
+      "required": [
+        "model_hash",
+        "path"
+      ]
+    },
+    "EvaluatedModel": {
+      "type": "object",
+      "properties": {
+        "schema": {
+          "type": "string",
+          "const": "rw/1"
+        },
+        "model_hash": {
+          "type": "string",
+          "description": "blake3 hex of the canonical evaluated model (D19a): comment and\nformatting edits do not change it.",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "name": {
+          "type": "string"
+        },
+        "config": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "variant": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "reference": {
+          "$ref": "#/$defs/Reference"
+        },
+        "params": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/EvalParam"
+          },
+          "description": "Resolved params (SI value plus dimension)."
+        },
+        "components": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/EvalComponent"
+          },
+          "description": "Components in tree order (depth-first from the root body component)."
+        },
+        "stages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/EvalStage"
+          }
+        },
+        "configs": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/EvalConfig"
+          }
+        },
+        "sims": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/EvalSim"
+          }
+        },
+        "materials": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/EvalMaterial"
+          }
+        },
+        "asserts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/EvalAssert"
+          }
+        },
+        "report": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "`[report]` expressions in source order."
+        },
+        "engines": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/EvalEngine"
+          },
+          "description": "Liquid engines and their feed systems (`engines/<id>.rw.toml`), SI,\nwith tank nodes resolved against their `tank` components (M4.4)."
+        },
+        "units": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "SI unit symbol per dimension name used in this document (`length` → `m`)."
+        },
+        "diagnostics": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Diagnostic"
+          }
+        }
+      },
+      "required": [
+        "schema",
+        "model_hash",
+        "name",
+        "reference",
+        "params",
+        "components",
+        "stages",
+        "configs",
+        "sims",
+        "materials",
+        "asserts",
+        "report",
+        "units",
+        "diagnostics"
+      ],
+      "description": "The evaluated model (IF2)."
+    },
+    "Reference": {
+      "type": "object",
+      "properties": {
+        "length": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "diameter": {
+          "type": "number",
+          "format": "double",
+          "description": "Reference (maximum body) diameter; one caliber.",
+          "x-unit-dimension": "length"
+        },
+        "area": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "area"
+        }
+      },
+      "required": [
+        "length",
+        "diameter",
+        "area"
+      ],
+      "description": "Reference dimensions used by aero and stability."
+    },
+    "EvalParam": {
+      "type": "object",
+      "properties": {
+        "value": {
+          "type": "number",
+          "format": "double"
+        },
+        "dim": {
+          "$ref": "#/$defs/DimKind"
+        }
+      },
+      "required": [
+        "value",
+        "dim"
+      ]
+    },
+    "DimKind": {
+      "oneOf": [
+        {
+          "type": "string",
+          "const": "dimensionless",
+          "description": "Pure number (ratios, counts, coefficients). Bare numbers allowed."
+        },
+        {
+          "type": "string",
+          "const": "length",
+          "description": "m"
+        },
+        {
+          "type": "string",
+          "const": "mass",
+          "description": "kg"
+        },
+        {
+          "type": "string",
+          "const": "time",
+          "description": "s"
+        },
+        {
+          "type": "string",
+          "const": "temperature",
+          "description": "K"
+        },
+        {
+          "type": "string",
+          "const": "angle",
+          "description": "rad"
+        },
+        {
+          "type": "string",
+          "const": "area",
+          "description": "m^2"
+        },
+        {
+          "type": "string",
+          "const": "volume",
+          "description": "m^3"
+        },
+        {
+          "type": "string",
+          "const": "velocity",
+          "description": "m/s"
+        },
+        {
+          "type": "string",
+          "const": "acceleration",
+          "description": "m/s^2"
+        },
+        {
+          "type": "string",
+          "const": "force",
+          "description": "N"
+        },
+        {
+          "type": "string",
+          "const": "pressure",
+          "description": "Pa"
+        },
+        {
+          "type": "string",
+          "const": "density",
+          "description": "kg/m^3"
+        },
+        {
+          "type": "string",
+          "const": "area_density",
+          "description": "kg/m^2"
+        },
+        {
+          "type": "string",
+          "const": "line_density",
+          "description": "kg/m"
+        },
+        {
+          "type": "string",
+          "const": "impulse",
+          "description": "N*s"
+        },
+        {
+          "type": "string",
+          "const": "mass_flow",
+          "description": "kg/s"
+        },
+        {
+          "type": "string",
+          "const": "angular_velocity",
+          "description": "rad/s"
+        },
+        {
+          "type": "string",
+          "const": "inertia",
+          "description": "kg*m^2"
+        },
+        {
+          "type": "string",
+          "const": "energy",
+          "description": "J"
+        },
+        {
+          "type": "string",
+          "const": "power",
+          "description": "W"
+        },
+        {
+          "type": "string",
+          "const": "frequency",
+          "description": "1/s"
+        },
+        {
+          "type": "string",
+          "const": "torque",
+          "description": "N*m"
+        },
+        {
+          "type": "string",
+          "const": "kinematic_viscosity",
+          "description": "m^2/s (kinematic viscosity)"
+        },
+        {
+          "type": "string",
+          "const": "dynamic_viscosity",
+          "description": "Pa*s"
+        },
+        {
+          "type": "string",
+          "const": "specific_heat",
+          "description": "J/(kg*K)"
+        }
+      ],
+      "description": "A named physical dimension, as written in `x-unit-dimension`."
+    },
+    "EvalComponent": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "parent": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "children": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "stage": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "containment": {
+          "$ref": "#/$defs/AnchorKind",
+          "description": "How this component sits in its parent."
+        },
+        "aero": {
+          "type": "boolean",
+          "description": "Participates in aerodynamics (external axial chain + surface components)."
+        },
+        "cut": {
+          "type": "boolean"
+        },
+        "x_fore": {
+          "type": "number",
+          "format": "double",
+          "description": "Fore station (m from the nose tip).",
+          "x-unit-dimension": "length"
+        },
+        "x_aft": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "radial": {
+          "type": "number",
+          "format": "double",
+          "description": "Radial offset of the component axis from the body axis.",
+          "x-unit-dimension": "length"
+        },
+        "roll": {
+          "type": "number",
+          "format": "double",
+          "description": "Roll position about +X from +Y.",
+          "x-unit-dimension": "angle"
+        },
+        "attach": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EvalAttach"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "instances": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/EvalInstance"
+          },
+          "description": "Instances (one entry when not instanced)."
+        },
+        "anchors": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/EvalAnchor"
+          }
+        },
+        "material": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "roughness": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "description": "Surface roughness from the finish.",
+          "x-unit-dimension": "length"
+        },
+        "appearance": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Appearance"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "joint": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Joint"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "override": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EvalOverride"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "shape": {
+          "$ref": "#/$defs/EvalShape"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "children",
+        "containment",
+        "aero",
+        "cut",
+        "x_fore",
+        "x_aft",
+        "radial",
+        "roll",
+        "instances",
+        "anchors",
+        "shape"
+      ],
+      "description": "One placed component. Its kind (`shape.type`) and SI shape parameters\nare in [`EvalShape`]."
+    },
+    "AnchorKind": {
+      "oneOf": [
+        {
+          "type": "string",
+          "const": "axial",
+          "description": "Body chain: `fore`, `aft`, `tip`, `base`."
+        },
+        {
+          "type": "string",
+          "const": "inner",
+          "description": "Inside a tube: rings, inner tubes, recovery, mass."
+        },
+        {
+          "type": "string",
+          "const": "surface",
+          "description": "On the outer surface: fins, lugs, buttons."
+        }
+      ],
+      "description": "Anchor kinds drive containment (G §4.3)."
+    },
+    "EvalAttach": {
+      "type": "object",
+      "properties": {
+        "to": {
+          "type": "string",
+          "description": "`<id>.<anchor>`."
+        },
+        "at": {
+          "type": "string"
+        },
+        "offset": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "length"
+        }
+      },
+      "required": [
+        "to",
+        "at",
+        "offset"
+      ]
+    },
+    "EvalInstance": {
+      "type": "object",
+      "properties": {
+        "index": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "pattern": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/InstancePattern"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "offset": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "minItems": 3,
+          "maxItems": 3,
+          "description": "Body-frame offset `[x, y, z]` of this instance from the component placement.",
+          "x-unit-dimension": "length"
+        },
+        "roll": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "angle"
+        }
+      },
+      "required": [
+        "index",
+        "offset",
+        "roll"
+      ]
+    },
+    "InstancePattern": {
+      "type": "string",
+      "enum": [
+        "radial",
+        "cluster",
+        "linear"
+      ]
+    },
+    "EvalAnchor": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/AnchorKind"
+        },
+        "x": {
+          "type": "number",
+          "format": "double",
+          "description": "Station.",
+          "x-unit-dimension": "length"
+        },
+        "r": {
+          "type": "number",
+          "format": "double",
+          "description": "Radius from the body axis.",
+          "x-unit-dimension": "length"
+        }
+      },
+      "required": [
+        "name",
+        "kind",
+        "x",
+        "r"
+      ]
+    },
+    "Appearance": {
+      "type": "object",
+      "properties": {
+        "preset": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AppearancePreset"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "color": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "`#rrggbb`.",
+          "pattern": "^#[0-9a-fA-F]{6}$"
+        },
+        "roughness": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
+        "metalness": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
+        "transmission": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "minimum": 0.0,
+          "maximum": 1.0
+        }
+      },
+      "description": "Renderer appearance (R2.5). Presets map to PBR materials."
+    },
+    "AppearancePreset": {
+      "type": "string",
+      "enum": [
+        "composite_white",
+        "composite_gray",
+        "carbon_fiber",
+        "aluminium_brushed",
+        "steel_machined",
+        "clear_polycarbonate",
+        "nylon_orange",
+        "pcb_green",
+        "black_gloss",
+        "kraft_paper",
+        "wood"
+      ]
+    },
+    "Joint": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "$ref": "#/$defs/JointType"
+        },
+        "count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "description": "`joint = { type, count }` (display and check metadata)."
+    },
+    "JointType": {
+      "type": "string",
+      "enum": [
+        "friction",
+        "twist_lock",
+        "shear_pin",
+        "screw"
+      ]
+    },
+    "EvalOverride": {
+      "type": "object",
+      "properties": {
+        "mass": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "x-unit-dimension": "mass"
+        },
+        "cg": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "description": "CG station.",
+          "x-unit-dimension": "length"
+        },
+        "cd": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        },
+        "subtree": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "subtree"
+      ]
+    },
+    "EvalShape": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "nose_cone"
+            },
+            "shape": {
+              "$ref": "#/$defs/NoseShape"
+            },
+            "shape_param": {
+              "type": "number",
+              "format": "double"
+            },
+            "length": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "od": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "thickness": {
+              "type": "number",
+              "format": "double",
+              "description": "0 = solid.",
+              "x-unit-dimension": "length"
+            },
+            "shoulder": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/EvalShoulder"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "type",
+            "shape",
+            "shape_param",
+            "length",
+            "od",
+            "thickness"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "body_tube"
+            },
+            "length": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "od": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "id": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            }
+          },
+          "required": [
+            "type",
+            "length",
+            "od",
+            "id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "transition"
+            },
+            "shape": {
+              "$ref": "#/$defs/NoseShape"
+            },
+            "shape_param": {
+              "type": "number",
+              "format": "double"
+            },
+            "length": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "fore_od": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "aft_od": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "thickness": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "fore_shoulder": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/EvalShoulder"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "aft_shoulder": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/EvalShoulder"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "type",
+            "shape",
+            "shape_param",
+            "length",
+            "fore_od",
+            "aft_od",
+            "thickness"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "trapezoidal_fin_set"
+            },
+            "count": {
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0
+            },
+            "thickness": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "cross_section": {
+              "$ref": "#/$defs/FinCrossSection"
+            },
+            "cant": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "angle"
+            },
+            "fillet_radius": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "tab": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/EvalFinTab"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "root_chord": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "tip_chord": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "span": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "sweep": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            }
+          },
+          "required": [
+            "type",
+            "count",
+            "thickness",
+            "cross_section",
+            "cant",
+            "fillet_radius",
+            "root_chord",
+            "tip_chord",
+            "span",
+            "sweep"
+          ],
+          "description": "Fields shared by the planar fin sets."
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "elliptical_fin_set"
+            },
+            "count": {
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0
+            },
+            "thickness": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "cross_section": {
+              "$ref": "#/$defs/FinCrossSection"
+            },
+            "cant": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "angle"
+            },
+            "fillet_radius": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "tab": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/EvalFinTab"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "root_chord": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "span": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            }
+          },
+          "required": [
+            "type",
+            "count",
+            "thickness",
+            "cross_section",
+            "cant",
+            "fillet_radius",
+            "root_chord",
+            "span"
+          ],
+          "description": "Fields shared by the planar fin sets."
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "freeform_fin_set"
+            },
+            "count": {
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0
+            },
+            "thickness": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "cross_section": {
+              "$ref": "#/$defs/FinCrossSection"
+            },
+            "cant": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "angle"
+            },
+            "fillet_radius": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "tab": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/EvalFinTab"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "points": {
+              "type": "array",
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "number",
+                  "format": "double"
+                },
+                "minItems": 2,
+                "maxItems": 2
+              },
+              "description": "Planform `[x, y]` from the root LE.",
+              "x-unit-dimension": "length"
+            }
+          },
+          "required": [
+            "type",
+            "count",
+            "thickness",
+            "cross_section",
+            "cant",
+            "fillet_radius",
+            "points"
+          ],
+          "description": "Fields shared by the planar fin sets."
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "tube_fin_set"
+            },
+            "count": {
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0
+            },
+            "length": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "od": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "id": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            }
+          },
+          "required": [
+            "type",
+            "count",
+            "length",
+            "od",
+            "id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "inner_tube"
+            },
+            "length": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "od": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "id": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "motor_mount": {
+              "type": "boolean"
+            },
+            "overhang": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            }
+          },
+          "required": [
+            "type",
+            "length",
+            "od",
+            "id",
+            "motor_mount",
+            "overhang"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "coupler"
+            },
+            "length": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "od": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "id": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            }
+          },
+          "required": [
+            "type",
+            "length",
+            "od",
+            "id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "centering_ring"
+            },
+            "length": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "od": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "id": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            }
+          },
+          "required": [
+            "type",
+            "length",
+            "od",
+            "id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "bulkhead"
+            },
+            "length": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "od": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            }
+          },
+          "required": [
+            "type",
+            "length",
+            "od"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "engine_block"
+            },
+            "length": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "od": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "id": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            }
+          },
+          "required": [
+            "type",
+            "length",
+            "od",
+            "id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "launch_lug"
+            },
+            "length": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "od": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "id": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            }
+          },
+          "required": [
+            "type",
+            "length",
+            "od",
+            "id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "rail_button"
+            },
+            "od": {
+              "type": "number",
+              "format": "double",
+              "description": "Outer (base and flange) diameter.",
+              "x-unit-dimension": "length"
+            },
+            "id": {
+              "type": "number",
+              "format": "double",
+              "description": "Neck (waist) diameter.",
+              "x-unit-dimension": "length"
+            },
+            "height": {
+              "type": "number",
+              "format": "double",
+              "description": "Total height above the body surface.",
+              "x-unit-dimension": "length"
+            },
+            "base_height": {
+              "type": "number",
+              "format": "double",
+              "description": "Base height at the body surface (source default `height / 4`;\n0 when absent from older evaluated JSON).",
+              "default": 0.0,
+              "x-unit-dimension": "length"
+            },
+            "flange_height": {
+              "type": "number",
+              "format": "double",
+              "description": "Flange height at the outer face (source default `height / 4`;\n0 when absent from older evaluated JSON).",
+              "default": 0.0,
+              "x-unit-dimension": "length"
+            }
+          },
+          "required": [
+            "type",
+            "od",
+            "id",
+            "height"
+          ],
+          "description": "A spool: base (od, at the body), neck (id), flange (od, outermost)."
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "parachute"
+            },
+            "diameter": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "cd": {
+              "type": "number",
+              "format": "double"
+            },
+            "spill_hole": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "line_count": {
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0,
+              "description": "Shroud lines (0 = none given).",
+              "default": 0
+            },
+            "line_length": {
+              "type": "number",
+              "format": "double",
+              "default": 0.0,
+              "x-unit-dimension": "length"
+            },
+            "line_material": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Shroud-line material name (resolved in `materials`)."
+            },
+            "packed_length": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "packed_diameter": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            }
+          },
+          "required": [
+            "type",
+            "diameter",
+            "cd",
+            "spill_hole",
+            "packed_length",
+            "packed_diameter"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "streamer"
+            },
+            "length": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "width": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "cd": {
+              "type": "number",
+              "format": "double"
+            },
+            "packed_length": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "packed_diameter": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            }
+          },
+          "required": [
+            "type",
+            "length",
+            "width",
+            "cd",
+            "packed_length",
+            "packed_diameter"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "shock_cord"
+            },
+            "cord_length": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "packed_length": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "packed_diameter": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            }
+          },
+          "required": [
+            "type",
+            "cord_length",
+            "packed_length",
+            "packed_diameter"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "mass_component"
+            },
+            "mass": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "mass"
+            },
+            "length": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "od": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "role": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/MassRole"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "type",
+            "mass",
+            "length",
+            "od"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "tank"
+            },
+            "length": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "od": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "wall": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "end_cap": {
+              "$ref": "#/$defs/EndCap"
+            },
+            "volume": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "volume"
+            },
+            "propellant": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "propellant_mass": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "mass"
+            }
+          },
+          "required": [
+            "type",
+            "length",
+            "od",
+            "wall",
+            "end_cap",
+            "volume",
+            "propellant_mass"
+          ]
+        }
+      ],
+      "description": "Shape parameters in SI, tagged by `type` (same spelling as\n[`super::ComponentType`]). Hollow parts carry `id`; solid parts have `id = 0`."
+    },
+    "NoseShape": {
+      "type": "string",
+      "enum": [
+        "conical",
+        "ogive",
+        "ellipsoid",
+        "power",
+        "parabolic",
+        "haack"
+      ],
+      "description": "Nose and transition profile shapes."
+    },
+    "EvalShoulder": {
+      "type": "object",
+      "properties": {
+        "length": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "od": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "thickness": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "capped": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "length",
+        "od",
+        "thickness",
+        "capped"
+      ]
+    },
+    "FinCrossSection": {
+      "type": "string",
+      "enum": [
+        "square",
+        "rounded",
+        "airfoil"
+      ]
+    },
+    "EvalFinTab": {
+      "type": "object",
+      "properties": {
+        "height": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "length": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "offset": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "length"
+        }
+      },
+      "required": [
+        "height",
+        "length",
+        "offset"
+      ]
+    },
+    "MassRole": {
+      "type": "string",
+      "enum": [
+        "flight_computer",
+        "altimeter",
+        "battery",
+        "tracker",
+        "payload",
+        "ballast",
+        "other"
+      ]
+    },
+    "EndCap": {
+      "type": "string",
+      "enum": [
+        "flat",
+        "hemispherical",
+        "ellipsoidal"
+      ]
+    },
+    "EvalStage": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "first": {
+          "type": "string",
+          "description": "First body component."
+        },
+        "members": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Member component ids (axial chain plus contents)."
+        },
+        "x_fore": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "x_aft": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "overrides": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EvalOverride"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Whole-stage mass/CG override (members' dry parts, motors excluded)."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "first",
+        "members",
+        "x_fore",
+        "x_aft"
+      ]
+    },
+    "EvalConfig": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "motors": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/EvalMotorMount"
+          }
+        },
+        "stages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/EvalStageConfig"
+          }
+        },
+        "deployments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/EvalDeployment"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "motors",
+        "stages",
+        "deployments"
+      ],
+      "description": "An evaluated flight configuration."
+    },
+    "EvalMotorMount": {
+      "type": "object",
+      "properties": {
+        "mount": {
+          "type": "string",
+          "description": "Inner-tube id."
+        },
+        "motor": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Motor ref as written (`generic:RW_C6G`); resolved by the Session."
+        },
+        "engine": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "delay": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "description": "Ejection delay; `None` = plugged.",
+          "x-unit-dimension": "time"
+        },
+        "ignition": {
+          "$ref": "#/$defs/IgnitionEvent"
+        },
+        "ignition_delay": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "time"
+        },
+        "import": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MotorImport"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Import provenance of the motor (absent for authored configurations)."
+        },
+        "accept_substitution": {
+          "type": "boolean",
+          "description": "The substituted generic curve is accepted (no `RW-W103`)."
+        }
+      },
+      "required": [
+        "mount",
+        "ignition",
+        "ignition_delay"
+      ]
+    },
+    "IgnitionEvent": {
+      "type": "string",
+      "enum": [
+        "launch",
+        "previous_burnout",
+        "stage_separation",
+        "never"
+      ]
+    },
+    "MotorImport": {
+      "type": "object",
+      "properties": {
+        "manufacturer": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "designation": {
+          "type": "string"
+        },
+        "digest": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The imported file's motor digest, when it has one."
+        },
+        "resolution": {
+          "$ref": "#/$defs/MotorResolution"
+        }
+      },
+      "required": [
+        "designation",
+        "resolution"
+      ],
+      "description": "The motor an imported file (`.ork`) named for a mount, and how\n`rw import` resolved it."
+    },
+    "MotorResolution": {
+      "oneOf": [
+        {
+          "type": "string",
+          "const": "embedded",
+          "description": "A curve embedded in the imported file, copied into `lib/motors/`."
+        },
+        {
+          "type": "string",
+          "const": "cache",
+          "description": "A curve from the local ThrustCurve cache, copied into `lib/motors/`."
+        },
+        {
+          "type": "string",
+          "const": "substituted",
+          "description": "No curve was available offline: the nearest built-in generic curve\nby impulse class and diameter stands in."
+        }
+      ],
+      "description": "How an imported motor was resolved."
+    },
+    "EvalStageConfig": {
+      "type": "object",
+      "properties": {
+        "stage": {
+          "type": "string"
+        },
+        "active": {
+          "type": "boolean"
+        },
+        "separation": {
+          "$ref": "#/$defs/SeparationEvent"
+        },
+        "separation_delay": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "time"
+        }
+      },
+      "required": [
+        "stage",
+        "active",
+        "separation",
+        "separation_delay"
+      ]
+    },
+    "SeparationEvent": {
+      "type": "string",
+      "enum": [
+        "upper_ignition",
+        "burnout",
+        "ejection",
+        "launch",
+        "never"
+      ]
+    },
+    "EvalDeployment": {
+      "type": "object",
+      "properties": {
+        "component": {
+          "type": "string",
+          "description": "Recovery component id."
+        },
+        "event": {
+          "$ref": "#/$defs/DeployEvent"
+        },
+        "altitude": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "delay": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "time"
+        }
+      },
+      "required": [
+        "component",
+        "event",
+        "delay"
+      ]
+    },
+    "DeployEvent": {
+      "type": "string",
+      "enum": [
+        "ejection",
+        "apogee",
+        "altitude",
+        "timer",
+        "never"
+      ]
+    },
+    "EvalSim": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/SimKind"
+        },
+        "config": {
+          "type": "string"
+        },
+        "conditions": {
+          "$ref": "#/$defs/Conditions"
+        },
+        "series_dt": {
+          "type": "number",
+          "format": "double",
+          "description": "Series output grid.",
+          "x-unit-dimension": "time"
+        },
+        "max_time": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "time"
+        },
+        "rtol": {
+          "type": "number",
+          "format": "double"
+        },
+        "atol": {
+          "type": "number",
+          "format": "double"
+        },
+        "seed": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "visual_flow": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EvalVisualFlow"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "`kind = \"visual_flow\"`: the evaluated study (absent for flights, so\nflight sims hash as before)."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "kind",
+        "config",
+        "conditions",
+        "series_dt",
+        "max_time",
+        "rtol",
+        "atol",
+        "seed"
+      ],
+      "description": "An evaluated simulation definition."
+    },
+    "SimKind": {
+      "type": "string",
+      "enum": [
+        "flight",
+        "visual_flow"
+      ]
+    },
+    "Conditions": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "rail_length_m": {
+          "type": "number",
+          "format": "double"
+        },
+        "rod_angle_deg": {
+          "type": "number",
+          "format": "double",
+          "description": "From vertical."
+        },
+        "rod_direction_deg": {
+          "type": "number",
+          "format": "double",
+          "description": "Azimuth, clockwise from north."
+        },
+        "site_altitude_m": {
+          "type": "number",
+          "format": "double"
+        },
+        "latitude_deg": {
+          "type": "number",
+          "format": "double"
+        },
+        "longitude_deg": {
+          "type": "number",
+          "format": "double"
+        },
+        "base_temperature_k": {
+          "type": "number",
+          "format": "double"
+        },
+        "base_pressure_pa": {
+          "type": "number",
+          "format": "double"
+        },
+        "atmosphere": {
+          "$ref": "#/$defs/AtmosphereModel"
+        },
+        "geodetic": {
+          "$ref": "#/$defs/Geodetic"
+        },
+        "wind_speed_ms": {
+          "type": "number",
+          "format": "double"
+        },
+        "wind_direction_deg": {
+          "type": "number",
+          "format": "double",
+          "description": "Direction the wind blows from, clockwise from north."
+        },
+        "wind_turbulence": {
+          "type": "number",
+          "format": "double",
+          "description": "Turbulence intensity (fraction; 0 = steady)."
+        },
+        "time_step_s": {
+          "type": "number",
+          "format": "double",
+          "description": "Fixed step (rk4) or maximum step (dp54)."
+        },
+        "integrator": {
+          "$ref": "#/$defs/IntegratorKind"
+        },
+        "gravity": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/GravityModel"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Gravity model. Absent: the engine default (`wgs84`). Added after the\nM1.5 freeze as optional, so older files and their hashes are unchanged."
+        },
+        "launch_into_wind": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "Point the rod into the wind (the rod azimuth follows the wind\ndirection). Absent: `false`. Optional for the same reason as `gravity`."
+        }
+      },
+      "required": [
+        "rail_length_m",
+        "rod_angle_deg",
+        "rod_direction_deg",
+        "site_altitude_m",
+        "latitude_deg",
+        "longitude_deg",
+        "base_temperature_k",
+        "base_pressure_pa",
+        "atmosphere",
+        "geodetic",
+        "wind_speed_ms",
+        "wind_direction_deg",
+        "wind_turbulence",
+        "time_step_s",
+        "integrator"
+      ],
+      "description": "Launch and environment conditions. Shared verbatim by `EvalSim`,\n`SimInput`, `RunManifest`, and the oracle golden, so its hash\n(`rw_api::oracle::conditions_hash`) identifies a setup across all of them.\nUnits are in the key names."
+    },
+    "AtmosphereModel": {
+      "oneOf": [
+        {
+          "type": "string",
+          "const": "ussa1976",
+          "description": "U.S. Standard Atmosphere 1976 (R4.4)."
+        },
+        {
+          "type": "string",
+          "const": "isa_custom",
+          "description": "ISA with custom base temperature and pressure."
+        }
+      ]
+    },
+    "Geodetic": {
+      "type": "string",
+      "enum": [
+        "flat",
+        "spherical",
+        "wgs84"
+      ]
+    },
+    "IntegratorKind": {
+      "oneOf": [
+        {
+          "type": "string",
+          "const": "dp54",
+          "description": "Dormand-Prince 5(4), adaptive, with event root-finding (default)."
+        },
+        {
+          "type": "string",
+          "const": "rk4",
+          "description": "Classic RK4, fixed step (parity triage, D13)."
+        }
+      ]
+    },
+    "GravityModel": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "model": {
+              "type": "string",
+              "const": "wgs84"
+            }
+          },
+          "required": [
+            "model"
+          ],
+          "additionalProperties": false,
+          "description": "WGS84 normal gravity at the site latitude, falling off with altitude."
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "model": {
+              "type": "string",
+              "const": "constant"
+            },
+            "g_ms2": {
+              "type": "number",
+              "format": "double",
+              "description": "m/s², positive down."
+            }
+          },
+          "required": [
+            "model",
+            "g_ms2"
+          ],
+          "description": "Constant gravitational acceleration."
+        }
+      ],
+      "description": "Gravity model (tag `model`)."
+    },
+    "EvalVisualFlow": {
+      "type": "object",
+      "properties": {
+        "engine": {
+          "type": "string"
+        },
+        "tank": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Feed node id of the tank shown (`None`: the oxidizer branch's tank)."
+        },
+        "attitude": {
+          "$ref": "#/$defs/AttitudeSource"
+        },
+        "duration": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "time"
+        },
+        "tilt_deg": {
+          "type": "number",
+          "format": "double",
+          "description": "Mean tilt from vertical, degrees."
+        },
+        "swing_deg": {
+          "type": "number",
+          "format": "double",
+          "description": "Swing amplitude, degrees."
+        },
+        "period": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "time"
+        },
+        "replay": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "engine",
+        "attitude",
+        "duration",
+        "tilt_deg",
+        "swing_deg",
+        "period"
+      ],
+      "description": "An evaluated visual flow study (`[visual_flow]` in SI, defaults applied)."
+    },
+    "AttitudeSource": {
+      "oneOf": [
+        {
+          "type": "string",
+          "const": "scripted_tilt",
+          "description": "A scripted rocking tilt (`tilt`, `swing`, `period`) on a static stand."
+        },
+        {
+          "type": "string",
+          "const": "run",
+          "description": "Replay of a flight run (`replay`)."
+        }
+      ],
+      "description": "Where a visual flow study's attitude comes from."
+    },
+    "EvalMaterial": {
+      "type": "object",
+      "properties": {
+        "density": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "x-unit-dimension": "density"
+        },
+        "surface_density": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "x-unit-dimension": "area_density"
+        },
+        "line_density": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "x-unit-dimension": "line_density"
+        },
+        "yield_strength": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "x-unit-dimension": "pressure"
+        }
+      }
+    },
+    "EvalAssert": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "expr": {
+          "type": "string"
+        },
+        "severity": {
+          "$ref": "#/$defs/Severity"
+        },
+        "message": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "needs_sim": {
+          "type": "boolean",
+          "description": "The rule references simulation metrics; it runs only with `--sim`."
+        }
+      },
+      "required": [
+        "id",
+        "expr",
+        "severity",
+        "needs_sim"
+      ]
+    },
+    "EvalEngine": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "oxidizer": {
+          "type": "string",
+          "description": "Oxidizer and fuel ids (`n2o`, `ethanol`, or a CEA species name)."
+        },
+        "fuel": {
+          "type": "string"
+        },
+        "mixture_ratio": {
+          "type": "number",
+          "format": "double"
+        },
+        "chamber_pressure": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "pressure"
+        },
+        "thrust": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "force"
+        },
+        "expansion_ratio": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        },
+        "exit_pressure": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "x-unit-dimension": "pressure"
+        },
+        "contraction_ratio": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        },
+        "l_star": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "injector": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EvalInjector"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "fluid_model": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FluidModel"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "nodes": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/EvalFeedNode"
+          },
+          "description": "Feed nodes by id."
+        },
+        "edges": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/EvalFeedEdge"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "oxidizer",
+        "fuel",
+        "mixture_ratio",
+        "chamber_pressure",
+        "thrust",
+        "nodes",
+        "edges"
+      ],
+      "description": "One liquid engine in SI (`engines/<id>.rw.toml`, M4.4). Unset inputs stay\n`None` and are reported as `RW-W21x` missing inputs."
+    },
+    "EvalInjector": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/InjectorType"
+        },
+        "pressure_drop": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "description": "Injector pressure drop (given, or the fraction times chamber pressure).",
+          "x-unit-dimension": "pressure"
+        },
+        "cd": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        }
+      },
+      "required": [
+        "kind"
+      ]
+    },
+    "InjectorType": {
+      "type": "string",
+      "enum": [
+        "impinging",
+        "showerhead",
+        "pintle",
+        "swirl"
+      ]
+    },
+    "FluidModel": {
+      "type": "string",
+      "enum": [
+        "single_phase_liquid",
+        "two_phase_equilibrium"
+      ]
+    },
+    "EvalFeedNode": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/FeedNodeKind"
+        },
+        "component": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "fluid": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "volume": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "x-unit-dimension": "volume"
+        },
+        "pressure": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "x-unit-dimension": "pressure"
+        },
+        "pressurant": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "pressurant_mass": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "x-unit-dimension": "mass"
+        },
+        "flow_area": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "x-unit-dimension": "area"
+        },
+        "cd": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        },
+        "station": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "description": "Centre station (the tank component's mid-length when unset).",
+          "x-unit-dimension": "length"
+        },
+        "radial": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "tank": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EvalTankSpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Resolved tank geometry (from `component` or the inline `tank`)."
+        }
+      },
+      "required": [
+        "kind"
+      ]
+    },
+    "FeedNodeKind": {
+      "type": "string",
+      "enum": [
+        "tank",
+        "valve",
+        "line",
+        "engine",
+        "sensor"
+      ]
+    },
+    "EvalTankSpec": {
+      "type": "object",
+      "properties": {
+        "length": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "od": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "wall": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "end_cap": {
+          "$ref": "#/$defs/EndCap"
+        },
+        "volume": {
+          "type": "number",
+          "format": "double",
+          "description": "Internal volume.",
+          "x-unit-dimension": "volume"
+        },
+        "fill_volume": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "description": "Loaded liquid volume (from `fill.volume` or `fill.fraction`).",
+          "x-unit-dimension": "volume"
+        },
+        "material": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "density": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "x-unit-dimension": "density"
+        },
+        "yield_strength": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "x-unit-dimension": "pressure"
+        }
+      },
+      "required": [
+        "length",
+        "od",
+        "wall",
+        "end_cap",
+        "volume"
+      ],
+      "description": "A tank's geometry, fill, and wall material in SI."
+    },
+    "EvalFeedEdge": {
+      "type": "object",
+      "properties": {
+        "from": {
+          "type": "string"
+        },
+        "to": {
+          "type": "string"
+        },
+        "diameter": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "length": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "bc": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EdgeBc"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "waypoints": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/EvalFeedPoint"
+          }
+        }
+      },
+      "required": [
+        "from",
+        "to"
+      ]
+    },
+    "EdgeBc": {
+      "type": "string",
+      "enum": [
+        "open",
+        "closed",
+        "check_valve",
+        "orifice"
+      ]
+    },
+    "EvalFeedPoint": {
+      "type": "object",
+      "properties": {
+        "station": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "radial": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "depth": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "length"
+        }
+      },
+      "required": [
+        "station",
+        "radial",
+        "depth"
+      ]
+    },
+    "CheckReport": {
+      "type": "object",
+      "properties": {
+        "schema": {
+          "type": "string",
+          "const": "rw/1"
+        },
+        "status": {
+          "$ref": "#/$defs/CheckStatus"
+        },
+        "tier": {
+          "$ref": "#/$defs/CheckTier"
+        },
+        "model_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "config": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "diagnostics": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Diagnostic"
+          }
+        },
+        "dims": {
+          "$ref": "#/$defs/Dims"
+        },
+        "mass": {
+          "$ref": "#/$defs/MassReport"
+        },
+        "aero": {
+          "$ref": "#/$defs/AeroReport"
+        },
+        "stability": {
+          "$ref": "#/$defs/StabilityReport"
+        },
+        "motor": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/MotorReport"
+          }
+        },
+        "interference": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Interference"
+          }
+        },
+        "clearance": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Clearance"
+          }
+        },
+        "assertions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AssertionResult"
+          }
+        },
+        "report": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/ReportValue"
+          },
+          "description": "`[report]` values by expression."
+        },
+        "inputs": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Project-relative file (and `motor:<ref>`) → content hash."
+        },
+        "sim": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RunSummary"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Present with `--sim quick`."
+        }
+      },
+      "required": [
+        "schema",
+        "status",
+        "tier",
+        "model_hash",
+        "diagnostics",
+        "dims",
+        "mass",
+        "aero",
+        "stability",
+        "motor",
+        "interference",
+        "clearance",
+        "assertions",
+        "report",
+        "inputs"
+      ],
+      "description": "The `rw check --json` report (`design_check`, `rw://project/check`)."
+    },
+    "CheckTier": {
+      "type": "string",
+      "enum": [
+        "static",
+        "quick_sim"
+      ]
+    },
+    "Dims": {
+      "type": "object",
+      "properties": {
+        "length": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "max_diameter": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "fin_span": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "description": "Fin span tip to tip, if any fins.",
+          "x-unit-dimension": "length"
+        },
+        "length_cal": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "description": "Overall length in calibers of the reference diameter\n(`stability.ref_diameter`); absent without a reference diameter."
+        },
+        "fineness": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "description": "Fineness ratio: overall length over the maximum body diameter; absent\nwithout a diameter."
+        },
+        "components": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ComponentDims"
+          }
+        }
+      },
+      "required": [
+        "length",
+        "max_diameter",
+        "components"
+      ]
+    },
+    "ComponentDims": {
+      "type": "object",
+      "properties": {
+        "component": {
+          "type": "string"
+        },
+        "x_fore": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "x_aft": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "length": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "od": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "id": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "x-unit-dimension": "length"
+        }
+      },
+      "required": [
+        "component",
+        "x_fore",
+        "x_aft",
+        "length"
+      ]
+    },
+    "MassReport": {
+      "type": "object",
+      "properties": {
+        "dry": {
+          "type": "number",
+          "format": "double",
+          "description": "Without motors.",
+          "x-unit-dimension": "mass"
+        },
+        "liftoff": {
+          "type": "number",
+          "format": "double",
+          "description": "With loaded motors (launch mass).",
+          "x-unit-dimension": "mass"
+        },
+        "burnout": {
+          "type": "number",
+          "format": "double",
+          "description": "After all motors burn out.",
+          "x-unit-dimension": "mass"
+        },
+        "propellant": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "mass"
+        },
+        "cg": {
+          "type": "number",
+          "format": "double",
+          "description": "CG station at liftoff (oracle `cg_m`).",
+          "x-unit-dimension": "length"
+        },
+        "cg_burnout": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "ixx": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "inertia"
+        },
+        "iyy": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "inertia"
+        },
+        "components": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ComponentMassRow"
+          },
+          "description": "The mass breakdown: each component's dry mass and CG station, in tree\norder (metric paths `mass.components.<id>.mass`, `.cg`)."
+        }
+      },
+      "required": [
+        "dry",
+        "liftoff",
+        "burnout",
+        "propellant",
+        "cg",
+        "cg_burnout",
+        "ixx",
+        "iyy",
+        "components"
+      ]
+    },
+    "ComponentMassRow": {
+      "type": "object",
+      "properties": {
+        "component": {
+          "type": "string"
+        },
+        "mass": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "mass"
+        },
+        "cg": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "override": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "component",
+        "mass",
+        "cg",
+        "override"
+      ]
+    },
+    "AeroReport": {
+      "type": "object",
+      "properties": {
+        "cp": {
+          "type": "number",
+          "format": "double",
+          "description": "CP station at `mach` and AoA 0 (oracle `cp_m`).",
+          "x-unit-dimension": "length"
+        },
+        "cna": {
+          "type": "number",
+          "format": "double",
+          "description": "Normal-force slope per radian (oracle `cna`)."
+        },
+        "mach": {
+          "type": "number",
+          "format": "double"
+        },
+        "alpha": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "angle"
+        },
+        "cd": {
+          "type": "number",
+          "format": "double",
+          "description": "Zero-AoA drag coefficient at `mach`."
+        },
+        "terms": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AeroTerm"
+          },
+          "description": "Per-component aero terms: each component's normal-force slope and CP\nstation, with its cited model (metric paths `aero.terms.<id>.cna`,\n`.cp`). At AoA 0, `cna` is the sum of the terms' `cna` and `cp` their\nCNa-weighted station."
+        }
+      },
+      "required": [
+        "cp",
+        "cna",
+        "mach",
+        "alpha",
+        "cd",
+        "terms"
+      ]
+    },
+    "AeroTerm": {
+      "type": "object",
+      "properties": {
+        "component": {
+          "type": "string"
+        },
+        "cna": {
+          "type": "number",
+          "format": "double"
+        },
+        "cp": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "model": {
+          "type": "string",
+          "description": "Cited model id."
+        }
+      },
+      "required": [
+        "component",
+        "cna",
+        "cp",
+        "model"
+      ]
+    },
+    "StabilityReport": {
+      "type": "object",
+      "properties": {
+        "liftoff": {
+          "type": "number",
+          "format": "double",
+          "description": "Margin at liftoff in calibers (oracle `stability_cal`)."
+        },
+        "burnout": {
+          "type": "number",
+          "format": "double"
+        },
+        "min": {
+          "type": "number",
+          "format": "double",
+          "description": "Minimum over the burn."
+        },
+        "liftoff_pct_length": {
+          "type": "number",
+          "format": "double",
+          "description": "Liftoff margin as a percent of overall length."
+        },
+        "ref_diameter": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "length"
+        }
+      },
+      "required": [
+        "liftoff",
+        "burnout",
+        "min",
+        "liftoff_pct_length",
+        "ref_diameter"
+      ]
+    },
+    "MotorReport": {
+      "type": "object",
+      "properties": {
+        "mount": {
+          "type": "string"
+        },
+        "designation": {
+          "type": "string"
+        },
+        "total_impulse": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "impulse"
+        },
+        "burn_time": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "time"
+        },
+        "thrust_to_weight": {
+          "type": "number",
+          "format": "double"
+        },
+        "fits_mount": {
+          "type": "boolean"
+        },
+        "retained": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "motor": {
+          "type": "string",
+          "description": "Motor ref as configured."
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "mount",
+        "designation",
+        "total_impulse",
+        "burn_time",
+        "thrust_to_weight",
+        "fits_mount",
+        "motor",
+        "sha256"
+      ]
+    },
+    "Interference": {
+      "type": "object",
+      "properties": {
+        "a": {
+          "type": "string"
+        },
+        "b": {
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/InterferenceKind"
+        },
+        "depth": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "station": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "length"
+        }
+      },
+      "required": [
+        "a",
+        "b",
+        "kind",
+        "depth",
+        "station"
+      ]
+    },
+    "InterferenceKind": {
+      "type": "string",
+      "enum": [
+        "overlap",
+        "protrusion",
+        "fin_through_joint"
+      ]
+    },
+    "Clearance": {
+      "type": "object",
+      "properties": {
+        "rule": {
+          "$ref": "#/$defs/ClearanceRule"
+        },
+        "a": {
+          "type": "string"
+        },
+        "b": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "required": {
+          "type": "number",
+          "format": "double",
+          "description": "Required and actual value in SI of `dim`."
+        },
+        "actual": {
+          "type": "number",
+          "format": "double"
+        },
+        "dim": {
+          "$ref": "#/$defs/DimKind"
+        },
+        "pass": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "rule",
+        "a",
+        "required",
+        "actual",
+        "dim",
+        "pass"
+      ]
+    },
+    "ClearanceRule": {
+      "type": "string",
+      "enum": [
+        "coupler_fit",
+        "motor_fit",
+        "fin_tab_wall",
+        "fin_across_joint",
+        "recovery_volume",
+        "rail_button_alignment",
+        "centering_ring_fit"
+      ]
+    },
+    "AssertionResult": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "expr": {
+          "type": "string"
+        },
+        "value": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "description": "Evaluated left-hand value (SI); `None` when it needs `--sim` or failed."
+        },
+        "pass": {
+          "type": "boolean"
+        },
+        "severity": {
+          "$ref": "#/$defs/Severity"
+        },
+        "needs_sim": {
+          "type": "boolean"
+        },
+        "message": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "expr",
+        "pass",
+        "severity",
+        "needs_sim"
+      ]
+    },
+    "ReportValue": {
+      "type": "object",
+      "properties": {
+        "value": {
+          "type": "number",
+          "format": "double"
+        },
+        "dim": {
+          "$ref": "#/$defs/DimKind"
+        }
+      },
+      "required": [
+        "value",
+        "dim"
+      ]
+    },
+    "RunSummary": {
+      "type": "object",
+      "properties": {
+        "schema": {
+          "type": "string",
+          "const": "rw/1"
+        },
+        "apogee_m": {
+          "type": "number",
+          "format": "double"
+        },
+        "max_velocity_ms": {
+          "type": "number",
+          "format": "double"
+        },
+        "max_accel_ms2": {
+          "type": "number",
+          "format": "double"
+        },
+        "max_mach": {
+          "type": "number",
+          "format": "double"
+        },
+        "time_to_apogee_s": {
+          "type": "number",
+          "format": "double"
+        },
+        "flight_time_s": {
+          "type": "number",
+          "format": "double"
+        },
+        "landing_velocity_ms": {
+          "type": "number",
+          "format": "double"
+        },
+        "rail_exit_velocity_ms": {
+          "type": "number",
+          "format": "double"
+        },
+        "deployment_velocity_ms": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "description": "Speed at the last recovery deployment (the main of a dual deploy)."
+        },
+        "optimum_delay_s": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        },
+        "min_stability_cal": {
+          "type": "number",
+          "format": "double",
+          "description": "Minimum stability margin in flight (calibers), rail exit to apogee."
+        },
+        "burnout_time_s": {
+          "type": "number",
+          "format": "double"
+        },
+        "burnout_altitude_m": {
+          "type": "number",
+          "format": "double"
+        },
+        "landing_x_m": {
+          "type": "number",
+          "format": "double"
+        },
+        "landing_y_m": {
+          "type": "number",
+          "format": "double"
+        },
+        "drift_m": {
+          "type": "number",
+          "format": "double"
+        },
+        "coast_time_s": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "description": "Coast from the last burnout to apogee (apogee time minus last burnout\ntime; the same number as `optimum_delay_s`). Absent with no burnout\nbefore apogee."
+        },
+        "deployments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DeploymentTiming"
+          },
+          "description": "Derived timing of each recovery deployment of the main flight, in time\norder (so agents never subtract event times by hand)."
+        },
+        "ejections": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/EjectionTiming"
+          },
+          "description": "Derived timing of each motor's ejection charge (motors with a\nconfigured delay), by mount id."
+        }
+      },
+      "required": [
+        "schema",
+        "apogee_m",
+        "max_velocity_ms",
+        "max_accel_ms2",
+        "max_mach",
+        "time_to_apogee_s",
+        "flight_time_s",
+        "landing_velocity_ms",
+        "rail_exit_velocity_ms",
+        "min_stability_cal",
+        "burnout_time_s",
+        "burnout_altitude_m",
+        "landing_x_m",
+        "landing_y_m",
+        "drift_m"
+      ],
+      "description": "`summary.json`. Key-sorted, fixed significant figures (I8). Absent values\n(no deployment, no delay) are omitted."
+    },
+    "DeploymentTiming": {
+      "type": "object",
+      "properties": {
+        "source": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RwRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The deployed device (rw:c/<id>)."
+        },
+        "t_s": {
+          "type": "number",
+          "format": "double",
+          "description": "Deployment time after ignition.",
+          "x-unit-dimension": "time"
+        },
+        "deploy_minus_apogee_s": {
+          "type": "number",
+          "format": "double",
+          "description": "Deployment time minus apogee time: negative = before apogee.",
+          "x-unit-dimension": "time"
+        },
+        "deploy_altitude_m": {
+          "type": "number",
+          "format": "double",
+          "description": "Altitude above the launch site at deployment.",
+          "x-unit-dimension": "length"
+        },
+        "deploy_velocity_ms": {
+          "type": "number",
+          "format": "double",
+          "description": "Speed at deployment.",
+          "x-unit-dimension": "velocity"
+        }
+      },
+      "required": [
+        "t_s",
+        "deploy_minus_apogee_s",
+        "deploy_altitude_m",
+        "deploy_velocity_ms"
+      ],
+      "description": "One recovery deployment, relative to apogee."
+    },
+    "RwRef": {
+      "type": "string",
+      "description": "An rw: ref string (rw:c/fins).",
+      "pattern": "^rw:(c|cfg|sim|run|step|rev|thread|eng)/[A-Za-z0-9_.-]+(#[A-Za-z0-9_<>]+)?(@[A-Za-z0-9_.:-]+)?(/[^\\s]*)?$"
+    },
+    "EjectionTiming": {
+      "type": "object",
+      "properties": {
+        "source": {
+          "$ref": "#/$defs/RwRef",
+          "description": "The motor mount (rw:c/<mount>)."
+        },
+        "t_s": {
+          "type": "number",
+          "format": "double",
+          "description": "Ejection time after ignition (the motor's burnout plus its delay).",
+          "x-unit-dimension": "time"
+        },
+        "delay_s": {
+          "type": "number",
+          "format": "double",
+          "description": "The configured ejection delay.",
+          "x-unit-dimension": "time"
+        },
+        "optimum_delay_s": {
+          "type": "number",
+          "format": "double",
+          "description": "Apogee time minus this motor's burnout time.",
+          "x-unit-dimension": "time"
+        },
+        "delay_minus_optimum_s": {
+          "type": "number",
+          "format": "double",
+          "description": "Configured delay minus optimum delay (= ejection time minus apogee\ntime): negative = the charge fires before apogee.",
+          "x-unit-dimension": "time"
+        }
+      },
+      "required": [
+        "source",
+        "t_s",
+        "delay_s",
+        "optimum_delay_s",
+        "delay_minus_optimum_s"
+      ],
+      "description": "One motor's ejection charge against its optimum delay."
+    },
+    "RenderResult": {
+      "type": "object",
+      "properties": {
+        "view": {
+          "$ref": "#/$defs/View"
+        },
+        "path": {
+          "type": "string",
+          "description": "PNG path (project-relative)."
+        },
+        "svg_path": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "png_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "width": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "height": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "camera": {
+          "$ref": "#/$defs/Camera"
+        },
+        "backend": {
+          "$ref": "#/$defs/RenderBackend"
+        },
+        "adapter": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "GPU adapter description (3D only)."
+        },
+        "model_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "legend": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RenderLegend"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "What the render drew, as numbers: each drawn component's station\nrange and radial extent, and the notable relations between parts\n(B3 round 12: describe a render from this, not from the picture)."
+        }
+      },
+      "required": [
+        "view",
+        "path",
+        "png_sha256",
+        "width",
+        "height",
+        "camera",
+        "backend",
+        "model_hash"
+      ],
+      "description": "The `render` tool output; the MCP reply also carries the PNG as image content."
+    },
+    "View": {
+      "type": "string",
+      "enum": [
+        "profile",
+        "fin",
+        "stations",
+        "anchors",
+        "iso",
+        "top",
+        "side",
+        "front",
+        "rear",
+        "exploded",
+        "section"
+      ],
+      "description": "2D views (Rust SVG/PNG, deterministic) and 3D views (shared TS renderer)."
+    },
+    "Camera": {
+      "type": "object",
+      "properties": {
+        "position": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "minItems": 3,
+          "maxItems": 3,
+          "description": "Body-frame position and target.",
+          "x-unit-dimension": "length"
+        },
+        "target": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "minItems": 3,
+          "maxItems": 3,
+          "x-unit-dimension": "length"
+        },
+        "up": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "minItems": 3,
+          "maxItems": 3
+        },
+        "orthographic": {
+          "type": "boolean"
+        },
+        "fov_deg": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "description": "Vertical field of view (perspective) in degrees."
+        },
+        "ortho_height": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "description": "View height (orthographic).",
+          "x-unit-dimension": "length"
+        }
+      },
+      "required": [
+        "position",
+        "target",
+        "up",
+        "orthographic"
+      ]
+    },
+    "RenderBackend": {
+      "type": "string",
+      "enum": [
+        "resvg",
+        "webgpu",
+        "webgl2"
+      ]
+    },
+    "RenderLegend": {
+      "type": "object",
+      "properties": {
+        "components": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/LegendComponent"
+          },
+          "description": "Drawn components in tree order."
+        },
+        "relations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/LegendRelation"
+          },
+          "description": "Relations between a part and the component it sits on or in."
+        }
+      },
+      "required": [
+        "components"
+      ],
+      "description": "The text legend of a render (`rw render` prints it under the PNG path)."
+    },
+    "LegendComponent": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/$defs/ComponentType"
+        },
+        "placement": {
+          "$ref": "#/$defs/AnchorKind",
+          "description": "How it sits in its parent (`axial` body chain, `inner`, `surface`)."
+        },
+        "parent": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "count": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0,
+          "description": "Instances (fins in a set, buttons in a pattern)."
+        },
+        "x_fore": {
+          "type": "number",
+          "format": "double",
+          "description": "Foremost station over all instances.",
+          "x-unit-dimension": "length"
+        },
+        "x_aft": {
+          "type": "number",
+          "format": "double",
+          "description": "Aftmost station over all instances.",
+          "x-unit-dimension": "length"
+        },
+        "r_inner": {
+          "type": "number",
+          "format": "double",
+          "description": "Innermost radius (0 for a solid on the axis; the root for fins).",
+          "x-unit-dimension": "length"
+        },
+        "r_outer": {
+          "type": "number",
+          "format": "double",
+          "description": "Outermost radius (the tip for fins).",
+          "x-unit-dimension": "length"
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "placement",
+        "count",
+        "x_fore",
+        "x_aft",
+        "r_inner",
+        "r_outer"
+      ],
+      "description": "One drawn component: stations from the nose tip, radii from the body axis."
+    },
+    "ComponentType": {
+      "type": "string",
+      "enum": [
+        "nose_cone",
+        "body_tube",
+        "transition",
+        "trapezoidal_fin_set",
+        "elliptical_fin_set",
+        "freeform_fin_set",
+        "tube_fin_set",
+        "inner_tube",
+        "coupler",
+        "centering_ring",
+        "bulkhead",
+        "engine_block",
+        "launch_lug",
+        "rail_button",
+        "parachute",
+        "streamer",
+        "shock_cord",
+        "mass_component",
+        "tank"
+      ],
+      "description": "The component kind as a plain tag (`\"nose_cone\"`, ...)."
+    },
+    "LegendRelation": {
+      "type": "object",
+      "properties": {
+        "component": {
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/LegendRelationKind"
+        },
+        "other": {
+          "type": "string"
+        },
+        "distance": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "description": "Positive distance for `overhangs_aft`, `forward_of_aft`, `extends_past_aft`.",
+          "x-unit-dimension": "length"
+        },
+        "station": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "description": "Centre station (`along`).",
+          "x-unit-dimension": "length"
+        },
+        "fraction": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "description": "0 at `other`'s fore end, 1 at its aft end (`along`)."
+        }
+      },
+      "required": [
+        "component",
+        "kind",
+        "other"
+      ]
+    },
+    "LegendRelationKind": {
+      "oneOf": [
+        {
+          "type": "string",
+          "const": "overhangs_aft",
+          "description": "Ends `distance` aft of `other`'s aft end (fins past the tube end)."
+        },
+        {
+          "type": "string",
+          "const": "flush_aft",
+          "description": "Ends at `other`'s aft end (within 0.05 mm)."
+        },
+        {
+          "type": "string",
+          "const": "forward_of_aft",
+          "description": "Ends `distance` forward of `other`'s aft end."
+        },
+        {
+          "type": "string",
+          "const": "extends_past_aft",
+          "description": "An inner part reaching `distance` past `other`'s aft end."
+        },
+        {
+          "type": "string",
+          "const": "along",
+          "description": "A surface part (rail button, lug) centred at `station`, `fraction`\nof `other`'s length from its fore end (one entry per instance)."
+        }
+      ],
+      "description": "How a part relates to its parent `other`."
+    },
+    "LibrarySearchOut": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/LibItem"
+          }
+        }
+      },
+      "required": [
+        "items"
+      ]
+    },
+    "LibItem": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Library ref, e.g. `preset:bt-55` or `lib:components/fin_can.rw.toml`."
+        },
+        "kind": {
+          "$ref": "#/$defs/LibKind"
+        },
+        "name": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string",
+          "description": "Origin and license, e.g. `openrocket-database (Apache-2.0)`."
+        },
+        "sha256": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "data": {
+          "description": "Source-form fields (units as strings)."
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "name",
+        "source",
+        "data"
+      ]
+    },
+    "LibKind": {
+      "type": "string",
+      "enum": [
+        "component",
+        "material",
+        "preset",
+        "motor"
+      ]
+    },
+    "MotorSearchOut": {
+      "type": "object",
+      "properties": {
+        "motors": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/MotorInfo"
+          }
+        }
+      },
+      "required": [
+        "motors"
+      ]
+    },
+    "MotorInfo": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Motor ref usable in a config, e.g. `generic:RW_C6G`."
+        },
+        "designation": {
+          "type": "string"
+        },
+        "manufacturer": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "class": {
+          "type": "string"
+        },
+        "diameter": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "length": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "total_impulse": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "impulse"
+        },
+        "burn_time": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "time"
+        },
+        "average_thrust": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "force"
+        },
+        "delays": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "x-unit-dimension": "time"
+        },
+        "total_mass": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "mass"
+        },
+        "source": {
+          "$ref": "#/$defs/MotorSource"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "id",
+        "designation",
+        "class",
+        "diameter",
+        "length",
+        "total_impulse",
+        "burn_time",
+        "average_thrust",
+        "delays",
+        "total_mass",
+        "source",
+        "sha256"
+      ]
+    },
+    "MotorSource": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "generic"
+            },
+            "id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "id"
+          ],
+          "description": "Built-in RocketWright generic curve (`lib/motors/generic/`), e.g. `RW_C6G`."
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "library"
+            },
+            "path": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "path"
+          ],
+          "description": "A project `lib/motors/` file with its recorded sha256."
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "embedded"
+            },
+            "origin": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "origin"
+          ],
+          "description": "Embedded in an imported file (e.g. an `.rse` inside an `.ork`)."
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "thrustcurve"
+            },
+            "motor_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "motor_id"
+          ],
+          "description": "ThrustCurve.org download in the gitignored cache (parity only)."
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "liquid"
+            },
+            "engine": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "engine"
+          ],
+          "description": "Generated by a liquid engine design (`engines/<id>.rw.toml`)."
+        }
+      ],
+      "description": "Where a curve came from (motor provenance; never OR-DB curves, S:31)."
+    },
+    "MotorShowOut": {
+      "type": "object",
+      "properties": {
+        "info": {
+          "$ref": "#/$defs/MotorInfo"
+        },
+        "curve": {
+          "$ref": "#/$defs/ThrustCurve"
+        }
+      },
+      "required": [
+        "info",
+        "curve"
+      ]
+    },
+    "ThrustCurve": {
+      "type": "object",
+      "properties": {
+        "designation": {
+          "type": "string",
+          "description": "Designation, e.g. `C6`."
+        },
+        "manufacturer": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "class": {
+          "type": "string",
+          "description": "Impulse class letter (`A`..`O`).",
+          "pattern": "^[1-9]?/?[0-9]*[A-O]$"
+        },
+        "diameter": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "length": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "delays": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "description": "Available ejection delays; empty = plugged only.",
+          "x-unit-dimension": "time"
+        },
+        "prop_mass": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "mass"
+        },
+        "total_mass": {
+          "type": "number",
+          "format": "double",
+          "description": "Total loaded mass at ignition.",
+          "x-unit-dimension": "mass"
+        },
+        "total_impulse": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "impulse"
+        },
+        "burn_time": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "time"
+        },
+        "average_thrust": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "force"
+        },
+        "max_thrust": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "force"
+        },
+        "points": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ThrustPoint"
+          },
+          "description": "Samples, `t` ascending, starting at `t = 0`."
+        },
+        "sha256": {
+          "type": "string",
+          "description": "sha256 hex of the source file bytes (the motor digest).",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "source": {
+          "$ref": "#/$defs/MotorSource"
+        }
+      },
+      "required": [
+        "designation",
+        "class",
+        "diameter",
+        "length",
+        "delays",
+        "prop_mass",
+        "total_mass",
+        "total_impulse",
+        "burn_time",
+        "average_thrust",
+        "max_thrust",
+        "points",
+        "sha256",
+        "source"
+      ],
+      "description": "A solid motor's thrust curve plus its header data."
+    },
+    "ThrustPoint": {
+      "type": "object",
+      "properties": {
+        "t": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "time"
+        },
+        "thrust": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "force"
+        },
+        "mass": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "description": "Total motor mass at `t` (`.rse` only).",
+          "x-unit-dimension": "mass"
+        },
+        "cg": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "description": "CG from the motor's fore end (`.rse` only).",
+          "x-unit-dimension": "length"
+        }
+      },
+      "required": [
+        "t",
+        "thrust"
+      ]
+    },
+    "SimulateOut": {
+      "type": "object",
+      "properties": {
+        "sim": {
+          "type": "string"
+        },
+        "run_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{12}$"
+        },
+        "status": {
+          "$ref": "#/$defs/RunStatus"
+        },
+        "cached": {
+          "type": "boolean"
+        },
+        "job_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Poll `job_status` or subscribe to `rw://jobs/<id>`."
+        },
+        "summary": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RunSummary"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "sim",
+        "run_id",
+        "status",
+        "cached"
+      ],
+      "description": "Returns within 100 ms: a cache hit (`Complete`, `summary` set) or a job."
+    },
+    "RunStatus": {
+      "type": "string",
+      "enum": [
+        "complete",
+        "outdated",
+        "running",
+        "failed",
+        "not_run"
+      ],
+      "description": "Run status per sim, computed from `model_hash` (I7)."
+    },
+    "JobInfo": {
+      "type": "object",
+      "properties": {
+        "job_id": {
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/JobKind"
+        },
+        "state": {
+          "$ref": "#/$defs/JobState"
+        },
+        "progress": {
+          "type": "number",
+          "format": "double",
+          "description": "0..1."
+        },
+        "sim": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "run_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "summary": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RunSummary"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "error": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "job_id",
+        "kind",
+        "state",
+        "progress"
+      ],
+      "description": "`job_status` output and the `rw://jobs/<id>` resource."
+    },
+    "JobKind": {
+      "type": "string",
+      "enum": [
+        "simulate",
+        "engine_simulate",
+        "render",
+        "import"
+      ]
+    },
+    "JobState": {
+      "type": "string",
+      "enum": [
+        "queued",
+        "running",
+        "complete",
+        "failed",
+        "cancelled"
+      ]
+    },
+    "RunListOut": {
+      "type": "object",
+      "properties": {
+        "model_hash": {
+          "type": "string",
+          "description": "Current model hash (runs with another hash are Outdated).",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "runs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/RunListEntry"
+          }
+        }
+      },
+      "required": [
+        "model_hash",
+        "runs"
+      ],
+      "description": "`run_list` and `rw://runs/index`."
+    },
+    "RunListEntry": {
+      "type": "object",
+      "properties": {
+        "sim": {
+          "type": "string"
+        },
+        "sim_name": {
+          "type": "string"
+        },
+        "config": {
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/SimKind"
+        },
+        "status": {
+          "$ref": "#/$defs/RunStatus"
+        },
+        "run_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "model_hash": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "provenance": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Provenance"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "summary": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RunSummary"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "job_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "superseded_by": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Set on a sim's earlier run that `run_list` keeps beside its latest one\nfor before/after comparison (the newest earlier run on another model):\nthe id of the run that replaced it."
+        },
+        "conditions_hash": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The listed run's `conditions_hash` (from its manifest): two runs with\nequal hashes flew in the same environment (site, atmosphere, wind,\nrail, integrator)."
+        }
+      },
+      "required": [
+        "sim",
+        "sim_name",
+        "config",
+        "kind",
+        "status"
+      ]
+    },
+    "Provenance": {
+      "type": "string",
+      "enum": [
+        "engineering",
+        "visual",
+        "cfd"
+      ],
+      "description": "Result provenance (I13). Visual results never feed engineering numbers."
+    },
+    "RunDiffOut": {
+      "type": "object",
+      "properties": {
+        "a": {
+          "type": "string"
+        },
+        "b": {
+          "type": "string"
+        },
+        "mismatches": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Setup mismatches against a golden (geometry, conditions, config,\nsim, motor digest). Any mismatch means rows are not scored."
+        },
+        "rows": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/MetricDiffRow"
+          }
+        },
+        "phases": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/MetricDiffRow"
+          },
+          "description": "Flight phases in time order (rail exit, burnout, apogee, the last\ndeployment, landing): the time, altitude, and speed of each event of\nthe main flight on both sides (`burnout.velocity_ms`; no apogee speed,\nno landing altitude), so where the `a - b` gap opens is read from the\ntool. Compared, never gated."
+        },
+        "pass": {
+          "type": "boolean"
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Notes on how the rows were computed (which model the static rows of a\ngolden diff came from, or why they are missing). Not verdicts."
+        }
+      },
+      "required": [
+        "a",
+        "b",
+        "mismatches",
+        "rows",
+        "pass"
+      ]
+    },
+    "MetricDiffRow": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string",
+          "description": "Metric path (`apogee_m`, `stability.liftoff`)."
+        },
+        "a": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        },
+        "b": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        },
+        "delta": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        },
+        "delta_pct": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        },
+        "tol": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Tolerance as given (`3%`, `0.3 s`)."
+        },
+        "pass": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "unit": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Unit of `a`, `b`, and `delta` (`m`, `kg`, `cal`); absent for pure\nnumbers and unknown keys."
+        }
+      },
+      "required": [
+        "key"
+      ],
+      "description": "One metric compared between two runs, versions, or a run and a golden."
+    },
+    "ModelDiff": {
+      "type": "object",
+      "properties": {
+        "a": {
+          "type": "string"
+        },
+        "b": {
+          "type": "string"
+        },
+        "added": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Added component ids."
+        },
+        "removed": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "changed": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/FieldChange"
+          }
+        }
+      },
+      "required": [
+        "a",
+        "b",
+        "added",
+        "removed",
+        "changed"
+      ],
+      "description": "Semantic model diff keyed by component id."
+    },
+    "FieldChange": {
+      "type": "object",
+      "properties": {
+        "component": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string",
+          "description": "Source pointer, e.g. `/c/fins/span`."
+        },
+        "old": true,
+        "new": true,
+        "unit": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "SI unit of the field (`m`, `kg/m^3`) when a side is a quantity\nliteral (`\"70 mm\"`); `old_si`/`new_si` are those sides in that unit."
+        },
+        "old_si": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        },
+        "new_si": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        }
+      },
+      "required": [
+        "component",
+        "path"
+      ]
+    },
+    "HistoryListOut": {
+      "type": "object",
+      "properties": {
+        "steps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/HistoryStep"
+          }
+        },
+        "revisions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Revision"
+          }
+        }
+      },
+      "required": [
+        "steps",
+        "revisions"
+      ],
+      "description": "`history_list` and `rw://project/history`."
+    },
+    "HistoryStep": {
+      "type": "object",
+      "properties": {
+        "seq": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0,
+          "description": "1-based sequence number (`step:<seq>`, shown as `Step 04`)."
+        },
+        "id": {
+          "type": "string",
+          "description": "Commit id in `.rw/history.git`.",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "prev": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "ts": {
+          "type": "string",
+          "description": "RFC 3339 time (from `RW_CLOCK` when set)."
+        },
+        "origin": {
+          "$ref": "#/$defs/Origin"
+        },
+        "thread": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "tool": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Tool or CLI command that caused the step."
+        },
+        "tool_call": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "title": {
+          "type": "string",
+          "description": "Short human title, e.g. `Exploded assembly`."
+        },
+        "files": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/FileChange"
+          }
+        },
+        "model_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "metrics": {
+          "$ref": "#/$defs/StepMetrics"
+        },
+        "rev": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Revision tagged at this step, e.g. `rev:07`."
+        }
+      },
+      "required": [
+        "seq",
+        "id",
+        "ts",
+        "origin",
+        "title",
+        "files",
+        "model_hash",
+        "metrics"
+      ],
+      "description": "One recorded step: a snapshot-tree change (D3) in `.rw/history.git`."
+    },
+    "Origin": {
+      "type": "string",
+      "enum": [
+        "cli",
+        "mcp",
+        "socket",
+        "watcher",
+        "ui"
+      ],
+      "description": "Where a command came from."
+    },
+    "StepMetrics": {
+      "type": "object",
+      "properties": {
+        "stability_liftoff": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        },
+        "mass_liftoff": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "x-unit-dimension": "mass"
+        },
+        "apogee_m": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        }
+      },
+      "description": "Metrics stored per step so the history strip can draw sparklines without\nre-evaluating."
+    },
+    "Revision": {
+      "type": "object",
+      "properties": {
+        "number": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "name": {
+          "type": "string",
+          "description": "User-facing name, e.g. `Flight-ready fins`."
+        },
+        "step": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        }
+      },
+      "required": [
+        "number",
+        "name",
+        "step",
+        "id"
+      ],
+      "description": "A named revision (`Rev NN`, `refs/rw/rev/<NN>`)."
+    },
+    "HistoryShowOut": {
+      "type": "object",
+      "properties": {
+        "step": {
+          "$ref": "#/$defs/HistoryStep"
+        },
+        "diff": {
+          "$ref": "#/$defs/ModelDiff",
+          "description": "Diff against the previous step."
+        }
+      },
+      "required": [
+        "step",
+        "diff"
+      ]
+    },
+    "CompareOut": {
+      "type": "object",
+      "properties": {
+        "a": {
+          "type": "string"
+        },
+        "b": {
+          "type": "string"
+        },
+        "model": {
+          "$ref": "#/$defs/ModelDiff"
+        },
+        "metrics": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/MetricDiffRow"
+          }
+        },
+        "marks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ComponentMark"
+          },
+          "description": "Per-component visual-diff marks on the evaluated models (removed\nred, changed amber, added green; unmarked components are unchanged).",
+          "default": []
+        },
+        "breakdown": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/MetricDiffRow"
+          },
+          "description": "With `breakdown`: one row per component and metric\n(`mass.components.<id>.mass`, `mass.components.<id>.cg`,\n`aero.terms.<id>.cna`, `aero.terms.<id>.cp`), components in `b`'s\norder then those only `a` has; a side without the component has no\nvalue. Which component a change came from is read from these rows."
+        },
+        "visual": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RenderResult"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "a",
+        "b",
+        "model",
+        "metrics"
+      ]
+    },
+    "ComponentMark": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/MarkStatus"
+        },
+        "fields": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/QuantityChange"
+          },
+          "description": "The evaluated quantities that differ (`changed` only)."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "status"
+      ],
+      "description": "A component marked by the visual diff, keyed by id. Unmarked components\nare unchanged (drawn dimmed). A component that only moved because a part\nfore of it changed length is unchanged."
+    },
+    "MarkStatus": {
+      "type": "string",
+      "enum": [
+        "removed",
+        "changed",
+        "added"
+      ],
+      "description": "How a component differs between two versions (the visual diff colours:\nremoved red, changed amber, added green)."
+    },
+    "QuantityChange": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Pointer into the evaluated component (`/shape/span`, `/length`)."
+        },
+        "old": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        },
+        "new": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        },
+        "unit": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "SI unit (`m`, `rad`); absent for pure numbers."
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "description": "One evaluated quantity that differs between two versions, in SI."
+    },
+    "ImportOut": {
+      "type": "object",
+      "properties": {
+        "step": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Recorded step (`None` for dry runs and edits that change nothing, D3)."
+        },
+        "model_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "dry_run": {
+          "type": "boolean"
+        },
+        "files": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/FileChange"
+          }
+        },
+        "delta": {
+          "$ref": "#/$defs/CheckDelta"
+        },
+        "imported": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Imported component ids (`.ork`) or motor refs (motor file)."
+        },
+        "diagnostics": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Diagnostic"
+          },
+          "description": "Import findings: `RW-W010 import-approximated` (something the file\nholds that RocketWright approximated or skipped) and `RW-W103\nmotor-substituted`."
+        }
+      },
+      "required": [
+        "model_hash",
+        "dry_run",
+        "files",
+        "delta",
+        "imported"
+      ],
+      "description": "Output of every mutating tool (S:86)."
+    },
+    "ExportOut": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "bytes": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "path",
+        "bytes",
+        "sha256"
+      ]
+    },
+    "SchemaGetOut": {
+      "type": "object",
+      "properties": {
+        "names": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "schema": true
+      },
+      "required": [
+        "names"
+      ]
+    },
+    "EngineDesignOut": {
+      "type": "object",
+      "properties": {
+        "engine": {
+          "type": "string"
+        },
+        "performance": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EnginePerformance"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Absent while the chamber inputs (area ratio or exit pressure, L*,\ncontraction ratio, injector drop) are missing or the thermochemistry\nis unavailable. `isp_*` in seconds."
+        },
+        "missing_inputs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Source pointers of unset inputs (`Missing inputs · N`)."
+        },
+        "diagnostics": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Diagnostic"
+          }
+        },
+        "design": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LiquidEngineDesign"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The full design (SI): sizing, injector, feed budget per propellant,\ntanks, blowdown totals, assumptions. The feed, tank, and blowdown\nparts are absent while feed inputs are missing (M4.6)."
+        }
+      },
+      "required": [
+        "engine",
+        "missing_inputs",
+        "diagnostics"
+      ]
+    },
+    "EnginePerformance": {
+      "type": "object",
+      "properties": {
+        "isp_vac": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "time"
+        },
+        "isp_sl": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "time"
+        },
+        "c_star": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "velocity"
+        },
+        "thrust": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "force"
+        },
+        "mdot": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "mass_flow"
+        },
+        "mdot_ox": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "mass_flow"
+        },
+        "mdot_fuel": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "mass_flow"
+        },
+        "chamber_temperature": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "temperature"
+        },
+        "throat_diameter": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "exit_diameter": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "chamber_diameter": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "chamber_length": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "expansion_ratio": {
+          "type": "number",
+          "format": "double"
+        }
+      },
+      "required": [
+        "isp_vac",
+        "isp_sl",
+        "c_star",
+        "thrust",
+        "mdot",
+        "mdot_ox",
+        "mdot_fuel",
+        "chamber_temperature",
+        "throat_diameter",
+        "exit_diameter",
+        "chamber_diameter",
+        "chamber_length",
+        "expansion_ratio"
+      ]
+    },
+    "LiquidEngineDesign": {
+      "type": "object",
+      "properties": {
+        "engine": {
+          "type": "string"
+        },
+        "thermo": {
+          "type": "string",
+          "description": "Thermochemistry provenance (`table:n2o-ethanol`, `cea:native`)."
+        },
+        "sizing": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EngineSizing"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "injector": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/InjectorDesign"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "feed": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/FeedBranch"
+          },
+          "description": "Oxidizer then fuel feed path, when the feed inputs are complete."
+        },
+        "tanks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TankReport"
+          }
+        },
+        "blowdown": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BlowdownSummary"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "assumptions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Modelling assumptions shown with the results (page 06 Assumptions)."
+        }
+      },
+      "required": [
+        "engine",
+        "thermo",
+        "assumptions"
+      ],
+      "description": "A liquid engine design (`engine_design`, SI)."
+    },
+    "EngineSizing": {
+      "type": "object",
+      "properties": {
+        "ambient_pressure": {
+          "type": "number",
+          "format": "double",
+          "description": "Ambient pressure the thrust target holds at, Pa."
+        },
+        "chamber_pressure": {
+          "type": "number",
+          "format": "double"
+        },
+        "mixture_ratio": {
+          "type": "number",
+          "format": "double"
+        },
+        "expansion_ratio": {
+          "type": "number",
+          "format": "double"
+        },
+        "exit_pressure": {
+          "type": "number",
+          "format": "double"
+        },
+        "c_star": {
+          "type": "number",
+          "format": "double"
+        },
+        "cf_vac": {
+          "type": "number",
+          "format": "double"
+        },
+        "cf": {
+          "type": "number",
+          "format": "double",
+          "description": "At `ambient_pressure`."
+        },
+        "isp_vac": {
+          "type": "number",
+          "format": "double"
+        },
+        "isp": {
+          "type": "number",
+          "format": "double",
+          "description": "At `ambient_pressure` (m/s)."
+        },
+        "thrust": {
+          "type": "number",
+          "format": "double"
+        },
+        "thrust_vac": {
+          "type": "number",
+          "format": "double"
+        },
+        "mdot": {
+          "type": "number",
+          "format": "double"
+        },
+        "mdot_ox": {
+          "type": "number",
+          "format": "double"
+        },
+        "mdot_fuel": {
+          "type": "number",
+          "format": "double"
+        },
+        "chamber_temperature": {
+          "type": "number",
+          "format": "double"
+        },
+        "gamma_c": {
+          "type": "number",
+          "format": "double"
+        },
+        "throat_area": {
+          "type": "number",
+          "format": "double"
+        },
+        "throat_diameter": {
+          "type": "number",
+          "format": "double"
+        },
+        "exit_area": {
+          "type": "number",
+          "format": "double"
+        },
+        "exit_diameter": {
+          "type": "number",
+          "format": "double"
+        },
+        "contraction_ratio": {
+          "type": "number",
+          "format": "double"
+        },
+        "chamber_area": {
+          "type": "number",
+          "format": "double"
+        },
+        "chamber_diameter": {
+          "type": "number",
+          "format": "double"
+        },
+        "l_star": {
+          "type": "number",
+          "format": "double"
+        },
+        "chamber_volume": {
+          "type": "number",
+          "format": "double"
+        },
+        "chamber_length": {
+          "type": "number",
+          "format": "double",
+          "description": "Cylindrical section (injector face to the start of the convergence)."
+        },
+        "convergent_length": {
+          "type": "number",
+          "format": "double"
+        },
+        "nozzle_length": {
+          "type": "number",
+          "format": "double"
+        },
+        "total_length": {
+          "type": "number",
+          "format": "double",
+          "description": "Injector face to the exit plane."
+        }
+      },
+      "required": [
+        "ambient_pressure",
+        "chamber_pressure",
+        "mixture_ratio",
+        "expansion_ratio",
+        "exit_pressure",
+        "c_star",
+        "cf_vac",
+        "cf",
+        "isp_vac",
+        "isp",
+        "thrust",
+        "thrust_vac",
+        "mdot",
+        "mdot_ox",
+        "mdot_fuel",
+        "chamber_temperature",
+        "gamma_c",
+        "throat_area",
+        "throat_diameter",
+        "exit_area",
+        "exit_diameter",
+        "contraction_ratio",
+        "chamber_area",
+        "chamber_diameter",
+        "l_star",
+        "chamber_volume",
+        "chamber_length",
+        "convergent_length",
+        "nozzle_length",
+        "total_length"
+      ],
+      "description": "The thrust-chamber design at the design point (SI)."
+    },
+    "InjectorDesign": {
+      "type": "object",
+      "properties": {
+        "pressure_drop": {
+          "type": "number",
+          "format": "double"
+        },
+        "ox": {
+          "$ref": "#/$defs/InjectorSide"
+        },
+        "fuel": {
+          "$ref": "#/$defs/InjectorSide"
+        }
+      },
+      "required": [
+        "pressure_drop",
+        "ox",
+        "fuel"
+      ],
+      "description": "Both sides of the injector."
+    },
+    "InjectorSide": {
+      "type": "object",
+      "properties": {
+        "mdot": {
+          "type": "number",
+          "format": "double"
+        },
+        "density": {
+          "type": "number",
+          "format": "double"
+        },
+        "cd": {
+          "type": "number",
+          "format": "double"
+        },
+        "pressure_drop": {
+          "type": "number",
+          "format": "double"
+        },
+        "area": {
+          "type": "number",
+          "format": "double",
+          "description": "Total orifice area."
+        },
+        "velocity": {
+          "type": "number",
+          "format": "double"
+        }
+      },
+      "required": [
+        "mdot",
+        "density",
+        "cd",
+        "pressure_drop",
+        "area",
+        "velocity"
+      ],
+      "description": "One propellant's injector elements at the design point."
+    },
+    "FeedBranch": {
+      "type": "object",
+      "properties": {
+        "tank": {
+          "type": "string",
+          "description": "Tank node id."
+        },
+        "fluid": {
+          "type": "string"
+        },
+        "density": {
+          "type": "number",
+          "format": "double"
+        },
+        "path": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Node ids from the tank to the engine node."
+        },
+        "elements": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/FeedElement"
+          }
+        },
+        "mdot": {
+          "type": "number",
+          "format": "double"
+        },
+        "tank_pressure": {
+          "type": "number",
+          "format": "double"
+        },
+        "chamber_pressure": {
+          "type": "number",
+          "format": "double"
+        },
+        "injector_pressure_drop": {
+          "type": "number",
+          "format": "double"
+        },
+        "line_pressure_drop": {
+          "type": "number",
+          "format": "double"
+        },
+        "valve_pressure_drop": {
+          "type": "number",
+          "format": "double"
+        },
+        "required_pressure": {
+          "type": "number",
+          "format": "double",
+          "description": "Tank pressure needed: Pc + injector + lines + given valves."
+        },
+        "margin": {
+          "type": "number",
+          "format": "double",
+          "description": "Pressure left over that no element takes (0 once a valve is sized)."
+        },
+        "valves": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ValveSizing"
+          }
+        },
+        "resistance": {
+          "type": "number",
+          "format": "double",
+          "description": "Total resistance tank → chamber incl. the injector (ΔP = R ṁ²)."
+        }
+      },
+      "required": [
+        "tank",
+        "fluid",
+        "density",
+        "path",
+        "elements",
+        "mdot",
+        "tank_pressure",
+        "chamber_pressure",
+        "injector_pressure_drop",
+        "line_pressure_drop",
+        "valve_pressure_drop",
+        "required_pressure",
+        "margin",
+        "valves",
+        "resistance"
+      ],
+      "description": "One propellant's feed path and its design-point pressure budget (SI)."
+    },
+    "FeedElement": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "line"
+            },
+            "edge": {
+              "type": "integer",
+              "format": "uint",
+              "minimum": 0
+            },
+            "diameter": {
+              "type": "number",
+              "format": "double"
+            },
+            "length": {
+              "type": "number",
+              "format": "double"
+            }
+          },
+          "required": [
+            "kind",
+            "edge",
+            "diameter",
+            "length"
+          ],
+          "description": "A line (edge with `diameter` and `length`)."
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "orifice"
+            },
+            "edge": {
+              "type": "integer",
+              "format": "uint",
+              "minimum": 0
+            },
+            "cd": {
+              "type": "number",
+              "format": "double"
+            },
+            "area": {
+              "type": "number",
+              "format": "double"
+            }
+          },
+          "required": [
+            "kind",
+            "edge",
+            "cd",
+            "area"
+          ],
+          "description": "An orifice edge (`bc = \"orifice\"`, the edge diameter)."
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "valve"
+            },
+            "node": {
+              "type": "string"
+            },
+            "cd": {
+              "type": "number",
+              "format": "double"
+            },
+            "area": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            }
+          },
+          "required": [
+            "kind",
+            "node",
+            "cd"
+          ],
+          "description": "A valve node; `area` is `None` until the budget sizes it."
+        }
+      ],
+      "description": "One element on a feed path."
+    },
+    "ValveSizing": {
+      "type": "object",
+      "properties": {
+        "node": {
+          "type": "string"
+        },
+        "cd": {
+          "type": "number",
+          "format": "double"
+        },
+        "area": {
+          "type": "number",
+          "format": "double"
+        },
+        "pressure_drop": {
+          "type": "number",
+          "format": "double"
+        },
+        "sized": {
+          "type": "boolean",
+          "description": "True when the budget computed the area (no `flow_area` given)."
+        }
+      },
+      "required": [
+        "node",
+        "cd",
+        "area",
+        "pressure_drop",
+        "sized"
+      ],
+      "description": "A valve on a path at the design point."
+    },
+    "TankReport": {
+      "type": "object",
+      "properties": {
+        "node": {
+          "type": "string"
+        },
+        "fluid": {
+          "type": "string"
+        },
+        "component": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "volume": {
+          "type": "number",
+          "format": "double"
+        },
+        "liquid_volume": {
+          "type": "number",
+          "format": "double"
+        },
+        "liquid_density": {
+          "type": "number",
+          "format": "double"
+        },
+        "propellant_mass": {
+          "type": "number",
+          "format": "double"
+        },
+        "ullage_fraction": {
+          "type": "number",
+          "format": "double"
+        },
+        "pressure": {
+          "type": "number",
+          "format": "double"
+        },
+        "pressurant": {
+          "type": "string"
+        },
+        "polytropic_exponent": {
+          "type": "number",
+          "format": "double",
+          "description": "Polytropic exponent of the ullage expansion (γ of the gas: adiabatic)."
+        },
+        "pressurant_mass": {
+          "type": "number",
+          "format": "double"
+        },
+        "final_pressure": {
+          "type": "number",
+          "format": "double",
+          "description": "Ullage pressure once the load is gone (polytropic)."
+        },
+        "shell_mass": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        },
+        "hoop_stress": {
+          "type": "number",
+          "format": "double"
+        },
+        "hoop_safety_factor": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        },
+        "station": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        },
+        "liquid_centroid": {
+          "type": "number",
+          "format": "double",
+          "description": "Liquid CG from the tank's aft inner pole."
+        }
+      },
+      "required": [
+        "node",
+        "fluid",
+        "volume",
+        "liquid_volume",
+        "liquid_density",
+        "propellant_mass",
+        "ullage_fraction",
+        "pressure",
+        "pressurant",
+        "polytropic_exponent",
+        "pressurant_mass",
+        "final_pressure",
+        "hoop_stress",
+        "liquid_centroid"
+      ],
+      "description": "One tank at ignition (SI)."
+    },
+    "BlowdownSummary": {
+      "type": "object",
+      "properties": {
+        "burn_time": {
+          "type": "number",
+          "format": "double"
+        },
+        "total_impulse": {
+          "type": "number",
+          "format": "double"
+        },
+        "average_thrust": {
+          "type": "number",
+          "format": "double"
+        },
+        "peak_thrust": {
+          "type": "number",
+          "format": "double"
+        },
+        "initial_chamber_pressure": {
+          "type": "number",
+          "format": "double"
+        },
+        "final_chamber_pressure": {
+          "type": "number",
+          "format": "double"
+        },
+        "ox_used": {
+          "type": "number",
+          "format": "double"
+        },
+        "fuel_used": {
+          "type": "number",
+          "format": "double"
+        },
+        "end": {
+          "$ref": "#/$defs/EndReason"
+        }
+      },
+      "required": [
+        "burn_time",
+        "total_impulse",
+        "average_thrust",
+        "peak_thrust",
+        "initial_chamber_pressure",
+        "final_chamber_pressure",
+        "ox_used",
+        "fuel_used",
+        "end"
+      ],
+      "description": "Blowdown totals."
+    },
+    "EndReason": {
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "oxidizer_depleted",
+            "fuel_depleted",
+            "time_limit"
+          ]
+        },
+        {
+          "type": "string",
+          "const": "thrust_zero",
+          "description": "The thrust at ambient pressure fell to zero (deep over-expansion)."
+        },
+        {
+          "type": "string",
+          "const": "no_balance",
+          "description": "No chamber pressure balances the flows (a tank fell below the chamber)."
+        }
+      ],
+      "description": "Why the burn ended."
+    },
+    "CfdImportOut": {
+      "type": "object",
+      "properties": {
+        "step": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Recorded step (`None` for dry runs and edits that change nothing, D3)."
+        },
+        "model_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "dry_run": {
+          "type": "boolean"
+        },
+        "files": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/FileChange"
+          }
+        },
+        "delta": {
+          "$ref": "#/$defs/CheckDelta"
+        },
+        "dataset": {
+          "$ref": "#/$defs/CfdDataset"
+        }
+      },
+      "required": [
+        "model_hash",
+        "dry_run",
+        "files",
+        "delta",
+        "dataset"
+      ],
+      "description": "Output of every mutating tool (S:86)."
+    },
+    "CfdDataset": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "sim": {
+          "type": "string",
+          "description": "Run directory under `runs/` (`cfd.<id>`)."
+        },
+        "run_id": {
+          "type": "string",
+          "description": "First 12 hex of blake3 over the source files' hashes (I7); the\nrecord is `runs/<sim>/<run_id>/cfd.json`.",
+          "pattern": "^[0-9a-f]{12}$"
+        },
+        "files": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Source files, project-relative when inside the project, by time."
+        },
+        "times": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "x-unit-dimension": "time"
+        },
+        "scalars": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ScalarRange"
+          }
+        },
+        "has_velocity": {
+          "type": "boolean"
+        },
+        "point_count": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0,
+          "description": "Points over all steps."
+        },
+        "provenance": {
+          "$ref": "#/$defs/Provenance",
+          "description": "Always `cfd` (I13)."
+        }
+      },
+      "required": [
+        "id",
+        "sim",
+        "run_id",
+        "files",
+        "times",
+        "scalars",
+        "has_velocity",
+        "point_count",
+        "provenance"
+      ]
+    },
+    "ScalarRange": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "min": {
+          "type": "number",
+          "format": "double"
+        },
+        "max": {
+          "type": "number",
+          "format": "double"
+        },
+        "unit": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Unit from the `# rw-cfd: units=` line, as written (`Pa`, `K`)."
+        }
+      },
+      "required": [
+        "name",
+        "min",
+        "max"
+      ],
+      "description": "One scalar column's range over every point of the dataset's steps."
+    }
+  }
+}

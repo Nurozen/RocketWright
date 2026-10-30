@@ -1,0 +1,150 @@
+{
+  "type": "object",
+  "properties": {
+    "seq": {
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0,
+      "description": "1-based sequence number (`step:<seq>`, shown as `Step 04`)."
+    },
+    "id": {
+      "type": "string",
+      "description": "Commit id in `.rw/history.git`.",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "prev": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "ts": {
+      "type": "string",
+      "description": "RFC 3339 time (from `RW_CLOCK` when set)."
+    },
+    "origin": {
+      "$ref": "#/$defs/Origin"
+    },
+    "thread": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "tool": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Tool or CLI command that caused the step."
+    },
+    "tool_call": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "title": {
+      "type": "string",
+      "description": "Short human title, e.g. `Exploded assembly`."
+    },
+    "files": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/FileChange"
+      }
+    },
+    "model_hash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "metrics": {
+      "$ref": "#/$defs/StepMetrics"
+    },
+    "rev": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Revision tagged at this step, e.g. `rev:07`."
+    }
+  },
+  "required": [
+    "seq",
+    "id",
+    "ts",
+    "origin",
+    "title",
+    "files",
+    "model_hash",
+    "metrics"
+  ],
+  "description": "One recorded step: a snapshot-tree change (D3) in `.rw/history.git`.",
+  "title": "HistoryStep",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rocketwright.dev/schema/1/history-step.json",
+  "$defs": {
+    "Origin": {
+      "type": "string",
+      "enum": [
+        "cli",
+        "mcp",
+        "socket",
+        "watcher",
+        "ui"
+      ],
+      "description": "Where a command came from."
+    },
+    "FileChange": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/FileStatus"
+        }
+      },
+      "required": [
+        "path",
+        "status"
+      ]
+    },
+    "FileStatus": {
+      "type": "string",
+      "enum": [
+        "A",
+        "M",
+        "D"
+      ]
+    },
+    "StepMetrics": {
+      "type": "object",
+      "properties": {
+        "stability_liftoff": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        },
+        "mass_liftoff": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "x-unit-dimension": "mass"
+        },
+        "apogee_m": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        }
+      },
+      "description": "Metrics stored per step so the history strip can draw sparklines without\nre-evaluating."
+    }
+  }
+}

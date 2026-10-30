@@ -1,0 +1,58 @@
+{
+  "provenance": "contract-fixture",
+  "type": "thrust-curve",
+  "note": "Illustrative curve; not a shipped motor",
+  "payload": {
+    "designation": "F40",
+    "manufacturer": "RocketWright generic",
+    "class": "F",
+    "diameter": 0.029,
+    "length": 0.124,
+    "delays": [
+      4.0,
+      7.0,
+      10.0
+    ],
+    "prop_mass": 0.039,
+    "total_mass": 0.0919,
+    "total_impulse": 80.0,
+    "burn_time": 2.0,
+    "average_thrust": 40.0,
+    "max_thrust": 62.0,
+    "points": [
+      {
+        "t": 0.0,
+        "thrust": 0.0
+      },
+      {
+        "t": 0.05,
+        "thrust": 62.0
+      },
+      {
+        "t": 0.2,
+        "thrust": 48.0
+      },
+      {
+        "t": 1.0,
+        "thrust": 41.0
+      },
+      {
+        "t": 1.6,
+        "thrust": 38.0
+      },
+      {
+        "t": 1.9,
+        "thrust": 12.0
+      },
+      {
+        "t": 2.0,
+        "thrust": 0.0
+      }
+    ],
+    "sha256": "e8cf2af56dcc1b4c56e45032b7d9efb67f3d6c92f8716655d242b0b92d995761",
+    "source": {
+      "kind": "generic",
+      "id": "RW_F40G"
+    }
+  }
+}

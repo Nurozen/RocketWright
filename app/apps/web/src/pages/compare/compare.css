@@ -1,0 +1,316 @@
+/* The Compare view (M2.7; Backplane compare reference): workspace viewport with
+   marks, a right-hand panel (metrics, components, edits), and the Old/New bar
+   with the legend. Tokens from @rw/ui tokens.css; the three mark colours are
+   the compare legend's own (removed red, changed amber, added green). */
+
+.rw-cmp {
+  --rw-mark-removed: #e5534b;
+  --rw-mark-changed: var(--rw-ghost);
+  --rw-mark-added: #4fb477;
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.rw-cmp__stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+/* ---- panel --------------------------------------------------------------- */
+
+.rw-cmp__panel {
+  position: absolute;
+  top: 7px;
+  right: 8px;
+  bottom: 7px;
+  box-sizing: border-box;
+  overflow: auto;
+  padding: 4px 0 8px;
+  background: var(--rw-panel);
+  border: var(--rw-hairline) solid var(--rw-line);
+  border-radius: var(--rw-radius-sm);
+  font-size: var(--rw-font-size-secondary);
+}
+
+.rw-cmp__head {
+  padding: 8px 14px 10px;
+}
+
+.rw-cmp__title {
+  margin: 0 0 4px;
+  font-size: var(--rw-font-size-pane-title);
+  font-weight: var(--rw-font-weight-strong);
+}
+
+.rw-cmp__summary {
+  display: flex;
+  gap: 12px;
+  margin: 0;
+  color: var(--rw-text-secondary);
+}
+
+.rw-cmp__count[data-mark="removed"] {
+  color: var(--rw-mark-removed);
+}
+
+.rw-cmp__count[data-mark="changed"] {
+  color: var(--rw-mark-changed);
+}
+
+.rw-cmp__count[data-mark="added"] {
+  color: var(--rw-mark-added);
+}
+
+.rw-cmp__error {
+  margin: 0 14px 8px;
+  color: var(--rw-danger);
+}
+
+.rw-cmp__panel .rw-compare {
+  height: auto;
+  flex-wrap: wrap;
+  margin: 0 10px 8px;
+  padding: 8px 10px;
+  gap: 4px 10px;
+}
+
+.rw-cmp__section {
+  padding: 10px 14px 12px;
+  border-top: var(--rw-hairline) solid var(--rw-line);
+}
+
+.rw-cmp__section-title {
+  margin: 0 0 8px;
+  font-size: var(--rw-font-size-body);
+  font-weight: var(--rw-font-weight-strong);
+}
+
+.rw-cmp__metrics {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.rw-cmp__col-metric {
+  width: 31%;
+}
+
+.rw-cmp__col-value {
+  width: 25%;
+}
+
+.rw-cmp__col-delta {
+  width: 19%;
+}
+
+.rw-cmp__metrics th,
+.rw-cmp__metrics td {
+  padding: 4px 0 4px 6px;
+  overflow: hidden;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: var(--rw-font-weight-regular);
+}
+
+.rw-cmp__metrics th:first-child {
+  padding-left: 0;
+  text-align: left;
+}
+
+.rw-cmp__metrics thead th {
+  color: var(--rw-text-secondary);
+  border-bottom: var(--rw-hairline) solid var(--rw-line);
+}
+
+.rw-cmp__metrics tr[data-tone="same"] td,
+.rw-cmp__metrics tr[data-tone="same"] th {
+  color: var(--rw-text-secondary);
+}
+
+.rw-cmp__metrics tr[data-tone="up"] .rw-cmp__delta,
+.rw-cmp__metrics tr[data-tone="down"] .rw-cmp__delta {
+  color: var(--rw-mark-changed);
+}
+
+.rw-cmp__empty {
+  margin: 0;
+  color: var(--rw-text-secondary);
+}
+
+.rw-cmp__changes,
+.rw-cmp__edits {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rw-cmp__change-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--rw-text-primary);
+  font: inherit;
+  font-size: var(--rw-font-size-body);
+  text-align: left;
+  cursor: pointer;
+}
+
+.rw-cmp__change-kind {
+  margin-left: auto;
+  color: var(--rw-text-secondary);
+  font-size: var(--rw-font-size-secondary);
+}
+
+.rw-cmp__fields {
+  display: grid;
+  gap: 2px;
+  margin: 4px 0 0 18px;
+  font-variant-numeric: tabular-nums;
+}
+
+.rw-cmp__fields > div {
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+.rw-cmp__fields dt {
+  color: var(--rw-text-secondary);
+}
+
+.rw-cmp__fields dd {
+  margin: 0;
+}
+
+.rw-cmp__edits li {
+  display: grid;
+  gap: 2px;
+}
+
+.rw-cmp__edits code {
+  color: var(--rw-text-secondary);
+  font-family: inherit;
+  overflow-wrap: anywhere;
+}
+
+/* ---- swatches and legend ------------------------------------------------- */
+
+.rw-cmp__swatch {
+  display: inline-block;
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+.rw-cmp__swatch[data-mark="removed"] {
+  background: var(--rw-mark-removed);
+}
+
+.rw-cmp__swatch[data-mark="changed"] {
+  background: var(--rw-mark-changed);
+}
+
+.rw-cmp__swatch[data-mark="added"] {
+  background: var(--rw-mark-added);
+}
+
+/* ---- Old/New bar ---------------------------------------------------------- */
+
+.rw-cmp__bar {
+  flex: none;
+  padding: 8px 12px 8px;
+  border-top: var(--rw-hairline) solid var(--rw-line);
+  background: var(--rw-bg-canvas);
+}
+
+.rw-cmp__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rw-cmp__pick {
+  display: inline-flex;
+  align-items: center;
+  height: 34px;
+  padding: 0 4px 0 12px;
+  border: var(--rw-hairline) solid var(--rw-line);
+  border-radius: var(--rw-radius);
+  background: var(--rw-panel);
+  gap: 6px;
+}
+
+.rw-cmp__pick-label {
+  color: var(--rw-text-secondary);
+}
+
+.rw-cmp__pick select {
+  max-width: 230px;
+  height: 30px;
+  border: 0;
+  background: transparent;
+  color: var(--rw-text-primary);
+  font: inherit;
+}
+
+.rw-cmp__pick select option,
+.rw-cmp__pick select optgroup {
+  background: var(--rw-panel);
+  color: var(--rw-text-primary);
+}
+
+.rw-cmp__spacer {
+  flex: 1;
+}
+
+.rw-cmp__bar .rw-button {
+  height: 34px;
+  padding: 0 14px;
+}
+
+.rw-cmp__bar .rw-button:disabled {
+  color: var(--rw-text-secondary);
+}
+
+.rw-cmp__legend {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-top: 8px;
+  font-size: var(--rw-font-size-secondary);
+}
+
+.rw-cmp__legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rw-cmp__legend-item--dim {
+  color: var(--rw-text-secondary);
+}
+
+/* Leader labels of marked parts take their mark colour. */
+.rw-cmp .rw-asm-label[data-mark="removed"] {
+  color: var(--rw-mark-removed);
+}
+
+.rw-cmp .rw-asm-label[data-mark="changed"] {
+  color: var(--rw-mark-changed);
+}
+
+.rw-cmp .rw-asm-label[data-mark="added"] {
+  color: var(--rw-mark-added);
+}

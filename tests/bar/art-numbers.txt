@@ -1,0 +1,78 @@
+# Illustrative values from the concept art (concepts.md: "All values in the art are
+# illustrative"). A checklist item whose text contains any of these fails
+# `bar:lint-checklists`: checklists describe what must be present, never the art's numbers.
+#
+# Format: one pattern per line. Plain lines match case-insensitively as whole tokens
+# (not inside a longer number or word). Lines starting with `re:` are JavaScript regexes
+# (case-insensitive). `#` starts a comment line.
+
+# Product name in the art (the product is RocketWright)
+RocketCAD
+# Art footer placeholder (U20: replaced by provenance)
+Illustrative data
+
+# 01 Assembly
+Fins (3)
+0.18 kg
+120 mm
+54 mm
+54.5 mm
+124 mm
+≥ 0.5 mm
+Twist lock
+
+# 02 Components
+CG 470 mm
+CP 860 mm
+470 mm
+860 mm
+390 mm
+1240 mm
+span 90 mm
+span 120 mm
+120 → 90
+30 → 45
+140 mm
+Scale: 1:5
+
+# 03 Configurations
+24 mm
+29 mm
+160 N
+6.0 s
+2.5 s
+
+# 04 Results
+850 m
+920 m
+850
+920
+312
+338
+re:\b124\b
+re:\b131\b
+0 m/s, 20 °C
+Warnings: 1
+
+# 06 Propulsion simulation
+10.0 s
+
+# Dates and times in the art
+Apr 10
+Apr 12
+Apr 14
+Apr 16
+Apr 18
+10:14 AM
+10:24 AM
+10:28 AM
+11:03 AM
+11:06 AM
+11:08
+11:14
+11:17
+Saved 2 minutes ago
+Saved 3 minutes ago
+
+# Other illustrative figures (concepts.md §1 lineage)
+1.270 m

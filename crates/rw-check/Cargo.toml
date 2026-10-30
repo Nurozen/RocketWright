@@ -1,0 +1,33 @@
+[package]
+name = "rw-check"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+rw-units.workspace = true
+rw-model.workspace = true
+rw-geom.workspace = true
+rw-motor.workspace = true
+rw-aero.workspace = true
+rw-mass.workspace = true
+rw-sim.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+schemars.workspace = true
+
+[build-dependencies]
+rw-model.workspace = true
+schemars.workspace = true
+serde_json.workspace = true
+
+[[bench]]
+name = "static_fixture"
+harness = false
+
+[dev-dependencies]
+rw-api.workspace = true
+rw-project.workspace = true
+sha2.workspace = true

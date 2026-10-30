@@ -1,0 +1,97 @@
+{
+  "provenance": "contract-fixture",
+  "type": "oracle-golden",
+  "note": "Contract fixture in the oracle-golden schema; invented numbers, not OpenRocket output",
+  "payload": {
+    "kind": "golden",
+    "schema": "rw/1",
+    "case": 0,
+    "matrix": "generic",
+    "sim_name": "Contract fixture sim",
+    "config_id": "fixture-config",
+    "geometry_sha256": "6dd8f83f0a10943f5f776bc3b1345a6b6446fcac20b380d610cb3fdf8547123b",
+    "conditions": {
+      "rail_length_m": 1.0,
+      "rod_angle_deg": 0.0,
+      "rod_direction_deg": 0.0,
+      "site_altitude_m": 0.0,
+      "latitude_deg": 0.0,
+      "longitude_deg": 0.0,
+      "base_temperature_k": 288.15,
+      "base_pressure_pa": 101325.0,
+      "atmosphere": "ussa1976",
+      "geodetic": "flat",
+      "wind_speed_ms": 0.0,
+      "wind_direction_deg": 0.0,
+      "wind_turbulence": 0.0,
+      "time_step_s": 0.05,
+      "integrator": "rk4",
+      "gravity": {
+        "model": "constant",
+        "g_ms2": 9.80665
+      },
+      "launch_into_wind": false
+    },
+    "conditions_hash": "sha256:17c7f9cb1767a8d2164caf6280997b12df732db11f63a93fd9f983c124d56c0d",
+    "motor_digest": "a5101776b291141be7ff84c52e3169e97319f30915a74aabe3de9b51f1efd72f",
+    "motors": [
+      {
+        "mount": "Inner tube",
+        "designation": "C6",
+        "digest": "92c1b7a1ca2677a23f343a8129377ab78a887c50ee2a4826759aac18d5a2d2b6",
+        "delay_s": 5.0
+      }
+    ],
+    "summary": {
+      "max_altitude_m": 350.0,
+      "max_velocity_ms": 90.0,
+      "max_accel_ms2": 150.0,
+      "max_mach": 0.27,
+      "time_to_apogee_s": 8.0,
+      "flight_time_s": 40.0,
+      "ground_hit_velocity_ms": 5.0,
+      "rod_clear_velocity_ms": 14.0,
+      "deployment_velocity_ms": 12.0,
+      "optimum_delay_s": 5.5
+    },
+    "static": {
+      "cg_m": 0.26,
+      "cp_m": 0.33,
+      "cna": 10.0,
+      "stability_cal": 2.8,
+      "mass_kg": 0.05,
+      "ref_diameter_m": 0.025,
+      "mach": 0.3
+    },
+    "events": [
+      {
+        "kind": "launch_rod_clearance",
+        "t_s": 0.2,
+        "altitude_m": 1.0,
+        "velocity_ms": 14.0
+      },
+      {
+        "kind": "apogee",
+        "t_s": 8.0,
+        "altitude_m": 350.0,
+        "velocity_ms": 0.0
+      }
+    ],
+    "components": [
+      {
+        "name": "Nose cone",
+        "mass_kg": 0.01,
+        "cg_m": 0.06,
+        "cna": 2.0,
+        "cp_m": 0.05
+      },
+      {
+        "name": "Fin set",
+        "mass_kg": 0.008,
+        "cg_m": 0.4,
+        "cna": 8.0,
+        "cp_m": 0.4
+      }
+    ]
+  }
+}

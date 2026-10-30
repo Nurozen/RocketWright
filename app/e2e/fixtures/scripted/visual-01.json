@@ -1,0 +1,16 @@
+{
+  "description": "Page 01 live pane state (plan B13, W5.1; the approved embedded-chat mockup; CPW1R3A: the whole set in view in the pane). After the 01 bundle import, a Supervised scripted turn in Assembly review: the user's message with an rw:c/fins chip, then three tool rows, each a real call: rw_design_check, rw_simulate on Baseline (the seeded run, a cache hit: ONE run card with real stats and the run_series chart, and no job polling rows, since the card follows a job itself), rw_history_show of the seeded step 04 Flight runs (a one-row step card naming it, Compare opens rw:step/4, the step the bottom strip and the pane footer show; B7e: back in the live turn, since Lecturn pin5 (FIXJ) draws no 'Working for' row and no held-call row while the approval waits); the reply (CPW1R5A: it reports what the real check of the seeded vehicle finds, its 2 missing engine inputs, the count the design_check row and the header's Check model badge both show); then a liquid engine run without a duration, whose app-decided approval stays pending (the approval card above the composer). The host then inserts rw:c/fins (the composer chip). Text is illustrative (decision 10).",
+  "thread": "Assembly review",
+  "runtimeMode": "approval-required",
+  "user": "Check rw:c/fins and run baseline.",
+  "approve": 0,
+  "cards": ["flight", "step"],
+  "mention": { "ref": "rw:c/fins", "label": "Fins" },
+  "script": [
+    { "toolCall": { "name": "rw_design_check", "arguments": {} } },
+    { "toolCall": { "name": "rw_simulate", "arguments": { "sim": "baseline" } } },
+    { "toolCall": { "name": "rw_history_show", "arguments": { "version": "step:4" } } },
+    { "assistantText": "The check flags 2 missing engine inputs." },
+    { "toolCall": { "name": "rw_engine_simulate", "arguments": { "engine": "demo" } } }
+  ]
+}

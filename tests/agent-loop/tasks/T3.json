@@ -1,0 +1,17 @@
+{
+  "id": "T3",
+  "title": "Attach a parachute and a rail button to named anchors, render, describe",
+  "setup": [["rw", "init", "--template", "minimum"]],
+  "prompt": "The working directory holds a RocketWright rocket project with a streamer and no parachute. The RocketWright CLI (`rw`) is on your PATH and its skill doc is at {skill_doc}. Add a parachute and a rail button, attaching each to a named anchor. Then render the `profile` and `iso` views and describe what each view shows.",
+  "predicates": [
+    { "kind": "file", "desc": "a parachute attached to a named anchor", "pattern": "\\.rw\\.toml$",
+      "contains": "\\[c\\.[\\w-]+\\](?=[^\\[]*\\btype\\s*=\\s*\"parachute\")(?=[^\\[]*\\battach\\s*=\\s*\\{[^}]*\\bto\\s*=)" },
+    { "kind": "file", "desc": "a rail button attached to a named anchor", "pattern": "\\.rw\\.toml$",
+      "contains": "\\[c\\.[\\w-]+\\](?=[^\\[]*\\btype\\s*=\\s*\"rail_button\")(?=[^\\[]*\\battach\\s*=\\s*\\{[^}]*\\bto\\s*=)" },
+    { "kind": "file", "desc": "the profile view was rendered", "pattern": "^renders/[^/]+\\.profile\\.png$" },
+    { "kind": "file", "desc": "the iso view was rendered", "pattern": "^renders/[^/]+\\.iso\\.png$" },
+    { "kind": "last_check", "desc": "the final design check is clean", "ok": true, "not_output": "RW-E\\d{3}" },
+    { "kind": "answer", "desc": "the answer describes the profile view", "pattern": "profile" },
+    { "kind": "answer", "desc": "the answer describes the iso view", "pattern": "iso" }
+  ]
+}

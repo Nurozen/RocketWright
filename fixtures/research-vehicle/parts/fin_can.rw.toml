@@ -1,0 +1,56 @@
+# Fin can: four swept fins and the 18 mm motor casing on two centering rings;
+# the casing stands 30 mm proud of the fin can (the metal tail in the side view).
+[c.fin_can]
+type = "body_tube"
+name = "Fin can"
+attach = { to = "airframe.aft" }
+material = "cardboard"
+finish = "smooth_paint"
+appearance = { preset = "composite_white" }
+length = "200 mm"
+od = "54 mm"
+id = "53 mm"
+
+[c.fins]
+type = "trapezoidal_fin_set"
+name = "Fins"
+attach = { to = "fin_can.aft", at = "root_te" }
+material = "balsa"
+finish = "smooth_paint"
+appearance = { preset = "composite_white" }
+count = 4
+root_chord = "140 mm"
+tip_chord = "60 mm"
+span = "= params.fin_span"
+sweep = "= params.fin_sweep"
+thickness = "3 mm"
+cross_section = "rounded"
+
+[c.motor_casing]
+type = "inner_tube"
+name = "Motor casing"
+attach = { to = "fin_can.aft", at = "aft", offset = "30 mm" }
+material = "aluminium"
+appearance = { preset = "aluminium_brushed" }
+length = "110 mm"
+od = "19.6 mm"
+id = "19 mm"
+motor_mount = true
+
+[c.ring_upper]
+type = "centering_ring"
+name = "Centering ring (upper)"
+attach = { to = "motor_casing.fore", at = "fore", offset = "5 mm" }
+material = "plywood"
+appearance = { preset = "aluminium_brushed" }
+length = "2 mm"
+id = "19.6 mm"
+
+[c.ring_lower]
+type = "centering_ring"
+name = "Centering ring (lower)"
+attach = { to = "fin_can.aft", at = "aft", offset = "-5 mm" }
+material = "plywood"
+appearance = { preset = "aluminium_brushed" }
+length = "2 mm"
+id = "19.6 mm"

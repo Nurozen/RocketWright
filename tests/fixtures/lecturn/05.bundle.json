@@ -1,0 +1,550 @@
+{
+  "version": 1,
+  "appId": "dev.rocketwright.app",
+  "sourceEnvironmentId": "rw-fixtures",
+  "exportedAt": "2026-10-24T12:00:00.000Z",
+  "projects": [
+    {
+      "workspaceRoot": "{workspaceRoot}",
+      "title": "{projectName}",
+      "threads": [
+        {
+          "sourceThreadId": "rw-05-flight-comparison",
+          "title": "Flight comparison",
+          "createdAt": "2026-10-24T09:44:40.000Z",
+          "updatedAt": "2026-10-24T09:45:00.000Z",
+          "historyRevision": 6,
+          "appData": "{\"page\":\"liquid\"}",
+          "subtitle": null,
+          "pinned": false,
+          "runtimeMode": "approval-required",
+          "interactionMode": "default",
+          "messages": [
+            {
+              "createdBy": "user",
+              "creationSource": "web",
+              "id": "rw-05-flight-comparison:t1:user",
+              "threadId": "rw-05-flight-comparison",
+              "runId": "rw-05-flight-comparison:run:1",
+              "nodeId": null,
+              "role": "user",
+              "text": "What changed between these flights? rw:sim/baseline rw:sim/higher_altitude",
+              "attachments": [],
+              "streaming": false,
+              "createdAt": "2026-10-24T09:44:40.000Z",
+              "updatedAt": "2026-10-24T09:44:40.000Z"
+            },
+            {
+              "createdBy": "agent",
+              "creationSource": "web",
+              "id": "rw-05-flight-comparison:t1:assistant",
+              "threadId": "rw-05-flight-comparison",
+              "runId": "rw-05-flight-comparison:run:1",
+              "nodeId": null,
+              "role": "assistant",
+              "text": "The second configuration reaches a higher apogee in this example. Review launch and recovery conditions before comparing.",
+              "attachments": [],
+              "streaming": false,
+              "createdAt": "2026-10-24T09:45:00.000Z",
+              "updatedAt": "2026-10-24T09:45:00.000Z"
+            }
+          ],
+          "turnItems": [
+            {
+              "id": "rw-05-flight-comparison:t1:user",
+              "threadId": "rw-05-flight-comparison",
+              "runId": "rw-05-flight-comparison:run:1",
+              "nodeId": "rw-05-flight-comparison:node:1",
+              "providerThreadId": null,
+              "providerTurnId": null,
+              "nativeItemRef": null,
+              "parentItemId": null,
+              "ordinal": 1,
+              "status": "completed",
+              "title": null,
+              "startedAt": "2026-10-24T09:44:40.000Z",
+              "completedAt": "2026-10-24T09:44:40.000Z",
+              "updatedAt": "2026-10-24T09:44:40.000Z",
+              "createdBy": "user",
+              "creationSource": "web",
+              "type": "user_message",
+              "messageId": "rw-05-flight-comparison:t1:user",
+              "inputIntent": "turn_start",
+              "text": "What changed between these flights? rw:sim/baseline rw:sim/higher_altitude",
+              "attachments": []
+            },
+            {
+              "id": "rw-05-flight-comparison:t1:tool1",
+              "threadId": "rw-05-flight-comparison",
+              "runId": "rw-05-flight-comparison:run:1",
+              "nodeId": "rw-05-flight-comparison:node:1",
+              "providerThreadId": null,
+              "providerTurnId": null,
+              "nativeItemRef": null,
+              "parentItemId": null,
+              "ordinal": 2,
+              "status": "completed",
+              "title": "List runs",
+              "startedAt": "2026-10-24T09:44:41.000Z",
+              "completedAt": "2026-10-24T09:44:41.500Z",
+              "updatedAt": "2026-10-24T09:44:41.500Z",
+              "toolSource": {
+                "key": "app:dev.rocketwright.app",
+                "name": "RocketWright",
+                "kind": "integration"
+              },
+              "type": "dynamic_tool",
+              "toolName": "lecturn.rw_run_list",
+              "input": {},
+              "output": {
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "{}"
+                  }
+                ],
+                "structuredContent": {},
+                "_meta": {
+                  "lecturn/summary": "4 runs"
+                }
+              }
+            },
+            {
+              "id": "rw-05-flight-comparison:t1:tool2",
+              "threadId": "rw-05-flight-comparison",
+              "runId": "rw-05-flight-comparison:run:1",
+              "nodeId": "rw-05-flight-comparison:node:1",
+              "providerThreadId": null,
+              "providerTurnId": null,
+              "nativeItemRef": null,
+              "parentItemId": null,
+              "ordinal": 3,
+              "status": "completed",
+              "title": "Compare runs",
+              "startedAt": "2026-10-24T09:44:42.000Z",
+              "completedAt": "2026-10-24T09:44:42.500Z",
+              "updatedAt": "2026-10-24T09:44:42.500Z",
+              "toolSource": {
+                "key": "app:dev.rocketwright.app",
+                "name": "RocketWright",
+                "kind": "integration"
+              },
+              "type": "dynamic_tool",
+              "toolName": "lecturn.rw_run_diff",
+              "input": {
+                "a": "baseline",
+                "b": "higher_altitude"
+              },
+              "output": {
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "{}"
+                  }
+                ],
+                "structuredContent": {},
+                "_meta": {
+                  "lecturn/summary": "2 runs"
+                }
+              }
+            },
+            {
+              "id": "rw-05-flight-comparison:t1:assistant",
+              "threadId": "rw-05-flight-comparison",
+              "runId": "rw-05-flight-comparison:run:1",
+              "nodeId": "rw-05-flight-comparison:node:1",
+              "providerThreadId": null,
+              "providerTurnId": null,
+              "nativeItemRef": null,
+              "parentItemId": null,
+              "ordinal": 4,
+              "status": "completed",
+              "title": null,
+              "startedAt": "2026-10-24T09:45:00.000Z",
+              "completedAt": "2026-10-24T09:45:00.000Z",
+              "updatedAt": "2026-10-24T09:45:00.000Z",
+              "type": "assistant_message",
+              "messageId": "rw-05-flight-comparison:t1:assistant",
+              "text": "The second configuration reaches a higher apogee in this example. Review launch and recovery conditions before comparing.",
+              "streaming": false
+            }
+          ]
+        },
+        {
+          "sourceThreadId": "rw-05-tank-study",
+          "title": "Tank study",
+          "createdAt": "2026-10-24T10:54:40.000Z",
+          "updatedAt": "2026-10-24T10:55:00.000Z",
+          "historyRevision": 5,
+          "appData": "{\"page\":\"liquid\"}",
+          "subtitle": null,
+          "pinned": false,
+          "runtimeMode": "approval-required",
+          "interactionMode": "default",
+          "messages": [
+            {
+              "createdBy": "user",
+              "creationSource": "web",
+              "id": "rw-05-tank-study:t1:user",
+              "threadId": "rw-05-tank-study",
+              "runId": "rw-05-tank-study:run:1",
+              "nodeId": null,
+              "role": "user",
+              "text": "How full is the oxidizer tank at ignition? rw:eng/demo-incomplete/feed/node/tank_a",
+              "attachments": [],
+              "streaming": false,
+              "createdAt": "2026-10-24T10:54:40.000Z",
+              "updatedAt": "2026-10-24T10:54:40.000Z"
+            },
+            {
+              "createdBy": "agent",
+              "creationSource": "web",
+              "id": "rw-05-tank-study:t1:assistant",
+              "threadId": "rw-05-tank-study",
+              "runId": "rw-05-tank-study:run:1",
+              "nodeId": null,
+              "role": "assistant",
+              "text": "Tank A starts 60% full, with nitrogen ullage above the liquid. Check the engine design for the propellant mass.",
+              "attachments": [],
+              "streaming": false,
+              "createdAt": "2026-10-24T10:55:00.000Z",
+              "updatedAt": "2026-10-24T10:55:00.000Z"
+            }
+          ],
+          "turnItems": [
+            {
+              "id": "rw-05-tank-study:t1:user",
+              "threadId": "rw-05-tank-study",
+              "runId": "rw-05-tank-study:run:1",
+              "nodeId": "rw-05-tank-study:node:1",
+              "providerThreadId": null,
+              "providerTurnId": null,
+              "nativeItemRef": null,
+              "parentItemId": null,
+              "ordinal": 1,
+              "status": "completed",
+              "title": null,
+              "startedAt": "2026-10-24T10:54:40.000Z",
+              "completedAt": "2026-10-24T10:54:40.000Z",
+              "updatedAt": "2026-10-24T10:54:40.000Z",
+              "createdBy": "user",
+              "creationSource": "web",
+              "type": "user_message",
+              "messageId": "rw-05-tank-study:t1:user",
+              "inputIntent": "turn_start",
+              "text": "How full is the oxidizer tank at ignition? rw:eng/demo-incomplete/feed/node/tank_a",
+              "attachments": []
+            },
+            {
+              "id": "rw-05-tank-study:t1:tool1",
+              "threadId": "rw-05-tank-study",
+              "runId": "rw-05-tank-study:run:1",
+              "nodeId": "rw-05-tank-study:node:1",
+              "providerThreadId": null,
+              "providerTurnId": null,
+              "nativeItemRef": null,
+              "parentItemId": null,
+              "ordinal": 2,
+              "status": "completed",
+              "title": "Size engine",
+              "startedAt": "2026-10-24T10:54:41.000Z",
+              "completedAt": "2026-10-24T10:54:41.500Z",
+              "updatedAt": "2026-10-24T10:54:41.500Z",
+              "toolSource": {
+                "key": "app:dev.rocketwright.app",
+                "name": "RocketWright",
+                "kind": "integration"
+              },
+              "type": "dynamic_tool",
+              "toolName": "lecturn.rw_engine_design",
+              "input": {
+                "engine": "demo-incomplete"
+              },
+              "output": {
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "{}"
+                  }
+                ],
+                "structuredContent": {},
+                "_meta": {
+                  "lecturn/summary": "Isp 253 s vacuum · 2 inputs missing"
+                }
+              }
+            },
+            {
+              "id": "rw-05-tank-study:t1:assistant",
+              "threadId": "rw-05-tank-study",
+              "runId": "rw-05-tank-study:run:1",
+              "nodeId": "rw-05-tank-study:node:1",
+              "providerThreadId": null,
+              "providerTurnId": null,
+              "nativeItemRef": null,
+              "parentItemId": null,
+              "ordinal": 3,
+              "status": "completed",
+              "title": null,
+              "startedAt": "2026-10-24T10:55:00.000Z",
+              "completedAt": "2026-10-24T10:55:00.000Z",
+              "updatedAt": "2026-10-24T10:55:00.000Z",
+              "type": "assistant_message",
+              "messageId": "rw-05-tank-study:t1:assistant",
+              "text": "Tank A starts 60% full, with nitrogen ullage above the liquid. Check the engine design for the propellant mass.",
+              "streaming": false
+            }
+          ]
+        },
+        {
+          "sourceThreadId": "rw-05-feed-system-review",
+          "title": "Feed system review",
+          "createdAt": "2026-10-24T11:54:40.000Z",
+          "updatedAt": "2026-10-24T11:55:00.000Z",
+          "historyRevision": 7,
+          "appData": "{\"page\":\"liquid\"}",
+          "subtitle": null,
+          "pinned": true,
+          "runtimeMode": "approval-required",
+          "interactionMode": "default",
+          "messages": [
+            {
+              "createdBy": "user",
+              "creationSource": "web",
+              "id": "rw-05-feed-system-review:t1:user",
+              "threadId": "rw-05-feed-system-review",
+              "runId": "rw-05-feed-system-review:run:1",
+              "nodeId": null,
+              "role": "user",
+              "text": "Explain the selected flow path. rw:eng/demo-incomplete/feed/edge/0",
+              "attachments": [],
+              "streaming": false,
+              "createdAt": "2026-10-24T11:54:40.000Z",
+              "updatedAt": "2026-10-24T11:54:40.000Z"
+            },
+            {
+              "createdBy": "agent",
+              "creationSource": "web",
+              "id": "rw-05-feed-system-review:t1:assistant",
+              "threadId": "rw-05-feed-system-review",
+              "runId": "rw-05-feed-system-review:run:1",
+              "nodeId": null,
+              "role": "assistant",
+              "text": "This path connects storage to the engine assembly. Select a component to inspect its role and assumptions.",
+              "attachments": [],
+              "streaming": false,
+              "createdAt": "2026-10-24T11:55:00.000Z",
+              "updatedAt": "2026-10-24T11:55:00.000Z"
+            }
+          ],
+          "turnItems": [
+            {
+              "id": "rw-05-feed-system-review:t1:user",
+              "threadId": "rw-05-feed-system-review",
+              "runId": "rw-05-feed-system-review:run:1",
+              "nodeId": "rw-05-feed-system-review:node:1",
+              "providerThreadId": null,
+              "providerTurnId": null,
+              "nativeItemRef": null,
+              "parentItemId": null,
+              "ordinal": 1,
+              "status": "completed",
+              "title": null,
+              "startedAt": "2026-10-24T11:54:40.000Z",
+              "completedAt": "2026-10-24T11:54:40.000Z",
+              "updatedAt": "2026-10-24T11:54:40.000Z",
+              "createdBy": "user",
+              "creationSource": "web",
+              "type": "user_message",
+              "messageId": "rw-05-feed-system-review:t1:user",
+              "inputIntent": "turn_start",
+              "text": "Explain the selected flow path. rw:eng/demo-incomplete/feed/edge/0",
+              "attachments": []
+            },
+            {
+              "id": "rw-05-feed-system-review:t1:tool1",
+              "threadId": "rw-05-feed-system-review",
+              "runId": "rw-05-feed-system-review:run:1",
+              "nodeId": "rw-05-feed-system-review:node:1",
+              "providerThreadId": null,
+              "providerTurnId": null,
+              "nativeItemRef": null,
+              "parentItemId": null,
+              "ordinal": 2,
+              "status": "completed",
+              "title": "Render view",
+              "startedAt": "2026-10-24T11:54:41.000Z",
+              "completedAt": "2026-10-24T11:54:41.500Z",
+              "updatedAt": "2026-10-24T11:54:41.500Z",
+              "toolSource": {
+                "key": "app:dev.rocketwright.app",
+                "name": "RocketWright",
+                "kind": "integration"
+              },
+              "type": "dynamic_tool",
+              "toolName": "lecturn.rw_viewport_render",
+              "input": {
+                "view": "iso"
+              },
+              "output": {
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "{\"width\":1536,\"height\":1024,\"backend\":\"webgpu\",\"adapter\":\"capture\"}"
+                  }
+                ],
+                "structuredContent": {
+                  "width": 1536,
+                  "height": 1024,
+                  "backend": "webgpu",
+                  "adapter": "capture"
+                },
+                "_meta": {
+                  "lecturn/summary": "Iso view"
+                }
+              }
+            },
+            {
+              "id": "rw-05-feed-system-review:t1:tool2",
+              "threadId": "rw-05-feed-system-review",
+              "runId": "rw-05-feed-system-review:run:1",
+              "nodeId": "rw-05-feed-system-review:node:1",
+              "providerThreadId": null,
+              "providerTurnId": null,
+              "nativeItemRef": null,
+              "parentItemId": null,
+              "ordinal": 3,
+              "status": "completed",
+              "title": "Show history step",
+              "startedAt": "2026-10-24T11:54:42.000Z",
+              "completedAt": "2026-10-24T11:54:42.500Z",
+              "updatedAt": "2026-10-24T11:54:42.500Z",
+              "toolSource": {
+                "key": "app:dev.rocketwright.app",
+                "name": "RocketWright",
+                "kind": "integration"
+              },
+              "type": "dynamic_tool",
+              "toolName": "lecturn.rw_history_show",
+              "input": {
+                "version": "step:4"
+              },
+              "output": {
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "{\"step\":{\"seq\":4,\"title\":\"Flight runs\"},\"diff\":{\"a\":\"step:3\",\"b\":\"step:4\",\"added\":[],\"removed\":[],\"changed\":[]}}"
+                  }
+                ],
+                "_meta": {
+                  "lecturn/summary": "Step 4 · Flight runs"
+                },
+                "structuredContent": {
+                  "lecturnMcpApp": {
+                    "attachmentId": "rw-05-feed-system-review-t1-tool2-html",
+                    "server": "lecturn",
+                    "tool": "rw_history_show",
+                    "resourceUri": "ui://rw/step-card",
+                    "prefersBorder": true
+                  },
+                  "result": {
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "{\"step\":{\"seq\":4,\"title\":\"Flight runs\"},\"diff\":{\"a\":\"step:3\",\"b\":\"step:4\",\"added\":[],\"removed\":[],\"changed\":[]}}"
+                      }
+                    ],
+                    "structuredContent": {
+                      "step": {
+                        "seq": 4,
+                        "title": "Flight runs"
+                      },
+                      "diff": {
+                        "a": "step:3",
+                        "b": "step:4",
+                        "added": [],
+                        "removed": [],
+                        "changed": []
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "id": "rw-05-feed-system-review:t1:tool3",
+              "threadId": "rw-05-feed-system-review",
+              "runId": "rw-05-feed-system-review:run:1",
+              "nodeId": "rw-05-feed-system-review:node:1",
+              "providerThreadId": null,
+              "providerTurnId": null,
+              "nativeItemRef": null,
+              "parentItemId": null,
+              "ordinal": 4,
+              "status": "completed",
+              "title": "Render view",
+              "startedAt": "2026-10-24T11:54:43.000Z",
+              "completedAt": "2026-10-24T11:54:43.500Z",
+              "updatedAt": "2026-10-24T11:54:43.500Z",
+              "toolSource": {
+                "key": "app:dev.rocketwright.app",
+                "name": "RocketWright",
+                "kind": "integration"
+              },
+              "type": "dynamic_tool",
+              "toolName": "lecturn.rw_viewport_render",
+              "input": {
+                "view": "side"
+              },
+              "output": {
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "{\"width\":1536,\"height\":1024,\"backend\":\"webgpu\",\"adapter\":\"capture\"}"
+                  }
+                ],
+                "structuredContent": {
+                  "width": 1536,
+                  "height": 1024,
+                  "backend": "webgpu",
+                  "adapter": "capture"
+                },
+                "_meta": {
+                  "lecturn/summary": "Side view"
+                }
+              }
+            },
+            {
+              "id": "rw-05-feed-system-review:t1:assistant",
+              "threadId": "rw-05-feed-system-review",
+              "runId": "rw-05-feed-system-review:run:1",
+              "nodeId": "rw-05-feed-system-review:node:1",
+              "providerThreadId": null,
+              "providerTurnId": null,
+              "nativeItemRef": null,
+              "parentItemId": null,
+              "ordinal": 5,
+              "status": "completed",
+              "title": null,
+              "startedAt": "2026-10-24T11:55:00.000Z",
+              "completedAt": "2026-10-24T11:55:00.000Z",
+              "updatedAt": "2026-10-24T11:55:00.000Z",
+              "type": "assistant_message",
+              "messageId": "rw-05-feed-system-review:t1:assistant",
+              "text": "This path connects storage to the engine assembly. Select a component to inspect its role and assumptions.",
+              "streaming": false
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "assets": [
+    {
+      "sourceAttachmentId": "rw-05-feed-system-review-t1-tool2-html",
+      "mimeType": "text/html",
+      "byteLength": 15986,
+      "sha256": "58bbdce0863da2a5bd35deaf077d74da6a1f832a75db2ac6e616f02adbc88e4b",
+      "dataBase64": "PCFkb2N0eXBlIGh0bWw+CjxodG1sIGxhbmc9ImVuIj4KPGhlYWQ+CjxtZXRhIGNoYXJzZXQ9InV0Zi04Ij4KPG1ldGEgbmFtZT0idmlld3BvcnQiIGNvbnRlbnQ9IndpZHRoPWRldmljZS13aWR0aCwgaW5pdGlhbC1zY2FsZT0xIj4KPHRpdGxlPlJvY2tldFdyaWdodCBzdGVwPC90aXRsZT4KPCEtLQogIHVpOi8vcncvc3RlcC1jYXJkIChCMywgRDcsIEQ4KTogYSByZWNvcmRlZCBkZXNpZ24gc3RlcCAoY29tcG9uZW50X2FkZCwKICBjb21wb25lbnRfcmVtb3ZlLCBtb2RlbF9wYXRjaCwgaW1wb3J0X2ZpbGUsIGhpc3RvcnlfcmVzdG9yZSkgYXMgYW4gTUNQIEFwcHMKICBjYXJkLiBTZWxmLWNvbnRhaW5lZDsgcmVuZGVycyBmcm9tIHRoZSB0b29sIGlucHV0ICh3aGF0IHRoZSBlZGl0IGRpZCkgYW5kCiAgdGhlIHJlc3VsdCAoc3RlcCwgY2hlY2sgc3RhdHVzLCBkZWx0YS5jaGFuZ2VkKS4gQ29tcGFyZSBvcGVucyB0aGUgc3RlcAogIHRocm91Z2ggdWkvb3Blbi1saW5rIHJ3OnN0ZXAvPG4+LCB3aGljaCBMZWN0dXJuIHR1cm5zIGludG8gbGVjdHVybi9uYXZpZ2F0ZS4KICBoaXN0b3J5X3Nob3cgcmVuZGVycyB0aGUgc3RlcCBpdCBuYW1lcyAoaXRzIHRpdGxlLCBTdGVwIDxuPiwgYSBjb3VudCBvZiB0aGUKICBtb2RlbCBkaWZmIHdoZW4gaXQgaGFzIG9uZSkuIFdpdGggbm90aGluZyB0byBsaXN0IHVuZGVyIHRoZSBoZWFkIChubwogIGNoYW5nZWQgbWV0cmljLCBubyBkaWFnbm9zdGljKSwgdGhlIGNhcmQgaXMgb25lIHJvdyAoZGF0YS1mb3JtPSJjb21wYWN0Iik6CiAgdGhlIHRpdGxlIG92ZXIgdGhlIHN1YnRpdGxlIHdpdGggdGhlIHN0YXR1cywgYW5kIENvbXBhcmUgYXQgdGhlIHJvdydzCiAgZW5kLCBhcyB0YWxsIGFzIExlY3R1cm4ncyA4MCBweCBtaW5pbXVtIGNhcmQgZnJhbWUgKENQVzFSM0EsIENQVzFSNEEsCiAgQ1AtVzEgcjQ6IHRoZSBlbWJlZGRlZCBwYW5lIGtlZXBzIGEgdHVybidzIGNhcmRzIGluIHZpZXcpLgotLT4KPHN0eWxlPgogIDpyb290IHsKICAgIGNvbG9yLXNjaGVtZTogZGFyazsKICAgIC0tcnctYmc6IHZhcigtLWNvbG9yLWJhY2tncm91bmQtc2Vjb25kYXJ5LCAjMjMyNzJhKTsKICAgIC0tcnctZmc6IHZhcigtLWNvbG9yLXRleHQtcHJpbWFyeSwgI2U2ZThlOSk7CiAgICAtLXJ3LW11dGVkOiB2YXIoLS1jb2xvci10ZXh0LXNlY29uZGFyeSwgIzlhYTNhOCk7CiAgICAtLXJ3LWJvcmRlcjogdmFyKC0tY29sb3ItYm9yZGVyLXByaW1hcnksICMzNTNiM2YpOwogICAgLS1ydy1yaW5nOiB2YXIoLS1jb2xvci1yaW5nLXByaW1hcnksICMzZmI2YTgpOwogICAgLS1ydy1kYW5nZXI6IHZhcigtLWNvbG9yLXRleHQtZGFuZ2VyLCAjZTU3MzZiKTsKICAgIC0tcnctd2FybmluZzogdmFyKC0tY29sb3ItdGV4dC13YXJuaW5nLCAjZTBiMjUyKTsKICAgIC0tcnctcmFkaXVzOiB2YXIoLS1ib3JkZXItcmFkaXVzLW1kLCA4cHgpOwogICAgLS1ydy1zYW5zOiB2YXIoLS1mb250LXNhbnMsIEludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sICJTZWdvZSBVSSIsIHNhbnMtc2VyaWYpOwogICAgLS1ydy1tb25vOiB2YXIoLS1mb250LW1vbm8sIHVpLW1vbm9zcGFjZSwgIlNGIE1vbm8iLCBNZW5sbywgbW9ub3NwYWNlKTsKICB9CiAgKiB7IGJveC1zaXppbmc6IGJvcmRlci1ib3g7IH0KICBodG1sLCBib2R5IHsgbWFyZ2luOiAwOyBwYWRkaW5nOiAwOyBiYWNrZ3JvdW5kOiB0cmFuc3BhcmVudDsgfQogIGJvZHkgeyBmb250OiAxNHB4LzEuNCB2YXIoLS1ydy1zYW5zKTsgY29sb3I6IHZhcigtLXJ3LWZnKTsgfQogIC5jYXJkIHsgYmFja2dyb3VuZDogdmFyKC0tcnctYmcpOyBib3JkZXItcmFkaXVzOiB2YXIoLS1ydy1yYWRpdXMpOyBwYWRkaW5nOiAxNHB4IDE2cHg7IH0KICAuaGVhZCB7IGRpc3BsYXk6IGZsZXg7IGFsaWduLWl0ZW1zOiBjZW50ZXI7IGdhcDogMTBweDsgfQogIC5pY29uIHsgZmxleDogbm9uZTsgd2lkdGg6IDIycHg7IGhlaWdodDogMjJweDsgY29sb3I6IHZhcigtLXJ3LXJpbmcpOyB9CiAgLnRpdGxlcyB7IGRpc3BsYXk6IGZsZXg7IGZsZXgtZGlyZWN0aW9uOiBjb2x1bW47IG1pbi13aWR0aDogMDsgZmxleDogMTsgfQogIC50aXRsZSB7IGZvbnQtd2VpZ2h0OiA2MDA7IGZvbnQtc2l6ZTogMTQuNXB4OyB3aGl0ZS1zcGFjZTogbm93cmFwOyBvdmVyZmxvdzogaGlkZGVuOyB0ZXh0LW92ZXJmbG93OiBlbGxpcHNpczsgfQogIC5zdWJ0aXRsZSB7IGNvbG9yOiB2YXIoLS1ydy1tdXRlZCk7IGZvbnQtc2l6ZTogMTIuNXB4OyB3aGl0ZS1zcGFjZTogbm93cmFwOyBvdmVyZmxvdzogaGlkZGVuOyB0ZXh0LW92ZXJmbG93OiBlbGxpcHNpczsgfQogIC8qIENvbXBhY3Q6IG9uZSByb3cgKHRoZSB0aXRsZSBvdmVyIHRoZSBtdXRlZCBzdWJ0aXRsZSwgQ29tcGFyZSBhdCBpdHMgZW5kKSB0aGF0IGZpbGxzIExlY3R1cm4ncwogICAgIDgwIHB4IG1pbmltdW0gY2FyZCBmcmFtZSAoTUNQX0FQUF9NSU5fSEVJR0hUOyBDUC1XMSByNDogYSBzaG9ydGVyIGNhcmQgbGVmdCB0aGUgcmVzdCBvZiB0aGUgZnJhbWUgZW1wdHkpLiAqLwogIC5jYXJkW2RhdGEtZm9ybT0iY29tcGFjdCJdIHsgcGFkZGluZzogMTBweCAxMnB4IDEwcHggMTRweDsgbWluLWhlaWdodDogODBweDsgZGlzcGxheTogZmxleDsgZmxleC1kaXJlY3Rpb246IGNvbHVtbjsganVzdGlmeS1jb250ZW50OiBjZW50ZXI7IH0KICAuY2hpcCB7IGZsZXg6IG5vbmU7IGJvcmRlcjogMXB4IHNvbGlkIHZhcigtLXJ3LWJvcmRlcik7IGJvcmRlci1yYWRpdXM6IDk5OXB4OyBwYWRkaW5nOiAxcHggOXB4OyBmb250LXNpemU6IDEycHg7IGNvbG9yOiB2YXIoLS1ydy1tdXRlZCk7IH0KICAuY2hpcFtkYXRhLXN0YXR1cz0iZXJyb3JzIl0geyBjb2xvcjogdmFyKC0tcnctZGFuZ2VyKTsgYm9yZGVyLWNvbG9yOiB2YXIoLS1ydy1kYW5nZXIpOyB9CiAgLmNoaXBbZGF0YS1zdGF0dXM9Indhcm5pbmdzIl0geyBjb2xvcjogdmFyKC0tcnctd2FybmluZyk7IGJvcmRlci1jb2xvcjogdmFyKC0tcnctd2FybmluZyk7IH0KICAuY2hhbmdlcyB7IG1hcmdpbjogMTJweCAwIDA7IHBhZGRpbmc6IDA7IGxpc3Qtc3R5bGU6IG5vbmU7IGRpc3BsYXk6IGdyaWQ7IGdyaWQtdGVtcGxhdGUtY29sdW1uczogbWlubWF4KDAsIDFmcikgbWF4LWNvbnRlbnQ7IGNvbHVtbi1nYXA6IDE2cHg7IHJvdy1nYXA6IDRweDsgfQogIC5jaGFuZ2VzIGxpIHsgZGlzcGxheTogY29udGVudHM7IH0KICAuY2hhbmdlcyAua2V5IHsgZm9udC1mYW1pbHk6IHZhcigtLXJ3LW1vbm8pOyBmb250LXNpemU6IDEyLjVweDsgY29sb3I6IHZhcigtLXJ3LW11dGVkKTsgb3ZlcmZsb3c6IGhpZGRlbjsgdGV4dC1vdmVyZmxvdzogZWxsaXBzaXM7IHdoaXRlLXNwYWNlOiBub3dyYXA7IH0KICAuY2hhbmdlcyAuZGVsdGEgeyBmb250LXZhcmlhbnQtbnVtZXJpYzogdGFidWxhci1udW1zOyBmb250LXNpemU6IDEzcHg7IHRleHQtYWxpZ246IHJpZ2h0OyB9CiAgLmNoYW5nZXMgLmRlbHRhIC5hcnJvdyB7IGNvbG9yOiB2YXIoLS1ydy1yaW5nKTsgcGFkZGluZzogMCA0cHg7IH0KICAubW9yZSwgLmVtcHR5IHsgY29sb3I6IHZhcigtLXJ3LW11dGVkKTsgZm9udC1zaXplOiAxMi41cHg7IG1hcmdpbi10b3A6IDhweDsgfQogIC5kaWFnIHsgbWFyZ2luLXRvcDogOHB4OyBmb250LXNpemU6IDEyLjVweDsgY29sb3I6IHZhcigtLXJ3LXdhcm5pbmcpOyB9CiAgLmFjdGlvbnMgeyBkaXNwbGF5OiBmbGV4OyBqdXN0aWZ5LWNvbnRlbnQ6IGZsZXgtZW5kOyBtYXJnaW4tdG9wOiAxMnB4OyB9CiAgLmNvbXBhcmUgeyBhbGw6IHVuc2V0OyBjdXJzb3I6IHBvaW50ZXI7IGJvcmRlcjogMXB4IHNvbGlkIHZhcigtLXJ3LWJvcmRlcik7IGJvcmRlci1yYWRpdXM6IGNhbGModmFyKC0tcnctcmFkaXVzKSAtIDJweCk7IHBhZGRpbmc6IDRweCAxMnB4OyBmb250LXNpemU6IDEzcHg7IH0KICAuY29tcGFyZTpob3ZlciwgLmNvbXBhcmU6Zm9jdXMtdmlzaWJsZSB7IGJvcmRlci1jb2xvcjogdmFyKC0tcnctcmluZyk7IGNvbG9yOiB2YXIoLS1ydy1yaW5nKTsgfQogIC5jb21wYXJlW2Rpc2FibGVkXSB7IG9wYWNpdHk6IDAuNTsgY3Vyc29yOiBkZWZhdWx0OyB9CiAgLmVycm9yIHsgY29sb3I6IHZhcigtLXJ3LWRhbmdlcik7IG1hcmdpbi10b3A6IDEwcHg7IGZvbnQtc2l6ZTogMTNweDsgfQogIC5ub3RlIHsgY29sb3I6IHZhcigtLXJ3LW11dGVkKTsgbWFyZ2luLXRvcDogOHB4OyBmb250OiAxMi41cHggdmFyKC0tcnctbW9ubyk7IH0KPC9zdHlsZT4KPC9oZWFkPgo8Ym9keT4KPGRpdiBpZD0icm9vdCIgY2xhc3M9ImNhcmQiIGRhdGEtdGVzdGlkPSJydy5zdGVwLWNhcmQiPjwvZGl2Pgo8c2NyaXB0PgooKCkgPT4gewogICJ1c2Ugc3RyaWN0IjsKCiAgY29uc3QgaG9zdCA9IHdpbmRvdy5wYXJlbnQ7CiAgbGV0IG5leHRJZCA9IDE7CiAgY29uc3Qgd2FpdGluZyA9IG5ldyBNYXAoKTsKICBjb25zdCBwb3N0ID0gKG0pID0+IGhvc3QucG9zdE1lc3NhZ2UobSwgIioiKTsKICBjb25zdCByZXF1ZXN0ID0gKG1ldGhvZCwgcGFyYW1zKSA9PgogICAgbmV3IFByb21pc2UoKHJlc29sdmUsIHJlamVjdCkgPT4gewogICAgICBjb25zdCBpZCA9IGBydy0ke25leHRJZCsrfWA7CiAgICAgIHdhaXRpbmcuc2V0KGlkLCB7IHJlc29sdmUsIHJlamVjdCB9KTsKICAgICAgcG9zdCh7IGpzb25ycGM6ICIyLjAiLCBpZCwgbWV0aG9kLCBwYXJhbXMgfSk7CiAgICB9KTsKICBjb25zdCBub3RpZnkgPSAobWV0aG9kLCBwYXJhbXMpID0+IHBvc3QoeyBqc29ucnBjOiAiMi4wIiwgbWV0aG9kLCBwYXJhbXMgfSk7CgogIGNvbnN0IEJBU0VTID0gWyJjb21wb25lbnRfYWRkIiwgImNvbXBvbmVudF9yZW1vdmUiLCAibW9kZWxfcGF0Y2giLCAiaW1wb3J0X2ZpbGUiLCAiaGlzdG9yeV9yZXN0b3JlIiwgImhpc3Rvcnlfc2hvdyJdOwogIGNvbnN0IHN0ID0geyBjdHg6IHt9LCBhcmdzOiB7fSwgcmVzdWx0OiB1bmRlZmluZWQgfTsKICBjb25zdCBNQVhfUk9XUyA9IDY7CgogIGZ1bmN0aW9uIGJhc2VUb29sKCkgewogICAgY29uc3QgbmFtZSA9IHN0LmN0eC50b29sSW5mbyAmJiBzdC5jdHgudG9vbEluZm8udG9vbCAmJiBzdC5jdHgudG9vbEluZm8udG9vbC5uYW1lOwogICAgaWYgKHR5cGVvZiBuYW1lID09PSAic3RyaW5nIikgZm9yIChjb25zdCBiIG9mIEJBU0VTKSBpZiAobmFtZS5lbmRzV2l0aChiKSkgcmV0dXJuIGI7CiAgICBjb25zdCBzaG93biA9IHN0LnJlc3VsdCAmJiBzdC5yZXN1bHQuc3RydWN0dXJlZENvbnRlbnQgJiYgc3QucmVzdWx0LnN0cnVjdHVyZWRDb250ZW50LnN0ZXA7CiAgICBpZiAoc2hvd24gJiYgdHlwZW9mIHNob3duID09PSAib2JqZWN0IikgcmV0dXJuICJoaXN0b3J5X3Nob3ciOwogICAgY29uc3QgYSA9IHN0LmFyZ3M7CiAgICBpZiAoQXJyYXkuaXNBcnJheShhLm9wcykpIHJldHVybiAibW9kZWxfcGF0Y2giOwogICAgaWYgKGEuY29tcG9uZW50ICYmIHR5cGVvZiBhLmlkID09PSAic3RyaW5nIikgcmV0dXJuICJjb21wb25lbnRfYWRkIjsKICAgIGlmICh0eXBlb2YgYS52ZXJzaW9uID09PSAic3RyaW5nIikgcmV0dXJuICJoaXN0b3J5X3Jlc3RvcmUiOwogICAgaWYgKHR5cGVvZiBhLnBhdGggPT09ICJzdHJpbmciICYmIHR5cGVvZiBhLmtpbmQgPT09ICJzdHJpbmciKSByZXR1cm4gImltcG9ydF9maWxlIjsKICAgIGlmICh0eXBlb2YgYS5pZCA9PT0gInN0cmluZyIpIHJldHVybiAiY29tcG9uZW50X3JlbW92ZSI7CiAgICByZXR1cm4gdW5kZWZpbmVkOwogIH0KCiAgY29uc3QgYmFzZW5hbWUgPSAocCkgPT4gU3RyaW5nKHApLnNwbGl0KC9bXFwvXS8pLnBvcCgpOwogIGNvbnN0IHBvaW50ZXIgPSAocCkgPT4gU3RyaW5nKHApLnJlcGxhY2UoL15cL2NcLy8sICIiKS5yZXBsYWNlKC9cLy9nLCAiLiIpOwogIGZ1bmN0aW9uIHZhbHVlVGV4dCh2KSB7CiAgICBpZiAodHlwZW9mIHYgPT09ICJzdHJpbmciKSByZXR1cm4gdjsKICAgIGlmICh0eXBlb2YgdiA9PT0gIm51bWJlciIgfHwgdHlwZW9mIHYgPT09ICJib29sZWFuIikgcmV0dXJuIFN0cmluZyh2KTsKICAgIHJldHVybiAi4oCmIjsKICB9CgogIC8vIFdoYXQgdGhlIGVkaXQgZGlkLCBmcm9tIHRoZSB0b29sIGlucHV0LgogIGZ1bmN0aW9uIGFjdGlvbih0b29sKSB7CiAgICBjb25zdCBhID0gc3QuYXJnczsKICAgIHN3aXRjaCAodG9vbCkgewogICAgICBjYXNlICJjb21wb25lbnRfYWRkIjogewogICAgICAgIGNvbnN0IHR5cGUgPSBhLmNvbXBvbmVudCAmJiBhLmNvbXBvbmVudC50eXBlID8gYCAoJHtTdHJpbmcoYS5jb21wb25lbnQudHlwZSkucmVwbGFjZSgvXy9nLCAiICIpfSlgIDogIiI7CiAgICAgICAgcmV0dXJuIGBBZGRlZCAke2EuaWR9JHt0eXBlfWA7CiAgICAgIH0KICAgICAgY2FzZSAiY29tcG9uZW50X3JlbW92ZSI6CiAgICAgICAgcmV0dXJuIGBSZW1vdmVkICR7YS5pZH1gOwogICAgICBjYXNlICJoaXN0b3J5X3Jlc3RvcmUiOgogICAgICAgIHJldHVybiBgUmVzdG9yZWQgJHthLnZlcnNpb259YDsKICAgICAgY2FzZSAiaGlzdG9yeV9zaG93IjogewogICAgICAgIGNvbnN0IHMgPSBzdC5yZXN1bHQgJiYgc3QucmVzdWx0LnN0cnVjdHVyZWRDb250ZW50ICYmIHN0LnJlc3VsdC5zdHJ1Y3R1cmVkQ29udGVudC5zdGVwOwogICAgICAgIGlmIChzICYmIHR5cGVvZiBzLnRpdGxlID09PSAic3RyaW5nIiAmJiBzLnRpdGxlLnRyaW0oKSAhPT0gIiIpIHJldHVybiBzLnRpdGxlLnRyaW0oKTsKICAgICAgICByZXR1cm4gcyAmJiBzLnNlcSAhPT0gdW5kZWZpbmVkID8gYFN0ZXAgJHtzLnNlcX1gIDogIkRlc2lnbiBzdGVwIjsKICAgICAgfQogICAgICBjYXNlICJpbXBvcnRfZmlsZSI6CiAgICAgICAgcmV0dXJuIGBJbXBvcnRlZCAke2Jhc2VuYW1lKGEucGF0aCl9YDsKICAgICAgY2FzZSAibW9kZWxfcGF0Y2giOiB7CiAgICAgICAgaWYgKHR5cGVvZiBhLmxhYmVsID09PSAic3RyaW5nIiAmJiBhLmxhYmVsLnRyaW0oKSAhPT0gIiIpIHJldHVybiBhLmxhYmVsLnRyaW0oKTsKICAgICAgICBjb25zdCBvcHMgPSBBcnJheS5pc0FycmF5KGEub3BzKSA/IGEub3BzIDogW107CiAgICAgICAgaWYgKG9wcy5sZW5ndGggPT09IDEpIHsKICAgICAgICAgIGNvbnN0IG8gPSBvcHNbMF07CiAgICAgICAgICBpZiAoby5vcCA9PT0gInJlcGxhY2UiIHx8IG8ub3AgPT09ICJhZGQiKSByZXR1cm4gYFNldCAke3BvaW50ZXIoby5wYXRoKX0gdG8gJHt2YWx1ZVRleHQoby52YWx1ZSl9YDsKICAgICAgICAgIGlmIChvLm9wID09PSAicmVtb3ZlIikgcmV0dXJuIGBSZW1vdmVkICR7cG9pbnRlcihvLnBhdGgpfWA7CiAgICAgICAgICByZXR1cm4gYCR7by5vcH0gJHtwb2ludGVyKG8ucGF0aCl9YDsKICAgICAgICB9CiAgICAgICAgcmV0dXJuIGAke29wcy5sZW5ndGh9IGVkaXRzYDsKICAgICAgfQogICAgICBkZWZhdWx0OgogICAgICAgIHJldHVybiAiRGVzaWduIGVkaXQiOwogICAgfQogIH0KCiAgY29uc3Qgc3RhdHVzVGV4dCA9IChzKSA9PiAocyA9PT0gImNsZWFuIiA/ICJDaGVjayBjbGVhbiIgOiBzID09PSAid2FybmluZ3MiID8gIldhcm5pbmdzIiA6ICJFcnJvcnMiKTsKCiAgLy8gaGlzdG9yeV9zaG93J3MgbW9kZWwgZGlmZiBhZ2FpbnN0IHRoZSBzdGVwIGJlZm9yZSwgYXMgYSBjb3VudC4KICBmdW5jdGlvbiBkaWZmVGV4dChkKSB7CiAgICBjb25zdCBuID0gKGspID0+IChkICYmIEFycmF5LmlzQXJyYXkoZFtrXSkgPyBkW2tdLmxlbmd0aCA6IDApOwogICAgY29uc3QgcGFydHMgPSBbXTsKICAgIGlmIChuKCJhZGRlZCIpKSBwYXJ0cy5wdXNoKGAke24oImFkZGVkIil9IGFkZGVkYCk7CiAgICBpZiAobigicmVtb3ZlZCIpKSBwYXJ0cy5wdXNoKGAke24oInJlbW92ZWQiKX0gcmVtb3ZlZGApOwogICAgaWYgKG4oImNoYW5nZWQiKSkgcGFydHMucHVzaChgJHtuKCJjaGFuZ2VkIil9IGNoYW5nZWRgKTsKICAgIHJldHVybiBwYXJ0cy5sZW5ndGggPyBwYXJ0cy5qb2luKCIgwrcgIikgOiAiTm8gY29tcG9uZW50IGNoYW5nZXMiOwogIH0KCiAgY29uc3QgZGlmZkNvdW50ID0gKGQpID0+IFsiYWRkZWQiLCAicmVtb3ZlZCIsICJjaGFuZ2VkIl0ucmVkdWNlKChjLCBrKSA9PiBjICsgKGQgJiYgQXJyYXkuaXNBcnJheShkW2tdKSA/IGRba10ubGVuZ3RoIDogMCksIDApOwoKICBmdW5jdGlvbiBzdGVwTnVtYmVyKHN0ZXApIHsKICAgIGNvbnN0IG0gPSAvKFxkKykkLy5leGVjKFN0cmluZyhzdGVwIHx8ICIiKSk7CiAgICByZXR1cm4gbSA/IE51bWJlcihtWzFdKSA6IHVuZGVmaW5lZDsKICB9CgogIGZ1bmN0aW9uIGZtdCh2KSB7CiAgICBpZiAodiA9PT0gbnVsbCB8fCB2ID09PSB1bmRlZmluZWQgfHwgIU51bWJlci5pc0Zpbml0ZSh2KSkgcmV0dXJuICLigJMiOwogICAgaWYgKHYgPT09IDApIHJldHVybiAiMCI7CiAgICBjb25zdCBhID0gTWF0aC5hYnModik7CiAgICBpZiAoYSA+PSAxZTUgfHwgYSA8IDFlLTMpIHJldHVybiB2LnRvRXhwb25lbnRpYWwoMyk7CiAgICByZXR1cm4gU3RyaW5nKE51bWJlcih2LnRvUHJlY2lzaW9uKDQpKSk7CiAgfQoKICBmdW5jdGlvbiBlbCh0YWcsIGNscywgdGV4dCkgewogICAgY29uc3QgZSA9IGRvY3VtZW50LmNyZWF0ZUVsZW1lbnQodGFnKTsKICAgIGlmIChjbHMpIGUuY2xhc3NOYW1lID0gY2xzOwogICAgaWYgKHRleHQgIT09IHVuZGVmaW5lZCkgZS50ZXh0Q29udGVudCA9IHRleHQ7CiAgICByZXR1cm4gZTsKICB9CgogIGZ1bmN0aW9uIHJlbmRlcigpIHsKICAgIGNvbnN0IHJvb3QgPSBkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgicm9vdCIpOwogICAgcm9vdC5yZXBsYWNlQ2hpbGRyZW4oKTsKICAgIGNvbnN0IHRvb2wgPSBiYXNlVG9vbCgpOwogICAgY29uc3QgciA9IHN0LnJlc3VsdDsKICAgIGNvbnN0IHNjID0gKHIgJiYgci5zdHJ1Y3R1cmVkQ29udGVudCkgfHwge307CiAgICBjb25zdCBkZWx0YSA9IHNjLmRlbHRhIHx8IHt9OwogICAgY29uc3Qgc2hvd24gPSB0b29sID09PSAiaGlzdG9yeV9zaG93IiAmJiBzYy5zdGVwICYmIHR5cGVvZiBzYy5zdGVwID09PSAib2JqZWN0IiA/IHNjLnN0ZXAgOiBudWxsOwogICAgY29uc3QgbiA9IHNob3duID8gc3RlcE51bWJlcihzaG93bi5zZXEpIDogc3RlcE51bWJlcihzYy5zdGVwIHx8IGRlbHRhLnN0ZXApOwogICAgcm9vdC5zZXRBdHRyaWJ1dGUoImRhdGEtdG9vbCIsIHRvb2wgfHwgIiIpOwogICAgY29uc3QgY2hhbmdlZCA9IE9iamVjdC5lbnRyaWVzKGRlbHRhLmNoYW5nZWQgfHwge30pOwogICAgY29uc3QgbmQgPSBBcnJheS5pc0FycmF5KGRlbHRhLm5ld19kaWFnbm9zdGljcykgPyBkZWx0YS5uZXdfZGlhZ25vc3RpY3MubGVuZ3RoIDogMDsKICAgIGNvbnN0IGltcG9ydGVkID0gQXJyYXkuaXNBcnJheShzYy5pbXBvcnRlZCkgJiYgc2MuaW1wb3J0ZWQubGVuZ3RoID4gMDsKICAgIC8vIE5vdGhpbmcgdG8gbGlzdCB1bmRlciB0aGUgaGVhZDogb25lIGNvbXBhY3Qgcm93LgogICAgY29uc3QgY29tcGFjdCA9ICEhciAmJiAhci5pc0Vycm9yICYmIChzaG93biAhPT0gbnVsbCB8fCAoY2hhbmdlZC5sZW5ndGggPT09IDAgJiYgbmQgPT09IDAgJiYgIWltcG9ydGVkKSk7CiAgICByb290LnNldEF0dHJpYnV0ZSgiZGF0YS1mb3JtIiwgY29tcGFjdCA/ICJjb21wYWN0IiA6ICJmdWxsIik7CgogICAgY29uc3QgaGVhZCA9IGVsKCJkaXYiLCAiaGVhZCIpOwogICAgaGVhZC5zZXRBdHRyaWJ1dGUoImRhdGEtY2FyZC10aXRsZSIsICIiKTsKICAgIGNvbnN0IGljb24gPSBkb2N1bWVudC5jcmVhdGVFbGVtZW50TlMoImh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiwgInN2ZyIpOwogICAgaWNvbi5zZXRBdHRyaWJ1dGUoImNsYXNzIiwgImljb24iKTsKICAgIGljb24uc2V0QXR0cmlidXRlKCJ2aWV3Qm94IiwgIjAgMCAyNCAyNCIpOwogICAgaWNvbi5zZXRBdHRyaWJ1dGUoImFyaWEtaGlkZGVuIiwgInRydWUiKTsKICAgIGljb24uc2V0QXR0cmlidXRlKCJkYXRhLWNhcmQtaWNvbiIsICIiKTsKICAgIGNvbnN0IGNpcmNsZSA9IGRvY3VtZW50LmNyZWF0ZUVsZW1lbnROUygiaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciLCAiY2lyY2xlIik7CiAgICBmb3IgKGNvbnN0IFtrLCB2XSBvZiBbWyJjeCIsIDEyXSwgWyJjeSIsIDEyXSwgWyJyIiwgOF0sIFsiZmlsbCIsICJub25lIl0sIFsic3Ryb2tlIiwgImN1cnJlbnRDb2xvciJdLCBbInN0cm9rZS13aWR0aCIsIDJdXSkgY2lyY2xlLnNldEF0dHJpYnV0ZShrLCBTdHJpbmcodikpOwogICAgaWNvbi5hcHBlbmRDaGlsZChjaXJjbGUpOwogICAgaGVhZC5hcHBlbmRDaGlsZChpY29uKTsKICAgIGNvbnN0IHRpdGxlcyA9IGVsKCJkaXYiLCAidGl0bGVzIik7CiAgICBjb25zdCB0aXRsZSA9IGVsKCJzcGFuIiwgInRpdGxlIiwgciA/IGFjdGlvbih0b29sKSA6ICJEZXNpZ24gZWRpdCIpOwogICAgdGl0bGUuc2V0QXR0cmlidXRlKCJkYXRhLXRlc3RpZCIsICJydy5zdGVwLWNhcmQudGl0bGUiKTsKICAgIHRpdGxlcy5hcHBlbmRDaGlsZCh0aXRsZSk7CiAgICBsZXQgc3ViOwogICAgaWYgKCFyKSBzdWIgPSAiV2FpdGluZyBmb3IgdGhlIHJlc3VsdCI7CiAgICBlbHNlIGlmIChyLmlzRXJyb3IpIHN1YiA9ICJOb3QgYXBwbGllZCI7CiAgICBlbHNlIGlmIChzaG93bikgc3ViID0gZGlmZkNvdW50KHNjLmRpZmYpID09PSAwID8gYFN0ZXAgJHtuID09PSB1bmRlZmluZWQgPyAiPyIgOiBufWAgOiBgU3RlcCAke24gPT09IHVuZGVmaW5lZCA/ICI/IiA6IG59IMK3ICR7ZGlmZlRleHQoc2MuZGlmZil9YDsKICAgIGVsc2UgaWYgKHNjLmRyeV9ydW4pIHN1YiA9ICJEcnkgcnVuIMK3IG5vdGhpbmcgcmVjb3JkZWQiOwogICAgZWxzZSBpZiAobiAhPT0gdW5kZWZpbmVkKSBzdWIgPSBjb21wYWN0ICYmIGRlbHRhLnN0YXR1cyA/IGBTdGVwICR7bn0gwrcgJHtzdGF0dXNUZXh0KGRlbHRhLnN0YXR1cyl9YCA6IGBTdGVwICR7bn1gOwogICAgZWxzZSBzdWIgPSAiTm8gY2hhbmdlIjsKICAgIGNvbnN0IHN1YnRpdGxlID0gZWwoInNwYW4iLCAic3VidGl0bGUiLCBzdWIpOwogICAgaWYgKGNvbXBhY3QgJiYgIXNob3duICYmICFzYy5kcnlfcnVuICYmIG4gIT09IHVuZGVmaW5lZCkgc3VidGl0bGUudGl0bGUgPSAiTm8gbWV0cmljIGNoYW5nZWQuIjsKICAgIHN1YnRpdGxlLnNldEF0dHJpYnV0ZSgiZGF0YS10ZXN0aWQiLCAicncuc3RlcC1jYXJkLnN1YnRpdGxlIik7CiAgICBzdWJ0aXRsZS5zZXRBdHRyaWJ1dGUoImRhdGEtY2FyZC1zdWJ0aXRsZSIsICIiKTsKICAgIHRpdGxlcy5hcHBlbmRDaGlsZChzdWJ0aXRsZSk7CiAgICBoZWFkLmFwcGVuZENoaWxkKHRpdGxlcyk7CiAgICBpZiAociAmJiAhci5pc0Vycm9yICYmIGRlbHRhLnN0YXR1cyAmJiAhY29tcGFjdCkgewogICAgICBjb25zdCBjaGlwID0gZWwoInNwYW4iLCAiY2hpcCIsIHN0YXR1c1RleHQoZGVsdGEuc3RhdHVzKSk7CiAgICAgIGNoaXAuc2V0QXR0cmlidXRlKCJkYXRhLXN0YXR1cyIsIGRlbHRhLnN0YXR1cyk7CiAgICAgIGNoaXAuc2V0QXR0cmlidXRlKCJkYXRhLWNhcmQtY2hpcCIsICIiKTsKICAgICAgaGVhZC5hcHBlbmRDaGlsZChjaGlwKTsKICAgIH0KICAgIHJvb3QuYXBwZW5kQ2hpbGQoaGVhZCk7CgogICAgaWYgKHIgJiYgci5pc0Vycm9yKSB7CiAgICAgIGNvbnN0IHJlcSA9IHIuX21ldGEgJiYgci5fbWV0YVsibGVjdHVybi9hcHByb3ZhbC1yZXF1aXJlZCJdOwogICAgICBjb25zdCBlID0gci5fbWV0YSAmJiByLl9tZXRhWyJydy9lcnJvciJdOwogICAgICBpZiAocmVxKSByb290LmFwcGVuZENoaWxkKGVsKCJkaXYiLCAibm90ZSIsIHJlcS5yZWFzb24pKTsKICAgICAgZWxzZSB7CiAgICAgICAgY29uc3QgeCA9IGVsKCJkaXYiLCAiZXJyb3IiLCAoZSAmJiBlLm1lc3NhZ2UpIHx8ICJUaGUgZWRpdCBmYWlsZWQuIik7CiAgICAgICAgeC5zZXRBdHRyaWJ1dGUoInJvbGUiLCAiYWxlcnQiKTsKICAgICAgICByb290LmFwcGVuZENoaWxkKHgpOwogICAgICB9CiAgICB9IGVsc2UgaWYgKHIgJiYgIWNvbXBhY3QpIHsKICAgICAgaWYgKGNoYW5nZWQubGVuZ3RoID4gMCkgewogICAgICAgIGNvbnN0IGxpc3QgPSBlbCgidWwiLCAiY2hhbmdlcyIpOwogICAgICAgIGxpc3Quc2V0QXR0cmlidXRlKCJkYXRhLXRlc3RpZCIsICJydy5zdGVwLWNhcmQuY2hhbmdlcyIpOwogICAgICAgIGZvciAoY29uc3QgW2tleSwgcGFpcl0gb2YgY2hhbmdlZC5zbGljZSgwLCBNQVhfUk9XUykpIHsKICAgICAgICAgIGNvbnN0IGxpID0gZWwoImxpIik7CiAgICAgICAgICBsaS5zZXRBdHRyaWJ1dGUoImRhdGEta2V5Iiwga2V5KTsKICAgICAgICAgIGxpLmFwcGVuZENoaWxkKGVsKCJzcGFuIiwgImtleSIsIGtleSkpOwogICAgICAgICAgY29uc3QgZCA9IGVsKCJzcGFuIiwgImRlbHRhIik7CiAgICAgICAgICBkLmFwcGVuZChmbXQocGFpciAmJiBwYWlyWzBdKSwgZWwoInNwYW4iLCAiYXJyb3ciLCAi4oaSIiksIGZtdChwYWlyICYmIHBhaXJbMV0pKTsKICAgICAgICAgIGxpLmFwcGVuZENoaWxkKGQpOwogICAgICAgICAgbGlzdC5hcHBlbmRDaGlsZChsaSk7CiAgICAgICAgfQogICAgICAgIHJvb3QuYXBwZW5kQ2hpbGQobGlzdCk7CiAgICAgICAgaWYgKGNoYW5nZWQubGVuZ3RoID4gTUFYX1JPV1MpIHJvb3QuYXBwZW5kQ2hpbGQoZWwoImRpdiIsICJtb3JlIiwgYCske2NoYW5nZWQubGVuZ3RoIC0gTUFYX1JPV1N9IG1vcmVgKSk7CiAgICAgIH0gZWxzZSB7CiAgICAgICAgcm9vdC5hcHBlbmRDaGlsZChlbCgiZGl2IiwgImVtcHR5IiwgIk5vIG1ldHJpYyBjaGFuZ2VkLiIpKTsKICAgICAgfQogICAgICBpZiAobmQgPiAwKSByb290LmFwcGVuZENoaWxkKGVsKCJkaXYiLCAiZGlhZyIsIGAke25kfSBuZXcgZGlhZ25vc3RpYyR7bmQgPT09IDEgPyAiIiA6ICJzIn1gKSk7CiAgICAgIGlmIChpbXBvcnRlZCkgcm9vdC5hcHBlbmRDaGlsZChlbCgiZGl2IiwgIm5vdGUiLCBzYy5pbXBvcnRlZC5qb2luKCIsICIpKSk7CiAgICB9CgogICAgY29uc3QgYWN0aW9ucyA9IGNvbXBhY3QgPyBoZWFkIDogZWwoImRpdiIsICJhY3Rpb25zIik7CiAgICBjb25zdCBjb21wYXJlID0gZWwoImJ1dHRvbiIsICJjb21wYXJlIiwgIkNvbXBhcmUiKTsKICAgIGNvbXBhcmUudHlwZSA9ICJidXR0b24iOwogICAgY29tcGFyZS5zZXRBdHRyaWJ1dGUoImRhdGEtdGVzdGlkIiwgInJ3LnN0ZXAtY2FyZC5jb21wYXJlIik7CiAgICBpZiAobiA9PT0gdW5kZWZpbmVkKSBjb21wYXJlLmRpc2FibGVkID0gdHJ1ZTsKICAgIGNvbXBhcmUuYWRkRXZlbnRMaXN0ZW5lcigiY2xpY2siLCAoKSA9PiB7CiAgICAgIGlmIChuICE9PSB1bmRlZmluZWQpIHJlcXVlc3QoInVpL29wZW4tbGluayIsIHsgdXJsOiBgcnc6c3RlcC8ke259YCB9KS5jYXRjaCgoKSA9PiB1bmRlZmluZWQpOwogICAgfSk7CiAgICBhY3Rpb25zLmFwcGVuZENoaWxkKGNvbXBhcmUpOwogICAgaWYgKCFjb21wYWN0KSByb290LmFwcGVuZENoaWxkKGFjdGlvbnMpOwogICAgY29uc3QgcmVjdCA9IGRvY3VtZW50LmRvY3VtZW50RWxlbWVudC5nZXRCb3VuZGluZ0NsaWVudFJlY3QoKTsKICAgIC8vIFRoZSBjb250ZW50IGhlaWdodDogdGhlIHJvb3QncyBzY3JvbGxIZWlnaHQgbmV2ZXIgZHJvcHMgYmVsb3cgdGhlIGhvc3QgZnJhbWUncyAoaW5pdGlhbGx5IDMyMCBweCkuCiAgICBub3RpZnkoInVpL25vdGlmaWNhdGlvbnMvc2l6ZS1jaGFuZ2VkIiwgeyB3aWR0aDogTWF0aC5jZWlsKHJlY3Qud2lkdGgpLCBoZWlnaHQ6IE1hdGguY2VpbChkb2N1bWVudC5ib2R5LmdldEJvdW5kaW5nQ2xpZW50UmVjdCgpLmhlaWdodCB8fCByZWN0LmhlaWdodCkgfSk7CiAgfQoKICBmdW5jdGlvbiBhcHBseUNvbnRleHQoY3R4KSB7CiAgICBpZiAoIWN0eCB8fCB0eXBlb2YgY3R4ICE9PSAib2JqZWN0IikgcmV0dXJuOwogICAgc3QuY3R4ID0gT2JqZWN0LmFzc2lnbih7fSwgc3QuY3R4LCBjdHgpOwogICAgY29uc3QgdmFycyA9IGN0eC5zdHlsZXMgJiYgY3R4LnN0eWxlcy52YXJpYWJsZXM7CiAgICBpZiAodmFycyAmJiB0eXBlb2YgdmFycyA9PT0gIm9iamVjdCIpIHsKICAgICAgZm9yIChjb25zdCBrIGluIHZhcnMpIGlmICh0eXBlb2YgdmFyc1trXSA9PT0gInN0cmluZyIpIGRvY3VtZW50LmRvY3VtZW50RWxlbWVudC5zdHlsZS5zZXRQcm9wZXJ0eShrLCB2YXJzW2tdKTsKICAgIH0KICAgIGNvbnN0IGZvbnRzID0gY3R4LnN0eWxlcyAmJiBjdHguc3R5bGVzLmNzcyAmJiBjdHguc3R5bGVzLmNzcy5mb250czsKICAgIGlmICh0eXBlb2YgZm9udHMgPT09ICJzdHJpbmciICYmIGZvbnRzLnRyaW0oKSAhPT0gIiIpIHsKICAgICAgbGV0IHMgPSBkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgiaG9zdC1mb250cyIpOwogICAgICBpZiAoIXMpIHsKICAgICAgICBzID0gZG9jdW1lbnQuY3JlYXRlRWxlbWVudCgic3R5bGUiKTsKICAgICAgICBzLmlkID0gImhvc3QtZm9udHMiOwogICAgICAgIGRvY3VtZW50LmhlYWQuYXBwZW5kQ2hpbGQocyk7CiAgICAgIH0KICAgICAgcy50ZXh0Q29udGVudCA9IGZvbnRzOwogICAgfQogICAgaWYgKGN0eC50aGVtZSA9PT0gImxpZ2h0IiB8fCBjdHgudGhlbWUgPT09ICJkYXJrIikgZG9jdW1lbnQuZG9jdW1lbnRFbGVtZW50LnN0eWxlLmNvbG9yU2NoZW1lID0gY3R4LnRoZW1lOwogIH0KCiAgd2luZG93LmFkZEV2ZW50TGlzdGVuZXIoIm1lc3NhZ2UiLCAoZXYpID0+IHsKICAgIGlmIChldi5zb3VyY2UgIT09IGhvc3QpIHJldHVybjsKICAgIGNvbnN0IG0gPSBldi5kYXRhOwogICAgaWYgKCFtIHx8IG0uanNvbnJwYyAhPT0gIjIuMCIpIHJldHVybjsKICAgIGlmIChtLmlkICE9PSB1bmRlZmluZWQgJiYgbS5tZXRob2QgPT09IHVuZGVmaW5lZCkgewogICAgICBjb25zdCB3ID0gd2FpdGluZy5nZXQobS5pZCk7CiAgICAgIGlmICghdykgcmV0dXJuOwogICAgICB3YWl0aW5nLmRlbGV0ZShtLmlkKTsKICAgICAgaWYgKG0uZXJyb3IpIHcucmVqZWN0KG0uZXJyb3IpOwogICAgICBlbHNlIHcucmVzb2x2ZShtLnJlc3VsdCk7CiAgICAgIHJldHVybjsKICAgIH0KICAgIGlmIChtLmlkICE9PSB1bmRlZmluZWQpIHsKICAgICAgaWYgKG0ubWV0aG9kID09PSAidWkvcmVzb3VyY2UtdGVhcmRvd24iIHx8IG0ubWV0aG9kID09PSAicGluZyIpIHBvc3QoeyBqc29ucnBjOiAiMi4wIiwgaWQ6IG0uaWQsIHJlc3VsdDoge30gfSk7CiAgICAgIGVsc2UgcG9zdCh7IGpzb25ycGM6ICIyLjAiLCBpZDogbS5pZCwgZXJyb3I6IHsgY29kZTogLTMyNjAxLCBtZXNzYWdlOiBgTWV0aG9kIG5vdCBmb3VuZDogJHttLm1ldGhvZH1gIH0gfSk7CiAgICAgIHJldHVybjsKICAgIH0KICAgIGNvbnN0IHAgPSBtLnBhcmFtcyB8fCB7fTsKICAgIGlmIChtLm1ldGhvZCA9PT0gInVpL25vdGlmaWNhdGlvbnMvdG9vbC1pbnB1dCIpIHsKICAgICAgc3QuYXJncyA9IChwLmFyZ3VtZW50cyAmJiB0eXBlb2YgcC5hcmd1bWVudHMgPT09ICJvYmplY3QiICYmIHAuYXJndW1lbnRzKSB8fCB7fTsKICAgICAgcmVuZGVyKCk7CiAgICB9IGVsc2UgaWYgKG0ubWV0aG9kID09PSAidWkvbm90aWZpY2F0aW9ucy90b29sLXJlc3VsdCIpIHsKICAgICAgc3QucmVzdWx0ID0gcDsKICAgICAgcmVuZGVyKCk7CiAgICB9IGVsc2UgaWYgKG0ubWV0aG9kID09PSAidWkvbm90aWZpY2F0aW9ucy9ob3N0LWNvbnRleHQtY2hhbmdlZCIpIHsKICAgICAgYXBwbHlDb250ZXh0KHApOwogICAgICByZW5kZXIoKTsKICAgIH0KICB9KTsKCiAgcmVuZGVyKCk7CiAgcmVxdWVzdCgidWkvaW5pdGlhbGl6ZSIsIHsKICAgIHByb3RvY29sVmVyc2lvbjogIjIwMjYtMDEtMjYiLAogICAgYXBwSW5mbzogeyBuYW1lOiAicm9ja2V0d3JpZ2h0LXN0ZXAtY2FyZCIsIHZlcnNpb246ICIxIiB9LAogICAgYXBwQ2FwYWJpbGl0aWVzOiB7IGF2YWlsYWJsZURpc3BsYXlNb2RlczogWyJpbmxpbmUiXSB9LAogIH0pLnRoZW4oCiAgICAocikgPT4gewogICAgICBhcHBseUNvbnRleHQociAmJiByLmhvc3RDb250ZXh0KTsKICAgICAgcmVuZGVyKCk7CiAgICAgIG5vdGlmeSgidWkvbm90aWZpY2F0aW9ucy9pbml0aWFsaXplZCIsIHt9KTsKICAgIH0sCiAgICAoKSA9PiBub3RpZnkoInVpL25vdGlmaWNhdGlvbnMvaW5pdGlhbGl6ZWQiLCB7fSksCiAgKTsKfSkoKTsKPC9zY3JpcHQ+CjwvYm9keT4KPC9odG1sPgo="
+    }
+  ]
+}

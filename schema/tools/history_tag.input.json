@@ -1,0 +1,30 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "version": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Default: the latest step."
+    },
+    "number": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "uint32",
+      "minimum": 1,
+      "description": "Revision number (`Rev NN`); default: one above the highest. An\nexplicit number must exceed every existing one (e.g. continuing a\nnumbering that started outside RocketWright)."
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "title": "HistoryTagIn",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rocketwright.dev/schema/1/tools/history_tag.input.json"
+}

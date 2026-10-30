@@ -1,0 +1,44 @@
+{
+  "provenance": "contract-fixture",
+  "type": "tools/engine_design.output",
+  "payload": {
+    "engine": "demo-incomplete",
+    "performance": {
+      "isp_vac": 253.3,
+      "isp_sl": 221.2,
+      "c_star": 1554.1,
+      "thrust": 1500.0,
+      "mdot": 0.6916,
+      "mdot_ox": 0.5533,
+      "mdot_fuel": 0.1383,
+      "chamber_temperature": 2980.1,
+      "throat_diameter": 0.02616,
+      "exit_diameter": 0.05232,
+      "chamber_diameter": 0.05232,
+      "chamber_length": 0.3732,
+      "expansion_ratio": 4.0
+    },
+    "missing_inputs": [
+      "/engines/demo-incomplete/fluid_model",
+      "/engines/demo-incomplete/feed/edge/0/bc"
+    ],
+    "diagnostics": [
+      {
+        "code": "RW-W210",
+        "severity": "warning",
+        "file": "engines/demo-incomplete.rw.toml",
+        "path": "/engines/demo-incomplete/fluid_model",
+        "message": "engine `demo-incomplete` has no fluid model",
+        "hint": "set `fluid_model = \"single_phase_liquid\"` (two-phase N2O is not modelled yet)"
+      },
+      {
+        "code": "RW-W211",
+        "severity": "warning",
+        "file": "engines/demo-incomplete.rw.toml",
+        "path": "/engines/demo-incomplete/feed/edge/0/bc",
+        "message": "feed edge 0 (tank_a → valve_a) has no boundary condition",
+        "hint": "set `bc = \"open\"` (or closed, check_valve, orifice)"
+      }
+    ]
+  }
+}

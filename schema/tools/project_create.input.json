@@ -1,0 +1,25 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "template": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Template id from `templates/` (default `minimal`)."
+    },
+    "dry_run": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "title": "ProjectCreateIn",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rocketwright.dev/schema/1/tools/project_create.input.json"
+}

@@ -1,0 +1,200 @@
+{
+  "provenance": "contract-fixture",
+  "type": "sim-result",
+  "payload": {
+    "schema": "rw/1",
+    "summary": {
+      "schema": "rw/1",
+      "apogee_m": 612.4,
+      "max_velocity_ms": 118.6,
+      "max_accel_ms2": 61.2,
+      "max_mach": 0.349,
+      "time_to_apogee_s": 10.84,
+      "flight_time_s": 62.3,
+      "landing_velocity_ms": 4.92,
+      "rail_exit_velocity_ms": 17.8,
+      "deployment_velocity_ms": 9.6,
+      "optimum_delay_s": 8.8,
+      "min_stability_cal": 1.62,
+      "burnout_time_s": 2.0,
+      "burnout_altitude_m": 104.7,
+      "landing_x_m": 0.0,
+      "landing_y_m": 0.0,
+      "drift_m": 0.0
+    },
+    "events": [
+      {
+        "t": 0.0,
+        "kind": "ignition",
+        "altitude": 0.0,
+        "velocity": 0.0,
+        "source": "rw:c/motor_mount"
+      },
+      {
+        "t": 0.02,
+        "kind": "liftoff",
+        "altitude": 0.0,
+        "velocity": 0.0
+      },
+      {
+        "t": 0.21,
+        "kind": "rail_exit",
+        "altitude": 1.5,
+        "velocity": 17.8
+      },
+      {
+        "t": 2.0,
+        "kind": "burnout",
+        "altitude": 104.7,
+        "velocity": 118.6,
+        "source": "rw:c/motor_mount"
+      },
+      {
+        "t": 9.0,
+        "kind": "ejection",
+        "altitude": 598.1,
+        "velocity": 9.6,
+        "source": "rw:c/motor_mount"
+      },
+      {
+        "t": 9.0,
+        "kind": "deployment",
+        "altitude": 598.1,
+        "velocity": 9.6,
+        "source": "rw:c/parachute"
+      },
+      {
+        "t": 10.84,
+        "kind": "apogee",
+        "altitude": 612.4,
+        "velocity": 0.0
+      },
+      {
+        "t": 62.3,
+        "kind": "landing",
+        "altitude": 0.0,
+        "velocity": 4.92
+      }
+    ],
+    "series": {
+      "dt": 0.01,
+      "columns": [
+        {
+          "name": "t",
+          "dim": "time"
+        },
+        {
+          "name": "altitude",
+          "dim": "length"
+        },
+        {
+          "name": "x",
+          "dim": "length"
+        },
+        {
+          "name": "y",
+          "dim": "length"
+        },
+        {
+          "name": "vz",
+          "dim": "velocity"
+        },
+        {
+          "name": "speed",
+          "dim": "velocity"
+        },
+        {
+          "name": "accel",
+          "dim": "acceleration"
+        },
+        {
+          "name": "mach",
+          "dim": "dimensionless"
+        },
+        {
+          "name": "aoa",
+          "dim": "angle"
+        },
+        {
+          "name": "stability",
+          "dim": "dimensionless"
+        },
+        {
+          "name": "thrust",
+          "dim": "force"
+        },
+        {
+          "name": "mass",
+          "dim": "mass"
+        },
+        {
+          "name": "cg",
+          "dim": "length"
+        },
+        {
+          "name": "cp",
+          "dim": "length"
+        },
+        {
+          "name": "cd",
+          "dim": "dimensionless"
+        }
+      ],
+      "rows": [
+        [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          1.71,
+          0.0,
+          0.6219,
+          0.4851,
+          0.5774,
+          0.0
+        ],
+        [
+          0.01,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          1.71,
+          12.4,
+          0.6219,
+          0.4851,
+          0.5774,
+          0.0
+        ],
+        [
+          0.02,
+          0.0,
+          0.0,
+          0.0,
+          0.006,
+          0.006,
+          61.2,
+          0.0,
+          0.0,
+          1.71,
+          24.8,
+          0.6218,
+          0.4851,
+          0.5774,
+          0.52
+        ]
+      ]
+    },
+    "branches": [],
+    "diagnostics": []
+  }
+}

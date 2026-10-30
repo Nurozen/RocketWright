@@ -1,0 +1,589 @@
+{
+  "kind": "geometry",
+  "schema": "rw/1",
+  "case": 5,
+  "name": "Dual parachute deployment",
+  "components": [
+    {
+      "name": "Nose cone",
+      "type": "nose_cone",
+      "parent": null,
+      "x_fore_m": 0.0,
+      "length_m": 0.28321,
+      "fields": {
+        "axial_offset_m": 0.0,
+        "clipped": 0.0,
+        "component_mass_kg": 0.060311549221210764,
+        "density_kgm3": 1850.0,
+        "filled": 0.0,
+        "flipped": 0.0,
+        "instances": 1.0,
+        "od_m": 0.056642,
+        "roughness_m": 6e-05,
+        "shape_parameter": 1.0,
+        "shoulder_capped": 0.0,
+        "shoulder_length_m": 0.0,
+        "shoulder_od_m": 0.0,
+        "shoulder_thickness_m": 0.0,
+        "stage": 0.0,
+        "stage_mass_override_kg": 1.3607771088,
+        "stage_overrides_subcomponents_mass": 1.0,
+        "thickness_m": 0.0009906,
+        "volume_m3": 3.260083741687068e-05,
+        "wet_area_m2": 0.03379799724531998
+      },
+      "material": "Fiberglass",
+      "shape": "ogive",
+      "mass_override_kg": null,
+      "cg_override_m": null
+    },
+    {
+      "name": "Tube coupler",
+      "type": "coupler",
+      "parent": "Nose cone",
+      "x_fore_m": 0.25781000000000004,
+      "length_m": 0.07619999999999999,
+      "fields": {
+        "axial_offset_m": 0.0508,
+        "component_mass_kg": 0.04446551944691297,
+        "density_kgm3": 1850.0,
+        "id_m": 0.0508,
+        "instances": 1.0,
+        "od_m": 0.05461,
+        "radial_direction_rad": 0.0,
+        "radial_position_m": 0.0,
+        "stage": 0.0,
+        "thickness_m": 0.0019050000000000004
+      },
+      "material": "Fiberglass",
+      "shape": null,
+      "mass_override_kg": null,
+      "cg_override_m": null
+    },
+    {
+      "name": "Bulkhead",
+      "type": "bulkhead",
+      "parent": "Tube coupler",
+      "x_fore_m": 0.33201,
+      "length_m": 0.002,
+      "fields": {
+        "axial_offset_m": 0.0,
+        "component_mass_kg": 0.007499270690642966,
+        "density_kgm3": 1850.0,
+        "id_m": 0.0,
+        "instance_separation_m": 0.0,
+        "instances": 1.0,
+        "od_m": 0.0508,
+        "radial_direction_rad": 0.0,
+        "radial_position_m": 0.0,
+        "stage": 0.0
+      },
+      "material": "Fiberglass",
+      "shape": null,
+      "mass_override_kg": null,
+      "cg_override_m": null
+    },
+    {
+      "name": "Body tube",
+      "type": "body_tube",
+      "parent": null,
+      "x_fore_m": 0.28321,
+      "length_m": 0.4064,
+      "fields": {
+        "axial_offset_m": 0.0,
+        "component_mass_kg": 0.1302116128289328,
+        "density_kgm3": 1850.0,
+        "filled": 0.0,
+        "instances": 1.0,
+        "motor_mount": 0.0,
+        "od_m": 0.056642,
+        "roughness_m": 6e-05,
+        "stage": 0.0,
+        "thickness_m": 0.0009905999999999977,
+        "volume_m3": 7.038465558320691e-05,
+        "wet_area_m2": 0.07231729141679487
+      },
+      "material": "Fiberglass",
+      "shape": null,
+      "mass_override_kg": null,
+      "cg_override_m": null
+    },
+    {
+      "name": "Elliptical 12-Gore 42\" Parachute",
+      "type": "parachute",
+      "parent": "Body tube",
+      "x_fore_m": 0.35941,
+      "length_m": 0.08709673571783902,
+      "fields": {
+        "axial_offset_m": 0.07619999999999999,
+        "cd": 1.5,
+        "cd_automatic": 0.0,
+        "component_mass_kg": 0.044468618354953734,
+        "deploy_altitude_m": 152.4,
+        "deploy_delay_s": 0.0,
+        "deploy_event_altitude": 1.0,
+        "diameter_m": 1.0668,
+        "instances": 1.0,
+        "line_count": 12.0,
+        "line_length_m": 1.6001999999999998,
+        "line_line_density_kgm": 0.000656168,
+        "packed_length_m": 0.08709673571783902,
+        "packed_radius_m": 0.0273304,
+        "radial_direction_rad": 0.0,
+        "radial_position_m": 0.0,
+        "stage": 0.0,
+        "surface_density_kgm2": 0.035653924
+      },
+      "material": "Ripstop nylon, lightweight, 3 mil",
+      "shape": null,
+      "mass_override_kg": 0.07512623621499999,
+      "cg_override_m": null
+    },
+    {
+      "name": "Body tube",
+      "type": "body_tube",
+      "parent": null,
+      "x_fore_m": 0.6896100000000001,
+      "length_m": 0.0254,
+      "fields": {
+        "axial_offset_m": 0.0,
+        "component_mass_kg": 0.0029913478622862937,
+        "density_kgm3": 680.0,
+        "filled": 0.0,
+        "instances": 1.0,
+        "motor_mount": 0.0,
+        "od_m": 0.056642,
+        "roughness_m": 6e-05,
+        "stage": 0.0,
+        "thickness_m": 0.0009905999999999977,
+        "volume_m3": 4.399040973950432e-06,
+        "wet_area_m2": 0.004519830713549679
+      },
+      "material": "Cardboard",
+      "shape": null,
+      "mass_override_kg": null,
+      "cg_override_m": null
+    },
+    {
+      "name": "Tube coupler",
+      "type": "coupler",
+      "parent": "Body tube",
+      "x_fore_m": 0.6388100000000001,
+      "length_m": 0.127,
+      "fields": {
+        "axial_offset_m": 0.0,
+        "component_mass_kg": 0.07513351321291722,
+        "density_kgm3": 1850.0,
+        "id_m": 0.0508,
+        "instances": 1.0,
+        "od_m": 0.0546608,
+        "radial_direction_rad": 0.0,
+        "radial_position_m": 0.0,
+        "stage": 0.0,
+        "thickness_m": 0.0019304000000000023
+      },
+      "material": "Fiberglass",
+      "shape": null,
+      "mass_override_kg": null,
+      "cg_override_m": null
+    },
+    {
+      "name": "Body tube",
+      "type": "body_tube",
+      "parent": null,
+      "x_fore_m": 0.71501,
+      "length_m": 0.30479999999999996,
+      "fields": {
+        "axial_offset_m": 0.0,
+        "component_mass_kg": 0.09765870962169984,
+        "density_kgm3": 1850.0,
+        "filled": 0.0,
+        "instances": 1.0,
+        "motor_mount": 0.0,
+        "od_m": 0.056642,
+        "roughness_m": 6e-05,
+        "stage": 0.0,
+        "thickness_m": 0.0009905999999999977,
+        "volume_m3": 5.278849168740532e-05,
+        "wet_area_m2": 0.05423796856259615
+      },
+      "material": "Fiberglass",
+      "shape": null,
+      "mass_override_kg": null,
+      "cg_override_m": null
+    },
+    {
+      "name": "Apex 12\" Drouge Parachute",
+      "type": "parachute",
+      "parent": "Body tube",
+      "x_fore_m": 0.8429758693909704,
+      "length_m": 0.048868261218059435,
+      "fields": {
+        "axial_offset_m": 0.0,
+        "cd": 0.61,
+        "cd_automatic": 0.0,
+        "component_mass_kg": 0.009284830181293863,
+        "deploy_altitude_m": 200.0,
+        "deploy_delay_s": 0.0,
+        "deploy_event_apogee": 1.0,
+        "diameter_m": 0.30479999999999996,
+        "instances": 1.0,
+        "line_count": 4.0,
+        "line_length_m": 0.30479999999999996,
+        "line_line_density_kgm": 0.004090114,
+        "packed_length_m": 0.048868261218059435,
+        "packed_radius_m": 0.0273304,
+        "radial_direction_rad": 0.0,
+        "radial_position_m": 0.0,
+        "stage": 0.0,
+        "surface_density_kgm2": 0.058906483
+      },
+      "material": "Ripstop Nylon, 1.9 oz 5 mil",
+      "shape": null,
+      "mass_override_kg": 0.034019427719999995,
+      "cg_override_m": null
+    },
+    {
+      "name": "Body tube",
+      "type": "body_tube",
+      "parent": null,
+      "x_fore_m": 1.01981,
+      "length_m": 0.4572,
+      "fields": {
+        "axial_offset_m": 0.0,
+        "component_mass_kg": 0.14648806443254966,
+        "density_kgm3": 1850.0,
+        "filled": 0.0,
+        "instances": 1.0,
+        "motor_mount": 0.0,
+        "od_m": 0.056642,
+        "roughness_m": 6e-05,
+        "stage": 0.0,
+        "thickness_m": 0.0009905999999999977,
+        "volume_m3": 7.918273753110792e-05,
+        "wet_area_m2": 0.08135695284389423
+      },
+      "material": "Fiberglass",
+      "shape": null,
+      "mass_override_kg": null,
+      "cg_override_m": null
+    },
+    {
+      "name": "Inner Tube",
+      "type": "inner_tube",
+      "parent": "Body tube",
+      "x_fore_m": 1.07061,
+      "length_m": 0.4064,
+      "fields": {
+        "axial_offset_m": 0.0,
+        "cluster_count": 1.0,
+        "cluster_rotation_rad": 0.0,
+        "cluster_scale": 1.0,
+        "component_mass_kg": 0.09508835259073206,
+        "density_kgm3": 1850.0,
+        "instances": 1.0,
+        "motor_average_thrust_n": 1308.7969481174684,
+        "motor_burn_time_s": 0.32442222633750867,
+        "motor_burnout_mass_kg": 0.216818,
+        "motor_count": 1.0,
+        "motor_diameter_m": 0.038,
+        "motor_ignition_delay_s": 0.0,
+        "motor_ignition_event_automatic": 1.0,
+        "motor_launch_mass_kg": 0.45728399999999997,
+        "motor_length_m": 0.306,
+        "motor_mount": 1.0,
+        "motor_overhang_m": 0.0127,
+        "motor_total_impulse_ns": 424.7441485,
+        "od_m": 0.04064,
+        "radial_direction_rad": 0.0,
+        "radial_position_m": 0.0,
+        "stage": 0.0,
+        "thickness_m": 0.001016000000000003
+      },
+      "material": "Fiberglass",
+      "shape": null,
+      "mass_override_kg": null,
+      "cg_override_m": null
+    },
+    {
+      "name": "Trapezoidal fin set",
+      "type": "trapezoidal_fin_set",
+      "parent": "Body tube",
+      "x_fore_m": 1.3226034000000002,
+      "length_m": 0.15239999999999998,
+      "fields": {
+        "angle_offset_rad": 0.0,
+        "axial_offset_m": -0.0020066,
+        "body_radius_m": 0.028321,
+        "cant_rad": 0.0,
+        "component_mass_kg": 0.13651507496930398,
+        "count": 3.0,
+        "cross_section_square": 1.0,
+        "density_kgm3": 1850.0,
+        "fillet_density_kgm3": 680.0,
+        "fillet_radius_m": 0.0,
+        "height_m": 0.07619999999999999,
+        "instances": 3.0,
+        "planform_area_m2": 0.009193529999999998,
+        "radius_offset_m": 0.0,
+        "root_chord_m": 0.15239999999999998,
+        "roughness_m": 6e-05,
+        "stage": 0.0,
+        "sweep_m": 0.04399409051224947,
+        "tab_height_m": 0.008000999999999998,
+        "tab_length_m": 0.15239999999999998,
+        "tab_offset_m": 0.0,
+        "thickness_m": 0.0023622,
+        "tip_chord_m": 0.08889999999999999
+      },
+      "material": "Fiberglass",
+      "shape": null,
+      "mass_override_kg": null,
+      "cg_override_m": null
+    },
+    {
+      "name": "Tube coupler",
+      "type": "coupler",
+      "parent": "Body tube",
+      "x_fore_m": 0.9690100000000001,
+      "length_m": 0.1016,
+      "fields": {
+        "axial_offset_m": -0.0508,
+        "component_mass_kg": 0.06010681057033378,
+        "density_kgm3": 1850.0,
+        "id_m": 0.0508,
+        "instances": 1.0,
+        "od_m": 0.0546608,
+        "radial_direction_rad": 0.0,
+        "radial_position_m": 0.0,
+        "stage": 0.0,
+        "thickness_m": 0.0019304000000000023
+      },
+      "material": "Fiberglass",
+      "shape": null,
+      "mass_override_kg": null,
+      "cg_override_m": null
+    },
+    {
+      "name": "Bulkhead",
+      "type": "bulkhead",
+      "parent": "Tube coupler",
+      "x_fore_m": 0.9690100000000001,
+      "length_m": 0.002,
+      "fields": {
+        "axial_offset_m": 0.0,
+        "component_mass_kg": 0.007499270690642966,
+        "density_kgm3": 1850.0,
+        "id_m": 0.0,
+        "instance_separation_m": 0.0,
+        "instances": 1.0,
+        "od_m": 0.0508,
+        "radial_direction_rad": 0.0,
+        "radial_position_m": 0.0,
+        "stage": 0.0
+      },
+      "material": "Fiberglass",
+      "shape": null,
+      "mass_override_kg": null,
+      "cg_override_m": null
+    },
+    {
+      "name": "Rail Button",
+      "type": "rail_button",
+      "parent": "Body tube",
+      "x_fore_m": 1.08331,
+      "length_m": 0.0,
+      "fields": {
+        "angle_offset_rad": 3.141592653589793,
+        "axial_offset_m": 0.0635,
+        "base_height_m": 0.002,
+        "component_mass_kg": 0.0016531801959055739,
+        "density_kgm3": 1420.0,
+        "flange_height_m": 0.002,
+        "id_m": 0.008,
+        "instance_separation_m": 0.381,
+        "instances": 2.0,
+        "od_m": 0.0097,
+        "roughness_m": 6e-05,
+        "screw_height_m": 0.0,
+        "stage": 0.0,
+        "total_height_m": 0.0097
+      },
+      "material": "Delrin",
+      "shape": null,
+      "mass_override_kg": null,
+      "cg_override_m": null
+    },
+    {
+      "name": "Centering Ring",
+      "type": "centering_ring",
+      "parent": "Body tube",
+      "x_fore_m": 1.08966,
+      "length_m": 0.002,
+      "fields": {
+        "axial_offset_m": 0.06984999999999997,
+        "component_mass_kg": 0.0038829423811183525,
+        "density_kgm3": 1850.0,
+        "id_m": 0.04064,
+        "instance_separation_m": 0.0,
+        "instances": 1.0,
+        "od_m": 0.0546608,
+        "radial_direction_rad": 0.0,
+        "radial_position_m": 0.0,
+        "stage": 0.0
+      },
+      "material": "Fiberglass",
+      "shape": null,
+      "mass_override_kg": null,
+      "cg_override_m": null
+    },
+    {
+      "name": "Centering Ring",
+      "type": "centering_ring",
+      "parent": "Body tube",
+      "x_fore_m": 1.3206034,
+      "length_m": 0.002,
+      "fields": {
+        "axial_offset_m": -0.15440659999999998,
+        "component_mass_kg": 8.569309479846299e-05,
+        "density_kgm3": 40.827859344,
+        "id_m": 0.04064,
+        "instance_separation_m": 0.0,
+        "instances": 1.0,
+        "od_m": 0.0546608,
+        "radial_direction_rad": 0.0,
+        "radial_position_m": 0.0,
+        "stage": 0.0
+      },
+      "material": "Fiberglass",
+      "shape": null,
+      "mass_override_kg": null,
+      "cg_override_m": null
+    },
+    {
+      "name": "Centering Ring",
+      "type": "centering_ring",
+      "parent": "Body tube",
+      "x_fore_m": 1.4750100000000002,
+      "length_m": 0.002,
+      "fields": {
+        "axial_offset_m": 0.0,
+        "component_mass_kg": 8.569309479846299e-05,
+        "density_kgm3": 40.827859344,
+        "id_m": 0.04064,
+        "instance_separation_m": 0.0,
+        "instances": 1.0,
+        "od_m": 0.0546608,
+        "radial_direction_rad": 0.0,
+        "radial_position_m": 0.0,
+        "stage": 0.0
+      },
+      "material": "Fiberglass",
+      "shape": null,
+      "mass_override_kg": null,
+      "cg_override_m": null
+    }
+  ],
+  "configurations": [
+    {
+      "id": "b38ea08b-626b-4abf-97a2-2dfc56fd69df",
+      "name": "[H669N-P]",
+      "motors": [
+        {
+          "mount": "Inner Tube",
+          "designation": "H669N",
+          "digest": "49ecd98acf8262398effc37d7516978e95a08dd81ddd8b313f28aaaaccbabc3a",
+          "delay_s": null
+        }
+      ]
+    },
+    {
+      "id": "db9b08a1-6330-45b0-b43a-27c75784989e",
+      "name": "[H242T-P]",
+      "motors": [
+        {
+          "mount": "Inner Tube",
+          "designation": "H242T",
+          "digest": "d53ac328911febdd14a64d816cb7566f47272f92a4cd9e9f78ac092b4046220c",
+          "delay_s": null
+        }
+      ]
+    },
+    {
+      "id": "de88d3eb-091c-4f62-9a0e-2240b7c3560d",
+      "name": "[J570W-P]",
+      "motors": [
+        {
+          "mount": "Inner Tube",
+          "designation": "J570W",
+          "digest": "836538d9213e702d778e813892f5644cc5e0a8a1ab0eec6ce719b4a784fd64f9",
+          "delay_s": null
+        }
+      ]
+    },
+    {
+      "id": "098d8c95-54c4-4552-bf81-e65e1de4796b",
+      "name": "[H999N-P]",
+      "motors": [
+        {
+          "mount": "Inner Tube",
+          "designation": "H999N",
+          "digest": "a3068d0dc1cc363748f2118a307ccef1994de57595d0a3bb287837f31738527d",
+          "delay_s": null
+        }
+      ]
+    },
+    {
+      "id": "1654d8fb-f69f-43de-984a-d55765ad8a9d",
+      "name": "[RW_I1294G-P]",
+      "motors": [
+        {
+          "mount": "Inner Tube",
+          "designation": "RW_I1294G",
+          "digest": "d2f7dbb4e1e1a56c6e94677e09c9a3cbb27ee31d1dfb4fe695b6801e49d9bf83",
+          "delay_s": null
+        }
+      ]
+    },
+    {
+      "id": "e4cf5b98-e53c-40da-8fa6-3a9354ad28d1",
+      "name": "[G64W-P]",
+      "motors": [
+        {
+          "mount": "Inner Tube",
+          "designation": "G64W",
+          "digest": "b32d6f9778b4913bce1e05e2320180d71e49b097c43a2bc6b0a8e1f822c3a90f",
+          "delay_s": null
+        }
+      ]
+    }
+  ],
+  "sims": [
+    {
+      "name": "Simulation 5",
+      "config_id": "1654d8fb-f69f-43de-984a-d55765ad8a9d",
+      "conditions": {
+        "rail_length_m": 3.048,
+        "rod_angle_deg": 0.0,
+        "rod_direction_deg": 90.0,
+        "site_altitude_m": 0.0,
+        "latitude_deg": 28.61,
+        "longitude_deg": -80.6,
+        "base_temperature_k": 288.15,
+        "base_pressure_pa": 101325.0,
+        "atmosphere": "ussa1976",
+        "geodetic": "flat",
+        "wind_speed_ms": 0.0,
+        "wind_direction_deg": 90.0,
+        "wind_turbulence": 0.0,
+        "time_step_s": 0.05,
+        "integrator": "rk4",
+        "gravity": {
+          "model": "wgs84"
+        },
+        "launch_into_wind": true
+      },
+      "conditions_hash": "sha256:881511566771fc3cb24d7d212499d12dcad4cb9da5e90386e32d39ec82faae85"
+    }
+  ]
+}

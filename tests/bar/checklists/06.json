@@ -1,0 +1,576 @@
+{
+  "page": "06",
+  "title": "Simulate > Propulsion simulation",
+  "exemplar": "06-liquid-simulator.png",
+  "captureState": "Seeded fixture; Simulate > Propulsion simulation; Visual flow tier; study 'Study 01' (sims/<id>.rw.toml kind = visual_flow, scripted tilt, D10c); Traces tab; thread 'Tank motion' with its canned exchange.",
+  "source": "concepts.md §3, §4.6; spec B1; plan D10 (U3, U4, U19); BC0 critic (M1.15b)",
+  "items": [
+    {
+      "id": "06.shell.header",
+      "kind": "region",
+      "testid": "header",
+      "milestone": "M1",
+      "source": "C§3 Header; C§2 Spacing",
+      "text": "Header bar across the top, about 56 px tall, flat, with a 1 px hairline below.",
+      "level": "required"
+    },
+    {
+      "id": "06.header.brand",
+      "kind": "field",
+      "testid": "header.wordmark",
+      "milestone": "M1",
+      "source": "C§3 Header; C§intro product name",
+      "text": "Rocket mark and the wordmark 'RocketWright' (the product name, not the art's name).",
+      "level": "required"
+    },
+    {
+      "id": "06.header.project-switcher",
+      "kind": "control",
+      "testid": "header.project-switcher",
+      "milestone": "M1",
+      "source": "C§3 Header",
+      "text": "Project switcher showing the loaded project name ('Research vehicle') with a ▾ menu.",
+      "level": "required"
+    },
+    {
+      "id": "06.header.save-state",
+      "kind": "field",
+      "testid": "header.save-state",
+      "milestone": "M1",
+      "source": "C§3 Header",
+      "text": "Save state with a cloud icon and a relative time computed from the real last save ('Saved … ago').",
+      "level": "required"
+    },
+    {
+      "id": "06.header.tabs",
+      "kind": "control",
+      "testid": "header.tab",
+      "milestone": "M1",
+      "source": "C§3 Header",
+      "text": "Centred tabs Design | Propulsion | Simulate | Results.",
+      "level": "required"
+    },
+    {
+      "id": "06.header.active-tab",
+      "kind": "state",
+      "testid": "header.tab",
+      "milestone": "M5",
+      "source": "C§3 Header; C§2 accent/teal",
+      "text": "Simulate is the active tab, marked by a 2 px teal underline.",
+      "level": "required"
+    },
+    {
+      "id": "06.header.check-model",
+      "kind": "control",
+      "testid": "header.check-model",
+      "milestone": "M1",
+      "source": "C§3 Header; C§2 accent/teal-fill",
+      "text": "'✓ Check model' primary button: deep teal fill, 1 px teal border, white text; its state reflects the real model check result (status, issue count).",
+      "level": "required"
+    },
+    {
+      "id": "06.header.settings",
+      "kind": "control",
+      "testid": "header.settings",
+      "milestone": "M1",
+      "source": "C§3 Header; U17",
+      "text": "Settings gear button opening minimal settings.",
+      "level": "minimal"
+    },
+    {
+      "id": "06.header.help",
+      "kind": "control",
+      "testid": "header.help",
+      "milestone": "M1",
+      "source": "C§3 Header; U17",
+      "text": "Help '?' button.",
+      "level": "minimal"
+    },
+    {
+      "id": "06.shell.left-rail",
+      "kind": "region",
+      "testid": "left-rail",
+      "milestone": "M1",
+      "source": "C§2 Layout; C§3 Left rail",
+      "text": "Left rail, about 17% of the width, threads group above the page navigation section, hairline divider on its right.",
+      "level": "required"
+    },
+    {
+      "id": "06.rail.threads",
+      "kind": "field",
+      "testid": "rail.thread-row",
+      "milestone": "M5",
+      "source": "C§3 Left rail, threads group; S:169 seeded threads",
+      "text": "Thread rows with icon, name, and relative age: Assembly review, Fin revision, Flight comparison (seeded).",
+      "level": "required"
+    },
+    {
+      "id": "06.rail.thread-selected",
+      "kind": "state",
+      "testid": "rail.thread-row",
+      "milestone": "M1",
+      "source": "C§3 Left rail, threads group",
+      "text": "The selected thread row is highlighted.",
+      "level": "required"
+    },
+    {
+      "id": "06.rail.new-thread",
+      "kind": "control",
+      "testid": "rail.new-thread",
+      "milestone": "M1",
+      "source": "C§3 Left rail, threads group",
+      "text": "'+ New thread' row below the threads.",
+      "level": "required"
+    },
+    {
+      "id": "06.rail.nav-section",
+      "kind": "control",
+      "testid": "rail.nav-title",
+      "milestone": "M5",
+      "source": "C§3 Left rail, page navigation",
+      "text": "Titled navigation section 'Simulation' with a search icon and '+'.",
+      "level": "required"
+    },
+    {
+      "id": "06.shell.workspace",
+      "kind": "region",
+      "testid": "workspace",
+      "milestone": "M1",
+      "source": "C§2 Layout",
+      "text": "Workspace column, about 58% of the width, between the rail and the agent pane.",
+      "level": "required"
+    },
+    {
+      "id": "06.shell.agent-pane",
+      "kind": "region",
+      "testid": "agent-pane",
+      "milestone": "M1",
+      "source": "C§2 Layout; C§3 Agent pane",
+      "text": "Docked agent pane, about 25% of the width, full height below the header, hairline divider on its left (not a floating dock).",
+      "level": "required"
+    },
+    {
+      "id": "06.agent.header",
+      "kind": "field",
+      "testid": "agent.title",
+      "milestone": "M5",
+      "source": "C§3 Agent pane; D10; D31",
+      "text": "Pane head rendered by RocketWright above the embedded chat: thread icon and the open thread's title 'Tank motion', the same thread the left rail highlights.",
+      "level": "required"
+    },
+    {
+      "id": "06.agent.model-picker",
+      "kind": "control",
+      "testid": "agent.model-picker",
+      "milestone": "M1",
+      "source": "C§3 Agent pane; S:169 allowed deviation; U17; D10; D31",
+      "text": "'Agent' settings button in the pane head that opens the agent's provider and model settings (the S:169 'Agent ▾' mapping).",
+      "level": "minimal"
+    },
+    {
+      "id": "06.agent.user-message",
+      "kind": "field",
+      "testid": "chat-user-message-bubble",
+      "milestone": "M1",
+      "source": "C§3 Agent pane; C§2 bubble/user; D31",
+      "text": "The user's message in a teal-tinted bubble, radius about 6 px, with the round user avatar beside it.",
+      "level": "required"
+    },
+    {
+      "id": "06.agent.context-chip",
+      "kind": "control",
+      "testid": "app-ref-chip",
+      "milestone": "M1",
+      "source": "C§3 Agent pane; C§5.1; D31",
+      "text": "An `rw:` app reference in the thread renders as a chip naming the entity, not as raw text; it resolves to a stable entity id and opens that entity in RocketWright.",
+      "level": "required"
+    },
+    {
+      "id": "06.agent.activity-row",
+      "kind": "control",
+      "testid": "app-tool-row",
+      "milestone": "M1",
+      "source": "C§3 Agent pane; C§5.5; D31",
+      "text": "App tool rows for the turn's tool calls: a leading chevron that expands the call, a tool icon, the tool's label in sans, and a teal success check.",
+      "level": "required"
+    },
+    {
+      "id": "06.agent.reply",
+      "kind": "field",
+      "testid": "message-role.assistant",
+      "milestone": "M1",
+      "source": "C§3 Agent pane; D31",
+      "text": "Agent reply after the turn's tool rows and cards, written as plain prose with no bubble, under the agent's name.",
+      "level": "required"
+    },
+    {
+      "id": "06.shell.composer",
+      "kind": "region",
+      "testid": "composer",
+      "milestone": "M1",
+      "source": "C§3 Agent pane",
+      "text": "Composer pinned to the bottom of the agent pane.",
+      "level": "required"
+    },
+    {
+      "id": "06.composer.placeholder",
+      "kind": "field",
+      "testid": "composer.input",
+      "milestone": "M5",
+      "source": "C§3 Agent pane",
+      "text": "Composer placeholder 'Ask about this simulation…'.",
+      "level": "required"
+    },
+    {
+      "id": "06.composer.attach",
+      "kind": "control",
+      "testid": "composer.attach",
+      "milestone": "M1",
+      "source": "C§3 Agent pane; U18",
+      "text": "Paperclip attach button.",
+      "level": "minimal"
+    },
+    {
+      "id": "06.composer.send",
+      "kind": "control",
+      "testid": "composer.send",
+      "milestone": "M1",
+      "source": "C§3 Agent pane",
+      "text": "Send button.",
+      "level": "required"
+    },
+    {
+      "id": "06.agent.provenance-footer",
+      "kind": "field",
+      "testid": "agent.provenance-footer",
+      "milestone": "M1",
+      "source": "C§2 Layout; U20",
+      "text": "Bottom-right footer of the agent pane states the provenance of the data shown (it replaces the art's placeholder footer).",
+      "level": "minimal"
+    },
+    {
+      "id": "06.shell.history-strip",
+      "kind": "region",
+      "testid": "history-strip",
+      "milestone": "M1",
+      "source": "C§3 Design history strip",
+      "text": "Design history strip along the bottom of the rail and workspace.",
+      "level": "required"
+    },
+    {
+      "id": "06.history.steps",
+      "kind": "field",
+      "testid": "history.step",
+      "milestone": "M1",
+      "source": "C§3 Design history strip; C§6 (02); D10",
+      "text": "Label 'Design history', then numbered step circles joined by hairlines, each with a name and date; numbers are sequential and unique, from the seeded history.",
+      "level": "required"
+    },
+    {
+      "id": "06.history.current",
+      "kind": "state",
+      "testid": "history.step",
+      "milestone": "M1",
+      "source": "C§3 Design history strip",
+      "text": "The current step has a teal ring.",
+      "level": "required"
+    },
+    {
+      "id": "06.history.compare",
+      "kind": "control",
+      "testid": "history.compare",
+      "milestone": "M1",
+      "source": "C§3 Design history strip; U13",
+      "text": "'Compare' button at the end of the strip.",
+      "level": "required"
+    },
+    {
+      "id": "06.history.menu",
+      "kind": "control",
+      "testid": "history.menu",
+      "milestone": "M1",
+      "source": "C§3 Design history strip",
+      "text": "'⋯' menu after Compare.",
+      "level": "required"
+    },
+    {
+      "id": "06.rail.rows",
+      "kind": "field",
+      "testid": "rail.nav-row",
+      "milestone": "M5",
+      "source": "C§4.6 Left rail; S:169 allowed deviation",
+      "text": "Simulation rows: Propulsion simulation (active), Trajectory analysis, Stability analysis, Thermal analysis; the extra entries may open simple pages from existing run data.",
+      "level": "required"
+    },
+    {
+      "id": "06.rail.analysis-pages",
+      "kind": "state",
+      "testid": "rail.nav-row",
+      "milestone": "M5",
+      "source": "C§6 (06); S:169 allowed deviation; U19; BC0 critic",
+      "text": "Trajectory, Stability, and Thermal analysis each open a simple page built from existing run data; no dead rail entries.",
+      "level": "minimal"
+    },
+    {
+      "id": "06.page.title",
+      "kind": "field",
+      "testid": "page.title",
+      "milestone": "M5",
+      "source": "C§4.6 Workspace; C§2 Typography",
+      "text": "Page title 'Propulsion simulation' (22-28 px).",
+      "level": "required"
+    },
+    {
+      "id": "06.page.tier-tabs",
+      "kind": "control",
+      "testid": "propsim.tier-tab",
+      "milestone": "M4",
+      "source": "C§4.6 Workspace; C§5.3",
+      "text": "Mode tabs Engineering | Visual flow | Imported CFD; Visual flow active in the capture.",
+      "level": "required"
+    },
+    {
+      "id": "06.study.region",
+      "kind": "region",
+      "testid": "study-column",
+      "milestone": "M5",
+      "source": "C§4.6 Inner left column",
+      "text": "Inner left column with Study and Layers.",
+      "level": "required"
+    },
+    {
+      "id": "06.study.list",
+      "kind": "control",
+      "testid": "study.row",
+      "milestone": "M5",
+      "source": "C§4.6 Inner left column; D10 (c); U3",
+      "text": "'Study' list from the fixture's studies (Study 01, Tank motion, Flow overview), Study 01 selected.",
+      "level": "required"
+    },
+    {
+      "id": "06.study.layers",
+      "kind": "control",
+      "testid": "study.layer",
+      "milestone": "M5",
+      "source": "C§4.6 Inner left column",
+      "text": "'Layers' checkboxes Shell, Section, Flow, Labels.",
+      "level": "required"
+    },
+    {
+      "id": "06.vp.region",
+      "kind": "region",
+      "testid": "viewport",
+      "milestone": "M5",
+      "source": "C§4.6 Viewport",
+      "text": "Simulation viewport.",
+      "level": "required"
+    },
+    {
+      "id": "06.vp.cutaway",
+      "kind": "render",
+      "testid": "viewport",
+      "milestone": "M5",
+      "source": "C§4.6 Viewport; S:170",
+      "text": "Cutaway: the shell is opened with a cut-face treatment and the tank is translucent.",
+      "level": "required"
+    },
+    {
+      "id": "06.vp.fluid",
+      "kind": "render",
+      "testid": "viewport",
+      "milestone": "M5",
+      "source": "C§4.6 Viewport; C§2 fluid; D10 (c); U4",
+      "text": "Translucent cool-teal liquid with a tilted free surface driven by the scripted attitude.",
+      "level": "required"
+    },
+    {
+      "id": "06.vp.streamlines",
+      "kind": "render",
+      "testid": "viewport",
+      "milestone": "M5",
+      "source": "C§4.6 Viewport; U4",
+      "text": "Soft white streamlines through the feed line, engine inlet, and bell.",
+      "level": "required"
+    },
+    {
+      "id": "06.vp.labels",
+      "kind": "render",
+      "testid": "vp.leader-label",
+      "milestone": "M5",
+      "source": "C§4.6 Viewport",
+      "text": "Labels Liquid propellant (forward tank), Feed line, Engine inlet, Engine nozzle.",
+      "level": "required"
+    },
+    {
+      "id": "06.vp.legend",
+      "kind": "field",
+      "testid": "vp.flow-legend",
+      "milestone": "M5",
+      "source": "C§4.6 Viewport",
+      "text": "Legend 'Illustrative flow preview' running Low to High.",
+      "level": "required"
+    },
+    {
+      "id": "06.vp.axis-gizmo",
+      "kind": "control",
+      "testid": "vp.axis-gizmo",
+      "milestone": "M5",
+      "source": "C§4.6 Viewport; U15",
+      "text": "Axis gizmo.",
+      "level": "required"
+    },
+    {
+      "id": "06.transport.region",
+      "kind": "region",
+      "testid": "transport-bar",
+      "milestone": "M5",
+      "source": "C§4.6 Transport bar",
+      "text": "Transport bar under the viewport, visually separate from the design history.",
+      "level": "required"
+    },
+    {
+      "id": "06.transport.controls",
+      "kind": "control",
+      "testid": "transport.play",
+      "milestone": "M5",
+      "source": "C§4.6 Transport bar",
+      "text": "'▶ Play', a scrubber, and the 'current / total s' time readout.",
+      "level": "required"
+    },
+    {
+      "id": "06.transport.speed",
+      "kind": "control",
+      "testid": "transport.speed",
+      "milestone": "M5",
+      "source": "C§4.6 Transport bar",
+      "text": "Speed chips 0.5× | 1× | 2×, 1× active.",
+      "level": "required"
+    },
+    {
+      "id": "06.transport.section",
+      "kind": "control",
+      "testid": "transport.section-view",
+      "milestone": "M5",
+      "source": "C§4.6 Transport bar",
+      "text": "'Section view' toggle.",
+      "level": "required"
+    },
+    {
+      "id": "06.traces.region",
+      "kind": "region",
+      "testid": "traces",
+      "milestone": "M5",
+      "source": "C§4.6 Tabs",
+      "text": "Panel with tabs Inputs | Traces | Assumptions, Traces active.",
+      "level": "required"
+    },
+    {
+      "id": "06.traces.plots",
+      "kind": "render",
+      "testid": "traces.plot",
+      "milestone": "M5",
+      "source": "C§4.6 Tabs",
+      "text": "Two normalised plots 'Relative flow' and 'Relative fill' against normalised time, synced to the transport.",
+      "level": "required"
+    },
+    {
+      "id": "06.traces.provenance",
+      "kind": "field",
+      "testid": "traces.provenance",
+      "milestone": "M5",
+      "source": "C§4.6 Tabs; C§5.3; I13",
+      "text": "Provenance label 'Visual model · Not an engineering result', bound to the result's provenance.",
+      "level": "required"
+    },
+    {
+      "id": "06.traces.actions",
+      "kind": "control",
+      "testid": "traces.action",
+      "milestone": "M5",
+      "source": "C§4.6 Tabs",
+      "text": "Buttons '↗ Open engineering run' and '⤓ Import CFD result'.",
+      "level": "required"
+    },
+    {
+      "id": "06.agent.step-row",
+      "kind": "control",
+      "testid": "app-tool-row",
+      "milestone": "M5",
+      "source": "C§4.6 Agent pane; D31",
+      "text": "Tool row for the study run with a leading chevron, the tool's label and a teal success check.",
+      "level": "required"
+    },
+    {
+      "id": "06.agent.view-card",
+      "kind": "control",
+      "testid": "mcp-app-card",
+      "milestone": "M5",
+      "source": "C§4.6 Agent pane; U16; D8; D31",
+      "text": "Linked view card (an MCP Apps card in the timeline) 'Section view · Cutaway of tank and engine' with an action that opens the view in RocketWright.",
+      "level": "required"
+    },
+    {
+      "id": "06.transport.playback",
+      "kind": "state",
+      "testid": "transport.play",
+      "milestone": "M5",
+      "source": "C§4.6 Transport; BC0 critic",
+      "text": "Play toggles to pause and advances the scrubber, time readout, viewport animation, and trace position; scrubbing seeks to that time.",
+      "level": "required"
+    },
+    {
+      "id": "06.study.layer-toggle",
+      "kind": "state",
+      "testid": "study.layer",
+      "milestone": "M5",
+      "source": "C§4.6 Inner left column; BC0 critic",
+      "text": "Unchecking a Layers box hides the matching viewport element (shell, section cut, flow, labels) and re-checking restores it.",
+      "level": "required"
+    },
+    {
+      "id": "06.study.select",
+      "kind": "state",
+      "testid": "study.row",
+      "milestone": "M5",
+      "source": "C§4.6 Study list; BC0 critic",
+      "text": "Selecting another study in the Study list loads that study's viewport animation, transport duration, and traces.",
+      "level": "required"
+    },
+    {
+      "id": "06.page.tier-switch",
+      "kind": "state",
+      "testid": "propsim.tier-tab",
+      "milestone": "M5",
+      "source": "C§4.6 Tabs; C§6 (06); BC0 critic",
+      "text": "Selecting Engineering or Imported CFD shows that tier's own result view and provenance instead of the visual-flow view.",
+      "level": "required"
+    },
+    {
+      "id": "06.traces.other-tabs",
+      "kind": "field",
+      "testid": "traces.tab",
+      "milestone": "M5",
+      "source": "C§4.6 Tabs Inputs | Traces | Assumptions; BC0 critic",
+      "text": "Inputs tab lists the study's inputs and the Assumptions tab shows its assumptions text.",
+      "level": "required"
+    },
+    {
+      "id": "06.traces.cfd-import",
+      "kind": "control",
+      "testid": "traces.action",
+      "milestone": "M5",
+      "source": "C§4.6 Buttons; BC0 critic",
+      "text": "'Import CFD result' accepts an external CFD result (OpenFOAM/SU2) and stores it with imported-CFD provenance.",
+      "level": "required"
+    },
+    {
+      "id": "06.vp.background",
+      "kind": "render",
+      "testid": "viewport",
+      "milestone": "M5",
+      "source": "C§2 bg/viewport; BC0 critic",
+      "text": "Viewport background is a flat soft vertical vignette (lighter top to darker bottom) with no grid behind the model.",
+      "level": "required"
+    }
+  ]
+}

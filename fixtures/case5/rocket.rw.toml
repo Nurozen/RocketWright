@@ -1,0 +1,230 @@
+# Oracle case 5 ('Dual parachute deployment', generic-curve variant), re-authored
+# from tests/oracle/case5.geometry.json by scripts/fixtures/oracle_case.py.
+# Do not edit; modelling choices are listed in fixtures/README.md.
+
+name = "Dual parachute deployment"
+
+[stage.sustainer]
+first = "nose_cone"
+name = "Sustainer"
+override = { mass = "1.3607771088 kg", subtree = true }
+
+[c.nose_cone]
+type = "nose_cone"
+name = "Nose cone"
+material = "fiberglass"
+finish = { roughness = "0.00006 m" }
+shape = "ogive"
+shape_param = 1
+length = "0.28321 m"
+od = "0.056642 m"
+thickness = "0.0009906 m"
+
+[c.tube_coupler]
+type = "coupler"
+name = "Tube coupler"
+attach = { to = "nose_cone.inner", at = "fore", offset = "0.25781000000000004 m" }
+material = "fiberglass"
+length = "0.07619999999999999 m"
+od = "0.05461 m"
+thickness = "0.0019050000000000004 m"
+
+[c.bulkhead]
+type = "bulkhead"
+name = "Bulkhead"
+attach = { to = "tube_coupler.inner", at = "fore", offset = "0.07419999999999999 m" }
+material = "fiberglass"
+length = "0.002 m"
+od = "0.0508 m"
+
+[c.body_tube]
+type = "body_tube"
+name = "Body tube"
+attach = { to = "nose_cone.base" }
+material = "fiberglass"
+finish = { roughness = "0.00006 m" }
+length = "0.4064 m"
+od = "0.056642 m"
+thickness = "0.0009905999999999977 m"
+
+[c.elliptical_12_gore_42_parachute]
+type = "parachute"
+name = "Elliptical 12-Gore 42\" Parachute"
+attach = { to = "body_tube.fore", at = "attach", offset = "0.07619999999999999 m" }
+override = { mass = "0.07512623621499999 kg" }
+material = "ripstop_nylon_lightweigh"
+diameter = "1.0668 m"
+cd = 1.5
+line_count = 12
+line_length = "1.6001999999999998 m"
+line_material = "shroud_lines"
+packed_length = "0.08709673571783902 m"
+packed_diameter = "0.0546608 m"
+
+[c.body_tube_2]
+type = "body_tube"
+name = "Body tube"
+attach = { to = "body_tube.aft" }
+material = "cardboard"
+finish = { roughness = "0.00006 m" }
+length = "0.0254 m"
+od = "0.056642 m"
+thickness = "0.0009905999999999977 m"
+
+[c.tube_coupler_2]
+type = "coupler"
+name = "Tube coupler"
+attach = { to = "body_tube.fore", at = "fore", offset = "0.3556000000000001 m" }
+material = "fiberglass"
+length = "0.127 m"
+od = "0.0546608 m"
+thickness = "0.0019304000000000023 m"
+
+[c.body_tube_3]
+type = "body_tube"
+name = "Body tube"
+attach = { to = "body_tube_2.aft" }
+material = "fiberglass"
+finish = { roughness = "0.00006 m" }
+length = "0.30479999999999996 m"
+od = "0.056642 m"
+thickness = "0.0009905999999999977 m"
+
+[c.apex_12_drouge_parachute]
+type = "parachute"
+name = "Apex 12\" Drouge Parachute"
+attach = { to = "body_tube_3.fore", at = "attach", offset = "0.12796586939097032 m" }
+override = { mass = "0.034019427719999995 kg" }
+material = "ripstop_nylon_1_9_oz_5_m"
+diameter = "0.30479999999999996 m"
+cd = 0.61
+line_count = 4
+line_length = "0.30479999999999996 m"
+line_material = "shroud_lines_2"
+packed_length = "0.048868261218059435 m"
+packed_diameter = "0.0546608 m"
+
+[c.body_tube_4]
+type = "body_tube"
+name = "Body tube"
+attach = { to = "body_tube_3.aft" }
+material = "fiberglass"
+finish = { roughness = "0.00006 m" }
+length = "0.4572 m"
+od = "0.056642 m"
+thickness = "0.0009905999999999977 m"
+
+[c.inner_tube]
+type = "inner_tube"
+name = "Inner Tube"
+attach = { to = "body_tube_4.fore", at = "fore", offset = "0.050799999999999956 m" }
+material = "fiberglass"
+length = "0.4064 m"
+od = "0.04064 m"
+thickness = "0.001016000000000003 m"
+motor_mount = true
+overhang = "0.0127 m"
+
+[c.trapezoidal_fin_set]
+type = "trapezoidal_fin_set"
+name = "Trapezoidal fin set"
+attach = { to = "body_tube_4.fore", at = "root_le", offset = "0.3027934000000001 m" }
+material = "fiberglass"
+finish = { roughness = "0.00006 m" }
+count = 3
+root_chord = "0.15239999999999998 m"
+tip_chord = "0.08889999999999999 m"
+span = "0.07619999999999999 m"
+sweep = "0.04399409051224947 m"
+thickness = "0.0023622 m"
+cross_section = "square"
+tab = { height = "0.008000999999999998 m", length = "0.15239999999999998 m", offset = "0 m" }
+
+[c.tube_coupler_3]
+type = "coupler"
+name = "Tube coupler"
+attach = { to = "body_tube_3.fore", at = "fore", offset = "0.2540000000000001 m" }
+material = "fiberglass"
+length = "0.1016 m"
+od = "0.0546608 m"
+thickness = "0.0019304000000000023 m"
+
+[c.bulkhead_2]
+type = "bulkhead"
+name = "Bulkhead"
+attach = { to = "tube_coupler_3.inner", at = "fore", offset = "0 m" }
+material = "fiberglass"
+length = "0.002 m"
+od = "0.0508 m"
+
+[c.rail_button]
+type = "rail_button"
+name = "Rail Button"
+attach = { to = "body_tube_4.fore", at = "mid", offset = "0.06349999999999989 m", spin = "3.141592653589793 rad" }
+instances = { count = 2, pattern = "linear", spacing = "0.381 m" }
+material = "delrin"
+finish = { roughness = "0.00006 m" }
+od = "0.0097 m"
+id = "0.008 m"
+height = "0.0097 m"
+base_height = "0.002 m"
+flange_height = "0.002 m"
+
+[c.centering_ring]
+type = "centering_ring"
+name = "Centering Ring"
+attach = { to = "body_tube_4.fore", at = "fore", offset = "0.06984999999999997 m" }
+material = "fiberglass"
+length = "0.002 m"
+od = "0.0546608 m"
+id = "0.04064 m"
+
+[c.centering_ring_2]
+type = "centering_ring"
+name = "Centering Ring"
+attach = { to = "body_tube_4.fore", at = "fore", offset = "0.3007933999999999 m" }
+material = "fiberglass_2"
+length = "0.002 m"
+od = "0.0546608 m"
+id = "0.04064 m"
+
+[c.centering_ring_3]
+type = "centering_ring"
+name = "Centering Ring"
+attach = { to = "body_tube_4.fore", at = "fore", offset = "0.45520000000000005 m" }
+material = "fiberglass_2"
+length = "0.002 m"
+od = "0.0546608 m"
+id = "0.04064 m"
+
+[materials.fiberglass]
+density = "1850 kg/m^3"
+name = "Fiberglass"
+
+[materials.ripstop_nylon_lightweigh]
+surface_density = "0.035653924 kg/m^2"
+name = "Ripstop nylon, lightweight, 3 mil"
+
+[materials.shroud_lines]
+line_density = "0.000656168 kg/m"
+name = "shroud lines"
+
+[materials.cardboard]
+density = "680 kg/m^3"
+name = "Cardboard"
+
+[materials.ripstop_nylon_1_9_oz_5_m]
+surface_density = "0.058906483 kg/m^2"
+name = "Ripstop Nylon, 1.9 oz 5 mil"
+
+[materials.shroud_lines_2]
+line_density = "0.004090114 kg/m"
+name = "shroud lines"
+
+[materials.delrin]
+density = "1420 kg/m^3"
+name = "Delrin"
+
+[materials.fiberglass_2]
+density = "40.827859344 kg/m^3"
+name = "Fiberglass"

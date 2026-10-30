@@ -1,0 +1,16 @@
+{
+  "kind": "provenance",
+  "schema": "rw/1",
+  "case": 6,
+  "source_example": "Three stage low power rocket.ork",
+  "openrocket_version": "26.xx-SNAPSHOT+591c5e5f7b73",
+  "harness_commit": "f7274c1f27676a3e4226b0278a473545c9184d27",
+  "generic_motor": "RW_C6G",
+  "files": {
+    "case6-generic.json": "4a8e2b60e7c10146f685016ea92d35d12dc06d533361de1454e75fe388e8fed1",
+    "case6-generic.series.json": "f4288d347b992c113e7027c38a38d50decaec42682f95db34ef6c06fda98a461",
+    "case6-original.json": "5b76208deb96e3dbdb1d58ed67239995684e53c2a3c82085600e102940fa88be",
+    "case6.aero_sweep.json": "23329d3bc056cdf2184799918bbcbcd1a90c73fb389441a99b5bd719d3565463",
+    "case6.geometry.json": "c158affafcfa6489d40028a5396d6a941a1a40f54b1d9070ccada9b9e829c6a8"
+  }
+}

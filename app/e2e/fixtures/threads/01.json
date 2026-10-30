@@ -1,0 +1,149 @@
+{
+  "description": "Page 01 canned chat (concept 01, Design > Assembly). Seeded through app_seed_thread in this order on the seeded research vehicle (fixtures/research-vehicle/seed.sh); the last thread is the one the capture opens. Every page shows the concept's three threads (Assembly review 3m, Fin revision 1h, Flight comparison 2h; the rail sorts by recency), each bound to the page. Step cards point at real seeded steps (seed.expected.json). Illustrative chat text, not engineering output.",
+  "threads": [
+    {
+      "thread": "Flight comparison",
+      "binding": {
+        "page": "assembly"
+      },
+      "ageMs": 8100000,
+      "messages": [
+        {
+          "role": "user",
+          "text": "What changed between these flights?",
+          "mentions": [
+            {
+              "ref": "rw:sim/baseline",
+              "label": "Baseline"
+            },
+            {
+              "ref": "rw:sim/higher_altitude",
+              "label": "Higher altitude"
+            }
+          ]
+        },
+        {
+          "role": "assistant",
+          "text": "The second configuration reaches a higher apogee in this example. Review launch and recovery conditions before comparing.",
+          "steps": [
+            {
+              "tool": "run_list",
+              "input": {},
+              "output": {},
+              "summary": "4 runs"
+            },
+            {
+              "tool": "run_diff",
+              "input": {
+                "a": "baseline",
+                "b": "higher_altitude"
+              },
+              "output": {},
+              "summary": "2 runs"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "thread": "Fin revision",
+      "binding": {
+        "page": "assembly"
+      },
+      "ageMs": 4200000,
+      "messages": [
+        {
+          "role": "user",
+          "text": "Can the fins get a little more span? [@Fin can](rw:c/fin_can)",
+          "mentions": [
+            {
+              "ref": "rw:c/fin_can",
+              "label": "Fin can"
+            }
+          ]
+        },
+        {
+          "role": "assistant",
+          "text": "The fin span is a parameter, so one edit changes all four fins. Span is now 100 mm and sweep 40 mm; run Check model to see the new stability margin.",
+          "cards": [
+            {
+              "kind": "step",
+              "ref": "rw:step/3",
+              "title": "Fin revision",
+              "summary": "2 fields changed"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "thread": "Assembly review",
+      "binding": {
+        "page": "assembly"
+      },
+      "ageMs": 220000,
+      "messages": [
+        {
+          "role": "user",
+          "text": "Show how the recovery bay fits.",
+          "mentions": [
+            {
+              "ref": "rw:c/recovery_bay",
+              "label": "Recovery bay"
+            }
+          ]
+        },
+        {
+          "role": "assistant",
+          "text": "Exploded view ready. The recovery bay is selected in the model.",
+          "steps": [
+            {
+              "tool": "viewport_select",
+              "input": {
+                "refs": [
+                  "rw:c/recovery_bay"
+                ]
+              },
+              "output": {
+                "selected": [
+                  "rw:c/recovery_bay"
+                ]
+              },
+              "summary": "1 selected"
+            },
+            {
+              "tool": "viewport_set_camera",
+              "input": {
+                "view": "iso",
+                "explode": 0.6
+              },
+              "output": {},
+              "summary": "Iso view · exploded 60%"
+            },
+            {
+              "tool": "viewport_render",
+              "input": {
+                "view": "iso"
+              },
+              "output": {
+                "width": 1536,
+                "height": 1024,
+                "backend": "webgpu",
+                "adapter": "capture"
+              },
+              "summary": "Iso view"
+            }
+          ],
+          "cards": [
+            {
+              "kind": "step",
+              "ref": "rw:step/2",
+              "title": "Assembly layout",
+              "summary": "3 fields changed"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

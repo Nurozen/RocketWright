@@ -1,0 +1,215 @@
+{
+  "note": "CPW1R4A: app tool rows as a live turn leaves them: orchestration_v2_projection_turn_items.payload_json from the sidecar of a Lecturn embed-host e2e run (2026-10-25, the Lecturn-apps line RocketWright pins), where the scripted provider calls the Embed Host app through Lecturn MCP: two card-tool calls and a declined one. B7e (pin5, 255c4746f1): brought to the pin5 shape from the vendored server code, not re-recorded: FIXH mcpToolPresentation titles an app row with the tool's declared MCP title (examples/embed-host/tools/counter-mcp.ts counter_increment \"Increment counter\", liveMcp.ts window_flash \"Flash window\"), and AppToolkit sanitizeResult keeps a valid _meta[\"lecturn/summary\"] ahead of lecturn/toolSource (the Embed Host tools return none, so these rows have no summary); every other field is unchanged in pin5. convert-threads.ts emits RocketWright rows of the same shape; lecturn-fixtures.test.ts compares the field sets. Pin16 (2e3f51e1e8): AppToolkit keeps no lecturn/* key of a result but the summary and no longer stamps lecturn/toolSource (the row reads the item's toolSource); these rows keep it as recorded, while RocketWright rows, which carry a summary, have only lecturn/summary.",
+  "items": [
+    {
+      "toolIcon": {
+        "_tag": "themed-logo",
+        "logoUrl": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAl0lEQVR42u2X0Q2AMAhEu4eJcTUH9NP5cIFaOErL2fhxv/BoChzlvK+SqfJFAFE0DEBAhQFIp7oAJEguAAkWBNAMtu1HVR4IKPlbYhDEB2BNboBoAoQkRyBUAGtwEKIKYKoe/aDaK8DVezokDMDa8z/AugDTP+HsNkwfRBSjOH0ZUazjdENCYckoTCmFLac4TGhOszWv4wfOPXkxlYVoxwAAAABJRU5ErkJggg=="
+      },
+      "toolSource": {
+        "key": "app:dev.example.embedhost",
+        "name": "Embed Host",
+        "kind": "integration",
+        "icon": {
+          "_tag": "themed-logo",
+          "logoUrl": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAl0lEQVR42u2X0Q2AMAhEu4eJcTUH9NP5cIFaOErL2fhxv/BoChzlvK+SqfJFAFE0DEBAhQFIp7oAJEguAAkWBNAMtu1HVR4IKPlbYhDEB2BNboBoAoQkRyBUAGtwEKIKYKoe/aDaK8DVezokDMDa8z/AugDTP+HsNkwfRBSjOH0ZUazjdENCYckoTCmFLac4TGhOszWv4wfOPXkxlYVoxwAAAABJRU5ErkJggg=="
+        }
+      },
+      "id": "turn-item:provider:scripted:native-item:scripted%3Aprovider-turn%3Aprovider%3Ascripted%3Anative-turn%3Aprovider-thread%253Aprovider%253Ascripted%253Anative-thread%253Apending%25253Arun%25253Athread%25253Ac367b351-1ab4-48ee-89c0-c8d3378b2db6%25253Aordinal%25253A1%253Arun-attempt%253Arun%253Arun%25253Athread%25253Ac367b351-1ab4-48ee-89c0-c8d3378b2db6%25253Aordinal%25253A1%253Aattempt%253A1%3A1001",
+      "threadId": "c367b351-1ab4-48ee-89c0-c8d3378b2db6",
+      "runId": "run:thread:c367b351-1ab4-48ee-89c0-c8d3378b2db6:ordinal:1",
+      "nodeId": "node:provider:scripted:native-item:scripted%3Aprovider-turn%3Aprovider%3Ascripted%3Anative-turn%3Aprovider-thread%253Aprovider%253Ascripted%253Anative-thread%253Apending%25253Arun%25253Athread%25253Ac367b351-1ab4-48ee-89c0-c8d3378b2db6%25253Aordinal%25253A1%253Arun-attempt%253Arun%253Arun%25253Athread%25253Ac367b351-1ab4-48ee-89c0-c8d3378b2db6%25253Aordinal%25253A1%253Aattempt%253A1%3A1001",
+      "providerThreadId": "provider-thread:provider:scripted:native-thread:pending%3Arun%3Athread%3Ac367b351-1ab4-48ee-89c0-c8d3378b2db6%3Aordinal%3A1",
+      "providerTurnId": "provider-turn:provider:scripted:native-turn:provider-thread%3Aprovider%3Ascripted%3Anative-thread%3Apending%253Arun%253Athread%253Ac367b351-1ab4-48ee-89c0-c8d3378b2db6%253Aordinal%253A1%3Arun-attempt%3Arun%3Arun%253Athread%253Ac367b351-1ab4-48ee-89c0-c8d3378b2db6%253Aordinal%253A1%3Aattempt%3A1",
+      "nativeItemRef": {
+        "driver": "scripted",
+        "nativeId": "scripted:provider-turn:provider:scripted:native-turn:provider-thread%3Aprovider%3Ascripted%3Anative-thread%3Apending%253Arun%253Athread%253Ac367b351-1ab4-48ee-89c0-c8d3378b2db6%253Aordinal%253A1%3Arun-attempt%3Arun%3Arun%253Athread%253Ac367b351-1ab4-48ee-89c0-c8d3378b2db6%253Aordinal%253A1%3Aattempt%3A1:1001",
+        "strength": "strong"
+      },
+      "parentItemId": null,
+      "ordinal": 1000002,
+      "status": "completed",
+      "title": "Increment counter",
+      "startedAt": "2026-10-25T14:08:16.626Z",
+      "completedAt": "2026-10-25T14:08:16.687Z",
+      "updatedAt": "2026-10-25T14:08:16.687Z",
+      "type": "dynamic_tool",
+      "toolName": "lecturn.ex_counter_increment",
+      "input": {
+        "by": 1
+      },
+      "output": {
+        "_meta": {
+          "lecturn/toolSource": {
+            "key": "app:dev.example.embedhost",
+            "name": "Embed Host",
+            "kind": "integration",
+            "icon": {
+              "_tag": "themed-logo",
+              "logoUrl": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAl0lEQVR42u2X0Q2AMAhEu4eJcTUH9NP5cIFaOErL2fhxv/BoChzlvK+SqfJFAFE0DEBAhQFIp7oAJEguAAkWBNAMtu1HVR4IKPlbYhDEB2BNboBoAoQkRyBUAGtwEKIKYKoe/aDaK8DVezokDMDa8z/AugDTP+HsNkwfRBSjOH0ZUazjdENCYckoTCmFLac4TGhOszWv4wfOPXkxlYVoxwAAAABJRU5ErkJggg=="
+            }
+          }
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "The counter is now 1."
+          }
+        ],
+        "structuredContent": {
+          "lecturnMcpApp": {
+            "attachmentId": "c367b351-1ab4-48ee-89c0-c8d3378b2db6-effc740d-9226-47d3-869e-08fb488bf98a-html",
+            "server": "lecturn",
+            "tool": "ex_counter_increment",
+            "resourceUri": "ui://ex/counter-card",
+            "prefersBorder": false
+          },
+          "result": {
+            "content": [
+              {
+                "type": "text",
+                "text": "The counter is now 1."
+              }
+            ],
+            "structuredContent": {
+              "count": 1,
+              "by": 1,
+              "history": [
+                1
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "toolIcon": {
+        "_tag": "themed-logo",
+        "logoUrl": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAl0lEQVR42u2X0Q2AMAhEu4eJcTUH9NP5cIFaOErL2fhxv/BoChzlvK+SqfJFAFE0DEBAhQFIp7oAJEguAAkWBNAMtu1HVR4IKPlbYhDEB2BNboBoAoQkRyBUAGtwEKIKYKoe/aDaK8DVezokDMDa8z/AugDTP+HsNkwfRBSjOH0ZUazjdENCYckoTCmFLac4TGhOszWv4wfOPXkxlYVoxwAAAABJRU5ErkJggg=="
+      },
+      "toolSource": {
+        "key": "app:dev.example.embedhost",
+        "name": "Embed Host",
+        "kind": "integration",
+        "icon": {
+          "_tag": "themed-logo",
+          "logoUrl": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAl0lEQVR42u2X0Q2AMAhEu4eJcTUH9NP5cIFaOErL2fhxv/BoChzlvK+SqfJFAFE0DEBAhQFIp7oAJEguAAkWBNAMtu1HVR4IKPlbYhDEB2BNboBoAoQkRyBUAGtwEKIKYKoe/aDaK8DVezokDMDa8z/AugDTP+HsNkwfRBSjOH0ZUazjdENCYckoTCmFLac4TGhOszWv4wfOPXkxlYVoxwAAAABJRU5ErkJggg=="
+        }
+      },
+      "id": "turn-item:provider:scripted:native-item:scripted%3Aprovider-turn%3Aprovider%3Ascripted%3Anative-turn%3Aprovider-thread%253Aprovider%253Ascripted%253Anative-thread%253Apending%25253Arun%25253Athread%25253Ac367b351-1ab4-48ee-89c0-c8d3378b2db6%25253Aordinal%25253A1%253Arun-attempt%253Arun%253Arun%25253Athread%25253Ac367b351-1ab4-48ee-89c0-c8d3378b2db6%25253Aordinal%25253A1%253Aattempt%253A1%3A1002",
+      "threadId": "c367b351-1ab4-48ee-89c0-c8d3378b2db6",
+      "runId": "run:thread:c367b351-1ab4-48ee-89c0-c8d3378b2db6:ordinal:1",
+      "nodeId": "node:provider:scripted:native-item:scripted%3Aprovider-turn%3Aprovider%3Ascripted%3Anative-turn%3Aprovider-thread%253Aprovider%253Ascripted%253Anative-thread%253Apending%25253Arun%25253Athread%25253Ac367b351-1ab4-48ee-89c0-c8d3378b2db6%25253Aordinal%25253A1%253Arun-attempt%253Arun%253Arun%25253Athread%25253Ac367b351-1ab4-48ee-89c0-c8d3378b2db6%25253Aordinal%25253A1%253Aattempt%253A1%3A1002",
+      "providerThreadId": "provider-thread:provider:scripted:native-thread:pending%3Arun%3Athread%3Ac367b351-1ab4-48ee-89c0-c8d3378b2db6%3Aordinal%3A1",
+      "providerTurnId": "provider-turn:provider:scripted:native-turn:provider-thread%3Aprovider%3Ascripted%3Anative-thread%3Apending%253Arun%253Athread%253Ac367b351-1ab4-48ee-89c0-c8d3378b2db6%253Aordinal%253A1%3Arun-attempt%3Arun%3Arun%253Athread%253Ac367b351-1ab4-48ee-89c0-c8d3378b2db6%253Aordinal%253A1%3Aattempt%3A1",
+      "nativeItemRef": {
+        "driver": "scripted",
+        "nativeId": "scripted:provider-turn:provider:scripted:native-turn:provider-thread%3Aprovider%3Ascripted%3Anative-thread%3Apending%253Arun%253Athread%253Ac367b351-1ab4-48ee-89c0-c8d3378b2db6%253Aordinal%253A1%3Arun-attempt%3Arun%3Arun%253Athread%253Ac367b351-1ab4-48ee-89c0-c8d3378b2db6%253Aordinal%253A1%3Aattempt%3A1:1002",
+        "strength": "strong"
+      },
+      "parentItemId": null,
+      "ordinal": 1000003,
+      "status": "completed",
+      "title": "Increment counter",
+      "startedAt": "2026-10-25T14:08:16.687Z",
+      "completedAt": "2026-10-25T14:08:16.695Z",
+      "updatedAt": "2026-10-25T14:08:16.695Z",
+      "type": "dynamic_tool",
+      "toolName": "lecturn.ex_counter_increment",
+      "input": {
+        "by": 1
+      },
+      "output": {
+        "_meta": {
+          "lecturn/toolSource": {
+            "key": "app:dev.example.embedhost",
+            "name": "Embed Host",
+            "kind": "integration",
+            "icon": {
+              "_tag": "themed-logo",
+              "logoUrl": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAl0lEQVR42u2X0Q2AMAhEu4eJcTUH9NP5cIFaOErL2fhxv/BoChzlvK+SqfJFAFE0DEBAhQFIp7oAJEguAAkWBNAMtu1HVR4IKPlbYhDEB2BNboBoAoQkRyBUAGtwEKIKYKoe/aDaK8DVezokDMDa8z/AugDTP+HsNkwfRBSjOH0ZUazjdENCYckoTCmFLac4TGhOszWv4wfOPXkxlYVoxwAAAABJRU5ErkJggg=="
+            }
+          }
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "The counter is now 2."
+          }
+        ],
+        "structuredContent": {
+          "lecturnMcpApp": {
+            "attachmentId": "c367b351-1ab4-48ee-89c0-c8d3378b2db6-f2b1777a-77d2-4427-8d40-bc033cd8c84e-html",
+            "server": "lecturn",
+            "tool": "ex_counter_increment",
+            "resourceUri": "ui://ex/counter-card",
+            "prefersBorder": false
+          },
+          "result": {
+            "content": [
+              {
+                "type": "text",
+                "text": "The counter is now 2."
+              }
+            ],
+            "structuredContent": {
+              "count": 2,
+              "by": 1,
+              "history": [
+                1,
+                2
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "toolIcon": {
+        "_tag": "themed-logo",
+        "logoUrl": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAl0lEQVR42u2X0Q2AMAhEu4eJcTUH9NP5cIFaOErL2fhxv/BoChzlvK+SqfJFAFE0DEBAhQFIp7oAJEguAAkWBNAMtu1HVR4IKPlbYhDEB2BNboBoAoQkRyBUAGtwEKIKYKoe/aDaK8DVezokDMDa8z/AugDTP+HsNkwfRBSjOH0ZUazjdENCYckoTCmFLac4TGhOszWv4wfOPXkxlYVoxwAAAABJRU5ErkJggg=="
+      },
+      "toolSource": {
+        "key": "app:dev.example.embedhost",
+        "name": "Embed Host",
+        "kind": "integration",
+        "icon": {
+          "_tag": "themed-logo",
+          "logoUrl": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAl0lEQVR42u2X0Q2AMAhEu4eJcTUH9NP5cIFaOErL2fhxv/BoChzlvK+SqfJFAFE0DEBAhQFIp7oAJEguAAkWBNAMtu1HVR4IKPlbYhDEB2BNboBoAoQkRyBUAGtwEKIKYKoe/aDaK8DVezokDMDa8z/AugDTP+HsNkwfRBSjOH0ZUazjdENCYckoTCmFLac4TGhOszWv4wfOPXkxlYVoxwAAAABJRU5ErkJggg=="
+        }
+      },
+      "id": "turn-item:provider:scripted:native-item:scripted%3Aprovider-turn%3Aprovider%3Ascripted%3Anative-turn%3Aprovider-thread%253Aprovider%253Ascripted%253Anative-thread%253Apending%25253Arun%25253Athread%25253Ac367b351-1ab4-48ee-89c0-c8d3378b2db6%25253Aordinal%25253A1%253Arun-attempt%253Arun%253Arun%25253Athread%25253Ac367b351-1ab4-48ee-89c0-c8d3378b2db6%25253Aordinal%25253A1%253Aattempt%253A1%3A1003",
+      "threadId": "c367b351-1ab4-48ee-89c0-c8d3378b2db6",
+      "runId": "run:thread:c367b351-1ab4-48ee-89c0-c8d3378b2db6:ordinal:1",
+      "nodeId": "node:provider:scripted:native-item:scripted%3Aprovider-turn%3Aprovider%3Ascripted%3Anative-turn%3Aprovider-thread%253Aprovider%253Ascripted%253Anative-thread%253Apending%25253Arun%25253Athread%25253Ac367b351-1ab4-48ee-89c0-c8d3378b2db6%25253Aordinal%25253A1%253Arun-attempt%253Arun%253Arun%25253Athread%25253Ac367b351-1ab4-48ee-89c0-c8d3378b2db6%25253Aordinal%25253A1%253Aattempt%253A1%3A1003",
+      "providerThreadId": "provider-thread:provider:scripted:native-thread:pending%3Arun%3Athread%3Ac367b351-1ab4-48ee-89c0-c8d3378b2db6%3Aordinal%3A1",
+      "providerTurnId": "provider-turn:provider:scripted:native-turn:provider-thread%3Aprovider%3Ascripted%3Anative-thread%3Apending%253Arun%253Athread%253Ac367b351-1ab4-48ee-89c0-c8d3378b2db6%253Aordinal%253A1%3Arun-attempt%3Arun%3Arun%253Athread%253Ac367b351-1ab4-48ee-89c0-c8d3378b2db6%253Aordinal%253A1%3Aattempt%3A1",
+      "nativeItemRef": {
+        "driver": "scripted",
+        "nativeId": "scripted:provider-turn:provider:scripted:native-turn:provider-thread%3Aprovider%3Ascripted%3Anative-thread%3Apending%253Arun%253Athread%253Ac367b351-1ab4-48ee-89c0-c8d3378b2db6%253Aordinal%253A1%3Arun-attempt%3Arun%3Arun%253Athread%253Ac367b351-1ab4-48ee-89c0-c8d3378b2db6%253Aordinal%253A1%3Aattempt%3A1:1003",
+        "strength": "strong"
+      },
+      "parentItemId": null,
+      "ordinal": 1000004,
+      "status": "failed",
+      "title": "Flash window",
+      "startedAt": "2026-10-25T14:08:16.695Z",
+      "completedAt": "2026-10-25T14:08:16.700Z",
+      "updatedAt": "2026-10-25T14:08:16.700Z",
+      "type": "dynamic_tool",
+      "toolName": "lecturn.ex_window_flash",
+      "input": {
+        "color": "gold"
+      },
+      "output": {
+        "content": [
+          {
+            "type": "text",
+            "text": "ex_window_flash did not run (approval cancelled)."
+          }
+        ],
+        "isError": true
+      }
+    }
+  ]
+}

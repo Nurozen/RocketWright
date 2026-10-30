@@ -1,0 +1,17 @@
+renders/5d9a2765-395d-4d9c-9678-38eed0988c72.profile.png (1200x348)
+drawn (x: stations from the nose tip, r: radius from the axis, mm):
+  nose (nose_cone): x 0-100 mm, r 0-12.5 mm
+  body (body_tube): x 100-400 mm, r 11.5-12.5 mm
+  cord (shock_cord, inside body): x 120-172 mm, r 0-6 mm
+  chute (parachute, inside body): x 132-174 mm, r 0-9 mm
+  wadding (mass_component, inside body): x 180-210 mm, r 0-11.5 mm
+  lug (launch_lug, on body): x 232.5-267.5 mm, r 12.5-19.5 mm
+  mmt (inner_tube, inside body): x 330-405 mm, r 9-9.5 mm
+  block (engine_block, inside mmt): x 332-337 mm, r 6-9 mm
+  fins (trapezoidal_fin_set, x3, on body): x 349.2-425.4 mm, r 12.5-42.5 mm
+  ring_fore (centering_ring, inside body): x 353-355 mm, r 9.5-11.5 mm
+  ring_aft (centering_ring, inside body): x 398-400 mm, r 9.5-11.5 mm
+relations:
+  lug: at 250 mm, 50% along body
+  mmt: aft end 5 mm past the body aft end
+  fins: aft end 25.4 mm past the body aft end (overhang)

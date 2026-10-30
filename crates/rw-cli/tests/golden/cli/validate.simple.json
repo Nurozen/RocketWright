@@ -1,0 +1,28 @@
+{
+  "ok": true,
+  "files": [
+    "configs/b4.rw.toml",
+    "configs/c6.rw.toml",
+    "parts/fin_can.rw.toml",
+    "rocket.rw.toml",
+    "rocketwright.toml",
+    "sims/b4.rw.toml",
+    "sims/c6.rw.toml"
+  ],
+  "diagnostics": [],
+  "units": {
+    "length": "m",
+    "mass": "kg",
+    "velocity": "m/s",
+    "altitude": "m",
+    "time": "s",
+    "angle": "rad",
+    "acceleration": "m/s^2",
+    "area": "m^2",
+    "volume": "m^3",
+    "inertia": "kg*m^2",
+    "impulse": "N*s",
+    "force": "N",
+    "stability": "cal"
+  }
+}

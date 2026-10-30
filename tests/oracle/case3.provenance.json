@@ -1,0 +1,16 @@
+{
+  "kind": "provenance",
+  "schema": "rw/1",
+  "case": 3,
+  "source_example": "Clustered motors.ork",
+  "openrocket_version": "26.xx-SNAPSHOT+591c5e5f7b73",
+  "harness_commit": "f7274c1f27676a3e4226b0278a473545c9184d27",
+  "generic_motor": "RW_C6G",
+  "files": {
+    "case3-generic.json": "ab5cc52ca535b8057d500a788a850ce56fc906cd386c7ed980a57b79dfae24d5",
+    "case3-generic.series.json": "72b187994ed67e5215721b7194f0292567eda537102a2e1bde8eec92a2dc48f6",
+    "case3-original.json": "2d9bad3344c309741d574c9a0d5dbc9f373c551d82cc67a3a9726819a3566a63",
+    "case3.aero_sweep.json": "fa6975a5f4a8e39e7cc2c05ad3e03340f3002a92abfd4c5f0700822d93451aad",
+    "case3.geometry.json": "e10c2a152692916671fbbd84cf15092371f49b260846259cb36a6a6ae85590a1"
+  }
+}

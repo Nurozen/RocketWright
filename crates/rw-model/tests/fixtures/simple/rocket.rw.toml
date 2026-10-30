@@ -1,0 +1,57 @@
+name = "Simple"
+include = ["parts/fin_can.rw.toml"]
+
+[params.span]
+value = "50 mm"
+min = "30 mm"
+max = "80 mm"
+step = "5 mm"
+group = "Fins"
+doc = "Fin height"
+
+[params.body_len]
+value = "= 400 mm"
+
+[variants.long_fins]
+span = "70 mm"
+
+[c.nose]
+name = "Nose cone"
+type = "nose_cone"
+shape = "ogive"
+length = "150 mm"
+od = "41.6 mm"
+thickness = "2 mm"
+shoulder = { length = "40 mm", od = "39.8 mm" }
+material = "plastic"
+
+[c.body]
+name = "Body tube"
+type = "body_tube"
+attach = { to = "nose.base" }
+length = "= params.body_len"
+od = "= c.nose.od"
+id = "39.8 mm"
+material = "kraft"
+finish = { roughness = "60 um" }
+
+[c.chute]
+type = "parachute"
+attach = { to = "body.inner", at = "attach", offset = "20 mm" }
+diameter = "450 mm"
+cd = 0.8
+packed_length = "60 mm"
+packed_diameter = "35 mm"
+
+[materials.plastic]
+density = "1.05 g/cm^3"
+
+[materials.kraft]
+density = "680 kg/m^3"
+
+[[assert]]
+id = "stable"
+expr = "stability.liftoff >= 1 cal"
+
+[report]
+values = ["= c.fins.span"]

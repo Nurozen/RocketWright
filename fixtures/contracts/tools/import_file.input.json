@@ -1,0 +1,9 @@
+{
+  "provenance": "contract-fixture",
+  "type": "tools/import_file.input",
+  "payload": {
+    "path": "/tmp/example.ork",
+    "kind": "ork",
+    "dry_run": true
+  }
+}

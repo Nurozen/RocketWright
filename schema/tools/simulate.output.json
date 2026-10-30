@@ -1,0 +1,272 @@
+{
+  "type": "object",
+  "properties": {
+    "sim": {
+      "type": "string"
+    },
+    "run_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{12}$"
+    },
+    "status": {
+      "$ref": "#/$defs/RunStatus"
+    },
+    "cached": {
+      "type": "boolean"
+    },
+    "job_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Poll `job_status` or subscribe to `rw://jobs/<id>`."
+    },
+    "summary": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/RunSummary"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "required": [
+    "sim",
+    "run_id",
+    "status",
+    "cached"
+  ],
+  "description": "Returns within 100 ms: a cache hit (`Complete`, `summary` set) or a job.",
+  "title": "SimulateOut",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rocketwright.dev/schema/1/tools/simulate.output.json",
+  "$defs": {
+    "RunStatus": {
+      "type": "string",
+      "enum": [
+        "complete",
+        "outdated",
+        "running",
+        "failed",
+        "not_run"
+      ],
+      "description": "Run status per sim, computed from `model_hash` (I7)."
+    },
+    "RunSummary": {
+      "type": "object",
+      "properties": {
+        "schema": {
+          "type": "string",
+          "const": "rw/1"
+        },
+        "apogee_m": {
+          "type": "number",
+          "format": "double"
+        },
+        "max_velocity_ms": {
+          "type": "number",
+          "format": "double"
+        },
+        "max_accel_ms2": {
+          "type": "number",
+          "format": "double"
+        },
+        "max_mach": {
+          "type": "number",
+          "format": "double"
+        },
+        "time_to_apogee_s": {
+          "type": "number",
+          "format": "double"
+        },
+        "flight_time_s": {
+          "type": "number",
+          "format": "double"
+        },
+        "landing_velocity_ms": {
+          "type": "number",
+          "format": "double"
+        },
+        "rail_exit_velocity_ms": {
+          "type": "number",
+          "format": "double"
+        },
+        "deployment_velocity_ms": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "description": "Speed at the last recovery deployment (the main of a dual deploy)."
+        },
+        "optimum_delay_s": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        },
+        "min_stability_cal": {
+          "type": "number",
+          "format": "double",
+          "description": "Minimum stability margin in flight (calibers), rail exit to apogee."
+        },
+        "burnout_time_s": {
+          "type": "number",
+          "format": "double"
+        },
+        "burnout_altitude_m": {
+          "type": "number",
+          "format": "double"
+        },
+        "landing_x_m": {
+          "type": "number",
+          "format": "double"
+        },
+        "landing_y_m": {
+          "type": "number",
+          "format": "double"
+        },
+        "drift_m": {
+          "type": "number",
+          "format": "double"
+        },
+        "coast_time_s": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "description": "Coast from the last burnout to apogee (apogee time minus last burnout\ntime; the same number as `optimum_delay_s`). Absent with no burnout\nbefore apogee."
+        },
+        "deployments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DeploymentTiming"
+          },
+          "description": "Derived timing of each recovery deployment of the main flight, in time\norder (so agents never subtract event times by hand)."
+        },
+        "ejections": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/EjectionTiming"
+          },
+          "description": "Derived timing of each motor's ejection charge (motors with a\nconfigured delay), by mount id."
+        }
+      },
+      "required": [
+        "schema",
+        "apogee_m",
+        "max_velocity_ms",
+        "max_accel_ms2",
+        "max_mach",
+        "time_to_apogee_s",
+        "flight_time_s",
+        "landing_velocity_ms",
+        "rail_exit_velocity_ms",
+        "min_stability_cal",
+        "burnout_time_s",
+        "burnout_altitude_m",
+        "landing_x_m",
+        "landing_y_m",
+        "drift_m"
+      ],
+      "description": "`summary.json`. Key-sorted, fixed significant figures (I8). Absent values\n(no deployment, no delay) are omitted."
+    },
+    "DeploymentTiming": {
+      "type": "object",
+      "properties": {
+        "source": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RwRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The deployed device (rw:c/<id>)."
+        },
+        "t_s": {
+          "type": "number",
+          "format": "double",
+          "description": "Deployment time after ignition.",
+          "x-unit-dimension": "time"
+        },
+        "deploy_minus_apogee_s": {
+          "type": "number",
+          "format": "double",
+          "description": "Deployment time minus apogee time: negative = before apogee.",
+          "x-unit-dimension": "time"
+        },
+        "deploy_altitude_m": {
+          "type": "number",
+          "format": "double",
+          "description": "Altitude above the launch site at deployment.",
+          "x-unit-dimension": "length"
+        },
+        "deploy_velocity_ms": {
+          "type": "number",
+          "format": "double",
+          "description": "Speed at deployment.",
+          "x-unit-dimension": "velocity"
+        }
+      },
+      "required": [
+        "t_s",
+        "deploy_minus_apogee_s",
+        "deploy_altitude_m",
+        "deploy_velocity_ms"
+      ],
+      "description": "One recovery deployment, relative to apogee."
+    },
+    "RwRef": {
+      "type": "string",
+      "description": "An rw: ref string (rw:c/fins).",
+      "pattern": "^rw:(c|cfg|sim|run|step|rev|thread|eng)/[A-Za-z0-9_.-]+(#[A-Za-z0-9_<>]+)?(@[A-Za-z0-9_.:-]+)?(/[^\\s]*)?$"
+    },
+    "EjectionTiming": {
+      "type": "object",
+      "properties": {
+        "source": {
+          "$ref": "#/$defs/RwRef",
+          "description": "The motor mount (rw:c/<mount>)."
+        },
+        "t_s": {
+          "type": "number",
+          "format": "double",
+          "description": "Ejection time after ignition (the motor's burnout plus its delay).",
+          "x-unit-dimension": "time"
+        },
+        "delay_s": {
+          "type": "number",
+          "format": "double",
+          "description": "The configured ejection delay.",
+          "x-unit-dimension": "time"
+        },
+        "optimum_delay_s": {
+          "type": "number",
+          "format": "double",
+          "description": "Apogee time minus this motor's burnout time.",
+          "x-unit-dimension": "time"
+        },
+        "delay_minus_optimum_s": {
+          "type": "number",
+          "format": "double",
+          "description": "Configured delay minus optimum delay (= ejection time minus apogee\ntime): negative = the charge fires before apogee.",
+          "x-unit-dimension": "time"
+        }
+      },
+      "required": [
+        "source",
+        "t_s",
+        "delay_s",
+        "optimum_delay_s",
+        "delay_minus_optimum_s"
+      ],
+      "description": "One motor's ejection charge against its optimum delay."
+    }
+  }
+}

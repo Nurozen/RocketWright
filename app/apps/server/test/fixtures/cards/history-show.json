@@ -1,0 +1,81 @@
+{
+  "note": "Captured with `rocketwright call` on the seeded research vehicle (fixtures/research-vehicle/seed.sh), CPW1R3A.",
+  "tool": "history_show",
+  "input": {
+    "version": "step:4"
+  },
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"step\":{\"seq\":4,\"id\":\"af04845043481bf4ed7ac99ea0af508660cac575\",\"prev\":\"fd3cf9d7619886c2198f3bd3f6ebd717219e625e\",\"ts\":\"2026-10-15T14:02:00Z\",\"origin\":\"cli\",\"tool\":\"model_patch\",\"title\":\"Flight runs\",\"files\":[{\"path\":\"configs/baseline.rw.toml\",\"status\":\"M\"},{\"path\":\"sims/baseline.rw.toml\",\"status\":\"M\"},{\"path\":\"sims/higher_altitude.rw.toml\",\"status\":\"M\"}],\"model_hash\":\"1db1a8ef2f1084627df8349b614e67935ece66ef68ca6d220a706eb371b804bc\",\"metrics\":{\"stability_liftoff\":2.6473,\"mass_liftoff\":0.137419},\"rev\":\"rev:07\"},\"diff\":{\"a\":\"step:3\",\"b\":\"step:4\",\"added\":[],\"removed\":[],\"changed\":[{\"component\":\"configs\",\"path\":\"/configs/baseline/motors/motor_casing/delay\",\"old\":\"2 s\",\"new\":\"3 s\",\"unit\":\"s\",\"old_si\":2.0,\"new_si\":3.0},{\"component\":\"sims\",\"path\":\"/sims/baseline/launch/rail_length\",\"old\":\"1.5 m\",\"new\":\"2 m\",\"unit\":\"m\",\"old_si\":1.5,\"new_si\":2.0},{\"component\":\"sims\",\"path\":\"/sims/higher_altitude/launch/rail_length\",\"old\":\"1.5 m\",\"new\":\"2 m\",\"unit\":\"m\",\"old_si\":1.5,\"new_si\":2.0}]}}"
+      }
+    ],
+    "structuredContent": {
+      "step": {
+        "seq": 4,
+        "id": "af04845043481bf4ed7ac99ea0af508660cac575",
+        "prev": "fd3cf9d7619886c2198f3bd3f6ebd717219e625e",
+        "ts": "2026-10-15T14:02:00Z",
+        "origin": "cli",
+        "tool": "model_patch",
+        "title": "Flight runs",
+        "files": [
+          {
+            "path": "configs/baseline.rw.toml",
+            "status": "M"
+          },
+          {
+            "path": "sims/baseline.rw.toml",
+            "status": "M"
+          },
+          {
+            "path": "sims/higher_altitude.rw.toml",
+            "status": "M"
+          }
+        ],
+        "model_hash": "1db1a8ef2f1084627df8349b614e67935ece66ef68ca6d220a706eb371b804bc",
+        "metrics": {
+          "stability_liftoff": 2.6473,
+          "mass_liftoff": 0.137419
+        },
+        "rev": "rev:07"
+      },
+      "diff": {
+        "a": "step:3",
+        "b": "step:4",
+        "added": [],
+        "removed": [],
+        "changed": [
+          {
+            "component": "configs",
+            "path": "/configs/baseline/motors/motor_casing/delay",
+            "old": "2 s",
+            "new": "3 s",
+            "unit": "s",
+            "old_si": 2.0,
+            "new_si": 3.0
+          },
+          {
+            "component": "sims",
+            "path": "/sims/baseline/launch/rail_length",
+            "old": "1.5 m",
+            "new": "2 m",
+            "unit": "m",
+            "old_si": 1.5,
+            "new_si": 2.0
+          },
+          {
+            "component": "sims",
+            "path": "/sims/higher_altitude/launch/rail_length",
+            "old": "1.5 m",
+            "new": "2 m",
+            "unit": "m",
+            "old_si": 1.5,
+            "new_si": 2.0
+          }
+        ]
+      }
+    }
+  }
+}

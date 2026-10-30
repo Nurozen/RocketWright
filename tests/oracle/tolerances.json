@@ -1,0 +1,32 @@
+{
+  "source": "rocketwright_spec.md B2 bar met (S:179). Tighten after measurement; loosen only with a curve-digest entry in README.md",
+  "gate_matrix": "generic",
+  "groups": [
+    {
+      "cases": [1, 2, 3, 5],
+      "tol": {
+        "apogee_m": "3%",
+        "max_velocity_ms": "3%",
+        "time_to_apogee_s": "0.3 s",
+        "mass.cg": "1 mm",
+        "aero.cp": "3 mm",
+        "stability.liftoff": "0.1 cal"
+      }
+    },
+    {
+      "cases": [4],
+      "note": "tube fins",
+      "tol": {
+        "apogee_m": "5%"
+      }
+    },
+    {
+      "cases": [6, 7],
+      "note": "multi-stage",
+      "tol": {
+        "apogee_m": "7%"
+      }
+    }
+  ],
+  "loosened": []
+}

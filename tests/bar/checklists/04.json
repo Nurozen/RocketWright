@@ -1,0 +1,666 @@
+{
+  "page": "04",
+  "title": "Results",
+  "exemplar": "04-flight-results.png",
+  "captureState": "Seeded fixture after seed.sh (D10a): runs Baseline and Higher altitude Complete, Fin revision Outdated, Recovery test Not run; Baseline and Higher altitude selected; Altitude plot; thread 'Flight comparison' with its canned exchange.",
+  "source": "concepts.md §3, §4.4; spec B1; plan D10 (U1, U12); BC0 critic (M1.15b)",
+  "items": [
+    {
+      "id": "04.shell.header",
+      "kind": "region",
+      "testid": "header",
+      "milestone": "M1",
+      "source": "C§3 Header; C§2 Spacing",
+      "text": "Header bar across the top, about 56 px tall, flat, with a 1 px hairline below.",
+      "level": "required"
+    },
+    {
+      "id": "04.header.brand",
+      "kind": "field",
+      "testid": "header.wordmark",
+      "milestone": "M1",
+      "source": "C§3 Header; C§intro product name",
+      "text": "Rocket mark and the wordmark 'RocketWright' (the product name, not the art's name).",
+      "level": "required"
+    },
+    {
+      "id": "04.header.project-switcher",
+      "kind": "control",
+      "testid": "header.project-switcher",
+      "milestone": "M1",
+      "source": "C§3 Header",
+      "text": "Project switcher showing the loaded project name ('Research vehicle') with a ▾ menu.",
+      "level": "required"
+    },
+    {
+      "id": "04.header.save-state",
+      "kind": "field",
+      "testid": "header.save-state",
+      "milestone": "M1",
+      "source": "C§3 Header",
+      "text": "Save state with a cloud icon and a relative time computed from the real last save ('Saved … ago').",
+      "level": "required"
+    },
+    {
+      "id": "04.header.tabs",
+      "kind": "control",
+      "testid": "header.tab",
+      "milestone": "M1",
+      "source": "C§3 Header",
+      "text": "Centred tabs Design | Propulsion | Simulate | Results.",
+      "level": "required"
+    },
+    {
+      "id": "04.header.active-tab",
+      "kind": "state",
+      "testid": "header.tab",
+      "milestone": "M1",
+      "source": "C§3 Header; C§2 accent/teal",
+      "text": "Results is the active tab, marked by a 2 px teal underline.",
+      "level": "required"
+    },
+    {
+      "id": "04.header.check-model",
+      "kind": "control",
+      "testid": "header.check-model",
+      "milestone": "M1",
+      "source": "C§3 Header; C§2 accent/teal-fill",
+      "text": "'✓ Check model' primary button: deep teal fill, 1 px teal border, white text; its state reflects the real model check result (status, issue count).",
+      "level": "required"
+    },
+    {
+      "id": "04.header.settings",
+      "kind": "control",
+      "testid": "header.settings",
+      "milestone": "M1",
+      "source": "C§3 Header; U17",
+      "text": "Settings gear button opening minimal settings.",
+      "level": "minimal"
+    },
+    {
+      "id": "04.header.help",
+      "kind": "control",
+      "testid": "header.help",
+      "milestone": "M1",
+      "source": "C§3 Header; U17",
+      "text": "Help '?' button.",
+      "level": "minimal"
+    },
+    {
+      "id": "04.shell.left-rail",
+      "kind": "region",
+      "testid": "left-rail",
+      "milestone": "M1",
+      "source": "C§2 Layout; C§3 Left rail",
+      "text": "Left rail, about 17% of the width, threads group above the page navigation section, hairline divider on its right.",
+      "level": "required"
+    },
+    {
+      "id": "04.rail.threads",
+      "kind": "field",
+      "testid": "rail.thread-row",
+      "milestone": "M1",
+      "source": "C§3 Left rail, threads group; S:169 seeded threads",
+      "text": "Thread rows with icon, name, and relative age: Assembly review, Fin revision, Flight comparison (seeded).",
+      "level": "required"
+    },
+    {
+      "id": "04.rail.thread-selected",
+      "kind": "state",
+      "testid": "rail.thread-row",
+      "milestone": "M1",
+      "source": "C§3 Left rail, threads group",
+      "text": "The selected thread row is highlighted.",
+      "level": "required"
+    },
+    {
+      "id": "04.rail.new-thread",
+      "kind": "control",
+      "testid": "rail.new-thread",
+      "milestone": "M1",
+      "source": "C§3 Left rail, threads group",
+      "text": "'+ New thread' row below the threads.",
+      "level": "required"
+    },
+    {
+      "id": "04.rail.nav-section",
+      "kind": "control",
+      "testid": "rail.nav-title",
+      "milestone": "M1",
+      "source": "C§3 Left rail, page navigation",
+      "text": "Titled navigation section 'Runs' with a search icon and '+'.",
+      "level": "required"
+    },
+    {
+      "id": "04.shell.workspace",
+      "kind": "region",
+      "testid": "workspace",
+      "milestone": "M1",
+      "source": "C§2 Layout",
+      "text": "Workspace column, about 58% of the width, between the rail and the agent pane.",
+      "level": "required"
+    },
+    {
+      "id": "04.shell.agent-pane",
+      "kind": "region",
+      "testid": "agent-pane",
+      "milestone": "M1",
+      "source": "C§2 Layout; C§3 Agent pane",
+      "text": "Docked agent pane, about 25% of the width, full height below the header, hairline divider on its left (not a floating dock).",
+      "level": "required"
+    },
+    {
+      "id": "04.agent.header",
+      "kind": "field",
+      "testid": "agent.title",
+      "milestone": "M1",
+      "source": "C§3 Agent pane; D10; D31",
+      "text": "Pane head rendered by RocketWright above the embedded chat: thread icon and the open thread's title 'Flight comparison', the same thread the left rail highlights.",
+      "level": "required"
+    },
+    {
+      "id": "04.agent.model-picker",
+      "kind": "control",
+      "testid": "agent.model-picker",
+      "milestone": "M1",
+      "source": "C§3 Agent pane; S:169 allowed deviation; U17; D10; D31",
+      "text": "'Agent' settings button in the pane head that opens the agent's provider and model settings (the S:169 'Agent ▾' mapping).",
+      "level": "minimal"
+    },
+    {
+      "id": "04.agent.user-message",
+      "kind": "field",
+      "testid": "chat-user-message-bubble",
+      "milestone": "M1",
+      "source": "C§3 Agent pane; C§2 bubble/user; D31",
+      "text": "The user's message in a teal-tinted bubble, radius about 6 px, with the round user avatar beside it.",
+      "level": "required"
+    },
+    {
+      "id": "04.agent.context-chip",
+      "kind": "control",
+      "testid": "app-ref-chip",
+      "milestone": "M1",
+      "source": "C§3 Agent pane; C§5.1; D31",
+      "text": "An `rw:` app reference in the thread renders as a chip naming the entity, not as raw text; it resolves to a stable entity id and opens that entity in RocketWright.",
+      "level": "required"
+    },
+    {
+      "id": "04.agent.activity-row",
+      "kind": "control",
+      "testid": "app-tool-row",
+      "milestone": "M1",
+      "source": "C§3 Agent pane; C§5.5; BC0 critic; D31",
+      "text": "App tool rows for the turn's tool calls: a leading chevron that expands the call, a tool icon, the tool's label in sans, and a teal success check.",
+      "level": "required"
+    },
+    {
+      "id": "04.agent.reply",
+      "kind": "field",
+      "testid": "message-role.assistant",
+      "milestone": "M1",
+      "source": "C§3 Agent pane; D31",
+      "text": "Agent reply after the turn's tool rows and cards, written as plain prose with no bubble, under the agent's name.",
+      "level": "required"
+    },
+    {
+      "id": "04.shell.composer",
+      "kind": "region",
+      "testid": "composer",
+      "milestone": "M1",
+      "source": "C§3 Agent pane",
+      "text": "Composer pinned to the bottom of the agent pane.",
+      "level": "required"
+    },
+    {
+      "id": "04.composer.placeholder",
+      "kind": "field",
+      "testid": "composer.input",
+      "milestone": "M1",
+      "source": "C§3 Agent pane",
+      "text": "Composer placeholder 'Ask about these results…'.",
+      "level": "required"
+    },
+    {
+      "id": "04.composer.attach",
+      "kind": "control",
+      "testid": "composer.attach",
+      "milestone": "M1",
+      "source": "C§3 Agent pane; U18",
+      "text": "Paperclip attach button.",
+      "level": "minimal"
+    },
+    {
+      "id": "04.composer.send",
+      "kind": "control",
+      "testid": "composer.send",
+      "milestone": "M1",
+      "source": "C§3 Agent pane",
+      "text": "Send button.",
+      "level": "required"
+    },
+    {
+      "id": "04.agent.provenance-footer",
+      "kind": "field",
+      "testid": "agent.provenance-footer",
+      "milestone": "M1",
+      "source": "C§2 Layout; U20",
+      "text": "Bottom-right footer of the agent pane states the provenance of the data shown (it replaces the art's placeholder footer).",
+      "level": "minimal"
+    },
+    {
+      "id": "04.shell.history-strip",
+      "kind": "region",
+      "testid": "history-strip",
+      "milestone": "M1",
+      "source": "C§3 Design history strip",
+      "text": "Design history strip along the bottom of the rail and workspace.",
+      "level": "required"
+    },
+    {
+      "id": "04.history.steps",
+      "kind": "field",
+      "testid": "history.step",
+      "milestone": "M1",
+      "source": "C§3 Design history strip; C§6 (02); D10",
+      "text": "Label 'Design history', then numbered step circles joined by hairlines, each with a name and date; numbers are sequential and unique, from the seeded history.",
+      "level": "required"
+    },
+    {
+      "id": "04.history.current",
+      "kind": "state",
+      "testid": "history.step",
+      "milestone": "M1",
+      "source": "C§3 Design history strip",
+      "text": "The current step has a teal ring.",
+      "level": "required"
+    },
+    {
+      "id": "04.history.compare",
+      "kind": "control",
+      "testid": "history.compare",
+      "milestone": "M1",
+      "source": "C§3 Design history strip; U13",
+      "text": "'Compare' button at the end of the strip.",
+      "level": "required"
+    },
+    {
+      "id": "04.history.menu",
+      "kind": "control",
+      "testid": "history.menu",
+      "milestone": "M1",
+      "source": "C§3 Design history strip",
+      "text": "'⋯' menu after Compare.",
+      "level": "required"
+    },
+    {
+      "id": "04.runs.rail-rows",
+      "kind": "field",
+      "testid": "rail.nav-row",
+      "milestone": "M1",
+      "source": "C§4.4 Left rail; D10 (a)",
+      "text": "Runs rows with eye toggle, status icon, name, and status text: Baseline Complete (teal), Higher altitude Complete (sand), Fin revision Outdated (⚠), Recovery test Not run (○).",
+      "level": "required"
+    },
+    {
+      "id": "04.runs.rail-selected",
+      "kind": "state",
+      "testid": "rail.nav-row",
+      "milestone": "M1",
+      "source": "C§2 selection row",
+      "text": "Baseline row selected with the teal tint.",
+      "level": "required"
+    },
+    {
+      "id": "04.page.title",
+      "kind": "field",
+      "testid": "page.title",
+      "milestone": "M1",
+      "source": "C§4.4 Workspace; C§2 Typography",
+      "text": "Page title 'Flight results' (22-28 px).",
+      "level": "required"
+    },
+    {
+      "id": "04.results.run-selected",
+      "kind": "control",
+      "testid": "results.run-selected",
+      "milestone": "M1",
+      "source": "C§4.4 Workspace; C§2 accent/teal-fill",
+      "text": "Primary '▶ Run selected ▾' button.",
+      "level": "required"
+    },
+    {
+      "id": "04.results.plot-menu",
+      "kind": "control",
+      "testid": "results.plot-menu",
+      "milestone": "M1",
+      "source": "C§4.4 Workspace",
+      "text": "'Plot ▾' menu.",
+      "level": "required"
+    },
+    {
+      "id": "04.results.export-csv",
+      "kind": "control",
+      "testid": "results.export-csv",
+      "milestone": "M1",
+      "source": "C§4.4 Workspace",
+      "text": "'Export CSV' button.",
+      "level": "required"
+    },
+    {
+      "id": "04.table.region",
+      "kind": "region",
+      "testid": "run-table",
+      "milestone": "M1",
+      "source": "C§4.4 Workspace",
+      "text": "Run table.",
+      "level": "required"
+    },
+    {
+      "id": "04.table.columns",
+      "kind": "field",
+      "testid": "runs.table-header",
+      "milestone": "M1",
+      "source": "C§4.4 Workspace",
+      "text": "Columns: checkbox, colour dot, Run (sortable), Status, Apogee (m), Max speed (m/s), Flight time (s), and a '⋯' row menu.",
+      "level": "required"
+    },
+    {
+      "id": "04.table.values",
+      "kind": "field",
+      "testid": "runs.table-row",
+      "milestone": "M1",
+      "source": "C§4.4 Workspace; S:169 allowed deviation",
+      "text": "Metric cells show the real simulation summary with units; the outdated run shows — dashes.",
+      "level": "required"
+    },
+    {
+      "id": "04.table.selected-tint",
+      "kind": "state",
+      "testid": "runs.table-row",
+      "milestone": "M1",
+      "source": "C§4.4 Workspace; C§2 selection row, series B",
+      "text": "The two selected rows are tinted in their series colour: teal row A, sand row B with an amber border.",
+      "level": "required"
+    },
+    {
+      "id": "04.table.row-menu",
+      "kind": "control",
+      "testid": "runs.row-menu",
+      "milestone": "M1",
+      "source": "C§4.4 Interactions",
+      "text": "Row '⋯' menu with Edit, Duplicate, Delete, and Landing dispersion entries.",
+      "level": "minimal"
+    },
+    {
+      "id": "04.banner.outdated",
+      "kind": "state",
+      "testid": "results.outdated-banner",
+      "milestone": "M1",
+      "source": "C§4.4 Workspace; C§5.3; D10 U12",
+      "text": "Banner '⚠ <run> uses an outdated model. Rebuild to run this simulation.' with 'Open design ↗', shown because the run's revision differs from the current one.",
+      "level": "required"
+    },
+    {
+      "id": "04.plot.region",
+      "kind": "region",
+      "testid": "plot",
+      "milestone": "M1",
+      "source": "C§4.4 Plot",
+      "text": "Plot panel.",
+      "level": "required"
+    },
+    {
+      "id": "04.plot.tabs",
+      "kind": "control",
+      "testid": "plot.tab",
+      "milestone": "M1",
+      "source": "C§4.4 Plot",
+      "text": "Plot tabs Altitude | Velocity | Acceleration | Stability, Altitude active.",
+      "level": "required"
+    },
+    {
+      "id": "04.plot.axes",
+      "kind": "field",
+      "testid": "plot.axis",
+      "milestone": "M1",
+      "source": "C§4.4 Plot",
+      "text": "Altitude (m) against Time (s) axes with tick labels spanning the real flight.",
+      "level": "required"
+    },
+    {
+      "id": "04.plot.series",
+      "kind": "render",
+      "testid": "plot.series",
+      "milestone": "M1",
+      "source": "C§4.4 Plot; C§2 accent/teal, series-b",
+      "text": "Two series from the run time series: Baseline in teal, Higher altitude in sand.",
+      "level": "required"
+    },
+    {
+      "id": "04.plot.descent",
+      "kind": "render",
+      "testid": "plot.series",
+      "milestone": "M1",
+      "source": "C§6 (04)",
+      "text": "Curves follow the simulated flight: descent under the parachute lasts longer than the ascent.",
+      "level": "required"
+    },
+    {
+      "id": "04.plot.legend",
+      "kind": "field",
+      "testid": "plot.legend",
+      "milestone": "M1",
+      "source": "C§4.4 Plot",
+      "text": "Direct legend '<run> (<apogee> m)' per series, values from the summaries.",
+      "level": "required"
+    },
+    {
+      "id": "04.plot.events",
+      "kind": "render",
+      "testid": "plot.event",
+      "milestone": "M1",
+      "source": "C§4.4 Plot; C§6 (04)",
+      "text": "Dashed vertical event lines Burnout, Apogee, Recovery placed at the simulated event times (burnout matches the motor burn time).",
+      "level": "required"
+    },
+    {
+      "id": "04.inset.region",
+      "kind": "region",
+      "testid": "trajectory-inset",
+      "milestone": "M1",
+      "source": "C§4.4 Inset",
+      "text": "'Trajectory view' inset beside the plot.",
+      "level": "required"
+    },
+    {
+      "id": "04.inset.arcs",
+      "kind": "render",
+      "testid": "inset.trajectory",
+      "milestone": "M1",
+      "source": "C§4.4 Inset; S:169 allowed deviation; C§6 (04)",
+      "text": "3D trajectory arcs from the simulated position series over a flat ground plane (terrain not required).",
+      "level": "required"
+    },
+    {
+      "id": "04.inset.pad-rocket",
+      "kind": "render",
+      "testid": "inset.trajectory",
+      "milestone": "M1",
+      "source": "C§4.4 Inset; D10 U12; BC0 critic",
+      "text": "Small rocket on the pad in the inset.",
+      "level": "required"
+    },
+    {
+      "id": "04.inset.gizmo-legend",
+      "kind": "field",
+      "testid": "inset.legend",
+      "milestone": "M1",
+      "source": "C§4.4 Inset; U15",
+      "text": "Axis gizmo and a legend naming both runs in their series colours.",
+      "level": "required"
+    },
+    {
+      "id": "04.details.region",
+      "kind": "region",
+      "testid": "run-details",
+      "milestone": "M1",
+      "source": "C§4.4 Run details row; C§5.3",
+      "text": "Run details row under the plot.",
+      "level": "required"
+    },
+    {
+      "id": "04.details.fields",
+      "kind": "field",
+      "testid": "details.field",
+      "milestone": "M1",
+      "source": "C§4.4 Run details row; C§5.3",
+      "text": "'Model Rev NN', 'Environment: …' (wind, temperature), '⚠ Warnings: N', and 'View assumptions', all from the run manifest.",
+      "level": "required"
+    },
+    {
+      "id": "04.history.last-step",
+      "kind": "field",
+      "testid": "history.step",
+      "milestone": "M1",
+      "source": "C§4.4 History; D10 (a)",
+      "text": "The steps row ends at the step that produced the runs ('Flight runs').",
+      "level": "required"
+    },
+    {
+      "id": "04.history.run-snapshots",
+      "kind": "region",
+      "testid": "run-snapshots",
+      "milestone": "M1",
+      "source": "C§3 Design history strip; C§4.4 History; D10 U12",
+      "text": "Second history row of run snapshot cards.",
+      "level": "required"
+    },
+    {
+      "id": "04.history.snapshot-card",
+      "kind": "field",
+      "testid": "history.snapshot",
+      "milestone": "M1",
+      "source": "C§3 Design history strip; D10 U12",
+      "text": "Each snapshot card: thumbnail, '<run> run', 'Model Rev NN', timestamp, and a colour dot matching the run's series.",
+      "level": "required"
+    },
+    {
+      "id": "04.agent.runs-row",
+      "kind": "control",
+      "testid": "app-tool-row",
+      "milestone": "M1",
+      "source": "C§4.4 Agent pane; D31",
+      "text": "Tool rows for listing the runs and comparing the two selected runs, each with its chevron and a teal success check.",
+      "level": "required"
+    },
+    {
+      "id": "04.agent.open-details",
+      "kind": "control",
+      "testid": "mcp-app-card",
+      "milestone": "M1",
+      "source": "C§4.4 Agent pane; D8; D31",
+      "text": "Run card (an MCP Apps card in the timeline) with an Open action that opens the run's details in Results.",
+      "level": "required"
+    },
+    {
+      "id": "04.agent.show-differences",
+      "kind": "control",
+      "testid": "mcp-app-card",
+      "milestone": "M1",
+      "source": "C§4.4 Agent pane; D8; D31",
+      "text": "A Compare action on a card in the thread that opens the comparison of the two runs in RocketWright.",
+      "level": "required"
+    },
+    {
+      "id": "04.agent.run-chips",
+      "kind": "control",
+      "testid": "app-ref-chip",
+      "milestone": "M1",
+      "source": "C§4.4 Agent pane; D31",
+      "text": "The two compared runs referenced as `rw:sim/…` chips naming each run (Baseline, Higher altitude), not raw text.",
+      "level": "required"
+    },
+    {
+      "id": "04.table.rows",
+      "kind": "field",
+      "testid": "runs.table-row",
+      "milestone": "M1",
+      "source": "C§4.4 Workspace; BC0 critic",
+      "text": "One table row per run that has been run (Baseline, Higher altitude, Fin revision), matching the rail; a run that was never run has no row.",
+      "level": "required"
+    },
+    {
+      "id": "04.table.status-cells",
+      "kind": "field",
+      "testid": "runs.status",
+      "milestone": "M1",
+      "source": "C§4.4 Workspace; C§2 success/warning; BC0 critic",
+      "text": "Each Status cell shows that run's real status with its icon: teal check Complete, amber warning Outdated.",
+      "level": "required"
+    },
+    {
+      "id": "04.table.checkboxes",
+      "kind": "state",
+      "testid": "runs.checkbox",
+      "milestone": "M1",
+      "source": "C§4.4 Interactions; BC0 critic",
+      "text": "Row checkboxes multi-select runs; exactly the checked runs are tinted, overlaid in the plot, and listed in the legend.",
+      "level": "required"
+    },
+    {
+      "id": "04.table.sort",
+      "kind": "control",
+      "testid": "runs.table-header",
+      "milestone": "M1",
+      "source": "C§4.4 Interactions; BC0 critic",
+      "text": "Clicking a sortable column header re-sorts the table and shows the active sort direction.",
+      "level": "required"
+    },
+    {
+      "id": "04.plot.tab-series",
+      "kind": "render",
+      "testid": "plot.tab",
+      "milestone": "M1",
+      "source": "C§4.4 Plot; BC0 critic",
+      "text": "Selecting Velocity, Acceleration, or Stability plots that real time series for the same selected runs.",
+      "level": "required"
+    },
+    {
+      "id": "04.runs.eye-toggle",
+      "kind": "control",
+      "testid": "rail.run-eye",
+      "milestone": "M1",
+      "source": "C§4.4 Left rail; BC0 critic",
+      "text": "The eye toggle on each Runs row hides and shows that run's series in the plot and the trajectory inset.",
+      "level": "required"
+    },
+    {
+      "id": "04.results.export-scope",
+      "kind": "control",
+      "testid": "results.export-csv",
+      "milestone": "M1",
+      "source": "C§4.4 Interactions; BC0 critic",
+      "text": "Export CSV writes the real run data for either all runs or only the selected ones.",
+      "level": "required"
+    },
+    {
+      "id": "04.runs.rerun-stale",
+      "kind": "control",
+      "testid": "results.run-selected",
+      "milestone": "M1",
+      "source": "C§4.4 Interactions; BC0 critic",
+      "text": "Running an outdated run from '▶ Run selected ▾' reruns it against the current revision and clears its outdated banner and dashes.",
+      "level": "required"
+    },
+    {
+      "id": "04.table.column-picker",
+      "kind": "control",
+      "testid": "runs.column-picker",
+      "milestone": "M1",
+      "source": "C§4.4 Notes; BC0 critic",
+      "text": "Visible table columns can be customised from the full metric set (apogee, max velocity, max acceleration, time to apogee, flight time, velocity off rod, velocity at deployment, ground-hit velocity, optimum coast time, warnings).",
+      "level": "minimal"
+    }
+  ]
+}

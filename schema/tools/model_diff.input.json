@@ -1,0 +1,18 @@
+{
+  "type": "object",
+  "properties": {
+    "a": {
+      "type": "string"
+    },
+    "b": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "a",
+    "b"
+  ],
+  "title": "ModelDiffIn",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rocketwright.dev/schema/1/tools/model_diff.input.json"
+}

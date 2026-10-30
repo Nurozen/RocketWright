@@ -1,0 +1,121 @@
+{
+  "description": "Page 06 canned chat (concept 06, Simulate > Propulsion simulation). Seeded through app_seed_thread in this order on the seeded research vehicle (fixtures/research-vehicle/seed.sh); the last thread is the one the capture opens. Three threads bound to the page (Tank motion 3m, Fin revision 1h, Flight comparison 2h; the rail sorts by recency). Tank motion mentions the demo engine's oxidizer tank (@Tank section), folds one simulate call of the Study 01 visual flow study (1 action · View step), and links the study's section view (render card rw:sim/study_01: opens Study 01 on the Visual flow tier with the section on; its picture is the live cutaway frame the tier caches). The Visual flow capture (capture/pages/06.ts) and the Engineering capture (06-engineering.ts) both open Tank motion; the numbers on the page come from the live runs, not from this file. Illustrative chat text, not engineering output.",
+  "threads": [
+    {
+      "thread": "Flight comparison",
+      "binding": {
+        "page": "propulsion-sim"
+      },
+      "ageMs": 8100000,
+      "messages": [
+        {
+          "role": "user",
+          "text": "What changed between these flights?",
+          "mentions": [
+            {
+              "ref": "rw:sim/baseline",
+              "label": "Baseline"
+            },
+            {
+              "ref": "rw:sim/higher_altitude",
+              "label": "Higher altitude"
+            }
+          ]
+        },
+        {
+          "role": "assistant",
+          "text": "The second configuration reaches a higher apogee in this example. Review launch and recovery conditions before comparing.",
+          "steps": [
+            {
+              "tool": "run_list",
+              "input": {},
+              "output": {},
+              "summary": "4 runs"
+            },
+            {
+              "tool": "run_diff",
+              "input": {
+                "a": "baseline",
+                "b": "higher_altitude"
+              },
+              "output": {},
+              "summary": "2 runs"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "thread": "Fin revision",
+      "binding": {
+        "page": "propulsion-sim"
+      },
+      "ageMs": 3900000,
+      "messages": [
+        {
+          "role": "user",
+          "text": "Did the fin change move the stability margin?",
+          "mentions": [
+            {
+              "ref": "rw:c/fins",
+              "label": "Fins"
+            }
+          ]
+        },
+        {
+          "role": "assistant",
+          "text": "The larger fin span moves the centre of pressure aft. Compare the runs before and after step 03 to see the margin.",
+          "steps": [
+            {
+              "tool": "model_get",
+              "input": {},
+              "output": {},
+              "summary": "Whole model"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "thread": "Tank motion",
+      "binding": {
+        "page": "propulsion-sim"
+      },
+      "ageMs": 180000,
+      "messages": [
+        {
+          "role": "user",
+          "text": "Show how the fluid moves as the vehicle tilts.",
+          "mentions": [
+            {
+              "ref": "rw:eng/demo/feed/node/tank_a",
+              "label": "Tank section"
+            }
+          ]
+        },
+        {
+          "role": "assistant",
+          "text": "The visual preview highlights motion and flow direction. Engineering outputs are available in the Engineering tab.",
+          "steps": [
+            {
+              "tool": "simulate",
+              "input": {
+                "sim": "study_01"
+              },
+              "output": {},
+              "summary": "Tank study · Study 01"
+            }
+          ],
+          "cards": [
+            {
+              "kind": "render",
+              "ref": "rw:sim/study_01",
+              "title": "Section view · Cutaway of tank and engine",
+              "summary": "Section view"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

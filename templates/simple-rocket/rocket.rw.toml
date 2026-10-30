@@ -1,0 +1,147 @@
+# Nose, body tube, three fins, and an 18 mm motor mount. Edit the params, or
+# any field, and run `rw check`.
+name = "Simple rocket"
+
+[params.body_length]
+value = "450 mm"
+min = "250 mm"
+max = "700 mm"
+step = "10 mm"
+group = "Body"
+doc = "Body tube length"
+
+[params.fin_span]
+value = "45 mm"
+min = "25 mm"
+max = "80 mm"
+step = "5 mm"
+group = "Fins"
+doc = "Fin height, root to tip"
+
+[c.nose]
+type = "nose_cone"
+name = "Nose cone"
+material = "polystyrene"
+finish = "smooth_paint"
+shape = "ogive"
+length = "110 mm"
+od = "24.8 mm"
+thickness = "1.5 mm"
+shoulder = { length = "25 mm", od = "24.1 mm", thickness = "1.5 mm" }
+
+[c.body]
+type = "body_tube"
+name = "Body tube"
+attach = { to = "nose.base" }
+material = "cardboard"
+finish = "regular_paint"
+length = "= params.body_length"
+od = "= c.nose.od"
+id = "24.1 mm"
+
+[c.cord]
+type = "shock_cord"
+name = "Shock cord"
+attach = { to = "body.fore", at = "attach", offset = "15 mm" }
+material = "elastic_cord"
+cord_length = "600 mm"
+packed_length = "30 mm"
+packed_diameter = "15 mm"
+
+[c.chute]
+type = "parachute"
+name = "Parachute"
+attach = { to = "body.fore", at = "attach", offset = "45 mm" }
+material = "ripstop_nylon"
+appearance = { preset = "nylon_orange" }
+diameter = "300 mm"
+cd = 0.8
+line_count = 6
+line_length = "300 mm"
+line_material = "shroud_line"
+packed_length = "45 mm"
+packed_diameter = "20 mm"
+
+[c.fins]
+type = "trapezoidal_fin_set"
+name = "Fins"
+attach = { to = "body.aft", at = "root_te" }
+material = "balsa"
+finish = "regular_paint"
+count = 3
+root_chord = "65 mm"
+tip_chord = "30 mm"
+span = "= params.fin_span"
+sweep = "35 mm"
+thickness = "2.4 mm"
+cross_section = "rounded"
+
+[c.mount]
+type = "inner_tube"
+name = "Motor mount"
+attach = { to = "body.aft", at = "aft", offset = "3 mm" }
+material = "cardboard"
+appearance = { preset = "kraft_paper" }
+length = "75 mm"
+od = "19.6 mm"
+id = "18.8 mm"
+motor_mount = true
+
+[c.block]
+type = "engine_block"
+name = "Engine block"
+attach = { to = "mount.inner", at = "fore" }
+material = "cardboard"
+length = "5 mm"
+id = "13 mm"
+
+[c.ring_fore]
+type = "centering_ring"
+name = "Centering ring"
+attach = { to = "mount.fore", at = "fore", offset = "5 mm" }
+material = "cardboard"
+length = "2 mm"
+id = "19.6 mm"
+
+[c.ring_aft]
+type = "centering_ring"
+name = "Centering ring"
+attach = { to = "body.aft", at = "aft" }
+material = "cardboard"
+length = "2 mm"
+id = "19.6 mm"
+
+[c.lug]
+type = "launch_lug"
+name = "Launch lug"
+attach = { to = "body.mid", at = "fore", spin = "60 deg" }
+material = "cardboard"
+length = "35 mm"
+od = "5.6 mm"
+id = "4.4 mm"
+
+[materials.polystyrene]
+density = "1050 kg/m^3"
+
+[materials.cardboard]
+density = "680 kg/m^3"
+
+[materials.balsa]
+density = "160 kg/m^3"
+
+[materials.ripstop_nylon]
+surface_density = "67 g/m^2"
+
+[materials.shroud_line]
+line_density = "1.8 g/m"
+
+[materials.elastic_cord]
+line_density = "1.8 g/m"
+
+[[assert]]
+id = "stable"
+expr = "stability.liftoff >= 1 cal"
+message = "keep at least one caliber of static margin at liftoff"
+
+[report]
+values = ["= c.fins.span", "= c.body.length"]

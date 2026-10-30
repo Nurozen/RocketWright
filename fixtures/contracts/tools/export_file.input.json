@@ -1,0 +1,9 @@
+{
+  "provenance": "contract-fixture",
+  "type": "tools/export_file.input",
+  "payload": {
+    "format": "csv",
+    "path": "exports/baseline.csv",
+    "run": "baseline/f8eb21388e28"
+  }
+}

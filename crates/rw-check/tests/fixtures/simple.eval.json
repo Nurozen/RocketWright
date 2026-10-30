@@ -1,0 +1,549 @@
+{
+  "schema": "rw/1",
+  "model_hash": "f082867f5d49df9bbba2e3c2805fcd445ee3054321ae2fbb835254e0c43a98b3",
+  "name": "Simple",
+  "config": "baseline",
+  "reference": {
+    "length": 0.55,
+    "diameter": 0.041600000000000005,
+    "area": 0.0013591786456490884
+  },
+  "params": {
+    "body_len": {
+      "value": 0.4,
+      "dim": "length"
+    },
+    "span": {
+      "value": 0.05,
+      "dim": "length"
+    }
+  },
+  "components": [
+    {
+      "id": "nose",
+      "name": "Nose cone",
+      "children": [
+        "body"
+      ],
+      "stage": "main",
+      "containment": "axial",
+      "aero": true,
+      "cut": false,
+      "x_fore": 0.0,
+      "x_aft": 0.15,
+      "radial": 0.0,
+      "roll": 0.0,
+      "instances": [
+        {
+          "index": 0,
+          "offset": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "roll": 0.0
+        }
+      ],
+      "anchors": [
+        {
+          "name": "tip",
+          "kind": "axial",
+          "x": 0.0,
+          "r": 0.0
+        },
+        {
+          "name": "base",
+          "kind": "axial",
+          "x": 0.15,
+          "r": 0.020800000000000003
+        },
+        {
+          "name": "shoulder_fore",
+          "kind": "axial",
+          "x": 0.15,
+          "r": 0.019899999999999998
+        },
+        {
+          "name": "shoulder_aft",
+          "kind": "axial",
+          "x": 0.19,
+          "r": 0.019899999999999998
+        },
+        {
+          "name": "inner",
+          "kind": "inner",
+          "x": 0.0,
+          "r": 0.018800000000000004
+        }
+      ],
+      "material": "plastic",
+      "shape": {
+        "type": "nose_cone",
+        "shape": "ogive",
+        "shape_param": 1.0,
+        "length": 0.15,
+        "od": 0.041600000000000005,
+        "thickness": 0.002,
+        "shoulder": {
+          "length": 0.04,
+          "od": 0.039799999999999995,
+          "thickness": 0.002,
+          "capped": false
+        }
+      }
+    },
+    {
+      "id": "body",
+      "name": "Body tube",
+      "parent": "nose",
+      "children": [
+        "chute",
+        "fins",
+        "mount",
+        "ring"
+      ],
+      "stage": "main",
+      "containment": "axial",
+      "aero": true,
+      "cut": false,
+      "x_fore": 0.15,
+      "x_aft": 0.55,
+      "radial": 0.0,
+      "roll": 0.0,
+      "attach": {
+        "to": "nose.base",
+        "at": "fore",
+        "offset": 0.0
+      },
+      "instances": [
+        {
+          "index": 0,
+          "offset": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "roll": 0.0
+        }
+      ],
+      "anchors": [
+        {
+          "name": "fore",
+          "kind": "axial",
+          "x": 0.15,
+          "r": 0.020800000000000003
+        },
+        {
+          "name": "aft",
+          "kind": "axial",
+          "x": 0.55,
+          "r": 0.020800000000000003
+        },
+        {
+          "name": "mid",
+          "kind": "axial",
+          "x": 0.35,
+          "r": 0.020800000000000003
+        },
+        {
+          "name": "inner",
+          "kind": "inner",
+          "x": 0.15,
+          "r": 0.019899999999999998
+        },
+        {
+          "name": "outer",
+          "kind": "surface",
+          "x": 0.15,
+          "r": 0.020800000000000003
+        }
+      ],
+      "material": "kraft",
+      "roughness": 0.000059999999999999995,
+      "shape": {
+        "type": "body_tube",
+        "length": 0.4,
+        "od": 0.041600000000000005,
+        "id": 0.039799999999999995
+      }
+    },
+    {
+      "id": "chute",
+      "name": "chute",
+      "parent": "body",
+      "children": [],
+      "stage": "main",
+      "containment": "inner",
+      "aero": false,
+      "cut": false,
+      "x_fore": 0.16999999999999998,
+      "x_aft": 0.22999999999999998,
+      "radial": 0.0,
+      "roll": 0.0,
+      "attach": {
+        "to": "body.inner",
+        "at": "attach",
+        "offset": 0.02
+      },
+      "instances": [
+        {
+          "index": 0,
+          "offset": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "roll": 0.0
+        }
+      ],
+      "anchors": [
+        {
+          "name": "attach",
+          "kind": "inner",
+          "x": 0.16999999999999998,
+          "r": 0.0
+        }
+      ],
+      "shape": {
+        "type": "parachute",
+        "diameter": 0.45,
+        "cd": 0.8,
+        "spill_hole": 0.0,
+        "packed_length": 0.06,
+        "packed_diameter": 0.035
+      }
+    },
+    {
+      "id": "fins",
+      "name": "fins",
+      "parent": "body",
+      "children": [],
+      "stage": "main",
+      "containment": "surface",
+      "aero": true,
+      "cut": false,
+      "x_fore": 0.48000000000000004,
+      "x_aft": 0.55,
+      "radial": 0.0,
+      "roll": 0.0,
+      "attach": {
+        "to": "body.aft",
+        "at": "root_te",
+        "offset": 0.0
+      },
+      "instances": [
+        {
+          "index": 0,
+          "pattern": "radial",
+          "offset": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "roll": 0.0
+        },
+        {
+          "index": 1,
+          "pattern": "radial",
+          "offset": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "roll": 2.0943951023931953
+        },
+        {
+          "index": 2,
+          "pattern": "radial",
+          "offset": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "roll": 4.1887902047863905
+        }
+      ],
+      "anchors": [
+        {
+          "name": "root_le",
+          "kind": "surface",
+          "x": 0.48000000000000004,
+          "r": 0.020800000000000003
+        },
+        {
+          "name": "root_te",
+          "kind": "surface",
+          "x": 0.55,
+          "r": 0.020800000000000003
+        },
+        {
+          "name": "tip_le",
+          "kind": "surface",
+          "x": 0.515,
+          "r": 0.0708
+        },
+        {
+          "name": "tip_te",
+          "kind": "surface",
+          "x": 0.545,
+          "r": 0.0708
+        },
+        {
+          "name": "fin0",
+          "kind": "surface",
+          "x": 0.48000000000000004,
+          "r": 0.020800000000000003
+        },
+        {
+          "name": "fin1",
+          "kind": "surface",
+          "x": 0.48000000000000004,
+          "r": 0.020800000000000003
+        },
+        {
+          "name": "fin2",
+          "kind": "surface",
+          "x": 0.48000000000000004,
+          "r": 0.020800000000000003
+        }
+      ],
+      "shape": {
+        "type": "trapezoidal_fin_set",
+        "count": 3,
+        "thickness": 0.003,
+        "cross_section": "rounded",
+        "cant": 0.0,
+        "fillet_radius": 0.0,
+        "root_chord": 0.07,
+        "tip_chord": 0.03,
+        "span": 0.05,
+        "sweep": 0.035
+      }
+    },
+    {
+      "id": "mount",
+      "name": "mount",
+      "parent": "body",
+      "children": [],
+      "stage": "main",
+      "containment": "inner",
+      "aero": false,
+      "cut": false,
+      "x_fore": 0.48000000000000004,
+      "x_aft": 0.55,
+      "radial": 0.0,
+      "roll": 0.0,
+      "attach": {
+        "to": "body.aft",
+        "at": "aft",
+        "offset": 0.0
+      },
+      "instances": [
+        {
+          "index": 0,
+          "offset": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "roll": 0.0
+        }
+      ],
+      "anchors": [
+        {
+          "name": "fore",
+          "kind": "axial",
+          "x": 0.48000000000000004,
+          "r": 0.00985
+        },
+        {
+          "name": "aft",
+          "kind": "axial",
+          "x": 0.55,
+          "r": 0.00985
+        },
+        {
+          "name": "motor_retainer",
+          "kind": "inner",
+          "x": 0.55,
+          "r": 0.00935
+        },
+        {
+          "name": "inner",
+          "kind": "inner",
+          "x": 0.48000000000000004,
+          "r": 0.00935
+        },
+        {
+          "name": "outer",
+          "kind": "surface",
+          "x": 0.48000000000000004,
+          "r": 0.00985
+        }
+      ],
+      "shape": {
+        "type": "inner_tube",
+        "length": 0.07,
+        "od": 0.0197,
+        "id": 0.0187,
+        "motor_mount": true,
+        "overhang": 0.0
+      }
+    },
+    {
+      "id": "ring",
+      "name": "ring",
+      "parent": "body",
+      "children": [],
+      "stage": "main",
+      "containment": "inner",
+      "aero": false,
+      "cut": false,
+      "x_fore": 0.48500000000000004,
+      "x_aft": 0.48800000000000004,
+      "radial": 0.0,
+      "roll": 0.0,
+      "attach": {
+        "to": "mount.fore",
+        "at": "fore",
+        "offset": 0.005
+      },
+      "instances": [
+        {
+          "index": 0,
+          "offset": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "roll": 0.0
+        }
+      ],
+      "anchors": [
+        {
+          "name": "fore",
+          "kind": "axial",
+          "x": 0.48500000000000004,
+          "r": 0.0
+        },
+        {
+          "name": "aft",
+          "kind": "axial",
+          "x": 0.48800000000000004,
+          "r": 0.0
+        }
+      ],
+      "shape": {
+        "type": "centering_ring",
+        "length": 0.003,
+        "od": 0.039799999999999995,
+        "id": 0.0197
+      }
+    }
+  ],
+  "stages": [
+    {
+      "id": "main",
+      "name": "Main",
+      "first": "nose",
+      "members": [
+        "nose",
+        "body",
+        "chute",
+        "fins",
+        "mount",
+        "ring"
+      ],
+      "x_fore": 0.0,
+      "x_aft": 0.55
+    }
+  ],
+  "configs": {
+    "baseline": {
+      "id": "baseline",
+      "name": "Baseline",
+      "motors": [
+        {
+          "mount": "mount",
+          "motor": "generic:RW_C6G",
+          "delay": 5.0,
+          "ignition": "launch",
+          "ignition_delay": 0.0
+        }
+      ],
+      "stages": [
+        {
+          "stage": "main",
+          "active": true,
+          "separation": "never",
+          "separation_delay": 0.0
+        }
+      ],
+      "deployments": [
+        {
+          "component": "chute",
+          "event": "ejection",
+          "delay": 0.0
+        }
+      ]
+    }
+  },
+  "sims": {
+    "baseline": {
+      "id": "baseline",
+      "name": "Baseline",
+      "kind": "flight",
+      "config": "baseline",
+      "conditions": {
+        "rail_length_m": 1.5,
+        "rod_angle_deg": 5.0,
+        "rod_direction_deg": 0.0,
+        "site_altitude_m": 0.0,
+        "latitude_deg": 0.0,
+        "longitude_deg": 0.0,
+        "base_temperature_k": 288.15,
+        "base_pressure_pa": 101325.0,
+        "atmosphere": "ussa1976",
+        "geodetic": "flat",
+        "wind_speed_ms": 0.0,
+        "wind_direction_deg": 0.0,
+        "wind_turbulence": 0.0,
+        "time_step_s": 0.01,
+        "integrator": "dp54"
+      },
+      "series_dt": 0.01,
+      "max_time": 600.0,
+      "rtol": 1e-6,
+      "atol": 1e-9,
+      "seed": 0
+    }
+  },
+  "materials": {
+    "kraft": {
+      "density": 680.0
+    },
+    "plastic": {
+      "density": 1050.0
+    }
+  },
+  "asserts": [
+    {
+      "id": "stable",
+      "expr": "stability.liftoff >= 1 cal",
+      "severity": "error",
+      "needs_sim": false
+    }
+  ],
+  "report": [
+    "= c.fins.span"
+  ],
+  "units": {
+    "angle": "rad",
+    "area": "m^2",
+    "density": "kg/m^3",
+    "length": "m",
+    "mass": "kg",
+    "time": "s"
+  },
+  "diagnostics": []
+}

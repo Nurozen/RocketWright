@@ -1,0 +1,14 @@
+name = "Recovery test"
+config = "recovery_test"
+
+[launch]
+rail_length = "1.5 m"
+rod_angle = "5 deg"
+rod_direction = "0 deg"
+
+[atmosphere]
+model = "ussa1976"
+
+[wind]
+speed = "3 m/s"
+direction = "270 deg"

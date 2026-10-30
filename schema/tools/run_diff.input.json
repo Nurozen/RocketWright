@@ -1,0 +1,35 @@
+{
+  "type": "object",
+  "properties": {
+    "a": {
+      "type": "string",
+      "description": "Run ref (rw:run/<id> or `<sim>/<run-id>`)."
+    },
+    "b": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "golden": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Oracle golden path (`tests/oracle/case1-generic.json`)."
+    },
+    "tol": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "description": "Metric key → tolerance (`apogee_m = \"3%\"`)."
+    }
+  },
+  "required": [
+    "a"
+  ],
+  "title": "RunDiffIn",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rocketwright.dev/schema/1/tools/run_diff.input.json"
+}

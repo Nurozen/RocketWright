@@ -1,0 +1,63 @@
+{
+  "type": "object",
+  "properties": {
+    "items": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/LibItem"
+      }
+    }
+  },
+  "required": [
+    "items"
+  ],
+  "title": "LibrarySearchOut",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rocketwright.dev/schema/1/tools/library_search.output.json",
+  "$defs": {
+    "LibItem": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Library ref, e.g. `preset:bt-55` or `lib:components/fin_can.rw.toml`."
+        },
+        "kind": {
+          "$ref": "#/$defs/LibKind"
+        },
+        "name": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string",
+          "description": "Origin and license, e.g. `openrocket-database (Apache-2.0)`."
+        },
+        "sha256": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "data": {
+          "description": "Source-form fields (units as strings)."
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "name",
+        "source",
+        "data"
+      ]
+    },
+    "LibKind": {
+      "type": "string",
+      "enum": [
+        "component",
+        "material",
+        "preset",
+        "motor"
+      ]
+    }
+  }
+}

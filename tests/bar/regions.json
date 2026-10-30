@@ -1,0 +1,209 @@
+{
+  "version": 1,
+  "viewport": { "width": 1536, "height": 1024, "dpr": 1 },
+  "tolerance": { "proportion": 0.05 },
+  "regions": {
+    "header": { "selector": "[data-rw-region=\"header\"]", "desc": "56 px top bar: mark, wordmark, project switcher, save state, tabs, Check model, settings, help", "source": "C§3 Header" },
+    "left-rail": { "selector": "[data-rw-region=\"left-rail\"]", "desc": "About 17% (260 px): threads group, then the page navigation section", "source": "C§2 layout, C§3 Left rail" },
+    "workspace": { "selector": "[data-rw-region=\"workspace\"]", "desc": "About 58% (895 px): local tabs, page content", "source": "C§2 layout" },
+    "agent-pane": { "selector": "[data-rw-region=\"agent-pane\"]", "desc": "About 25% (380 px), full height below the header: thread header, messages, composer", "source": "C§2 layout, C§3 Agent pane" },
+    "history-strip": { "selector": "[data-rw-region=\"history-strip\"]", "desc": "Bottom strip under rail and workspace: Design history steps, Compare, menu (04: plus the run snapshot row)", "source": "C§3 Design history strip" },
+    "viewport-toolbar": { "selector": "[data-rw-region=\"viewport-toolbar\"]", "desc": "Toolbar row above the history strip: View chips, page controls, Units", "source": "C§3 Viewport toolbar, C§4.1 Toolbar, C§4.3 Toolbar" },
+    "local-tabs": { "selector": "[data-rw-region=\"local-tabs\"]", "desc": "Design local tabs Assembly | Components | Configurations", "source": "C§3 Local tabs" },
+    "viewport": { "selector": "[data-rw-region=\"viewport\"]", "desc": "The 3D or 2D model view", "source": "C§4.1-§4.2, §4.5-§4.6" },
+    "inspector": { "selector": "[data-rw-region=\"inspector\"]", "desc": "Collapsible inspector strip at the right edge of the 01 workspace, about 225 px", "source": "C§4.1 Regions" },
+    "composer": { "selector": "[data-rw-region=\"composer\"]", "embed": "[data-slot=\"composer-shell\"]", "desc": "Composer pinned to the bottom of the agent pane (embedded: Lecturn's composer shell, with a pending approval card inside it on 01 and 06; 02-05 carry no mention chip, so their embed box is the mockup composer less its 34 px chip row)", "source": "C§3 Agent pane; D31" },
+    "rail-footer": { "selector": "[data-rw-region=\"rail-footer\"]", "desc": "Left rail footer with the View chips (02)", "source": "C§4.2 Viewport" },
+    "editor": { "selector": "[data-rw-region=\"editor\"]", "desc": "Collapsible component editor, lower 40% of the 02 workspace", "source": "C§4.2 Editor" },
+    "config-table": { "selector": "[data-rw-region=\"config-table\"]", "desc": "Flight configurations table (03)", "source": "C§4.3 Configurations table" },
+    "motor-panel": { "selector": "[data-rw-region=\"motor-panel\"]", "desc": "Motors split view: Select a motor list and the motor detail (03)", "source": "C§4.3 Motors split view" },
+    "run-table": { "selector": "[data-rw-region=\"run-table\"]", "desc": "Sortable run table (04)", "source": "C§4.4 Workspace" },
+    "plot": { "selector": "[data-rw-region=\"plot\"]", "desc": "Plot with Altitude | Velocity | Acceleration | Stability tabs (04)", "source": "C§4.4 Plot" },
+    "trajectory-inset": { "selector": "[data-rw-region=\"trajectory-inset\"]", "desc": "Trajectory view inset (04)", "source": "C§4.4 Inset" },
+    "run-details": { "selector": "[data-rw-region=\"run-details\"]", "desc": "Run details row: model revision, environment, warnings, assumptions (04)", "source": "C§4.4 Run details row" },
+    "run-snapshots": { "selector": "[data-rw-region=\"run-snapshots\"]", "desc": "Second history row with run snapshot cards (04)", "source": "C§3 Design history strip, C§4.4 History, U12" },
+    "connectivity-diagram": { "selector": "[data-rw-region=\"connectivity-diagram\"]", "desc": "Propulsion connectivity diagram (05)", "source": "C§4.5 Connectivity diagram" },
+    "propulsion-inspector": { "selector": "[data-rw-region=\"propulsion-inspector\"]", "desc": "Selected connection | Inputs | Assumptions inspector (05)", "source": "C§4.5 Inspector" },
+    "study-column": { "selector": "[data-rw-region=\"study-column\"]", "desc": "Inner left column: Study list and Layers (06)", "source": "C§4.6 Inner left column" },
+    "transport-bar": { "selector": "[data-rw-region=\"transport-bar\"]", "desc": "Playback transport bar (06)", "source": "C§4.6 Transport bar" },
+    "traces": { "selector": "[data-rw-region=\"traces\"]", "desc": "Inputs | Traces | Assumptions panel (06)", "source": "C§4.6 Tabs" }
+  },
+  "pages": {
+    "01": {
+      "exemplar": "01-assembly.png",
+      "title": "Design > Assembly",
+      "rects": {
+        "header": [0, 0, 1536, 57],
+        "left-rail": [0, 57, 261, 784],
+        "workspace": [261, 57, 893, 784],
+        "agent-pane": [1154, 57, 382, 967],
+        "local-tabs": [261, 57, 893, 49],
+        "viewport": [261, 106, 893, 735],
+        "inspector": [922, 113, 224, 537],
+        "viewport-toolbar": [0, 841, 1154, 67],
+        "history-strip": [0, 908, 1154, 116],
+        "composer": [1167, 852, 356, 45]
+      },
+      "check": {
+        "header": ["h"],
+        "left-rail": ["w"],
+        "workspace": ["w"],
+        "agent-pane": ["w"],
+        "inspector": ["w"],
+        "viewport-toolbar": ["h"],
+        "history-strip": ["h"],
+        "composer": ["h"]
+      },
+      "embed": {
+        "rects": { "agent-pane": [1154, 57, 382, 967], "composer": [1168, 723, 352, 247] },
+        "check": { "agent-pane": ["w"], "composer": ["h"] }
+      }
+    },
+    "02": {
+      "exemplar": "02-component-design.png",
+      "title": "Design > Components",
+      "rects": {
+        "header": [0, 0, 1536, 57],
+        "left-rail": [0, 57, 260, 843],
+        "workspace": [260, 57, 894, 843],
+        "agent-pane": [1154, 57, 382, 967],
+        "local-tabs": [260, 57, 894, 50],
+        "viewport": [260, 107, 894, 458],
+        "editor": [260, 565, 894, 335],
+        "rail-footer": [0, 842, 260, 58],
+        "history-strip": [0, 900, 1154, 124],
+        "composer": [1167, 853, 356, 45]
+      },
+      "check": {
+        "header": ["h"],
+        "left-rail": ["w"],
+        "workspace": ["w"],
+        "agent-pane": ["w"],
+        "viewport": ["h"],
+        "history-strip": ["h"],
+        "composer": ["h"]
+      },
+      "embed": {
+        "rects": { "agent-pane": [1154, 57, 382, 967], "composer": [1168, 817, 352, 153] },
+        "check": { "agent-pane": ["w"], "composer": ["h"] }
+      }
+    },
+    "03": {
+      "exemplar": "03-flight-configurations.png",
+      "title": "Design > Configurations",
+      "rects": {
+        "header": [0, 0, 1536, 57],
+        "left-rail": [0, 57, 261, 784],
+        "workspace": [261, 57, 893, 784],
+        "agent-pane": [1154, 57, 382, 967],
+        "local-tabs": [261, 57, 893, 50],
+        "config-table": [276, 164, 865, 144],
+        "motor-panel": [273, 368, 870, 466],
+        "viewport-toolbar": [0, 841, 1154, 67],
+        "history-strip": [0, 908, 1154, 116],
+        "composer": [1167, 852, 356, 45]
+      },
+      "check": {
+        "header": ["h"],
+        "left-rail": ["w"],
+        "workspace": ["w"],
+        "agent-pane": ["w"],
+        "viewport-toolbar": ["h"],
+        "history-strip": ["h"],
+        "composer": ["h"]
+      },
+      "embed": {
+        "rects": { "agent-pane": [1154, 57, 382, 967], "composer": [1168, 817, 352, 153] },
+        "check": { "agent-pane": ["w"], "composer": ["h"] }
+      }
+    },
+    "04": {
+      "exemplar": "04-flight-results.png",
+      "title": "Results",
+      "rects": {
+        "header": [0, 0, 1536, 57],
+        "left-rail": [0, 57, 261, 784],
+        "workspace": [261, 57, 894, 784],
+        "agent-pane": [1155, 57, 381, 967],
+        "run-table": [272, 132, 872, 169],
+        "plot": [272, 373, 642, 453],
+        "trajectory-inset": [915, 405, 229, 420],
+        "run-details": [272, 770, 642, 56],
+        "history-strip": [0, 841, 1155, 183],
+        "run-snapshots": [0, 908, 1155, 116],
+        "composer": [1168, 852, 355, 45]
+      },
+      "check": {
+        "header": ["h"],
+        "left-rail": ["w"],
+        "workspace": ["w"],
+        "agent-pane": ["w"],
+        "trajectory-inset": ["w"],
+        "history-strip": ["h"],
+        "run-snapshots": ["h"],
+        "composer": ["h"]
+      },
+      "embed": {
+        "rects": { "agent-pane": [1155, 57, 381, 967], "composer": [1168, 817, 352, 153] },
+        "check": { "agent-pane": ["w"], "composer": ["h"] }
+      }
+    },
+    "05": {
+      "exemplar": "05-liquid-propulsion-design.png",
+      "title": "Propulsion > Liquid propulsion design",
+      "rects": {
+        "header": [0, 0, 1536, 57],
+        "left-rail": [0, 57, 261, 851],
+        "workspace": [261, 57, 892, 851],
+        "agent-pane": [1153, 57, 383, 967],
+        "viewport": [261, 153, 892, 416],
+        "connectivity-diagram": [261, 569, 547, 339],
+        "propulsion-inspector": [808, 580, 340, 270],
+        "history-strip": [0, 908, 1153, 116],
+        "composer": [1167, 852, 356, 45]
+      },
+      "check": {
+        "header": ["h"],
+        "left-rail": ["w"],
+        "workspace": ["w"],
+        "agent-pane": ["w"],
+        "viewport": ["h"],
+        "history-strip": ["h"],
+        "composer": ["h"]
+      },
+      "embed": {
+        "rects": { "agent-pane": [1153, 57, 383, 967], "composer": [1168, 817, 352, 153] },
+        "check": { "agent-pane": ["w"], "composer": ["h"] }
+      }
+    },
+    "06": {
+      "exemplar": "06-liquid-simulator.png",
+      "title": "Simulate > Propulsion simulation",
+      "rects": {
+        "header": [0, 0, 1536, 57],
+        "left-rail": [0, 57, 260, 852],
+        "workspace": [260, 57, 893, 852],
+        "agent-pane": [1153, 57, 383, 967],
+        "study-column": [260, 146, 150, 484],
+        "viewport": [410, 146, 743, 484],
+        "transport-bar": [260, 630, 893, 46],
+        "traces": [260, 676, 893, 233],
+        "history-strip": [0, 909, 1153, 115],
+        "composer": [1167, 853, 356, 45]
+      },
+      "check": {
+        "header": ["h"],
+        "left-rail": ["w"],
+        "workspace": ["w"],
+        "agent-pane": ["w"],
+        "transport-bar": ["h"],
+        "history-strip": ["h"],
+        "composer": ["h"]
+      },
+      "embed": {
+        "rects": { "agent-pane": [1153, 57, 383, 967], "composer": [1168, 723, 352, 247] },
+        "check": { "agent-pane": ["w"], "composer": ["h"] }
+      }
+    }
+  }
+}

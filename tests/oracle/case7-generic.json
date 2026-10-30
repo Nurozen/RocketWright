@@ -1,0 +1,486 @@
+{
+  "kind": "golden",
+  "schema": "rw/1",
+  "case": 7,
+  "matrix": "generic",
+  "sim_name": "Simulation 2",
+  "config_id": "fadeeef3-4aa4-49e9-9581-71e14fa91c14",
+  "geometry_sha256": "5329d6ce0aa3dee94e66d1a2dca93153a8bb4b0665306dce8d247b042958a732",
+  "conditions": {
+    "rail_length_m": 1.016,
+    "rod_angle_deg": 0.0,
+    "rod_direction_deg": 90.0,
+    "site_altitude_m": 0.0,
+    "latitude_deg": 32.367,
+    "longitude_deg": -106.83,
+    "base_temperature_k": 288.15,
+    "base_pressure_pa": 101325.0,
+    "atmosphere": "ussa1976",
+    "geodetic": "flat",
+    "wind_speed_ms": 0.0,
+    "wind_direction_deg": 90.0,
+    "wind_turbulence": 0.0,
+    "time_step_s": 0.05,
+    "integrator": "rk4",
+    "gravity": {
+      "model": "wgs84"
+    },
+    "launch_into_wind": true
+  },
+  "conditions_hash": "sha256:f585353b1c386756cc1371018a0e79ae499f7c557b9a470465d76c55ce2a0e42",
+  "motor_digest": "49edd3aedcc997775a9d807557ec08a6449b13eb06262ce09a93db82270f7764",
+  "motors": [
+    {
+      "mount": "Sustainer Motor Mount",
+      "designation": "RW_I60G",
+      "digest": "93c0294724b5a6517cb9d4b70133c0c7404a4955f3eb396a40d32f8734b78387",
+      "delay_s": null
+    },
+    {
+      "mount": "Booster motor mount",
+      "designation": "RW_I261G",
+      "digest": "b9274083be781bdd52ce45702ed1935da9186f9deea689a773fd0ac324240225",
+      "delay_s": 14.0
+    }
+  ],
+  "summary": {
+    "max_altitude_m": 1418.2973616972301,
+    "max_velocity_ms": 132.95670543034845,
+    "max_accel_ms2": 101.76388706079446,
+    "max_mach": 0.394184724500066,
+    "time_to_apogee_s": 16.802036193852754,
+    "flight_time_s": 105.48734806369909,
+    "ground_hit_velocity_ms": 6.110945797123338,
+    "rod_clear_velocity_ms": 14.52659733535172,
+    "deployment_velocity_ms": 19.477651674470643,
+    "optimum_delay_s": 7.340036193852754
+  },
+  "static": {
+    "cg_m": 1.3258266246022197,
+    "cp_m": 1.5578827329844227,
+    "cna": 35.646286578019684,
+    "stability_cal": 2.284016814785463,
+    "mass_kg": 2.865485854035005,
+    "ref_diameter_m": 0.1016,
+    "mach": 0.3
+  },
+  "events": [
+    {
+      "kind": "ignition",
+      "t_s": 0.0,
+      "altitude_m": 0.0,
+      "velocity_ms": 0.0
+    },
+    {
+      "kind": "liftoff",
+      "t_s": 0.04000000000000001,
+      "altitude_m": 0.020085831261993536,
+      "velocity_ms": 1.6417199261745619
+    },
+    {
+      "kind": "launch_rod_clearance",
+      "t_s": 0.171,
+      "altitude_m": 1.0684785294513397,
+      "velocity_ms": 14.52659733535172
+    },
+    {
+      "kind": "burnout",
+      "t_s": 1.364,
+      "altitude_m": 81.80535529938747,
+      "velocity_ms": 105.09362728799093
+    },
+    {
+      "kind": "ignition",
+      "t_s": 1.364,
+      "altitude_m": 81.80535529938747,
+      "velocity_ms": 105.09362728799093
+    },
+    {
+      "kind": "stage_separation",
+      "t_s": 1.364,
+      "altitude_m": 81.80535529938747,
+      "velocity_ms": 105.09362728799093
+    },
+    {
+      "kind": "burnout",
+      "t_s": 9.512,
+      "altitude_m": 1099.6111874739913,
+      "velocity_ms": 109.78517484352801
+    },
+    {
+      "kind": "apogee",
+      "t_s": 16.852036193852754,
+      "altitude_m": 1418.2915808949037,
+      "velocity_ms": 0.3603823064132398
+    },
+    {
+      "kind": "recovery_device_deployment",
+      "t_s": 16.853036193852756,
+      "altitude_m": 1418.2909757641262,
+      "velocity_ms": 0.37017201972084063
+    },
+    {
+      "kind": "recovery_device_deployment",
+      "t_s": 81.33651773082413,
+      "altitude_m": 150.47974998653572,
+      "velocity_ms": 19.477651674470643
+    },
+    {
+      "kind": "ground_hit",
+      "t_s": 105.48734806369909,
+      "altitude_m": 0.0,
+      "velocity_ms": 6.110945797123338
+    },
+    {
+      "kind": "simulation_end",
+      "t_s": 105.48734806369909,
+      "altitude_m": 0.0,
+      "velocity_ms": 6.110945797123338
+    }
+  ],
+  "components": [
+    {
+      "name": "Nose Cone",
+      "mass_kg": 0.09851095655740519,
+      "cg_m": 0.20217622774915753,
+      "cna": 2.002990411896022,
+      "cp_m": 0.15000287263613798
+    },
+    {
+      "name": "Payload Bay",
+      "mass_kg": 0.026085974742203425,
+      "cg_m": 0.36195,
+      "cna": 0.0010504222742656812,
+      "cp_m": 0.36195000000000005
+    },
+    {
+      "name": "Tube Coupler",
+      "mass_kg": 0.02738067321294616,
+      "cg_m": 0.43814999999999993,
+      "cna": null,
+      "cp_m": null
+    },
+    {
+      "name": "Bulkhead",
+      "mass_kg": 0.024988550470865158,
+      "cg_m": 0.49926874999999993,
+      "cna": null,
+      "cp_m": null
+    },
+    {
+      "name": "Sustainer Forward Airframe",
+      "mass_kg": 0.14782052353915243,
+      "cg_m": 0.61595,
+      "cna": 0.0059523928875055265,
+      "cp_m": 0.6159500000000003
+    },
+    {
+      "name": "Sustainer Main",
+      "mass_kg": 0.07068321139242004,
+      "cg_m": 0.61595,
+      "cna": null,
+      "cp_m": null
+    },
+    {
+      "name": "Sustainer Switch Band",
+      "mass_kg": 0.008695324914067793,
+      "cg_m": 0.84455,
+      "cna": 0.00035014075808856044,
+      "cp_m": 0.84455
+    },
+    {
+      "name": "Tube Coupler",
+      "mass_kg": 0.04380907714071385,
+      "cg_m": 0.84455,
+      "cna": null,
+      "cp_m": null
+    },
+    {
+      "name": "Bulkhead",
+      "mass_kg": 0.024988550470865158,
+      "cg_m": 0.74058145,
+      "cna": null,
+      "cp_m": null
+    },
+    {
+      "name": "Bulkhead",
+      "mass_kg": 0.02409957580552754,
+      "cg_m": 0.74533125,
+      "cna": null,
+      "cp_m": null
+    },
+    {
+      "name": "Tube Coupler",
+      "mass_kg": 0.09996432859377828,
+      "cg_m": 0.84455,
+      "cna": null,
+      "cp_m": null
+    },
+    {
+      "name": "Bulkhead",
+      "mass_kg": 0.02409957580552754,
+      "cg_m": 0.94376875,
+      "cna": null,
+      "cp_m": null
+    },
+    {
+      "name": "Bulkhead",
+      "mass_kg": 0.024988550470865158,
+      "cg_m": 0.94851855,
+      "cna": null,
+      "cp_m": null
+    },
+    {
+      "name": "Rail Button",
+      "mass_kg": 0.0016531801959055739,
+      "cg_m": 1.0655299999999999,
+      "cna": 0.0,
+      "cp_m": null
+    },
+    {
+      "name": "Sustainer Aft Airframe",
+      "mass_kg": 0.13042987371101694,
+      "cg_m": 1.04775,
+      "cna": 0.005252111371328406,
+      "cp_m": 1.0477499999999997
+    },
+    {
+      "name": "Sustainer Drogue",
+      "mass_kg": 0.007223770154713335,
+      "cg_m": 1.04775,
+      "cna": null,
+      "cp_m": null
+    },
+    {
+      "name": "Sustainer Fin Section",
+      "mass_kg": 0.0608672743984746,
+      "cg_m": 1.3271499999999998,
+      "cna": 0.0024509853066199223,
+      "cp_m": 1.3271499999999998
+    },
+    {
+      "name": "Tube Coupler",
+      "mass_kg": 0.026011639552298852,
+      "cg_m": 1.196975,
+      "cna": null,
+      "cp_m": null
+    },
+    {
+      "name": "Bulkhead",
+      "mass_kg": 0.02573249110415464,
+      "cg_m": 1.1390376,
+      "cna": null,
+      "cp_m": null
+    },
+    {
+      "name": "Centering Ring",
+      "mass_kg": 0.012160697768981566,
+      "cg_m": 1.260475,
+      "cna": null,
+      "cp_m": null
+    },
+    {
+      "name": "Trapezoidal Fin Set",
+      "mass_kg": 0.11164276260112499,
+      "cg_m": 1.3379686714347636,
+      "cna": 15.938445147851077,
+      "cp_m": 1.3080037134865816
+    },
+    {
+      "name": "Inner Tube",
+      "mass_kg": 0.04196319776567552,
+      "cg_m": 1.3366749999999998,
+      "cna": null,
+      "cp_m": null
+    },
+    {
+      "name": "Centering Ring",
+      "mass_kg": 0.01378190169528481,
+      "cg_m": 1.2604749999999998,
+      "cna": null,
+      "cp_m": null
+    },
+    {
+      "name": "Centering Ring",
+      "mass_kg": 0.01378190169528481,
+      "cg_m": 1.323975,
+      "cna": null,
+      "cp_m": null
+    },
+    {
+      "name": "Sustainer Motor Mount",
+      "mass_kg": 0.022716880298639556,
+      "cg_m": 1.3366749999999998,
+      "cna": null,
+      "cp_m": null
+    },
+    {
+      "name": "Centering Ring",
+      "mass_kg": 0.012160697768981566,
+      "cg_m": 1.4128749999999999,
+      "cna": null,
+      "cp_m": null
+    },
+    {
+      "name": "Interstage",
+      "mass_kg": 0.026085974742203425,
+      "cg_m": 1.4541499999999998,
+      "cna": 0.0010504222742656812,
+      "cp_m": 1.4541499999999998
+    },
+    {
+      "name": "Centering Ring",
+      "mass_kg": 0.012160697768981566,
+      "cg_m": 1.4192249999999997,
+      "cna": null,
+      "cp_m": null
+    },
+    {
+      "name": "Inner Tube",
+      "mass_kg": 0.013428223285016165,
+      "cg_m": 1.44145,
+      "cna": null,
+      "cp_m": null
+    },
+    {
+      "name": "Tube Coupler",
+      "mass_kg": 0.03609039595249115,
+      "cg_m": 1.3969999999999998,
+      "cna": null,
+      "cp_m": null
+    },
+    {
+      "name": "Tube Coupler",
+      "mass_kg": 0.05945755962003557,
+      "cg_m": 1.3969999999999998,
+      "cna": null,
+      "cp_m": null
+    },
+    {
+      "name": "Centering Ring",
+      "mass_kg": 0.012160697768981566,
+      "cg_m": 1.4636749999999998,
+      "cna": null,
+      "cp_m": null
+    },
+    {
+      "name": "Tube Coupler",
+      "mass_kg": 0.02738067321294616,
+      "cg_m": 1.5303499999999999,
+      "cna": null,
+      "cp_m": null
+    },
+    {
+      "name": "Bulkhead",
+      "mass_kg": 0.024988550470865158,
+      "cg_m": 1.4692312499999998,
+      "cna": null,
+      "cp_m": null
+    },
+    {
+      "name": "Tube Coupler",
+      "mass_kg": 0.0936004278763988,
+      "cg_m": 1.5276448999999999,
+      "cna": null,
+      "cp_m": null
+    },
+    {
+      "name": "Bulkhead",
+      "mass_kg": 0.02409957580552754,
+      "cg_m": 1.5863887499999998,
+      "cna": null,
+      "cp_m": null
+    },
+    {
+      "name": "Bulkhead",
+      "mass_kg": 0.024988550470865158,
+      "cg_m": 1.5914687499999998,
+      "cna": null,
+      "cp_m": null
+    },
+    {
+      "name": "Rail Button",
+      "mass_kg": 0.0016531801959055739,
+      "cg_m": 1.7334399999999999,
+      "cna": 0.0,
+      "cp_m": null
+    },
+    {
+      "name": "Booster airframe",
+      "mass_kg": 0.13042987371101694,
+      "cg_m": 1.6827499999999997,
+      "cna": 0.005252111371328406,
+      "cp_m": 1.6827499999999997
+    },
+    {
+      "name": "Booster Chute",
+      "mass_kg": 0.02499364061885334,
+      "cg_m": 1.68275,
+      "cna": null,
+      "cp_m": null
+    },
+    {
+      "name": "Booster fin section",
+      "mass_kg": 0.0608672743984746,
+      "cg_m": 1.9621499999999998,
+      "cna": 0.0024509853066199223,
+      "cp_m": 1.96215
+    },
+    {
+      "name": "Tube Coupler",
+      "mass_kg": 0.026011639552298852,
+      "cg_m": 1.831975,
+      "cna": null,
+      "cp_m": null
+    },
+    {
+      "name": "Bulkhead",
+      "mass_kg": 0.024988550470865158,
+      "cg_m": 1.77403125,
+      "cna": null,
+      "cp_m": null
+    },
+    {
+      "name": "Centering Ring",
+      "mass_kg": 0.027357336272007194,
+      "cg_m": 1.8954749999999998,
+      "cna": null,
+      "cp_m": null
+    },
+    {
+      "name": "Booster motor mount",
+      "mass_kg": 0.022716880298639556,
+      "cg_m": 1.9716749999999998,
+      "cna": null,
+      "cp_m": null
+    },
+    {
+      "name": "Centering Ring",
+      "mass_kg": 0.027357336272007194,
+      "cg_m": 2.047875,
+      "cna": null,
+      "cp_m": null
+    },
+    {
+      "name": "Trapezoidal Fin Set",
+      "mass_kg": 0.12900367344374994,
+      "cg_m": 1.972821019790282,
+      "cna": 15.938445147851077,
+      "cp_m": 1.3080037134865816
+    },
+    {
+      "name": "RW_I261G",
+      "mass_kg": 0.397099,
+      "cg_m": 1.9165499999999998,
+      "cna": null,
+      "cp_m": null
+    },
+    {
+      "name": "RW_I60G",
+      "mass_kg": 0.512325,
+      "cg_m": 1.2460499999999999,
+      "cna": null,
+      "cp_m": null
+    }
+  ]
+}

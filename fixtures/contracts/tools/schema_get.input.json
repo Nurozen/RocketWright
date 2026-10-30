@@ -1,0 +1,7 @@
+{
+  "provenance": "contract-fixture",
+  "type": "tools/schema_get.input",
+  "payload": {
+    "name": "check-delta"
+  }
+}

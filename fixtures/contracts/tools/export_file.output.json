@@ -1,0 +1,9 @@
+{
+  "provenance": "contract-fixture",
+  "type": "tools/export_file.output",
+  "payload": {
+    "path": "exports/baseline.csv",
+    "bytes": 48213,
+    "sha256": "53bb9b0b38ac812554abeb88ea6d56760d07ec147a75e8761c4f57ecc298218f"
+  }
+}

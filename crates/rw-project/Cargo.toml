@@ -1,0 +1,44 @@
+[package]
+name = "rw-project"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+rw-api.workspace = true
+rw-aero.workspace = true
+rw-check.workspace = true
+rw-geom.workspace = true
+rw-mass.workspace = true
+rw-model.workspace = true
+rw-motor.workspace = true
+rw-ork.workspace = true
+rw-sim.workspace = true
+rw-units.workspace = true
+rw-liquid.workspace = true
+rw-thermo.workspace = true
+# Plain types and propellant definitions always; native CEA with `cea`.
+rw-cea-sys.workspace = true
+blake3.workspace = true
+gix.workspace = true
+libc.workspace = true
+notify.workspace = true
+notify-debouncer-full.workspace = true
+schemars.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+thiserror.workspace = true
+toml_edit.workspace = true
+zip.workspace = true
+flate2.workspace = true
+
+[features]
+# Native NASA CEA in the sidecar for propellants outside the shipped tables
+# (plan M4.6): builds third_party/cea (gfortran + cmake).
+cea = ["rw-cea-sys/cea"]
+
+[dev-dependencies]
+proptest.workspace = true

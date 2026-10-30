@@ -1,0 +1,16 @@
+/* Inter 4.1 (SIL OFL 1.1, public/fonts/OFL.txt). Vite rewrites the public paths for base "./". */
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url("/fonts/Inter-Regular.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 600;
+  font-display: block;
+  src: url("/fonts/Inter-SemiBold.ttf") format("truetype");
+}

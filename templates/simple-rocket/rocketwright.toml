@@ -1,0 +1,8 @@
+# A single-stage 18 mm model rocket to start from (`rw init --template simple-rocket`).
+format = 1
+name = "Simple rocket"
+default_config = "baseline"
+
+[display_units]
+length = "mm"
+mass = "g"

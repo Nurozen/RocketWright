@@ -1,0 +1,27 @@
+{
+  "about": "Check errors `make parity` expects after `rw import ork` of OpenRocket examples 1-7 (crates/rw-cli/tests/import_parity.rs). Every other case must check with exit 0. These come from the example models themselves (OpenRocket does not check interference or fit) or from a missing RocketWright model; the import reproduces the file faithfully. The test fails when an error appears that is not listed here, or a listed one no longer occurs (then delete it here).",
+  "cases": {
+    "2": [
+      { "code": "RW-E150", "path": "/c/tube_coupler/od", "reason": "The model's coupler is 24.10 mm wide, sized for the paper body tube, but the printed fin can it also enters has a 23.19 mm bore." },
+      { "code": "RW-E157", "path": "/c/tube_coupler", "reason": "Same coupler: past the fin can's fore end it is inside the paper tube, but inside the fin can it does not fit the bore (reported twice: length outside a fitting bore, and the wall)." },
+      { "code": "RW-E157", "path": "/c/tube_coupler", "reason": "See above." },
+      { "code": "RW-E156", "path": "/c/inner_tube", "reason": "The model's motor tube (21.70 mm) runs 5.2 mm into the coupler (21.66 mm bore)." },
+      { "code": "RW-E156", "path": "/c/wadding", "reason": "The model places the wadding mass 2.0 mm into the shock cord's packed volume." }
+    ],
+    "7": [
+      { "code": "RW-E150", "path": "/c/tube_coupler_8/od", "reason": "The model nests a 97.28 mm coupler in a coupler with a 96.88 mm bore." },
+      { "code": "RW-E156", "path": "/c/tube_coupler_8", "reason": "The model places the nested coupler 0.3 mm into a bulkhead." },
+      { "code": "RW-E157", "path": "/c/tube_coupler_8", "reason": "Same nested coupler, through its parent's wall." },
+      { "code": "RW-E157", "path": "/c/bulkhead", "reason": "The model's coupler-end bulkheads are airframe-bore discs (99.06 mm) placed inside the coupler length (96.88 mm bore); the same for the entries below." },
+      { "code": "RW-E157", "path": "/c/bulkhead_2", "reason": "See /c/bulkhead." },
+      { "code": "RW-E157", "path": "/c/bulkhead_3", "reason": "See /c/bulkhead (97.28 mm disc, 96.88 mm bore)." },
+      { "code": "RW-E157", "path": "/c/bulkhead_4", "reason": "See /c/bulkhead_3." },
+      { "code": "RW-E157", "path": "/c/bulkhead_5", "reason": "See /c/bulkhead." },
+      { "code": "RW-E157", "path": "/c/bulkhead_6", "reason": "See /c/bulkhead_3." },
+      { "code": "RW-E157", "path": "/c/bulkhead_7", "reason": "See /c/bulkhead." },
+      { "code": "RW-E157", "path": "/c/bulkhead_8", "reason": "See /c/bulkhead (in the nested coupler)." },
+      { "code": "RW-E157", "path": "/c/bulkhead_9", "reason": "See /c/bulkhead." },
+      { "code": "RW-E157", "path": "/c/bulkhead_10", "reason": "See /c/bulkhead." }
+    ]
+  }
+}

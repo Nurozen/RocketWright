@@ -1,0 +1,367 @@
+{
+  "type": "object",
+  "properties": {
+    "view": {
+      "$ref": "#/$defs/View"
+    },
+    "path": {
+      "type": "string",
+      "description": "PNG path (project-relative)."
+    },
+    "svg_path": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "png_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "width": {
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0
+    },
+    "height": {
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0
+    },
+    "camera": {
+      "$ref": "#/$defs/Camera"
+    },
+    "backend": {
+      "$ref": "#/$defs/RenderBackend"
+    },
+    "adapter": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "GPU adapter description (3D only)."
+    },
+    "model_hash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "legend": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/RenderLegend"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "What the render drew, as numbers: each drawn component's station\nrange and radial extent, and the notable relations between parts\n(B3 round 12: describe a render from this, not from the picture)."
+    }
+  },
+  "required": [
+    "view",
+    "path",
+    "png_sha256",
+    "width",
+    "height",
+    "camera",
+    "backend",
+    "model_hash"
+  ],
+  "description": "The `render` tool output; the MCP reply also carries the PNG as image content.",
+  "title": "RenderResult",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rocketwright.dev/schema/1/tools/render.output.json",
+  "$defs": {
+    "View": {
+      "type": "string",
+      "enum": [
+        "profile",
+        "fin",
+        "stations",
+        "anchors",
+        "iso",
+        "top",
+        "side",
+        "front",
+        "rear",
+        "exploded",
+        "section"
+      ],
+      "description": "2D views (Rust SVG/PNG, deterministic) and 3D views (shared TS renderer)."
+    },
+    "Camera": {
+      "type": "object",
+      "properties": {
+        "position": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "minItems": 3,
+          "maxItems": 3,
+          "description": "Body-frame position and target.",
+          "x-unit-dimension": "length"
+        },
+        "target": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "minItems": 3,
+          "maxItems": 3,
+          "x-unit-dimension": "length"
+        },
+        "up": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "minItems": 3,
+          "maxItems": 3
+        },
+        "orthographic": {
+          "type": "boolean"
+        },
+        "fov_deg": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "description": "Vertical field of view (perspective) in degrees."
+        },
+        "ortho_height": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "description": "View height (orthographic).",
+          "x-unit-dimension": "length"
+        }
+      },
+      "required": [
+        "position",
+        "target",
+        "up",
+        "orthographic"
+      ]
+    },
+    "RenderBackend": {
+      "type": "string",
+      "enum": [
+        "resvg",
+        "webgpu",
+        "webgl2"
+      ]
+    },
+    "RenderLegend": {
+      "type": "object",
+      "properties": {
+        "components": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/LegendComponent"
+          },
+          "description": "Drawn components in tree order."
+        },
+        "relations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/LegendRelation"
+          },
+          "description": "Relations between a part and the component it sits on or in."
+        }
+      },
+      "required": [
+        "components"
+      ],
+      "description": "The text legend of a render (`rw render` prints it under the PNG path)."
+    },
+    "LegendComponent": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/$defs/ComponentType"
+        },
+        "placement": {
+          "$ref": "#/$defs/AnchorKind",
+          "description": "How it sits in its parent (`axial` body chain, `inner`, `surface`)."
+        },
+        "parent": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "count": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0,
+          "description": "Instances (fins in a set, buttons in a pattern)."
+        },
+        "x_fore": {
+          "type": "number",
+          "format": "double",
+          "description": "Foremost station over all instances.",
+          "x-unit-dimension": "length"
+        },
+        "x_aft": {
+          "type": "number",
+          "format": "double",
+          "description": "Aftmost station over all instances.",
+          "x-unit-dimension": "length"
+        },
+        "r_inner": {
+          "type": "number",
+          "format": "double",
+          "description": "Innermost radius (0 for a solid on the axis; the root for fins).",
+          "x-unit-dimension": "length"
+        },
+        "r_outer": {
+          "type": "number",
+          "format": "double",
+          "description": "Outermost radius (the tip for fins).",
+          "x-unit-dimension": "length"
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "placement",
+        "count",
+        "x_fore",
+        "x_aft",
+        "r_inner",
+        "r_outer"
+      ],
+      "description": "One drawn component: stations from the nose tip, radii from the body axis."
+    },
+    "ComponentType": {
+      "type": "string",
+      "enum": [
+        "nose_cone",
+        "body_tube",
+        "transition",
+        "trapezoidal_fin_set",
+        "elliptical_fin_set",
+        "freeform_fin_set",
+        "tube_fin_set",
+        "inner_tube",
+        "coupler",
+        "centering_ring",
+        "bulkhead",
+        "engine_block",
+        "launch_lug",
+        "rail_button",
+        "parachute",
+        "streamer",
+        "shock_cord",
+        "mass_component",
+        "tank"
+      ],
+      "description": "The component kind as a plain tag (`\"nose_cone\"`, ...)."
+    },
+    "AnchorKind": {
+      "oneOf": [
+        {
+          "type": "string",
+          "const": "axial",
+          "description": "Body chain: `fore`, `aft`, `tip`, `base`."
+        },
+        {
+          "type": "string",
+          "const": "inner",
+          "description": "Inside a tube: rings, inner tubes, recovery, mass."
+        },
+        {
+          "type": "string",
+          "const": "surface",
+          "description": "On the outer surface: fins, lugs, buttons."
+        }
+      ],
+      "description": "Anchor kinds drive containment (G §4.3)."
+    },
+    "LegendRelation": {
+      "type": "object",
+      "properties": {
+        "component": {
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/LegendRelationKind"
+        },
+        "other": {
+          "type": "string"
+        },
+        "distance": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "description": "Positive distance for `overhangs_aft`, `forward_of_aft`, `extends_past_aft`.",
+          "x-unit-dimension": "length"
+        },
+        "station": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "description": "Centre station (`along`).",
+          "x-unit-dimension": "length"
+        },
+        "fraction": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "description": "0 at `other`'s fore end, 1 at its aft end (`along`)."
+        }
+      },
+      "required": [
+        "component",
+        "kind",
+        "other"
+      ]
+    },
+    "LegendRelationKind": {
+      "oneOf": [
+        {
+          "type": "string",
+          "const": "overhangs_aft",
+          "description": "Ends `distance` aft of `other`'s aft end (fins past the tube end)."
+        },
+        {
+          "type": "string",
+          "const": "flush_aft",
+          "description": "Ends at `other`'s aft end (within 0.05 mm)."
+        },
+        {
+          "type": "string",
+          "const": "forward_of_aft",
+          "description": "Ends `distance` forward of `other`'s aft end."
+        },
+        {
+          "type": "string",
+          "const": "extends_past_aft",
+          "description": "An inner part reaching `distance` past `other`'s aft end."
+        },
+        {
+          "type": "string",
+          "const": "along",
+          "description": "A surface part (rail button, lug) centred at `station`, `fraction`\nof `other`'s length from its fore end (one entry per instance)."
+        }
+      ],
+      "description": "How a part relates to its parent `other`."
+    }
+  }
+}

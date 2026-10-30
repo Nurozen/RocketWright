@@ -1,0 +1,52 @@
+name: Feature request
+description: Propose a new capability or a change to existing behavior.
+title: "[Feature]: "
+labels:
+  - enhancement
+  - needs-triage
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Describe the problem before the solution. Features need a maintainer's agreement on direction
+        and scope before a PR (see CONTRIBUTING.md). Every simulation is one deterministic flight, so
+        Monte Carlo is out of scope.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What are you trying to design, check, or fly, and what stops you today?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: What should RocketWright do? For new physics, name the published method or source.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Design model and checks
+        - Flight simulation
+        - Liquid engines or NASA CEA
+        - CLI (rw) or MCP server
+        - Desktop app
+        - Agent integration
+        - OpenRocket import or export
+        - Docs
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives and workarounds
+      description: What you tried, and how other tools handle it.

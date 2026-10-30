@@ -1,0 +1,522 @@
+# Oracle case 7 ('Rocket', generic-curve variant), re-authored
+# from tests/oracle/case7.geometry.json by scripts/fixtures/oracle_case.py.
+# Do not edit; modelling choices are listed in fixtures/README.md.
+
+name = "Rocket"
+
+[stage.sustainer]
+first = "nose_cone"
+name = "Sustainer"
+
+[stage.booster]
+first = "interstage"
+name = "Booster"
+
+[c.nose_cone]
+type = "nose_cone"
+name = "Nose Cone"
+material = "polypropylene_bulk"
+finish = { roughness = "0.00006 m" }
+shape = "ogive"
+shape_param = 1
+length = "0.32384999999999997 m"
+od = "0.1016 m"
+thickness = "0.001524 m"
+
+[c.payload_bay]
+type = "body_tube"
+name = "Payload Bay"
+attach = { to = "nose_cone.base" }
+material = "paper_kraft_glassine_loc"
+finish = { roughness = "0.00006 m" }
+length = "0.07619999999999999 m"
+od = "0.1016 m"
+thickness = "0.0012700000000000003 m"
+
+[c.tube_coupler]
+type = "coupler"
+name = "Tube Coupler"
+attach = { to = "payload_bay.fore", at = "fore", offset = "0.050799999999999956 m" }
+material = "paper_kraft_loc_coupler"
+length = "0.127 m"
+od = "0.0986536 m"
+thickness = "0.0008890000000000009 m"
+
+[c.bulkhead]
+type = "bulkhead"
+name = "Bulkhead"
+attach = { to = "tube_coupler.inner", at = "fore", offset = "0.1222375 m" }
+material = "birch"
+length = "0.004762499999999999 m"
+od = "0.09906 m"
+
+[c.sustainer_forward_airframe]
+type = "body_tube"
+name = "Sustainer Forward Airframe"
+attach = { to = "payload_bay.aft" }
+material = "paper_kraft_glassine_loc"
+finish = { roughness = "0.00006 m" }
+length = "0.43179999999999996 m"
+od = "0.1016 m"
+thickness = "0.0012700000000000003 m"
+
+[c.sustainer_main]
+type = "parachute"
+name = "Sustainer Main"
+attach = { to = "sustainer_forward_airframe.fore", at = "attach", offset = "0.20339999999999997 m" }
+material = "nylon_fabric_ripstop_1_9"
+diameter = "0.9144 m"
+cd = 0.8
+line_count = 10
+line_length = "0.9144 m"
+line_material = "shroud_lines"
+packed_length = "0.025 m"
+packed_diameter = "0.025 m"
+
+[c.sustainer_switch_band]
+type = "body_tube"
+name = "Sustainer Switch Band"
+attach = { to = "sustainer_forward_airframe.aft" }
+material = "paper_kraft_glassine_loc"
+finish = { roughness = "0.00006 m" }
+length = "0.0254 m"
+od = "0.1016 m"
+thickness = "0.0012700000000000003 m"
+
+[c.tube_coupler_2]
+type = "coupler"
+name = "Tube Coupler"
+attach = { to = "sustainer_switch_band.fore", at = "fore", offset = "-0.08889999999999998 m" }
+material = "paper_kraft_loc_coupler"
+length = "0.2032 m"
+od = "0.0986536 m"
+thickness = "0.0008890000000000009 m"
+
+[c.bulkhead_2]
+type = "bulkhead"
+name = "Bulkhead"
+attach = { to = "tube_coupler_2.inner", at = "fore", offset = "-0.004749800000000026 m" }
+material = "birch"
+length = "0.004762499999999999 m"
+od = "0.09906 m"
+
+[c.bulkhead_3]
+type = "bulkhead"
+name = "Bulkhead"
+attach = { to = "tube_coupler_2.inner", at = "fore", offset = "0 m" }
+material = "birch"
+length = "0.004762499999999999 m"
+od = "0.097282 m"
+
+[c.tube_coupler_3]
+type = "coupler"
+name = "Tube Coupler"
+attach = { to = "tube_coupler_2.inner", at = "fore", offset = "0.004749800000000026 m" }
+material = "paper_kraft_loc_coupler_2"
+length = "0.1937004 m"
+od = "0.096139 m"
+thickness = "0.002921 m"
+
+[c.bulkhead_4]
+type = "bulkhead"
+name = "Bulkhead"
+attach = { to = "tube_coupler_3.inner", at = "fore", offset = "0.19368770000000002 m" }
+material = "birch"
+length = "0.004762499999999999 m"
+od = "0.097282 m"
+
+[c.bulkhead_5]
+type = "bulkhead"
+name = "Bulkhead"
+attach = { to = "tube_coupler_2.inner", at = "fore", offset = "0.20318729999999996 m" }
+material = "birch"
+length = "0.004762499999999999 m"
+od = "0.09906 m"
+
+[c.rail_button]
+type = "rail_button"
+name = "Rail Button"
+attach = { to = "sustainer_switch_band.fore", at = "mid", offset = "0.012700000000000045 m", spin = "3.141592653589793 rad" }
+instances = { count = 2, pattern = "linear", spacing = "0.44195999999999996 m" }
+material = "delrin"
+finish = { roughness = "0.00006 m" }
+od = "0.0097 m"
+id = "0.008 m"
+height = "0.0097 m"
+base_height = "0.002 m"
+flange_height = "0.002 m"
+
+[c.sustainer_aft_airframe]
+type = "body_tube"
+name = "Sustainer Aft Airframe"
+attach = { to = "sustainer_switch_band.aft" }
+material = "paper_kraft_glassine_loc"
+finish = { roughness = "0.00006 m" }
+length = "0.381 m"
+od = "0.1016 m"
+thickness = "0.0012700000000000003 m"
+
+[c.sustainer_drogue]
+type = "parachute"
+name = "Sustainer Drogue"
+attach = { to = "sustainer_aft_airframe.fore", at = "attach", offset = "0.17800000000000005 m" }
+material = "nylon_fabric_ripstop_1_9"
+diameter = "0.30479999999999996 m"
+cd = 0.8
+line_count = 6
+line_length = "0.30479999999999996 m"
+line_material = "shroud_lines_2"
+packed_length = "0.025 m"
+packed_diameter = "0.025 m"
+
+[c.sustainer_fin_section]
+type = "body_tube"
+name = "Sustainer Fin Section"
+attach = { to = "sustainer_aft_airframe.aft" }
+material = "paper_kraft_glassine_loc"
+finish = { roughness = "0.00006 m" }
+length = "0.17779999999999999 m"
+od = "0.1016 m"
+thickness = "0.0012700000000000003 m"
+
+[c.tube_coupler_4]
+type = "coupler"
+name = "Tube Coupler"
+attach = { to = "sustainer_fin_section.fore", at = "fore", offset = "-0.10159999999999991 m" }
+material = "paper_kraft_loc_coupler"
+length = "0.12065 m"
+od = "0.0986536 m"
+thickness = "0.0008890000000000009 m"
+
+[c.bulkhead_6]
+type = "bulkhead"
+name = "Bulkhead"
+attach = { to = "tube_coupler_4.inner", at = "fore", offset = "0 m" }
+material = "material_aircraft_plywoo"
+length = "0.004775199999999999 m"
+od = "0.097282 m"
+
+[c.centering_ring]
+type = "centering_ring"
+name = "Centering Ring"
+attach = { to = "sustainer_fin_section.fore", at = "fore", offset = "0.01905000000000001 m" }
+material = "plywood_baltic_birch_bul"
+length = "0.00635 m"
+od = "0.0989838 m"
+id = "0.0788162 m"
+
+[c.trapezoidal_fin_set]
+type = "trapezoidal_fin_set"
+name = "Trapezoidal Fin Set"
+attach = { to = "sustainer_fin_section.fore", at = "root_le", offset = "0.02540000000000009 m" }
+material = "plywood_birch"
+finish = { roughness = "0.00006 m" }
+count = 3
+root_chord = "0.14604999999999999 m"
+tip_chord = "0.07619999999999999 m"
+span = "0.15239999999999998 m"
+sweep = "0.03809999999999997 m"
+thickness = "0.003175 m"
+cross_section = "square"
+tab = { height = "0.011429999999999996 m", length = "0.1460499999999999 m", offset = "0.00000000000000005551115123125783 m" }
+
+[c.inner_tube]
+type = "inner_tube"
+name = "Inner Tube"
+attach = { to = "sustainer_fin_section.fore", at = "fore", offset = "0.01905000000000001 m" }
+material = "paper_kraft_glassine_loc"
+length = "0.15875 m"
+od = "0.07874 m"
+thickness = "0.0012700000000000072 m"
+
+[c.centering_ring_2]
+type = "centering_ring"
+name = "Centering Ring"
+attach = { to = "inner_tube.inner", at = "fore", offset = "0 m" }
+material = "plywood_baltic_birch_bul"
+length = "0.00635 m"
+od = "0.07612379999999999 m"
+id = "0.041605199999999995 m"
+
+[c.centering_ring_3]
+type = "centering_ring"
+name = "Centering Ring"
+attach = { to = "inner_tube.inner", at = "fore", offset = "0.06350000000000011 m" }
+material = "plywood_baltic_birch_bul"
+length = "0.00635 m"
+od = "0.07612379999999999 m"
+id = "0.041605199999999995 m"
+
+[c.sustainer_motor_mount]
+type = "inner_tube"
+name = "Sustainer Motor Mount"
+attach = { to = "inner_tube.inner", at = "fore", offset = "0 m" }
+material = "paper_kraft_glassine_loc"
+length = "0.15875 m"
+od = "0.041275 m"
+thickness = "0.0013335000000000014 m"
+motor_mount = true
+
+[c.centering_ring_4]
+type = "centering_ring"
+name = "Centering Ring"
+attach = { to = "sustainer_fin_section.fore", at = "fore", offset = "0.1714500000000001 m" }
+material = "plywood_baltic_birch_bul"
+length = "0.00635 m"
+od = "0.0989838 m"
+id = "0.0788162 m"
+
+[c.interstage]
+type = "body_tube"
+name = "Interstage"
+attach = { to = "sustainer_fin_section.aft" }
+material = "paper_kraft_glassine_loc"
+finish = { roughness = "0.00006 m" }
+length = "0.07619999999999999 m"
+od = "0.1016 m"
+thickness = "0.0012700000000000003 m"
+
+[c.centering_ring_5]
+type = "centering_ring"
+name = "Centering Ring"
+attach = { to = "interstage.fore", at = "fore", offset = "0 m" }
+material = "plywood_baltic_birch_bul"
+length = "0.00635 m"
+od = "0.0989838 m"
+id = "0.0788162 m"
+
+[c.inner_tube_2]
+type = "inner_tube"
+name = "Inner Tube"
+attach = { to = "interstage.fore", at = "fore", offset = "0 m" }
+material = "paper_kraft_glassine_loc"
+length = "0.0508 m"
+od = "0.07874 m"
+thickness = "0.0012700000000000072 m"
+
+[c.tube_coupler_5]
+type = "coupler"
+name = "Tube Coupler"
+attach = { to = "inner_tube_2.inner", at = "fore", offset = "-0.08889999999999998 m" }
+material = "paper_kraft_loc_coupler"
+length = "0.1397 m"
+od = "0.075946 m"
+thickness = "0.0013970000000000024 m"
+
+[c.tube_coupler_6]
+type = "coupler"
+name = "Tube Coupler"
+attach = { to = "tube_coupler_5.inner", at = "fore", offset = "0 m" }
+material = "paper_kraft_loc_coupler_2"
+length = "0.1397 m"
+od = "0.0731012 m"
+thickness = "0.0032131000000000035 m"
+
+[c.centering_ring_6]
+type = "centering_ring"
+name = "Centering Ring"
+attach = { to = "interstage.fore", at = "fore", offset = "0.04444999999999988 m" }
+material = "plywood_baltic_birch_bul"
+length = "0.00635 m"
+od = "0.0989838 m"
+id = "0.0788162 m"
+
+[c.tube_coupler_7]
+type = "coupler"
+name = "Tube Coupler"
+attach = { to = "interstage.fore", at = "fore", offset = "0.050799999999999956 m" }
+material = "paper_kraft_loc_coupler"
+length = "0.127 m"
+od = "0.0986536 m"
+thickness = "0.0008890000000000009 m"
+
+[c.bulkhead_7]
+type = "bulkhead"
+name = "Bulkhead"
+attach = { to = "tube_coupler_7.inner", at = "fore", offset = "0 m" }
+material = "birch"
+length = "0.004762499999999999 m"
+od = "0.09906 m"
+
+[c.tube_coupler_8]
+type = "coupler"
+name = "Tube Coupler"
+attach = { to = "tube_coupler_7.inner", at = "fore", offset = "0.004419600000000079 m" }
+material = "material_kraft_phenolic"
+length = "0.11275059999999999 m"
+od = "0.097282 m"
+thickness = "0.002921 m"
+
+[c.bulkhead_8]
+type = "bulkhead"
+name = "Bulkhead"
+attach = { to = "tube_coupler_8.inner", at = "fore", offset = "0.11273789999999995 m" }
+material = "birch"
+length = "0.004762499999999999 m"
+od = "0.097282 m"
+
+[c.bulkhead_9]
+type = "bulkhead"
+name = "Bulkhead"
+attach = { to = "tube_coupler_7.inner", at = "fore", offset = "0.1222375 m" }
+material = "birch"
+length = "0.004762499999999999 m"
+od = "0.09906 m"
+
+[c.rail_button_2]
+type = "rail_button"
+name = "Rail Button"
+attach = { to = "interstage.fore", at = "mid", offset = "0.0660400000000001 m", spin = "3.141592653589793 rad" }
+instances = { count = 2, pattern = "linear", spacing = "0.5027000000000001 m" }
+material = "delrin"
+finish = { roughness = "0.00006 m" }
+od = "0.0097 m"
+id = "0.008 m"
+height = "0.0097 m"
+base_height = "0.002 m"
+flange_height = "0.002 m"
+
+[c.booster_airframe]
+type = "body_tube"
+name = "Booster airframe"
+attach = { to = "interstage.aft" }
+material = "paper_kraft_glassine_loc"
+finish = { roughness = "0.00006 m" }
+length = "0.381 m"
+od = "0.1016 m"
+thickness = "0.0012700000000000003 m"
+
+[c.booster_chute]
+type = "parachute"
+name = "Booster Chute"
+attach = { to = "booster_airframe.fore", at = "attach", offset = "0.17799999999999994 m" }
+material = "nylon_fabric_ripstop_1_9"
+diameter = "0.6095999999999999 m"
+cd = 0.8
+line_count = 8
+line_length = "0.6095999999999999 m"
+line_material = "shroud_lines_2"
+packed_length = "0.025 m"
+packed_diameter = "0.025 m"
+
+[c.booster_fin_section]
+type = "body_tube"
+name = "Booster fin section"
+attach = { to = "booster_airframe.aft" }
+material = "paper_kraft_glassine_loc"
+finish = { roughness = "0.00006 m" }
+length = "0.17779999999999999 m"
+od = "0.1016 m"
+thickness = "0.0012700000000000003 m"
+
+[c.tube_coupler_9]
+type = "coupler"
+name = "Tube Coupler"
+attach = { to = "booster_fin_section.fore", at = "fore", offset = "-0.10159999999999991 m" }
+material = "paper_kraft_loc_coupler"
+length = "0.12065 m"
+od = "0.0986536 m"
+thickness = "0.0008890000000000009 m"
+
+[c.bulkhead_10]
+type = "bulkhead"
+name = "Bulkhead"
+attach = { to = "tube_coupler_9.inner", at = "fore", offset = "0 m" }
+material = "birch"
+length = "0.004762499999999999 m"
+od = "0.09906 m"
+
+[c.centering_ring_7]
+type = "centering_ring"
+name = "Centering Ring"
+attach = { to = "booster_fin_section.fore", at = "fore", offset = "0.01905000000000001 m" }
+material = "plywood_baltic_birch_bul"
+length = "0.00635 m"
+od = "0.0989838 m"
+id = "0.041605199999999995 m"
+
+[c.booster_motor_mount]
+type = "inner_tube"
+name = "Booster motor mount"
+attach = { to = "booster_fin_section.fore", at = "fore", offset = "0.01905000000000001 m" }
+material = "paper_kraft_glassine_loc"
+length = "0.15875 m"
+od = "0.041275 m"
+thickness = "0.0013335000000000014 m"
+motor_mount = true
+
+[c.centering_ring_8]
+type = "centering_ring"
+name = "Centering Ring"
+attach = { to = "booster_fin_section.fore", at = "fore", offset = "0.17144999999999988 m" }
+material = "plywood_baltic_birch_bul"
+length = "0.00635 m"
+od = "0.0989838 m"
+id = "0.041605199999999995 m"
+
+[c.trapezoidal_fin_set_2]
+type = "trapezoidal_fin_set"
+name = "Trapezoidal Fin Set"
+attach = { to = "booster_fin_section.fore", at = "root_le", offset = "0.02540000000000009 m" }
+material = "plywood_birch"
+finish = { roughness = "0.00006 m" }
+count = 3
+root_chord = "0.14604999999999999 m"
+tip_chord = "0.07619999999999999 m"
+span = "0.1650999999999999 m"
+sweep = "0.03809999999999997 m"
+thickness = "0.003 m"
+cross_section = "square"
+tab = { height = "0.0301625 m", length = "0.14604999999999996 m", offset = "0.000000000000000013877787807814457 m" }
+
+[materials.polypropylene_bulk]
+density = "946 kg/m^3"
+name = "Polypropylene, bulk"
+
+[materials.paper_kraft_glassine_loc]
+density = "855.2 kg/m^3"
+name = "Paper, kraft glassine, LOC tube avg"
+
+[materials.paper_kraft_loc_coupler]
+density = "789.6 kg/m^3"
+name = "Paper, kraft, LOC coupler avg"
+
+[materials.birch]
+density = "680.8 kg/m^3"
+name = "Birch"
+
+[materials.nylon_fabric_ripstop_1_9]
+surface_density = "0.0589 kg/m^2"
+name = "Nylon fabric, ripstop, 1.9 oz actual"
+
+[materials.shroud_lines]
+line_density = "0.0035 kg/m"
+name = "shroud lines"
+
+[materials.paper_kraft_loc_coupler_2]
+density = "603.3 kg/m^3"
+name = "Paper, kraft, LOC coupler stiffener avg"
+
+[materials.delrin]
+density = "1420 kg/m^3"
+name = "Delrin"
+
+[materials.shroud_lines_2]
+line_density = "0.0016 kg/m"
+name = "shroud lines"
+
+[materials.material_aircraft_plywoo]
+density = "724.9956534840001 kg/m^3"
+name = "[material:Aircraft plywood (LOC)]"
+
+[materials.plywood_baltic_birch_bul]
+density = "680 kg/m^3"
+name = "Plywood, Baltic birch, bulk"
+
+[materials.plywood_birch]
+density = "630 kg/m^3"
+name = "Plywood (birch)"
+
+[materials.material_kraft_phenolic]
+density = "958.7050344900001 kg/m^3"
+name = "[material:Kraft phenolic]"

@@ -1,0 +1,99 @@
+name: Bug report
+description: Report broken behavior, wrong results, crashes, or build problems.
+title: "[Bug]: "
+labels:
+  - bug
+  - needs-triage
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form for broken behavior, wrong physics results, crashes, regressions, or setup problems.
+        Search existing issues first and keep the report to one problem. Report security problems
+        privately instead (see SECURITY.md).
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing issues and did not find a duplicate.
+          required: true
+        - label: I included enough detail to reproduce or investigate the problem.
+          required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Which part of RocketWright is affected?
+      options:
+        - Design model and checks (rw set, rw check, diagnostics)
+        - Flight simulation results
+        - Liquid engines or NASA CEA
+        - CLI (rw) or MCP server
+        - Desktop app
+        - Agent integration (RocketWright tools in the agent pane)
+        - OpenRocket import or export
+        - Setup, build, or make targets
+        - Docs
+        - Not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: A minimal, deterministic repro. `rw` commands are ideal.
+      placeholder: |
+        1. rw init --template simple-rocket
+        2. rw set params.fin_span.value="50 mm"
+        3. rw sim baseline
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: For a wrong number, give the value you expect and its source (paper, measured flight, reference case).
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+      description: Output of `rw --version`, or the commit you built.
+      placeholder: rocketwright 0.1.0, main @ abc1234
+
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: OS and chip, Node version for app problems, and the provider CLI if the agent is involved.
+      placeholder: macOS 26.2 (Apple M3), Node 24.14, claude 2.1
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or output
+      description: The most relevant output only, for example `rw check --json`. Redact secrets and private paths.
+      render: shell
+
+  - type: upload
+    id: attachments
+    attributes:
+      label: Project files, screenshots, or recordings
+      description: A minimal project (`rocketwright.toml`, `rocket.rw.toml`, configs) that reproduces the problem helps most. Do not attach `.ork` files you may not share.
+    validations:
+      required: false
+      accept: ".png,.jpg,.jpeg,.gif,.webp,.mp4,.mov,.webm,.log,.txt,.json,.toml,.csv,.eng,.zip"

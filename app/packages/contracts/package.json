@@ -1,0 +1,28 @@
+{
+  "name": "@rw/contracts",
+  "version": "0.1.0",
+  "private": true,
+  "license": "AGPL-3.0-or-later",
+  "type": "module",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./mock": "./mock/server.ts",
+    "./ws": "./mock/ws.ts",
+    "./mock/harness": "./mock/harness.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "lint": "oxlint -c ../../.oxlintrc.json --deny-warnings .",
+    "test": "vitest run --fsModuleCachePath node_modules/.vitest-cache",
+    "gen": "node scripts/gen.ts",
+    "gen:check": "node scripts/gen.ts --check",
+    "mock": "node mock/server.ts"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "json-schema-to-typescript": "16.0.0",
+    "typescript": "6.0.3",
+    "vitest": "5.0.5"
+  }
+}

@@ -1,0 +1,637 @@
+/* Design > Assembly (M1.50, concepts.md §4.1). Tokens only (@rw/ui tokens.css). */
+
+.rw-asm {
+  position: absolute;
+  inset: 0;
+}
+
+/* ---- viewport ------------------------------------------------------------- */
+
+.rw-asm-viewport {
+  overflow: hidden;
+}
+
+.rw-asm-viewport__canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+  cursor: default;
+}
+
+/* Studio light pool (BC5): a soft lift of the backdrop under the model, behind the transparent canvas. */
+.rw-asm-pool {
+  position: absolute;
+  pointer-events: none;
+  transform-origin: 50% 50%;
+}
+
+.rw-asm-leaders {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.rw-asm-leader {
+  fill: none;
+  stroke: var(--rw-text-secondary);
+  stroke-width: 1;
+  shape-rendering: geometricPrecision;
+}
+
+.rw-asm-leader[data-selected="true"] {
+  stroke: var(--rw-accent);
+}
+
+.rw-asm-leader__dot {
+  fill: var(--rw-text-secondary);
+}
+
+/* The shared axis, dotted through the explode gaps (concept 01). */
+.rw-asm-axis {
+  stroke: var(--rw-text-primary);
+  stroke-width: 2;
+  stroke-dasharray: 0.5 4;
+  stroke-linecap: round;
+  opacity: 0.8;
+}
+
+/* `@` on the selected part: sends it to the chat composer as a mention chip. */
+.rw-asm-mention {
+  position: absolute;
+  box-sizing: border-box;
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+  border: var(--rw-hairline) solid var(--rw-accent);
+  border-radius: var(--rw-radius-sm);
+  background: var(--rw-accent-fill);
+  color: var(--rw-accent);
+  font: var(--rw-font-weight-strong) 12px / 1 var(--rw-font-sans);
+  cursor: pointer;
+}
+
+.rw-asm-mention:hover {
+  background: var(--rw-accent);
+  color: var(--rw-bg-canvas);
+}
+
+.rw-asm-label {
+  position: absolute;
+  box-sizing: border-box;
+  padding: 0 6px;
+  border: 0;
+  background: none;
+  color: var(--rw-text-primary);
+  font: var(--rw-font-weight-regular) var(--rw-font-size-body) / 18px var(--rw-font-sans);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.rw-asm-label:hover {
+  color: var(--rw-accent);
+}
+
+.rw-asm-label[data-selected="true"] {
+  color: var(--rw-accent);
+}
+
+.rw-asm-gizmo {
+  position: absolute;
+  top: 12px;
+  overflow: visible;
+  pointer-events: none;
+  font: var(--rw-font-weight-strong) 11px var(--rw-font-sans);
+}
+
+.rw-asm-gizmo__cube {
+  fill: rgba(255, 255, 255, 0.06);
+  stroke: var(--rw-line);
+}
+
+/* ---- inspector ------------------------------------------------------------ */
+
+.rw-inspector {
+  position: absolute;
+  top: 7px;
+  right: 8px;
+  box-sizing: border-box;
+  max-height: calc(100% - 14px);
+  overflow: auto;
+  padding: 4px 0 8px;
+  background: var(--rw-panel);
+  border: var(--rw-hairline) solid var(--rw-line);
+  border-radius: var(--rw-radius-sm);
+  font-size: var(--rw-font-size-secondary);
+}
+
+.rw-inspector[data-open="false"] {
+  width: 44px;
+}
+
+.rw-inspector__head {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 44px;
+  padding: 0 4px 0 14px;
+}
+
+.rw-inspector__title {
+  flex: 1;
+  margin: 0;
+  overflow: hidden;
+  font-size: var(--rw-font-size-pane-title);
+  font-weight: var(--rw-font-weight-strong);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.rw-inspector[data-open="false"] .rw-inspector__title {
+  display: none;
+}
+
+.rw-inspector[data-open="false"] .rw-inspector__toggle svg {
+  transform: rotate(180deg);
+}
+
+.rw-inspector__empty {
+  margin: 4px 14px 8px;
+  color: var(--rw-text-secondary);
+}
+
+.rw-insp-card {
+  padding: 10px 12px 12px 14px;
+  border-top: var(--rw-hairline) solid var(--rw-line);
+}
+
+.rw-insp-card__title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 0 8px;
+  font-size: var(--rw-font-size-body);
+  font-weight: var(--rw-font-weight-strong);
+}
+
+.rw-insp-card__title .rw-icon {
+  color: var(--rw-text-secondary);
+}
+
+/* One label column per card, sized to its longest label (capped), and the
+   values in a column to its right on a single line each (concept 01). */
+.rw-insp-card__rows {
+  display: grid;
+  grid-template-columns: fit-content(104px) minmax(0, 1fr);
+  column-gap: 10px;
+  row-gap: 6px;
+  margin: 0;
+}
+
+.rw-insp-row {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  align-items: baseline;
+}
+
+.rw-insp-row dt,
+.rw-insp-row dd {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.rw-insp-row dt {
+  color: var(--rw-text-secondary);
+}
+
+.rw-insp-row dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Clearance diagnostics carry a sentence: it wraps under the code. */
+.rw-insp-row[data-severity] dd {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.rw-insp-row[data-pass="false"] dd,
+.rw-insp-row[data-severity] dd {
+  color: var(--rw-warning);
+}
+
+/* ---- tree ----------------------------------------------------------------- */
+
+.rw-asm-tree__row {
+  cursor: pointer;
+}
+
+/* Nested parts (C §4.1): indented, a little tighter, so the whole
+   research vehicle fits the rail under the threads. */
+.rw-asm-tree__row:not([data-depth="0"]) {
+  height: 36px;
+}
+
+.rw-asm-tree__indent {
+  flex: none;
+  margin-right: -14px;
+}
+
+.rw-asm-tree__twisty {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  margin-left: auto;
+  padding: 0;
+  border: 0;
+  border-radius: var(--rw-radius-sm);
+  background: none;
+  color: var(--rw-text-secondary);
+  cursor: pointer;
+}
+
+.rw-asm-tree__twisty:hover {
+  background: var(--rw-panel);
+}
+
+.rw-asm-tree__eye {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  margin: 0 -4px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--rw-radius-sm);
+  background: none;
+  color: var(--rw-text-primary);
+  cursor: pointer;
+}
+
+/* Hidden parts: crossed eye, dimmed row. */
+.rw-nav-row[data-hidden="true"] .rw-asm-tree__eye {
+  color: var(--rw-text-secondary);
+}
+
+.rw-nav-row[data-hidden="true"] .rw-asm-tree__label,
+.rw-nav-row[data-hidden="true"] .rw-nav-row__part {
+  opacity: 0.45;
+}
+
+.rw-asm-tree__eye:hover {
+  background: var(--rw-panel);
+}
+
+.rw-asm-tree__label {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* ---- toolbar controls ----------------------------------------------------- */
+
+/* Page 01 spreads its controls across the row (concept 01): separators keep
+   their hairline (no flex shrink) and the trailing one sits before Units. */
+.rw-toolbar__controls:has(> .rw-explode) {
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.rw-toolbar__sep {
+  flex: none;
+  align-self: center;
+  width: var(--rw-hairline);
+  height: 32px;
+  background: var(--rw-line);
+}
+
+.rw-explode {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  color: var(--rw-text-primary);
+}
+
+.rw-explode__label {
+  white-space: nowrap;
+}
+
+.rw-explode__track {
+  display: grid;
+  gap: 2px;
+  width: 172px;
+}
+
+.rw-explode__input {
+  width: 100%;
+  height: 16px;
+  margin: 0;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.rw-explode__input::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(to right, var(--rw-accent) var(--rw-explode-pct, 0%), var(--rw-line) var(--rw-explode-pct, 0%));
+}
+
+.rw-explode__input::-webkit-slider-thumb {
+  width: 14px;
+  height: 14px;
+  margin-top: -5px;
+  border: 0;
+  border-radius: 50%;
+  appearance: none;
+  background: var(--rw-accent);
+}
+
+.rw-explode__ends {
+  display: flex;
+  justify-content: space-between;
+  color: var(--rw-text-secondary);
+  font-size: 11px;
+}
+
+/* The end labels animate the explode (M3.2); they keep the plain-text look of the concept. */
+.rw-explode__end {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.rw-explode__end:hover,
+.rw-explode__end:focus-visible {
+  color: var(--rw-text-primary);
+}
+
+.rw-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--rw-text-primary);
+  font: inherit;
+  cursor: pointer;
+}
+
+.rw-switch__track {
+  position: relative;
+  width: 30px;
+  height: 16px;
+  border-radius: 8px;
+  background: var(--rw-line);
+  transition: background 120ms;
+}
+
+.rw-switch__thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--rw-text-secondary);
+  transition: transform 120ms;
+}
+
+.rw-switch[aria-checked="true"] .rw-switch__track {
+  background: var(--rw-accent-fill);
+}
+
+.rw-switch[aria-checked="true"] .rw-switch__thumb {
+  transform: translateX(14px);
+  background: var(--rw-accent);
+}
+
+.rw-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.rw-check input {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  accent-color: var(--rw-accent);
+}
+
+.rw-select--native {
+  position: relative;
+  padding: 0;
+}
+
+.rw-select--native select {
+  height: 100%;
+  padding: 0 34px 0 14px;
+  border: 0;
+  appearance: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.rw-select--native .rw-icon {
+  position: absolute;
+  right: 10px;
+  pointer-events: none;
+}
+
+/* M3.4 Render still: an icon button under the gizmo and a panel over the viewport. */
+.rw-asm-still {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid var(--rw-line);
+  border-radius: var(--rw-radius-sm);
+  background: rgba(27, 30, 32, 0.72);
+  color: var(--rw-text-secondary);
+  cursor: pointer;
+}
+
+.rw-asm-still:hover,
+.rw-asm-still[aria-expanded="true"] {
+  color: var(--rw-text-primary);
+  border-color: var(--rw-accent);
+}
+
+.rw-still {
+  position: absolute;
+  left: 16px;
+  bottom: 16px;
+  width: min(460px, calc(100% - 32px));
+  max-height: calc(100% - 32px);
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--rw-line);
+  border-radius: var(--rw-radius-sm);
+  background: var(--rw-panel);
+  color: var(--rw-text-primary);
+  font: var(--rw-font-weight-regular) var(--rw-font-size-secondary) var(--rw-font-sans);
+  z-index: 3;
+}
+
+.rw-still__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.rw-still__title {
+  font: var(--rw-font-weight-strong) var(--rw-font-size-body) var(--rw-font-sans);
+}
+
+.rw-still__badge {
+  color: var(--rw-text-secondary);
+  font-size: 11px;
+}
+
+.rw-still__close {
+  margin-left: auto;
+  border: 0;
+  background: none;
+  color: var(--rw-text-secondary);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.rw-still__controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.rw-still__controls label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--rw-text-secondary);
+}
+
+.rw-still__controls select {
+  background: var(--rw-bg-canvas);
+  color: var(--rw-text-primary);
+  border: 1px solid var(--rw-line);
+  border-radius: var(--rw-radius-sm);
+  padding: 2px 4px;
+}
+
+.rw-still__meta {
+  color: var(--rw-text-secondary);
+}
+
+.rw-still__go {
+  margin-left: auto;
+  padding: 4px 12px;
+  border: 1px solid var(--rw-accent);
+  border-radius: var(--rw-radius-sm);
+  background: var(--rw-accent-fill);
+  color: var(--rw-text-primary);
+  cursor: pointer;
+}
+
+.rw-still__go:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.rw-still__progress {
+  position: relative;
+  height: 18px;
+  border-radius: var(--rw-radius-sm);
+  background: var(--rw-bg-canvas);
+  overflow: hidden;
+}
+
+.rw-still__progress span {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--rw-accent-fill);
+}
+
+.rw-still__progress em {
+  position: relative;
+  padding-left: 8px;
+  font-style: normal;
+  line-height: 18px;
+  color: var(--rw-text-secondary);
+}
+
+.rw-still__error {
+  margin: 0;
+  color: var(--rw-warning);
+}
+
+.rw-still__image {
+  width: 100%;
+  height: auto;
+  border-radius: var(--rw-radius-sm);
+}
+
+.rw-still__foot {
+  display: flex;
+  align-items: center;
+  color: var(--rw-text-secondary);
+}
+
+.rw-still__save {
+  margin-left: auto;
+  color: var(--rw-accent);
+  text-decoration: none;
+}
+
+/* M3.6 part thumbnails: tree rows and the inspector header card. */
+.rw-part-thumb {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  overflow: hidden;
+}
+
+.rw-part-thumb img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+/* Same footprint as the line icon it replaces (labels keep their width). */
+.rw-asm-tree__thumb {
+  margin: 0 -2px;
+}
+
+.rw-inspector__thumb {
+  display: grid;
+  margin: 0 14px 6px;
+  border: 1px solid var(--rw-line);
+  border-radius: var(--rw-radius-sm);
+  background: radial-gradient(ellipse at 50% 40%, rgba(255, 255, 255, 0.06), rgba(0, 0, 0, 0) 70%), var(--rw-bg-canvas);
+}
+
+.rw-inspector__thumb[data-source="icon"] {
+  color: var(--rw-text-secondary);
+}

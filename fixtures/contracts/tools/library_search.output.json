@@ -1,0 +1,19 @@
+{
+  "provenance": "contract-fixture",
+  "type": "tools/library_search.output",
+  "payload": {
+    "items": [
+      {
+        "id": "preset:bt-54",
+        "kind": "preset",
+        "name": "54 mm airframe tube",
+        "source": "openrocket-database (Apache-2.0)",
+        "data": {
+          "type": "body_tube",
+          "od": "54 mm",
+          "id": "51.8 mm"
+        }
+      }
+    ]
+  }
+}

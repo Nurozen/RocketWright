@@ -1,0 +1,9 @@
+{
+  "provenance": "contract-fixture",
+  "type": "tools/project_validate.input",
+  "payload": {
+    "files": [
+      "rocket.rw.toml"
+    ]
+  }
+}

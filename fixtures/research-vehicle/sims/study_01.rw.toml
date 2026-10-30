@@ -1,0 +1,14 @@
+# Page 06 visual flow study (D10c): the N2O tank of the demo engine drains
+# with its engineering blowdown while the vehicle rocks on a static stand.
+# Its runs are `provenance = "visual"`: illustrative, never engineering numbers.
+name = "Study 01"
+kind = "visual_flow"
+config = "baseline"
+
+[visual_flow]
+engine = "demo"
+attitude = "scripted_tilt"
+duration = "10 s"
+tilt = "50 deg"
+swing = "10 deg"
+period = "4 s"

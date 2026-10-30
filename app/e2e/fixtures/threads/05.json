@@ -1,0 +1,145 @@
+{
+  "description": "Page 05 canned chat (concept 05, Propulsion > Liquid propulsion design). Seeded through app_seed_thread in this order on the seeded research vehicle (fixtures/research-vehicle/seed.sh); the last thread is the one the capture opens. Three threads bound to the page (Feed system review 5m, Tank study 1h, Flight comparison 2h; the rail sorts by recency). Feed system review mentions the demo-incomplete engine's Tank A feed line, renders two views of it (rw_viewport_render rows) either side of the current step's card (rw_history_show, 04 Flight runs, the step the bottom strip and the pane footer show; CPW1R3A), which keeps the two rows apart in the imported turn (CPW1R4A). The Missing inputs row under it comes from the live check, not from this file. Illustrative chat text, not engineering output.",
+  "threads": [
+    {
+      "thread": "Flight comparison",
+      "binding": {
+        "page": "liquid"
+      },
+      "ageMs": 8100000,
+      "messages": [
+        {
+          "role": "user",
+          "text": "What changed between these flights?",
+          "mentions": [
+            {
+              "ref": "rw:sim/baseline",
+              "label": "Baseline"
+            },
+            {
+              "ref": "rw:sim/higher_altitude",
+              "label": "Higher altitude"
+            }
+          ]
+        },
+        {
+          "role": "assistant",
+          "text": "The second configuration reaches a higher apogee in this example. Review launch and recovery conditions before comparing.",
+          "steps": [
+            {
+              "tool": "run_list",
+              "input": {},
+              "output": {},
+              "summary": "4 runs"
+            },
+            {
+              "tool": "run_diff",
+              "input": {
+                "a": "baseline",
+                "b": "higher_altitude"
+              },
+              "output": {},
+              "summary": "2 runs"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "thread": "Tank study",
+      "binding": {
+        "page": "liquid"
+      },
+      "ageMs": 3900000,
+      "messages": [
+        {
+          "role": "user",
+          "text": "How full is the oxidizer tank at ignition?",
+          "mentions": [
+            {
+              "ref": "rw:eng/demo-incomplete/feed/node/tank_a",
+              "label": "Tank A"
+            }
+          ]
+        },
+        {
+          "role": "assistant",
+          "text": "Tank A starts 60% full, with nitrogen ullage above the liquid. Check the engine design for the propellant mass.",
+          "steps": [
+            {
+              "tool": "engine_design",
+              "input": {
+                "engine": "demo-incomplete"
+              },
+              "output": {},
+              "summary": "Isp 253 s vacuum · 2 inputs missing"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "thread": "Feed system review",
+      "binding": {
+        "page": "liquid"
+      },
+      "ageMs": 300000,
+      "messages": [
+        {
+          "role": "user",
+          "text": "Explain the selected flow path.",
+          "mentions": [
+            {
+              "ref": "rw:eng/demo-incomplete/feed/edge/0",
+              "label": "Feed system"
+            }
+          ]
+        },
+        {
+          "role": "assistant",
+          "text": "This path connects storage to the engine assembly. Select a component to inspect its role and assumptions.",
+          "steps": [
+            {
+              "tool": "viewport_render",
+              "input": {
+                "view": "iso"
+              },
+              "output": {
+                "width": 1536,
+                "height": 1024,
+                "backend": "webgpu",
+                "adapter": "capture"
+              },
+              "summary": "Iso view"
+            },
+            {
+              "tool": "history_show",
+              "input": {
+                "version": "step:4"
+              },
+              "card": {
+                "kind": "step",
+                "ref": "rw:step/4",
+                "title": "Flight runs"
+              },
+              "summary": "Step 4 · Flight runs"
+            },
+            {
+              "tool": "viewport_render",
+              "input": {
+                "view": "side"
+              },
+              "output": {
+                "width": 1536,
+                "height": 1024,
+                "backend": "webgpu",
+                "adapter": "capture"
+              },
+              "summary": "Side view"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

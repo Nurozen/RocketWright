@@ -1,0 +1,6 @@
+check: clean (static) config c6
+  length 523 mm (18.035 cal), diameter 29 mm, fineness 18.035
+  mass liftoff 67.279 g, CG 319.6 mm, CP 442.18 mm, CNa 24.192
+  stability liftoff 4.2267 cal, burnout 5.5176 cal, min 4.2267 cal
+  motor generic:RW_C6G in mount: fits true, T/W 9.0939
+  assert stable stability.liftoff >= 1 cal: pass

@@ -1,0 +1,5 @@
+{
+  "//": "Marks scripts/fixtures/*.ts as ES modules for node type stripping and tsc (typechecked via app/e2e).",
+  "private": true,
+  "type": "module"
+}

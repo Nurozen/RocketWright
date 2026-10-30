@@ -1,0 +1,34 @@
+{
+  "type": "object",
+  "properties": {
+    "path": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "JSON pointer into the evaluated model (`/components/3`); absent = whole model."
+    },
+    "version": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "`live` (default), `step:<n>`, `rev:<NN>`, `commit:<sha>`."
+    },
+    "config": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "variant": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "title": "ModelGetIn",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rocketwright.dev/schema/1/tools/model_get.input.json"
+}

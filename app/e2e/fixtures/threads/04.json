@@ -1,0 +1,165 @@
+{
+  "description": "Page 04 canned chat (concept 04, Results). Seeded through app_seed_thread in this order on the seeded research vehicle (fixtures/research-vehicle/seed.sh); the last thread is the one the capture opens. Every page shows the concept's three threads (Assembly review 3m, Fin revision 1h, Flight comparison 2h; the rail sorts by recency), each bound to the page. Flight comparison mentions two runs, so its turn lists the runs (rw_run_list), shows the Flight runs step card (rw_history_show; Compare: rw:step/4, 04.agent.show-differences; B14) and compares the two runs (rw_run_diff) on the run card: both altitude traces in the page's series colours, Baseline teal and Higher altitude sand (POL; Open: rw:run/<id> of Higher altitude, 04.agent.open-details); no edit or new run (CPW1R4A). The cards keep the list and compare rows apart in the imported turn, and the one-line reply lets the turn fit the embedded pane. Illustrative chat text, not engineering output.",
+  "threads": [
+    {
+      "thread": "Assembly review",
+      "binding": {
+        "page": "results"
+      },
+      "ageMs": 220000,
+      "messages": [
+        {
+          "role": "user",
+          "text": "Show how the recovery bay fits.",
+          "mentions": [
+            {
+              "ref": "rw:c/recovery_bay",
+              "label": "Recovery bay"
+            }
+          ]
+        },
+        {
+          "role": "assistant",
+          "text": "Exploded view ready. The recovery bay is selected in the model.",
+          "steps": [
+            {
+              "tool": "viewport_select",
+              "input": {
+                "refs": [
+                  "rw:c/recovery_bay"
+                ]
+              },
+              "output": {
+                "selected": [
+                  "rw:c/recovery_bay"
+                ]
+              },
+              "summary": "1 selected"
+            },
+            {
+              "tool": "viewport_set_camera",
+              "input": {
+                "view": "iso",
+                "explode": 0.6
+              },
+              "output": {},
+              "summary": "Iso view · exploded 60%"
+            },
+            {
+              "tool": "viewport_render",
+              "input": {
+                "view": "iso"
+              },
+              "output": {
+                "width": 1536,
+                "height": 1024,
+                "backend": "webgpu",
+                "adapter": "capture"
+              },
+              "summary": "Iso view"
+            }
+          ],
+          "cards": [
+            {
+              "kind": "step",
+              "ref": "rw:step/2",
+              "title": "Assembly layout",
+              "summary": "3 fields changed"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "thread": "Fin revision",
+      "binding": {
+        "page": "results"
+      },
+      "ageMs": 4200000,
+      "messages": [
+        {
+          "role": "user",
+          "text": "Can the fins get a little more span? [@Fin can](rw:c/fin_can)",
+          "mentions": [
+            {
+              "ref": "rw:c/fin_can",
+              "label": "Fin can"
+            }
+          ]
+        },
+        {
+          "role": "assistant",
+          "text": "The fin span is a parameter, so one edit changes all four fins. Span is now 100 mm and sweep 40 mm; run Check model to see the new stability margin.",
+          "cards": [
+            {
+              "kind": "step",
+              "ref": "rw:step/3",
+              "title": "Fin revision",
+              "summary": "2 fields changed"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "thread": "Flight comparison",
+      "binding": {
+        "page": "results"
+      },
+      "ageMs": 8100000,
+      "messages": [
+        {
+          "role": "user",
+          "text": "What changed between these flights?",
+          "mentions": [
+            {
+              "ref": "rw:sim/baseline",
+              "label": "Baseline"
+            },
+            {
+              "ref": "rw:sim/higher_altitude",
+              "label": "Higher altitude"
+            }
+          ]
+        },
+        {
+          "role": "assistant",
+          "text": "Higher altitude climbs higher in the same wind.",
+          "steps": [
+            {
+              "tool": "run_list",
+              "input": {},
+              "output": {},
+              "summary": "4 runs"
+            },
+            {
+              "tool": "history_show",
+              "input": {
+                "version": "step:4"
+              },
+              "card": {
+                "kind": "step",
+                "ref": "rw:step/4",
+                "title": "Flight runs"
+              },
+              "summary": "Step 4 · Flight runs"
+            },
+            {
+              "tool": "run_diff",
+              "input": {
+                "a": "baseline",
+                "b": "higher_altitude"
+              },
+              "card": {
+                "kind": "run",
+                "ref": "rw:sim/higher_altitude",
+                "title": "Higher altitude"
+              },
+              "summary": "2 runs · apogee +200%"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

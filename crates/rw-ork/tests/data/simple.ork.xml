@@ -1,0 +1,165 @@
+<?xml version='1.0' encoding='utf-8'?>
+<openrocket version="1.9" creator="RocketWright test">
+  <rocket>
+    <name>Test Bird</name>
+    <id>00000000-0000-4000-8000-000000000001</id>
+    <motorconfiguration configid="cfg-a" default="true">
+      <name>Small</name>
+    </motorconfiguration>
+    <motorconfiguration configid="cfg-b"/>
+    <referencetype>maximum</referencetype>
+    <subcomponents>
+      <stage>
+        <name>Sustainer</name>
+        <id>00000000-0000-4000-8000-000000000002</id>
+        <subcomponents>
+          <nosecone>
+            <name>Nose cone</name>
+            <id>00000000-0000-4000-8000-000000000003</id>
+            <appearance><paint red="255" green="0" blue="0" alpha="255"/><shine>0.3</shine></appearance>
+            <finish>smooth</finish>
+            <material type="bulk" density="1050.0">Polystyrene</material>
+            <length>0.1</length>
+            <thickness>0.002</thickness>
+            <shape>ogive</shape>
+            <shapeparameter>1.0</shapeparameter>
+            <aftradius>auto 0.0125</aftradius>
+            <aftshoulderradius>0.0118</aftshoulderradius>
+            <aftshoulderlength>0.02</aftshoulderlength>
+            <aftshoulderthickness>0.001</aftshoulderthickness>
+            <aftshouldercapped>false</aftshouldercapped>
+          </nosecone>
+          <bodytube>
+            <name>Body tube</name>
+            <id>00000000-0000-4000-8000-000000000004</id>
+            <material type="bulk" density="680.0">Cardboard</material>
+            <length>0.3</length>
+            <thickness>0.0005</thickness>
+            <radius>0.0125</radius>
+            <subcomponents>
+              <innertube>
+                <name>Motor mount tube</name>
+                <id>00000000-0000-4000-8000-000000000005</id>
+                <axialoffset method="bottom">0.0</axialoffset>
+                <material type="bulk" density="680.0">Cardboard</material>
+                <length>0.07</length>
+                <outerradius>0.0095</outerradius>
+                <thickness>0.0005</thickness>
+                <clusterconfiguration>single</clusterconfiguration>
+                <motormount>
+                  <ignitionevent>automatic</ignitionevent>
+                  <ignitiondelay>0.0</ignitiondelay>
+                  <overhang>0.005</overhang>
+                  <motor configid="cfg-a">
+                    <type>single</type>
+                    <manufacturer>Testco</manufacturer>
+                    <digest>abc123</digest>
+                    <designation>C6</designation>
+                    <diameter>0.018</diameter>
+                    <length>0.07</length>
+                    <delay>5.0</delay>
+                  </motor>
+                  <motor configid="cfg-b">
+                    <type>single</type>
+                    <manufacturer>Nobody</manufacturer>
+                    <designation>D12</designation>
+                    <diameter>0.024</diameter>
+                    <length>0.07</length>
+                    <delay>NaN</delay>
+                  </motor>
+                </motormount>
+              </innertube>
+              <centeringring>
+                <name>Centering ring</name>
+                <id>00000000-0000-4000-8000-000000000006</id>
+                <axialoffset method="bottom">-0.01</axialoffset>
+                <material type="bulk" density="680.0">Cardboard</material>
+                <length>0.005</length>
+                <outerradius>auto</outerradius>
+                <innerradius>auto</innerradius>
+              </centeringring>
+              <parachute>
+                <name>Chute</name>
+                <id>00000000-0000-4000-8000-000000000007</id>
+                <axialoffset method="top">0.03</axialoffset>
+                <material type="surface" density="0.067">Ripstop nylon</material>
+                <packedlength>0.04</packedlength>
+                <packedradius>0.01</packedradius>
+                <cd>auto</cd>
+                <deployevent>ejection</deployevent>
+                <deployaltitude>200.0</deployaltitude>
+                <deploydelay>0.0</deploydelay>
+                <deploymentconfiguration configid="cfg-b">
+                  <deployevent>altitude</deployevent>
+                  <deployaltitude>150.0</deployaltitude>
+                  <deploydelay>1.0</deploydelay>
+                </deploymentconfiguration>
+                <diameter>0.3</diameter>
+                <linecount>6</linecount>
+                <linelength>0.3</linelength>
+                <linematerial type="line" density="0.0018">Elastic cord</linematerial>
+              </parachute>
+              <masscomponent>
+                <name>Altimeter</name>
+                <id>00000000-0000-4000-8000-000000000008</id>
+                <axialoffset method="middle">0.0</axialoffset>
+                <packedlength>0.02</packedlength>
+                <packedradius>0.008</packedradius>
+                <mass>0.012</mass>
+                <masscomponenttype>altimeter</masscomponenttype>
+              </masscomponent>
+              <trapezoidfinset>
+                <name>Fins</name>
+                <id>00000000-0000-4000-8000-000000000009</id>
+                <axialoffset method="bottom">0.0</axialoffset>
+                <material type="bulk" density="680.0">Balsa</material>
+                <fincount>3</fincount>
+                <rotation>0.0</rotation>
+                <thickness>0.003</thickness>
+                <crosssection>rounded</crosssection>
+                <cant>0.0</cant>
+                <rootchord>0.06</rootchord>
+                <tipchord>0.03</tipchord>
+                <sweeplength>0.03</sweeplength>
+                <height>0.04</height>
+              </trapezoidfinset>
+              <launchlug>
+                <name>Launch lug</name>
+                <id>00000000-0000-4000-8000-00000000000a</id>
+                <axialoffset method="middle">0.0</axialoffset>
+                <radialdirection>30.0</radialdirection>
+                <radius>0.0025</radius>
+                <thickness>0.0005</thickness>
+                <length>0.03</length>
+              </launchlug>
+            </subcomponents>
+          </bodytube>
+        </subcomponents>
+      </stage>
+    </subcomponents>
+  </rocket>
+  <simulations>
+    <simulation status="uptodate">
+      <name>Calm day</name>
+      <simulator>RK4Simulator</simulator>
+      <conditions>
+        <configid>cfg-a</configid>
+        <launchrodlength>1.0</launchrodlength>
+        <launchrodangle>0.0</launchrodangle>
+        <launchroddirection>90.0</launchroddirection>
+        <windaverage>2.0</windaverage>
+        <winddirection>1.5707963267948966</winddirection>
+        <windturbulence>0.1</windturbulence>
+        <launchaltitude>0.0</launchaltitude>
+        <launchlatitude>28.61</launchlatitude>
+        <launchlongitude>-80.6</launchlongitude>
+        <geodeticmethod>flat</geodeticmethod>
+        <atmosphere model="isa"/>
+        <timestep>0.05</timestep>
+      </conditions>
+      <flightdata maxaltitude="100.0">
+        <databranch name="Sustainer"><datapoint>0,0</datapoint></databranch>
+      </flightdata>
+    </simulation>
+  </simulations>
+</openrocket>

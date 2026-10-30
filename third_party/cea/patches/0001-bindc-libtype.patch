@@ -1,0 +1,13 @@
+--- a/source/bind/c/CMakeLists.txt
++++ b/source/bind/c/CMakeLists.txt
+@@ -2,7 +2,9 @@
+ add_library(cea_abort_support STATIC cea_abort_support.c)
+ target_include_directories(cea_abort_support PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
+ 
+-add_installed_library(cea_bindc SHARED bindc.F90 cea_recovery.c cea_abort_support.c)
++# RocketWright patch 0001: allow a static cea_bindc (default unchanged: SHARED).
++set(CEA_BINDC_LIBTYPE SHARED CACHE STRING "Library type for cea_bindc: SHARED or STATIC")
++add_installed_library(cea_bindc ${CEA_BINDC_LIBTYPE} bindc.F90 cea_recovery.c cea_abort_support.c)
+ #include(../cmake/CompilerFlags.cmake)
+ project_enable_fortran_std(cea_bindc)
+ target_link_libraries(cea_bindc

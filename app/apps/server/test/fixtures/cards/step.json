@@ -1,0 +1,126 @@
+{
+  "note": "Captured by scripts/capture-card-fixtures.ts from a real model_patch of test/fixtures/cards/b4b-design.",
+  "tool": "model_patch",
+  "input": {
+    "ops": [
+      {
+        "op": "replace",
+        "path": "/c/fins/span",
+        "value": "50 mm"
+      }
+    ]
+  },
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"step\":\"step:2\",\"model_hash\":\"afada636490c625b17b2e37bbe53d35c1f342a9515aec1aaaf118aabe9365984\",\"dry_run\":false,\"files\":[{\"path\":\"rocket.rw.toml\",\"status\":\"M\"}],\"delta\":{\"status\":\"clean\",\"model_hash\":\"afada636490c625b17b2e37bbe53d35c1f342a9515aec1aaaf118aabe9365984\",\"step\":\"step:2\",\"changed\":{\"aero.cd\":[1.03779,1.13348],\"aero.cna\":[26.1607,30.1314],\"aero.cp\":[0.385704,0.389482],\"aero.terms.fins.cna\":[24.1607,28.1314],\"aero.terms.fins.cp\":[0.413788,0.413871],\"dims.fin_span\":[0.1148,0.1248],\"mass.burnout\":[0.0510591,0.0513183],\"mass.cg\":[0.244034,0.244779],\"mass.cg_burnout\":[0.20306,0.204189],\"mass.components.fins.mass\":[0.0023328,0.002592],\"mass.dry\":[0.0390591,0.0393183],\"mass.ixx\":[6.54776e-6,7.34695e-6],\"mass.iyy\":[0.00177333,0.00178239],\"mass.liftoff\":[0.0632961,0.0635553],\"motor.mount.thrust_to_weight\":[9.66611,9.62669],\"stability.burnout\":[7.36466,7.47146],\"stability.liftoff\":[5.71248,5.83478],\"stability.liftoff_pct_length\":[31.4821,32.1561],\"stability.min\":[5.71248,5.83478]},\"new_diagnostics\":[],\"resolved_diagnostics\":[]}}"
+      }
+    ],
+    "structuredContent": {
+      "step": "step:2",
+      "model_hash": "afada636490c625b17b2e37bbe53d35c1f342a9515aec1aaaf118aabe9365984",
+      "dry_run": false,
+      "files": [
+        {
+          "path": "rocket.rw.toml",
+          "status": "M"
+        }
+      ],
+      "delta": {
+        "status": "clean",
+        "model_hash": "afada636490c625b17b2e37bbe53d35c1f342a9515aec1aaaf118aabe9365984",
+        "step": "step:2",
+        "changed": {
+          "aero.cd": [
+            1.03779,
+            1.13348
+          ],
+          "aero.cna": [
+            26.1607,
+            30.1314
+          ],
+          "aero.cp": [
+            0.385704,
+            0.389482
+          ],
+          "aero.terms.fins.cna": [
+            24.1607,
+            28.1314
+          ],
+          "aero.terms.fins.cp": [
+            0.413788,
+            0.413871
+          ],
+          "dims.fin_span": [
+            0.1148,
+            0.1248
+          ],
+          "mass.burnout": [
+            0.0510591,
+            0.0513183
+          ],
+          "mass.cg": [
+            0.244034,
+            0.244779
+          ],
+          "mass.cg_burnout": [
+            0.20306,
+            0.204189
+          ],
+          "mass.components.fins.mass": [
+            0.0023328,
+            0.002592
+          ],
+          "mass.dry": [
+            0.0390591,
+            0.0393183
+          ],
+          "mass.ixx": [
+            0.00000654776,
+            0.00000734695
+          ],
+          "mass.iyy": [
+            0.00177333,
+            0.00178239
+          ],
+          "mass.liftoff": [
+            0.0632961,
+            0.0635553
+          ],
+          "motor.mount.thrust_to_weight": [
+            9.66611,
+            9.62669
+          ],
+          "stability.burnout": [
+            7.36466,
+            7.47146
+          ],
+          "stability.liftoff": [
+            5.71248,
+            5.83478
+          ],
+          "stability.liftoff_pct_length": [
+            31.4821,
+            32.1561
+          ],
+          "stability.min": [
+            5.71248,
+            5.83478
+          ]
+        },
+        "new_diagnostics": [],
+        "resolved_diagnostics": []
+      }
+    },
+    "isError": false,
+    "_meta": {
+      "lecturn/approval": {
+        "approved": false
+      },
+      "rw/ctx": {
+        "origin": "mcp"
+      }
+    }
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "provenance": "contract-fixture",
+  "type": "tools/simulate.input",
+  "payload": {
+    "sim": "baseline"
+  }
+}

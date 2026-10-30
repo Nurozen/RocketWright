@@ -1,0 +1,166 @@
+# Oracle case 2 ('3D printable nose cone and fins', generic-curve variant), re-authored
+# from tests/oracle/case2.geometry.json by scripts/fixtures/oracle_case.py.
+# Do not edit; modelling choices are listed in fixtures/README.md.
+
+name = "3D printable nose cone and fins"
+
+[c.printable_nose_cone]
+type = "nose_cone"
+name = "Printable nose cone"
+material = "petg_100_infill"
+finish = { roughness = "0.0005 m" }
+shape = "ogive"
+shape_param = 1
+length = "0.1 m"
+od = "0.024790399999999997 m"
+thickness = "0.0019 m"
+shoulder = { length = "0.02 m", od = "0.0239 m", thickness = "0.0022 m", capped = true }
+
+[c.screw_eye]
+type = "mass_component"
+name = "Screw Eye"
+attach = { to = "printable_nose_cone.inner", at = "fore", offset = "0.117 m" }
+mass = "0.0009000000000000001 kg"
+length = "0.016 m"
+od = "0.006 m"
+
+[c.paper_body_tube_do_not_print]
+type = "body_tube"
+name = "Paper Body Tube -- DO NOT PRINT"
+attach = { to = "printable_nose_cone.base" }
+material = "paper_spiral_kraft_glass"
+finish = { roughness = "0.00015 m" }
+length = "0.15239999999999998 m"
+od = "0.024790399999999997 m"
+thickness = "0.00033019999999999924 m"
+
+[c.parachute]
+type = "parachute"
+name = "Parachute"
+attach = { to = "paper_body_tube_do_not_print.fore", at = "attach", offset = "0.032 m" }
+material = "polyethylene_heavy"
+diameter = "0.31 m"
+cd = 0.8
+line_count = 6
+line_length = "0.3 m"
+line_material = "shroud_lines"
+packed_length = "0.042 m"
+packed_diameter = "0.018000000000000002 m"
+
+[c.shock_cord]
+type = "shock_cord"
+name = "Shock cord"
+attach = { to = "paper_body_tube_do_not_print.fore", at = "attach", offset = "0.06 m" }
+material = "elastic_cord_round_2mm_1"
+cord_length = "0.4 m"
+packed_length = "0.052000000000000005 m"
+packed_diameter = "0.012 m"
+
+[c.wadding]
+type = "mass_component"
+name = "Wadding"
+attach = { to = "paper_body_tube_do_not_print.fore", at = "fore", offset = "0.11000000000000001 m" }
+mass = "0.002 kg"
+length = "0.03 m"
+od = "0.023 m"
+
+[c.printable_fin_can_and_motor_moun]
+type = "body_tube"
+name = "Printable Fin Can and Motor Mount"
+attach = { to = "paper_body_tube_do_not_print.aft" }
+material = "petg_100_infill"
+finish = { roughness = "0.0005 m" }
+length = "0.07619999999999999 m"
+od = "0.024790399999999997 m"
+thickness = "0.0008 m"
+
+[c.launch_lug]
+type = "launch_lug"
+name = "Launch lug"
+attach = { to = "printable_fin_can_and_motor_moun.fore", at = "fore", offset = "0.007500000000000007 m", spin = "0.29670597283903605 rad" }
+material = "petg_100_infill"
+finish = { roughness = "0.0005 m" }
+length = "0.035 m"
+od = "0.007 m"
+thickness = "0.001 m"
+
+[c.trapezoidal_fin_set]
+type = "trapezoidal_fin_set"
+name = "Trapezoidal fin set"
+attach = { to = "printable_fin_can_and_motor_moun.fore", at = "root_le", offset = "0.025399999999999978 m" }
+material = "petg_100_infill"
+finish = { roughness = "0.0005 m" }
+count = 3
+root_chord = "0.0508 m"
+tip_chord = "0.0508 m"
+span = "0.03 m"
+sweep = "0.0254 m"
+thickness = "0.002 m"
+cross_section = "rounded"
+
+[c.centering_ring]
+type = "centering_ring"
+name = "Centering ring"
+attach = { to = "printable_fin_can_and_motor_moun.fore", at = "fore", offset = "0.0262 m" }
+material = "petg_100_infill"
+length = "0.005 m"
+od = "0.023190399999999996 m"
+id = "0.0217 m"
+
+[c.centering_ring_2]
+type = "centering_ring"
+name = "Centering ring"
+attach = { to = "printable_fin_can_and_motor_moun.fore", at = "fore", offset = "0.07119999999999999 m" }
+material = "petg_100_infill"
+length = "0.005 m"
+od = "0.023190399999999996 m"
+id = "0.0217 m"
+
+[c.inner_tube]
+type = "inner_tube"
+name = "Inner Tube"
+attach = { to = "printable_fin_can_and_motor_moun.fore", at = "fore", offset = "0.006199999999999983 m" }
+material = "petg_100_infill"
+length = "0.075 m"
+od = "0.0217 m"
+thickness = "0.0014999999999999996 m"
+motor_mount = true
+overhang = "0.003 m"
+
+[c.engine_block]
+type = "engine_block"
+name = "Engine block"
+attach = { to = "inner_tube.inner", at = "fore", offset = "0.0020000000000000018 m" }
+material = "petg_100_infill"
+length = "0.005 m"
+od = "0.0187 m"
+id = "0.012700000000000001 m"
+
+[c.tube_coupler]
+type = "coupler"
+name = "Tube Coupler"
+attach = { to = "printable_fin_can_and_motor_moun.fore", at = "fore", offset = "-0.014000000000000012 m" }
+material = "petg_100_infill"
+length = "0.0254 m"
+od = "0.024104599999999997 m"
+thickness = "0.00122 m"
+
+[materials.petg_100_infill]
+density = "1250 kg/m^3"
+name = "PETG - 100% infill"
+
+[materials.paper_spiral_kraft_glass]
+density = "894.4 kg/m^3"
+name = "Paper, spiral kraft glassine, Estes avg, bulk"
+
+[materials.polyethylene_heavy]
+surface_density = "0.04 kg/m^2"
+name = "Polyethylene (heavy)"
+
+[materials.shroud_lines]
+line_density = "0.0003 kg/m"
+name = "shroud lines"
+
+[materials.elastic_cord_round_2mm_1]
+line_density = "0.0018 kg/m"
+name = "Elastic cord (round 2mm, 1/16 in)"

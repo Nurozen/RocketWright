@@ -1,0 +1,65 @@
+# Hand-written model: every comment here must survive programmatic edits.
+name = "Store"   # display name
+include = ["parts/fin_can.rw.toml"]
+
+# Fin height, swept by the optimizer.
+[params.span]
+value = "50 mm"   # nominal
+min = "30 mm"
+max = "80 mm"
+step = "5 mm"
+group = "Fins"
+doc = "Fin height"
+
+[params.body_len]
+value = "= 400 mm"
+
+[variants.long_fins]
+span = "70 mm"
+
+# The nose: printed PLA, keep this comment.
+[c.nose]
+name = "Nose cone"
+type = "nose_cone"
+shape = "ogive"
+length = "150 mm"   # nose length note
+od = "41.6 mm"
+thickness = "2 mm"
+shoulder = { length = "40 mm", od = "39.8 mm" }
+material = "plastic"
+
+[c.body]
+name = "Body tube"
+type = "body_tube"
+attach = { to = "nose.base" }
+# length follows the param
+length = "= params.body_len"
+od = "= c.nose.od"
+id = "39.8 mm"   # inner diameter
+material = "kraft"
+finish = { roughness = "60 um" }
+
+[c.chute]   # main recovery
+type = "parachute"
+attach = { to = "body.inner", at = "attach" }
+diameter = "450 mm"
+cd = 0.8
+packed_length = "60 mm"
+packed_diameter = "35 mm"
+
+# Materials used above.
+[materials.plastic]
+density = "1.05 g/cm^3"   # PLA
+
+[materials.kraft]
+density = "680 kg/m^3"
+
+# Design rules.
+[[assert]]
+id = "stable"
+expr = "stability.liftoff >= 1 cal"   # one caliber
+
+[report]
+values = ["= c.fins.span"]
+
+# end of model

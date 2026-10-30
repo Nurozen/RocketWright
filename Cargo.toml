@@ -1,0 +1,126 @@
+[workspace]
+resolver = "3"
+members = [
+    # pure: native + wasm32; no fs/time/rand/threads (I5)
+    "crates/rw-units",
+    "crates/rw-model",
+    "crates/rw-geom",
+    "crates/rw-mass",
+    "crates/rw-aero",
+    "crates/rw-atmos",
+    "crates/rw-motor",
+    "crates/rw-sim",
+    "crates/rw-check",
+    "crates/rw-draw",
+    "crates/rw-ork",
+    "crates/rw-thermo",
+    "crates/rw-liquid",
+    "crates/rw-api",
+    # native
+    "crates/rw-project",
+    "crates/rw-cli",
+    "crates/rw-cea-sys",
+    # wasm + tooling
+    "crates/rw-wasm",
+    "crates/xtask",
+]
+# rw-cea-sys needs gfortran + the vendored CEA build; build it explicitly with -p.
+default-members = [
+    "crates/rw-units",
+    "crates/rw-model",
+    "crates/rw-geom",
+    "crates/rw-mass",
+    "crates/rw-aero",
+    "crates/rw-atmos",
+    "crates/rw-motor",
+    "crates/rw-sim",
+    "crates/rw-check",
+    "crates/rw-draw",
+    "crates/rw-ork",
+    "crates/rw-thermo",
+    "crates/rw-liquid",
+    "crates/rw-api",
+    "crates/rw-project",
+    "crates/rw-cli",
+    "crates/rw-wasm",
+    "crates/xtask",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.89"
+license = "AGPL-3.0-or-later"
+
+[workspace.dependencies]
+# internal
+rw-units = { path = "crates/rw-units" }
+rw-model = { path = "crates/rw-model" }
+rw-geom = { path = "crates/rw-geom" }
+rw-mass = { path = "crates/rw-mass" }
+rw-aero = { path = "crates/rw-aero" }
+rw-atmos = { path = "crates/rw-atmos" }
+rw-motor = { path = "crates/rw-motor" }
+rw-sim = { path = "crates/rw-sim" }
+rw-check = { path = "crates/rw-check" }
+rw-draw = { path = "crates/rw-draw" }
+rw-ork = { path = "crates/rw-ork" }
+rw-thermo = { path = "crates/rw-thermo" }
+rw-liquid = { path = "crates/rw-liquid" }
+rw-api = { path = "crates/rw-api" }
+rw-project = { path = "crates/rw-project" }
+rw-cea-sys = { path = "crates/rw-cea-sys" }
+
+# data / schema (pure, wasm-safe)
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = { version = "1.0.154", features = ["preserve_order"] }
+toml = { version = "1.1.8", default-features = false, features = ["parse", "display", "serde", "std"] }
+schemars = { version = "1.2.3", features = ["preserve_order"] }
+thiserror = "2.0.21"
+blake3 = "1.8.7"
+glam = { version = "0.34.1", features = ["serde"] }
+earcut = "0.4.11"
+gltf-json = { version = "1.4.1", features = ["names", "extras"] }
+csv = "1.4.0"
+quick-xml = { version = "0.42.0", features = ["serialize"] }
+json-patch = "4.2.0"
+
+# wasm
+wasm-bindgen = "=0.2.129" # must equal `wasm-bindgen --version` (asserted by make wasm / env-check)
+serde-wasm-bindgen = "0.6.5"
+
+# native I/O (rw-project, rw-cli)
+toml_edit = "0.25.17"
+gix = { version = "0.89.0", default-features = false, features = ["sha1", "parallel"] } # parallel: Send repository handles (watcher thread)
+zip = { version = "9.0.3", default-features = false, features = ["deflate-flate2"] } # miniz backend: zlib-rs would change every PNG resvg encodes (render goldens)
+flate2 = "1"
+sha2 = "0.11.1"
+notify = "8.2.0"
+notify-debouncer-full = "0.7.0"
+resvg = { version = "=0.48.1", default-features = false, features = ["text"] } # exact: golden PNG hashes; vendored font, no system-fonts
+jsonschema = { version = "0.58.6", default-features = false }
+clap = { version = "4.6.7", features = ["derive"] }
+rmcp = { version = "=3.5.1", features = ["server", "transport-io", "macros", "schemars"] }
+tokio = { version = "1.53.3", features = ["macros", "rt-multi-thread", "io-std", "sync"] }
+anyhow = "1.0.104"
+base64 = "0.23.1" # MCP image content (render PNGs)
+libc = "0.2.190" # flock-free pid liveness probe for `.rw/lock` (rw-project)
+
+# dev / oracle only (never in pure crates' normal deps)
+ode_solvers = "0.6.2" # integrator cross-check (pulls nalgebra 0.34)
+proptest = { version = "1.11.0", default-features = false, features = ["std"] } # property tests (dev-dependency only)
+uom = { version = "0.38.0", default-features = false, features = ["f64", "si", "std"] } # rw-units cross-check
+assert_cmd = "2.2.2" # rw-cli end-to-end tests (dev-dependency only)
+
+# manifold3d 0.4.1 (native-only section cuts) is intentionally absent: workspace
+# dependencies cannot be `optional`; a crate that needs it declares it directly.
+
+# `make wasm` (M1.32): size-tuned build of rw-wasm (budget 1.5 MB, asserted
+# by scripts/build-wasm.sh). Native release builds are unaffected.
+[profile.wasm]
+inherits = "release"
+opt-level = "z"
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = true

@@ -1,0 +1,18 @@
+{
+  "changed": [],
+  "units": {
+    "length": "m",
+    "mass": "kg",
+    "velocity": "m/s",
+    "altitude": "m",
+    "time": "s",
+    "angle": "rad",
+    "acceleration": "m/s^2",
+    "area": "m^2",
+    "volume": "m^3",
+    "inertia": "kg*m^2",
+    "impulse": "N*s",
+    "force": "N",
+    "stability": "cal"
+  }
+}

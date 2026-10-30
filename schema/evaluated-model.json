@@ -1,0 +1,2785 @@
+{
+  "type": "object",
+  "properties": {
+    "schema": {
+      "type": "string",
+      "const": "rw/1"
+    },
+    "model_hash": {
+      "type": "string",
+      "description": "blake3 hex of the canonical evaluated model (D19a): comment and\nformatting edits do not change it.",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "name": {
+      "type": "string"
+    },
+    "config": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "variant": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "reference": {
+      "$ref": "#/$defs/Reference"
+    },
+    "params": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/EvalParam"
+      },
+      "description": "Resolved params (SI value plus dimension)."
+    },
+    "components": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/EvalComponent"
+      },
+      "description": "Components in tree order (depth-first from the root body component)."
+    },
+    "stages": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/EvalStage"
+      }
+    },
+    "configs": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/EvalConfig"
+      }
+    },
+    "sims": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/EvalSim"
+      }
+    },
+    "materials": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/EvalMaterial"
+      }
+    },
+    "asserts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/EvalAssert"
+      }
+    },
+    "report": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "`[report]` expressions in source order."
+    },
+    "engines": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/EvalEngine"
+      },
+      "description": "Liquid engines and their feed systems (`engines/<id>.rw.toml`), SI,\nwith tank nodes resolved against their `tank` components (M4.4)."
+    },
+    "units": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "description": "SI unit symbol per dimension name used in this document (`length` → `m`)."
+    },
+    "diagnostics": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Diagnostic"
+      }
+    }
+  },
+  "required": [
+    "schema",
+    "model_hash",
+    "name",
+    "reference",
+    "params",
+    "components",
+    "stages",
+    "configs",
+    "sims",
+    "materials",
+    "asserts",
+    "report",
+    "units",
+    "diagnostics"
+  ],
+  "description": "The evaluated model (IF2).",
+  "title": "EvaluatedModel",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rocketwright.dev/schema/1/evaluated-model.json",
+  "$defs": {
+    "Reference": {
+      "type": "object",
+      "properties": {
+        "length": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "diameter": {
+          "type": "number",
+          "format": "double",
+          "description": "Reference (maximum body) diameter; one caliber.",
+          "x-unit-dimension": "length"
+        },
+        "area": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "area"
+        }
+      },
+      "required": [
+        "length",
+        "diameter",
+        "area"
+      ],
+      "description": "Reference dimensions used by aero and stability."
+    },
+    "EvalParam": {
+      "type": "object",
+      "properties": {
+        "value": {
+          "type": "number",
+          "format": "double"
+        },
+        "dim": {
+          "$ref": "#/$defs/DimKind"
+        }
+      },
+      "required": [
+        "value",
+        "dim"
+      ]
+    },
+    "DimKind": {
+      "oneOf": [
+        {
+          "type": "string",
+          "const": "dimensionless",
+          "description": "Pure number (ratios, counts, coefficients). Bare numbers allowed."
+        },
+        {
+          "type": "string",
+          "const": "length",
+          "description": "m"
+        },
+        {
+          "type": "string",
+          "const": "mass",
+          "description": "kg"
+        },
+        {
+          "type": "string",
+          "const": "time",
+          "description": "s"
+        },
+        {
+          "type": "string",
+          "const": "temperature",
+          "description": "K"
+        },
+        {
+          "type": "string",
+          "const": "angle",
+          "description": "rad"
+        },
+        {
+          "type": "string",
+          "const": "area",
+          "description": "m^2"
+        },
+        {
+          "type": "string",
+          "const": "volume",
+          "description": "m^3"
+        },
+        {
+          "type": "string",
+          "const": "velocity",
+          "description": "m/s"
+        },
+        {
+          "type": "string",
+          "const": "acceleration",
+          "description": "m/s^2"
+        },
+        {
+          "type": "string",
+          "const": "force",
+          "description": "N"
+        },
+        {
+          "type": "string",
+          "const": "pressure",
+          "description": "Pa"
+        },
+        {
+          "type": "string",
+          "const": "density",
+          "description": "kg/m^3"
+        },
+        {
+          "type": "string",
+          "const": "area_density",
+          "description": "kg/m^2"
+        },
+        {
+          "type": "string",
+          "const": "line_density",
+          "description": "kg/m"
+        },
+        {
+          "type": "string",
+          "const": "impulse",
+          "description": "N*s"
+        },
+        {
+          "type": "string",
+          "const": "mass_flow",
+          "description": "kg/s"
+        },
+        {
+          "type": "string",
+          "const": "angular_velocity",
+          "description": "rad/s"
+        },
+        {
+          "type": "string",
+          "const": "inertia",
+          "description": "kg*m^2"
+        },
+        {
+          "type": "string",
+          "const": "energy",
+          "description": "J"
+        },
+        {
+          "type": "string",
+          "const": "power",
+          "description": "W"
+        },
+        {
+          "type": "string",
+          "const": "frequency",
+          "description": "1/s"
+        },
+        {
+          "type": "string",
+          "const": "torque",
+          "description": "N*m"
+        },
+        {
+          "type": "string",
+          "const": "kinematic_viscosity",
+          "description": "m^2/s (kinematic viscosity)"
+        },
+        {
+          "type": "string",
+          "const": "dynamic_viscosity",
+          "description": "Pa*s"
+        },
+        {
+          "type": "string",
+          "const": "specific_heat",
+          "description": "J/(kg*K)"
+        }
+      ],
+      "description": "A named physical dimension, as written in `x-unit-dimension`."
+    },
+    "EvalComponent": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "parent": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "children": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "stage": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "containment": {
+          "$ref": "#/$defs/AnchorKind",
+          "description": "How this component sits in its parent."
+        },
+        "aero": {
+          "type": "boolean",
+          "description": "Participates in aerodynamics (external axial chain + surface components)."
+        },
+        "cut": {
+          "type": "boolean"
+        },
+        "x_fore": {
+          "type": "number",
+          "format": "double",
+          "description": "Fore station (m from the nose tip).",
+          "x-unit-dimension": "length"
+        },
+        "x_aft": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "radial": {
+          "type": "number",
+          "format": "double",
+          "description": "Radial offset of the component axis from the body axis.",
+          "x-unit-dimension": "length"
+        },
+        "roll": {
+          "type": "number",
+          "format": "double",
+          "description": "Roll position about +X from +Y.",
+          "x-unit-dimension": "angle"
+        },
+        "attach": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EvalAttach"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "instances": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/EvalInstance"
+          },
+          "description": "Instances (one entry when not instanced)."
+        },
+        "anchors": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/EvalAnchor"
+          }
+        },
+        "material": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "roughness": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "description": "Surface roughness from the finish.",
+          "x-unit-dimension": "length"
+        },
+        "appearance": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Appearance"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "joint": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Joint"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "override": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EvalOverride"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "shape": {
+          "$ref": "#/$defs/EvalShape"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "children",
+        "containment",
+        "aero",
+        "cut",
+        "x_fore",
+        "x_aft",
+        "radial",
+        "roll",
+        "instances",
+        "anchors",
+        "shape"
+      ],
+      "description": "One placed component. Its kind (`shape.type`) and SI shape parameters\nare in [`EvalShape`]."
+    },
+    "AnchorKind": {
+      "oneOf": [
+        {
+          "type": "string",
+          "const": "axial",
+          "description": "Body chain: `fore`, `aft`, `tip`, `base`."
+        },
+        {
+          "type": "string",
+          "const": "inner",
+          "description": "Inside a tube: rings, inner tubes, recovery, mass."
+        },
+        {
+          "type": "string",
+          "const": "surface",
+          "description": "On the outer surface: fins, lugs, buttons."
+        }
+      ],
+      "description": "Anchor kinds drive containment (G §4.3)."
+    },
+    "EvalAttach": {
+      "type": "object",
+      "properties": {
+        "to": {
+          "type": "string",
+          "description": "`<id>.<anchor>`."
+        },
+        "at": {
+          "type": "string"
+        },
+        "offset": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "length"
+        }
+      },
+      "required": [
+        "to",
+        "at",
+        "offset"
+      ]
+    },
+    "EvalInstance": {
+      "type": "object",
+      "properties": {
+        "index": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "pattern": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/InstancePattern"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "offset": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "minItems": 3,
+          "maxItems": 3,
+          "description": "Body-frame offset `[x, y, z]` of this instance from the component placement.",
+          "x-unit-dimension": "length"
+        },
+        "roll": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "angle"
+        }
+      },
+      "required": [
+        "index",
+        "offset",
+        "roll"
+      ]
+    },
+    "InstancePattern": {
+      "type": "string",
+      "enum": [
+        "radial",
+        "cluster",
+        "linear"
+      ]
+    },
+    "EvalAnchor": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/AnchorKind"
+        },
+        "x": {
+          "type": "number",
+          "format": "double",
+          "description": "Station.",
+          "x-unit-dimension": "length"
+        },
+        "r": {
+          "type": "number",
+          "format": "double",
+          "description": "Radius from the body axis.",
+          "x-unit-dimension": "length"
+        }
+      },
+      "required": [
+        "name",
+        "kind",
+        "x",
+        "r"
+      ]
+    },
+    "Appearance": {
+      "type": "object",
+      "properties": {
+        "preset": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AppearancePreset"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "color": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "`#rrggbb`.",
+          "pattern": "^#[0-9a-fA-F]{6}$"
+        },
+        "roughness": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
+        "metalness": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
+        "transmission": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "minimum": 0.0,
+          "maximum": 1.0
+        }
+      },
+      "description": "Renderer appearance (R2.5). Presets map to PBR materials."
+    },
+    "AppearancePreset": {
+      "type": "string",
+      "enum": [
+        "composite_white",
+        "composite_gray",
+        "carbon_fiber",
+        "aluminium_brushed",
+        "steel_machined",
+        "clear_polycarbonate",
+        "nylon_orange",
+        "pcb_green",
+        "black_gloss",
+        "kraft_paper",
+        "wood"
+      ]
+    },
+    "Joint": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "$ref": "#/$defs/JointType"
+        },
+        "count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "description": "`joint = { type, count }` (display and check metadata)."
+    },
+    "JointType": {
+      "type": "string",
+      "enum": [
+        "friction",
+        "twist_lock",
+        "shear_pin",
+        "screw"
+      ]
+    },
+    "EvalOverride": {
+      "type": "object",
+      "properties": {
+        "mass": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "x-unit-dimension": "mass"
+        },
+        "cg": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "description": "CG station.",
+          "x-unit-dimension": "length"
+        },
+        "cd": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        },
+        "subtree": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "subtree"
+      ]
+    },
+    "EvalShape": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "nose_cone"
+            },
+            "shape": {
+              "$ref": "#/$defs/NoseShape"
+            },
+            "shape_param": {
+              "type": "number",
+              "format": "double"
+            },
+            "length": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "od": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "thickness": {
+              "type": "number",
+              "format": "double",
+              "description": "0 = solid.",
+              "x-unit-dimension": "length"
+            },
+            "shoulder": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/EvalShoulder"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "type",
+            "shape",
+            "shape_param",
+            "length",
+            "od",
+            "thickness"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "body_tube"
+            },
+            "length": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "od": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "id": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            }
+          },
+          "required": [
+            "type",
+            "length",
+            "od",
+            "id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "transition"
+            },
+            "shape": {
+              "$ref": "#/$defs/NoseShape"
+            },
+            "shape_param": {
+              "type": "number",
+              "format": "double"
+            },
+            "length": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "fore_od": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "aft_od": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "thickness": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "fore_shoulder": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/EvalShoulder"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "aft_shoulder": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/EvalShoulder"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "type",
+            "shape",
+            "shape_param",
+            "length",
+            "fore_od",
+            "aft_od",
+            "thickness"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "trapezoidal_fin_set"
+            },
+            "count": {
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0
+            },
+            "thickness": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "cross_section": {
+              "$ref": "#/$defs/FinCrossSection"
+            },
+            "cant": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "angle"
+            },
+            "fillet_radius": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "tab": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/EvalFinTab"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "root_chord": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "tip_chord": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "span": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "sweep": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            }
+          },
+          "required": [
+            "type",
+            "count",
+            "thickness",
+            "cross_section",
+            "cant",
+            "fillet_radius",
+            "root_chord",
+            "tip_chord",
+            "span",
+            "sweep"
+          ],
+          "description": "Fields shared by the planar fin sets."
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "elliptical_fin_set"
+            },
+            "count": {
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0
+            },
+            "thickness": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "cross_section": {
+              "$ref": "#/$defs/FinCrossSection"
+            },
+            "cant": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "angle"
+            },
+            "fillet_radius": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "tab": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/EvalFinTab"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "root_chord": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "span": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            }
+          },
+          "required": [
+            "type",
+            "count",
+            "thickness",
+            "cross_section",
+            "cant",
+            "fillet_radius",
+            "root_chord",
+            "span"
+          ],
+          "description": "Fields shared by the planar fin sets."
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "freeform_fin_set"
+            },
+            "count": {
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0
+            },
+            "thickness": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "cross_section": {
+              "$ref": "#/$defs/FinCrossSection"
+            },
+            "cant": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "angle"
+            },
+            "fillet_radius": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "tab": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/EvalFinTab"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "points": {
+              "type": "array",
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "number",
+                  "format": "double"
+                },
+                "minItems": 2,
+                "maxItems": 2
+              },
+              "description": "Planform `[x, y]` from the root LE.",
+              "x-unit-dimension": "length"
+            }
+          },
+          "required": [
+            "type",
+            "count",
+            "thickness",
+            "cross_section",
+            "cant",
+            "fillet_radius",
+            "points"
+          ],
+          "description": "Fields shared by the planar fin sets."
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "tube_fin_set"
+            },
+            "count": {
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0
+            },
+            "length": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "od": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "id": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            }
+          },
+          "required": [
+            "type",
+            "count",
+            "length",
+            "od",
+            "id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "inner_tube"
+            },
+            "length": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "od": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "id": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "motor_mount": {
+              "type": "boolean"
+            },
+            "overhang": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            }
+          },
+          "required": [
+            "type",
+            "length",
+            "od",
+            "id",
+            "motor_mount",
+            "overhang"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "coupler"
+            },
+            "length": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "od": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "id": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            }
+          },
+          "required": [
+            "type",
+            "length",
+            "od",
+            "id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "centering_ring"
+            },
+            "length": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "od": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "id": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            }
+          },
+          "required": [
+            "type",
+            "length",
+            "od",
+            "id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "bulkhead"
+            },
+            "length": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "od": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            }
+          },
+          "required": [
+            "type",
+            "length",
+            "od"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "engine_block"
+            },
+            "length": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "od": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "id": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            }
+          },
+          "required": [
+            "type",
+            "length",
+            "od",
+            "id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "launch_lug"
+            },
+            "length": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "od": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "id": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            }
+          },
+          "required": [
+            "type",
+            "length",
+            "od",
+            "id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "rail_button"
+            },
+            "od": {
+              "type": "number",
+              "format": "double",
+              "description": "Outer (base and flange) diameter.",
+              "x-unit-dimension": "length"
+            },
+            "id": {
+              "type": "number",
+              "format": "double",
+              "description": "Neck (waist) diameter.",
+              "x-unit-dimension": "length"
+            },
+            "height": {
+              "type": "number",
+              "format": "double",
+              "description": "Total height above the body surface.",
+              "x-unit-dimension": "length"
+            },
+            "base_height": {
+              "type": "number",
+              "format": "double",
+              "description": "Base height at the body surface (source default `height / 4`;\n0 when absent from older evaluated JSON).",
+              "default": 0.0,
+              "x-unit-dimension": "length"
+            },
+            "flange_height": {
+              "type": "number",
+              "format": "double",
+              "description": "Flange height at the outer face (source default `height / 4`;\n0 when absent from older evaluated JSON).",
+              "default": 0.0,
+              "x-unit-dimension": "length"
+            }
+          },
+          "required": [
+            "type",
+            "od",
+            "id",
+            "height"
+          ],
+          "description": "A spool: base (od, at the body), neck (id), flange (od, outermost)."
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "parachute"
+            },
+            "diameter": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "cd": {
+              "type": "number",
+              "format": "double"
+            },
+            "spill_hole": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "line_count": {
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0,
+              "description": "Shroud lines (0 = none given).",
+              "default": 0
+            },
+            "line_length": {
+              "type": "number",
+              "format": "double",
+              "default": 0.0,
+              "x-unit-dimension": "length"
+            },
+            "line_material": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Shroud-line material name (resolved in `materials`)."
+            },
+            "packed_length": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "packed_diameter": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            }
+          },
+          "required": [
+            "type",
+            "diameter",
+            "cd",
+            "spill_hole",
+            "packed_length",
+            "packed_diameter"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "streamer"
+            },
+            "length": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "width": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "cd": {
+              "type": "number",
+              "format": "double"
+            },
+            "packed_length": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "packed_diameter": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            }
+          },
+          "required": [
+            "type",
+            "length",
+            "width",
+            "cd",
+            "packed_length",
+            "packed_diameter"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "shock_cord"
+            },
+            "cord_length": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "packed_length": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "packed_diameter": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            }
+          },
+          "required": [
+            "type",
+            "cord_length",
+            "packed_length",
+            "packed_diameter"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "mass_component"
+            },
+            "mass": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "mass"
+            },
+            "length": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "od": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "role": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/MassRole"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "type",
+            "mass",
+            "length",
+            "od"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "tank"
+            },
+            "length": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "od": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "wall": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "length"
+            },
+            "end_cap": {
+              "$ref": "#/$defs/EndCap"
+            },
+            "volume": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "volume"
+            },
+            "propellant": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "propellant_mass": {
+              "type": "number",
+              "format": "double",
+              "x-unit-dimension": "mass"
+            }
+          },
+          "required": [
+            "type",
+            "length",
+            "od",
+            "wall",
+            "end_cap",
+            "volume",
+            "propellant_mass"
+          ]
+        }
+      ],
+      "description": "Shape parameters in SI, tagged by `type` (same spelling as\n[`super::ComponentType`]). Hollow parts carry `id`; solid parts have `id = 0`."
+    },
+    "NoseShape": {
+      "type": "string",
+      "enum": [
+        "conical",
+        "ogive",
+        "ellipsoid",
+        "power",
+        "parabolic",
+        "haack"
+      ],
+      "description": "Nose and transition profile shapes."
+    },
+    "EvalShoulder": {
+      "type": "object",
+      "properties": {
+        "length": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "od": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "thickness": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "capped": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "length",
+        "od",
+        "thickness",
+        "capped"
+      ]
+    },
+    "FinCrossSection": {
+      "type": "string",
+      "enum": [
+        "square",
+        "rounded",
+        "airfoil"
+      ]
+    },
+    "EvalFinTab": {
+      "type": "object",
+      "properties": {
+        "height": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "length": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "offset": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "length"
+        }
+      },
+      "required": [
+        "height",
+        "length",
+        "offset"
+      ]
+    },
+    "MassRole": {
+      "type": "string",
+      "enum": [
+        "flight_computer",
+        "altimeter",
+        "battery",
+        "tracker",
+        "payload",
+        "ballast",
+        "other"
+      ]
+    },
+    "EndCap": {
+      "type": "string",
+      "enum": [
+        "flat",
+        "hemispherical",
+        "ellipsoidal"
+      ]
+    },
+    "EvalStage": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "first": {
+          "type": "string",
+          "description": "First body component."
+        },
+        "members": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Member component ids (axial chain plus contents)."
+        },
+        "x_fore": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "x_aft": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "overrides": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EvalOverride"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Whole-stage mass/CG override (members' dry parts, motors excluded)."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "first",
+        "members",
+        "x_fore",
+        "x_aft"
+      ]
+    },
+    "EvalConfig": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "motors": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/EvalMotorMount"
+          }
+        },
+        "stages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/EvalStageConfig"
+          }
+        },
+        "deployments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/EvalDeployment"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "motors",
+        "stages",
+        "deployments"
+      ],
+      "description": "An evaluated flight configuration."
+    },
+    "EvalMotorMount": {
+      "type": "object",
+      "properties": {
+        "mount": {
+          "type": "string",
+          "description": "Inner-tube id."
+        },
+        "motor": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Motor ref as written (`generic:RW_C6G`); resolved by the Session."
+        },
+        "engine": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "delay": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "description": "Ejection delay; `None` = plugged.",
+          "x-unit-dimension": "time"
+        },
+        "ignition": {
+          "$ref": "#/$defs/IgnitionEvent"
+        },
+        "ignition_delay": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "time"
+        },
+        "import": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MotorImport"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Import provenance of the motor (absent for authored configurations)."
+        },
+        "accept_substitution": {
+          "type": "boolean",
+          "description": "The substituted generic curve is accepted (no `RW-W103`)."
+        }
+      },
+      "required": [
+        "mount",
+        "ignition",
+        "ignition_delay"
+      ]
+    },
+    "IgnitionEvent": {
+      "type": "string",
+      "enum": [
+        "launch",
+        "previous_burnout",
+        "stage_separation",
+        "never"
+      ]
+    },
+    "MotorImport": {
+      "type": "object",
+      "properties": {
+        "manufacturer": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "designation": {
+          "type": "string"
+        },
+        "digest": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The imported file's motor digest, when it has one."
+        },
+        "resolution": {
+          "$ref": "#/$defs/MotorResolution"
+        }
+      },
+      "required": [
+        "designation",
+        "resolution"
+      ],
+      "description": "The motor an imported file (`.ork`) named for a mount, and how\n`rw import` resolved it."
+    },
+    "MotorResolution": {
+      "oneOf": [
+        {
+          "type": "string",
+          "const": "embedded",
+          "description": "A curve embedded in the imported file, copied into `lib/motors/`."
+        },
+        {
+          "type": "string",
+          "const": "cache",
+          "description": "A curve from the local ThrustCurve cache, copied into `lib/motors/`."
+        },
+        {
+          "type": "string",
+          "const": "substituted",
+          "description": "No curve was available offline: the nearest built-in generic curve\nby impulse class and diameter stands in."
+        }
+      ],
+      "description": "How an imported motor was resolved."
+    },
+    "EvalStageConfig": {
+      "type": "object",
+      "properties": {
+        "stage": {
+          "type": "string"
+        },
+        "active": {
+          "type": "boolean"
+        },
+        "separation": {
+          "$ref": "#/$defs/SeparationEvent"
+        },
+        "separation_delay": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "time"
+        }
+      },
+      "required": [
+        "stage",
+        "active",
+        "separation",
+        "separation_delay"
+      ]
+    },
+    "SeparationEvent": {
+      "type": "string",
+      "enum": [
+        "upper_ignition",
+        "burnout",
+        "ejection",
+        "launch",
+        "never"
+      ]
+    },
+    "EvalDeployment": {
+      "type": "object",
+      "properties": {
+        "component": {
+          "type": "string",
+          "description": "Recovery component id."
+        },
+        "event": {
+          "$ref": "#/$defs/DeployEvent"
+        },
+        "altitude": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "delay": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "time"
+        }
+      },
+      "required": [
+        "component",
+        "event",
+        "delay"
+      ]
+    },
+    "DeployEvent": {
+      "type": "string",
+      "enum": [
+        "ejection",
+        "apogee",
+        "altitude",
+        "timer",
+        "never"
+      ]
+    },
+    "EvalSim": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/SimKind"
+        },
+        "config": {
+          "type": "string"
+        },
+        "conditions": {
+          "$ref": "#/$defs/Conditions"
+        },
+        "series_dt": {
+          "type": "number",
+          "format": "double",
+          "description": "Series output grid.",
+          "x-unit-dimension": "time"
+        },
+        "max_time": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "time"
+        },
+        "rtol": {
+          "type": "number",
+          "format": "double"
+        },
+        "atol": {
+          "type": "number",
+          "format": "double"
+        },
+        "seed": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "visual_flow": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EvalVisualFlow"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "`kind = \"visual_flow\"`: the evaluated study (absent for flights, so\nflight sims hash as before)."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "kind",
+        "config",
+        "conditions",
+        "series_dt",
+        "max_time",
+        "rtol",
+        "atol",
+        "seed"
+      ],
+      "description": "An evaluated simulation definition."
+    },
+    "SimKind": {
+      "type": "string",
+      "enum": [
+        "flight",
+        "visual_flow"
+      ]
+    },
+    "Conditions": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "rail_length_m": {
+          "type": "number",
+          "format": "double"
+        },
+        "rod_angle_deg": {
+          "type": "number",
+          "format": "double",
+          "description": "From vertical."
+        },
+        "rod_direction_deg": {
+          "type": "number",
+          "format": "double",
+          "description": "Azimuth, clockwise from north."
+        },
+        "site_altitude_m": {
+          "type": "number",
+          "format": "double"
+        },
+        "latitude_deg": {
+          "type": "number",
+          "format": "double"
+        },
+        "longitude_deg": {
+          "type": "number",
+          "format": "double"
+        },
+        "base_temperature_k": {
+          "type": "number",
+          "format": "double"
+        },
+        "base_pressure_pa": {
+          "type": "number",
+          "format": "double"
+        },
+        "atmosphere": {
+          "$ref": "#/$defs/AtmosphereModel"
+        },
+        "geodetic": {
+          "$ref": "#/$defs/Geodetic"
+        },
+        "wind_speed_ms": {
+          "type": "number",
+          "format": "double"
+        },
+        "wind_direction_deg": {
+          "type": "number",
+          "format": "double",
+          "description": "Direction the wind blows from, clockwise from north."
+        },
+        "wind_turbulence": {
+          "type": "number",
+          "format": "double",
+          "description": "Turbulence intensity (fraction; 0 = steady)."
+        },
+        "time_step_s": {
+          "type": "number",
+          "format": "double",
+          "description": "Fixed step (rk4) or maximum step (dp54)."
+        },
+        "integrator": {
+          "$ref": "#/$defs/IntegratorKind"
+        },
+        "gravity": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/GravityModel"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Gravity model. Absent: the engine default (`wgs84`). Added after the\nM1.5 freeze as optional, so older files and their hashes are unchanged."
+        },
+        "launch_into_wind": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "Point the rod into the wind (the rod azimuth follows the wind\ndirection). Absent: `false`. Optional for the same reason as `gravity`."
+        }
+      },
+      "required": [
+        "rail_length_m",
+        "rod_angle_deg",
+        "rod_direction_deg",
+        "site_altitude_m",
+        "latitude_deg",
+        "longitude_deg",
+        "base_temperature_k",
+        "base_pressure_pa",
+        "atmosphere",
+        "geodetic",
+        "wind_speed_ms",
+        "wind_direction_deg",
+        "wind_turbulence",
+        "time_step_s",
+        "integrator"
+      ],
+      "description": "Launch and environment conditions. Shared verbatim by `EvalSim`,\n`SimInput`, `RunManifest`, and the oracle golden, so its hash\n(`rw_api::oracle::conditions_hash`) identifies a setup across all of them.\nUnits are in the key names."
+    },
+    "AtmosphereModel": {
+      "oneOf": [
+        {
+          "type": "string",
+          "const": "ussa1976",
+          "description": "U.S. Standard Atmosphere 1976 (R4.4)."
+        },
+        {
+          "type": "string",
+          "const": "isa_custom",
+          "description": "ISA with custom base temperature and pressure."
+        }
+      ]
+    },
+    "Geodetic": {
+      "type": "string",
+      "enum": [
+        "flat",
+        "spherical",
+        "wgs84"
+      ]
+    },
+    "IntegratorKind": {
+      "oneOf": [
+        {
+          "type": "string",
+          "const": "dp54",
+          "description": "Dormand-Prince 5(4), adaptive, with event root-finding (default)."
+        },
+        {
+          "type": "string",
+          "const": "rk4",
+          "description": "Classic RK4, fixed step (parity triage, D13)."
+        }
+      ]
+    },
+    "GravityModel": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "model": {
+              "type": "string",
+              "const": "wgs84"
+            }
+          },
+          "required": [
+            "model"
+          ],
+          "additionalProperties": false,
+          "description": "WGS84 normal gravity at the site latitude, falling off with altitude."
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "model": {
+              "type": "string",
+              "const": "constant"
+            },
+            "g_ms2": {
+              "type": "number",
+              "format": "double",
+              "description": "m/s², positive down."
+            }
+          },
+          "required": [
+            "model",
+            "g_ms2"
+          ],
+          "description": "Constant gravitational acceleration."
+        }
+      ],
+      "description": "Gravity model (tag `model`)."
+    },
+    "EvalVisualFlow": {
+      "type": "object",
+      "properties": {
+        "engine": {
+          "type": "string"
+        },
+        "tank": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Feed node id of the tank shown (`None`: the oxidizer branch's tank)."
+        },
+        "attitude": {
+          "$ref": "#/$defs/AttitudeSource"
+        },
+        "duration": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "time"
+        },
+        "tilt_deg": {
+          "type": "number",
+          "format": "double",
+          "description": "Mean tilt from vertical, degrees."
+        },
+        "swing_deg": {
+          "type": "number",
+          "format": "double",
+          "description": "Swing amplitude, degrees."
+        },
+        "period": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "time"
+        },
+        "replay": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "engine",
+        "attitude",
+        "duration",
+        "tilt_deg",
+        "swing_deg",
+        "period"
+      ],
+      "description": "An evaluated visual flow study (`[visual_flow]` in SI, defaults applied)."
+    },
+    "AttitudeSource": {
+      "oneOf": [
+        {
+          "type": "string",
+          "const": "scripted_tilt",
+          "description": "A scripted rocking tilt (`tilt`, `swing`, `period`) on a static stand."
+        },
+        {
+          "type": "string",
+          "const": "run",
+          "description": "Replay of a flight run (`replay`)."
+        }
+      ],
+      "description": "Where a visual flow study's attitude comes from."
+    },
+    "EvalMaterial": {
+      "type": "object",
+      "properties": {
+        "density": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "x-unit-dimension": "density"
+        },
+        "surface_density": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "x-unit-dimension": "area_density"
+        },
+        "line_density": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "x-unit-dimension": "line_density"
+        },
+        "yield_strength": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "x-unit-dimension": "pressure"
+        }
+      }
+    },
+    "EvalAssert": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "expr": {
+          "type": "string"
+        },
+        "severity": {
+          "$ref": "#/$defs/Severity"
+        },
+        "message": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "needs_sim": {
+          "type": "boolean",
+          "description": "The rule references simulation metrics; it runs only with `--sim`."
+        }
+      },
+      "required": [
+        "id",
+        "expr",
+        "severity",
+        "needs_sim"
+      ]
+    },
+    "Severity": {
+      "type": "string",
+      "enum": [
+        "error",
+        "warning",
+        "info"
+      ]
+    },
+    "EvalEngine": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "oxidizer": {
+          "type": "string",
+          "description": "Oxidizer and fuel ids (`n2o`, `ethanol`, or a CEA species name)."
+        },
+        "fuel": {
+          "type": "string"
+        },
+        "mixture_ratio": {
+          "type": "number",
+          "format": "double"
+        },
+        "chamber_pressure": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "pressure"
+        },
+        "thrust": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "force"
+        },
+        "expansion_ratio": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        },
+        "exit_pressure": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "x-unit-dimension": "pressure"
+        },
+        "contraction_ratio": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        },
+        "l_star": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "injector": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EvalInjector"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "fluid_model": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FluidModel"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "nodes": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/EvalFeedNode"
+          },
+          "description": "Feed nodes by id."
+        },
+        "edges": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/EvalFeedEdge"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "oxidizer",
+        "fuel",
+        "mixture_ratio",
+        "chamber_pressure",
+        "thrust",
+        "nodes",
+        "edges"
+      ],
+      "description": "One liquid engine in SI (`engines/<id>.rw.toml`, M4.4). Unset inputs stay\n`None` and are reported as `RW-W21x` missing inputs."
+    },
+    "EvalInjector": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/InjectorType"
+        },
+        "pressure_drop": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "description": "Injector pressure drop (given, or the fraction times chamber pressure).",
+          "x-unit-dimension": "pressure"
+        },
+        "cd": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        }
+      },
+      "required": [
+        "kind"
+      ]
+    },
+    "InjectorType": {
+      "type": "string",
+      "enum": [
+        "impinging",
+        "showerhead",
+        "pintle",
+        "swirl"
+      ]
+    },
+    "FluidModel": {
+      "type": "string",
+      "enum": [
+        "single_phase_liquid",
+        "two_phase_equilibrium"
+      ]
+    },
+    "EvalFeedNode": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/FeedNodeKind"
+        },
+        "component": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "fluid": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "volume": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "x-unit-dimension": "volume"
+        },
+        "pressure": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "x-unit-dimension": "pressure"
+        },
+        "pressurant": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "pressurant_mass": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "x-unit-dimension": "mass"
+        },
+        "flow_area": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "x-unit-dimension": "area"
+        },
+        "cd": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        },
+        "station": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "description": "Centre station (the tank component's mid-length when unset).",
+          "x-unit-dimension": "length"
+        },
+        "radial": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "tank": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EvalTankSpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Resolved tank geometry (from `component` or the inline `tank`)."
+        }
+      },
+      "required": [
+        "kind"
+      ]
+    },
+    "FeedNodeKind": {
+      "type": "string",
+      "enum": [
+        "tank",
+        "valve",
+        "line",
+        "engine",
+        "sensor"
+      ]
+    },
+    "EvalTankSpec": {
+      "type": "object",
+      "properties": {
+        "length": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "od": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "wall": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "end_cap": {
+          "$ref": "#/$defs/EndCap"
+        },
+        "volume": {
+          "type": "number",
+          "format": "double",
+          "description": "Internal volume.",
+          "x-unit-dimension": "volume"
+        },
+        "fill_volume": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "description": "Loaded liquid volume (from `fill.volume` or `fill.fraction`).",
+          "x-unit-dimension": "volume"
+        },
+        "material": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "density": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "x-unit-dimension": "density"
+        },
+        "yield_strength": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "x-unit-dimension": "pressure"
+        }
+      },
+      "required": [
+        "length",
+        "od",
+        "wall",
+        "end_cap",
+        "volume"
+      ],
+      "description": "A tank's geometry, fill, and wall material in SI."
+    },
+    "EvalFeedEdge": {
+      "type": "object",
+      "properties": {
+        "from": {
+          "type": "string"
+        },
+        "to": {
+          "type": "string"
+        },
+        "diameter": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "length": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "bc": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EdgeBc"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "waypoints": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/EvalFeedPoint"
+          }
+        }
+      },
+      "required": [
+        "from",
+        "to"
+      ]
+    },
+    "EdgeBc": {
+      "type": "string",
+      "enum": [
+        "open",
+        "closed",
+        "check_valve",
+        "orifice"
+      ]
+    },
+    "EvalFeedPoint": {
+      "type": "object",
+      "properties": {
+        "station": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "radial": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "depth": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "length"
+        }
+      },
+      "required": [
+        "station",
+        "radial",
+        "depth"
+      ]
+    },
+    "Diagnostic": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string",
+          "description": "Stable code, e.g. `RW-E021`.",
+          "pattern": "^RW-[EWI][0-9]{3}$"
+        },
+        "severity": {
+          "$ref": "#/$defs/Severity"
+        },
+        "path": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "JSON pointer into the source model, e.g. `/c/fins/span`."
+        },
+        "file": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Project-relative file."
+        },
+        "line": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "minimum": 0
+        },
+        "col": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "minimum": 0
+        },
+        "message": {
+          "type": "string"
+        },
+        "hint": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Next action for an agent."
+        }
+      },
+      "required": [
+        "code",
+        "severity",
+        "message"
+      ],
+      "description": "One finding, phrased for an agent (`hint` says what to do next)."
+    }
+  }
+}

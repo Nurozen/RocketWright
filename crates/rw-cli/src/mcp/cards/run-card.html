@@ -1,0 +1,941 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RocketWright run</title>
+<!--
+  ui://rw/run-card (B3, D7): a RocketWright simulation run as an MCP Apps card.
+  Self-contained (inline script and style, no network). Renders from the
+  tool input and result; a flight job is followed with job_status (run_list
+  when the job is gone), then its altitude samples come from run_series. An
+  engine run (sim engine.<id>) is already complete: no polling, run_series
+  for t_s, thrust_n and chamber_pressure_pa at once. Wide form at 560 px or
+  more (icon, "Saved result", three boxed tiles), narrow form below (Saved
+  chip, row stats). The chart and accents use --color-ring-primary.
+  A visual flow study (run_list kind visual_flow: illustrative, no samples)
+  is a view card instead: "Section view · <study>", no stats or chart, and
+  Open goes to rw:sim/<study>, which opens the study's section view on the
+  Visual flow tier (data-kind="visual"). The narrow form is tighter (90 px
+  chart, closer stat rows), so a run card, the turn's tool rows, a step card
+  and the reply fit the embedded pane together (CPW1R3A; CP-W1 r4: 90 px,
+  since Lecturn frames a step card at least 80 px tall).
+  A run_diff of two flights is a comparison (POL): both altitude traces in
+  the Results page's series colours (the first run teal, the second sand,
+  web state/types.ts SERIES_COLORS), each stat as "a → b" in those colours,
+  and Open goes to the second run. A simulate that only started a job (no
+  cached run) is a one-line status (data-kind="started"): the agent's
+  job_status of that job draws the full card, so a turn shows the run once.
+  The chart's altitude axis starts at 0, the x axis ends at the last sample,
+  and the narrow form keeps 3 ticks per axis.
+  Structure hooks for Lecturn's bar probe: data-card-layout (wide|narrow) on
+  #root, data-card-title on the title row, data-card-stat on each of the three
+  stats, data-card-icon, data-card-subtitle, data-card-chip, data-card-chart.
+-->
+<style>
+  :root {
+    color-scheme: dark;
+    --rw-bg: var(--color-background-secondary, #23272a);
+    --rw-tile: var(--color-background-tertiary, rgba(255, 255, 255, 0.03));
+    --rw-fg: var(--color-text-primary, #e6e8e9);
+    --rw-muted: var(--color-text-secondary, #9aa3a8);
+    --rw-border: var(--color-border-primary, #353b3f);
+    --rw-ring: var(--color-ring-primary, #3fb6a8);
+    --rw-danger: var(--color-text-danger, #e5736b);
+    --rw-radius: var(--border-radius-md, 8px);
+    --rw-sans: var(--font-sans, Inter, system-ui, -apple-system, "Segoe UI", sans-serif);
+    --rw-mono: var(--font-mono, ui-monospace, "SF Mono", Menlo, monospace);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: transparent; }
+  body { font: 14px/1.4 var(--rw-sans); color: var(--rw-fg); }
+  .card { background: var(--rw-bg); border-radius: var(--rw-radius); padding: 16px 18px 14px; }
+  .head { display: flex; align-items: center; gap: 12px; min-height: 28px; }
+  .icon { flex: none; width: 24px; height: 24px; color: var(--rw-ring); }
+  .titles { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+  .title { all: unset; cursor: pointer; font-weight: 600; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .title:hover, .title:focus-visible { text-decoration: underline; text-decoration-color: var(--rw-ring); }
+  .subtitle { color: var(--rw-muted); font-size: 12.5px; }
+  .chip { flex: none; border: 1px solid var(--rw-border); border-radius: 999px; padding: 1px 9px; font-size: 12px; color: var(--rw-muted); }
+  .chip[data-state="running"] { color: var(--rw-ring); border-color: var(--rw-ring); }
+  .chip[data-state="failed"] { color: var(--rw-danger); border-color: var(--rw-danger); }
+  .tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
+  .tile { border: 1px solid var(--rw-border); border-radius: var(--rw-radius); background: var(--rw-tile); padding: 10px 14px; }
+  .tile .label { color: var(--rw-muted); font-size: 12.5px; }
+  .tile .value { font-size: 20px; font-weight: 600; margin-top: 2px; font-variant-numeric: tabular-nums; }
+  .rows { display: grid; grid-template-columns: max-content 1fr; column-gap: 28px; row-gap: 4px; margin-top: 10px; }
+  .card[data-form="narrow"] { padding: 14px 16px 12px; }
+  .rows .stat { display: contents; }
+  .rows .label { color: var(--rw-muted); }
+  .rows .value { font-variant-numeric: tabular-nums; }
+  .chart { margin-top: 12px; }
+  .chart svg { display: block; width: 100%; overflow: visible; }
+  .chart text { fill: var(--rw-muted); font: 11px var(--rw-sans); }
+  .chart .grid { stroke: var(--rw-border); stroke-width: 1; }
+  .chart .axis { stroke: var(--rw-muted); stroke-width: 1; }
+  .note { color: var(--rw-muted); margin-top: 12px; font-size: 12.5px; }
+  .open { all: unset; flex: none; cursor: pointer; border: 1px solid var(--rw-border); border-radius: calc(var(--rw-radius) - 2px); padding: 4px 12px; font-size: 13px; }
+  .open:hover, .open:focus-visible { border-color: var(--rw-ring); color: var(--rw-ring); }
+  .card[data-kind="visual"] .head .titles .title { cursor: default; }
+  .note.mono { font-family: var(--rw-mono); }
+  .error { color: var(--rw-danger); margin-top: 12px; font-size: 13px; }
+  .title .run::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin: 0 6px 1px 0; background: var(--dot); }
+  .title .vs { color: var(--rw-muted); font-weight: 400; }
+  .card[data-kind="started"] .head .state { color: var(--rw-muted); font-size: 12.5px; white-space: nowrap; }
+  .placeholder { height: 120px; margin-top: 12px; border: 1px dashed var(--rw-border); border-radius: var(--rw-radius); display: flex; align-items: center; justify-content: center; color: var(--rw-muted); font-size: 12.5px; }
+</style>
+</head>
+<body>
+<div id="root" class="card" data-testid="rw.run-card"></div>
+<script>
+(() => {
+  "use strict";
+
+  // ---- MCP Apps bridge (postMessage JSON-RPC with the host) ---------------
+  const host = window.parent;
+  let nextId = 1;
+  const waiting = new Map();
+  const post = (m) => host.postMessage(m, "*");
+  const request = (method, params) =>
+    new Promise((resolve, reject) => {
+      const id = `rw-${nextId++}`;
+      waiting.set(id, { resolve, reject });
+      post({ jsonrpc: "2.0", id, method, params });
+    });
+  const notify = (method, params) => post({ jsonrpc: "2.0", method, params });
+
+  // ---- state ---------------------------------------------------------------
+  const BASES = ["engine_simulate", "job_status", "simulate", "run_series", "run_list", "run_diff"];
+  // The Results page's overlay colours (web state/types.ts SERIES_COLORS): A teal, B sand.
+  const SERIES = ["#61b5ad", "#f1ae6e"];
+  const st = {
+    ctx: {},
+    vars: {},
+    prefix: undefined,
+    tool: undefined,
+    args: {},
+    result: undefined,
+    phase: "waiting", // waiting | running | complete | failed | approval
+    progress: undefined,
+    sim: undefined,
+    runId: undefined,
+    summary: undefined,
+    series: undefined,
+    error: undefined,
+    reason: undefined,
+    seriesRequested: false,
+    // A visual flow study's run: { name } from run_list (no samples to draw).
+    visual: undefined,
+    // A simulate that started a job: the one-line status (job_status draws the card).
+    started: false,
+    // A run_diff of two flights: [{ sim, runId, name, summary, series }, ...].
+    compare: undefined,
+  };
+
+  // Tool names may carry the host's prefix (Lecturn lists rw_simulate); the
+  // card's own calls use the same one.
+  function toolPrefix() {
+    if (st.prefix !== undefined) return st.prefix;
+    const name = st.ctx && st.ctx.toolInfo && st.ctx.toolInfo.tool && st.ctx.toolInfo.tool.name;
+    if (typeof name === "string") {
+      for (const b of BASES) if (name.endsWith(b)) return name.slice(0, name.length - b.length);
+    }
+    return "";
+  }
+
+  function baseTool() {
+    const name = st.ctx && st.ctx.toolInfo && st.ctx.toolInfo.tool && st.ctx.toolInfo.tool.name;
+    if (typeof name === "string") for (const b of BASES) if (name.endsWith(b)) return b;
+    if (typeof st.args.engine === "string") return "engine_simulate";
+    if (typeof st.args.job_id === "string") return "job_status";
+    if (typeof st.args.a === "string") return "run_diff";
+    return "simulate";
+  }
+
+  async function callTool(name, args) {
+    const prefix = toolPrefix();
+    try {
+      const r = await request("tools/call", { name: prefix + name, arguments: args });
+      if (st.prefix === undefined) st.prefix = prefix;
+      return r;
+    } catch (e) {
+      // No toolInfo and the bare name is unknown: try the registered prefix.
+      if (prefix === "" && st.prefix === undefined) {
+        const r = await request("tools/call", { name: "rw_" + name, arguments: args });
+        st.prefix = "rw_";
+        return r;
+      }
+      throw e;
+    }
+  }
+
+  const structured = (r) => (r && typeof r.structuredContent === "object" && r.structuredContent) || {};
+  const apiError = (r) => (r && r._meta && r._meta["rw/error"]) || undefined;
+
+  // ---- formatting ----------------------------------------------------------
+  function sig(v, n) {
+    if (!Number.isFinite(v)) return "–";
+    if (v === 0) return "0";
+    const d = Math.max(0, n - 1 - Math.floor(Math.log10(Math.abs(v))));
+    return v.toFixed(Math.min(d, 6));
+  }
+  const fixed = (v, d) => (Number.isFinite(v) ? v.toFixed(d) : "–");
+  function force(n) {
+    return Math.abs(n) >= 1000 ? `${sig(n / 1000, 3)} kN` : `${sig(n, 3)} N`;
+  }
+  function pressure(pa) {
+    return Math.abs(pa) >= 1e6 ? `${sig(pa / 1e6, 3)} MPa` : `${sig(pa / 1e3, 3)} kPa`;
+  }
+  function titleCase(s) {
+    return String(s)
+      .split(/[_\-\s]+/)
+      .filter(Boolean)
+      .map((w) => w[0].toUpperCase() + w.slice(1))
+      .join(" ");
+  }
+
+  const isEngine = () => typeof st.sim === "string" && st.sim.startsWith("engine.");
+
+  function title() {
+    if (isEngine()) return `${titleCase(st.sim.slice("engine.".length))} engine run`;
+    const sim = st.sim || st.args.sim;
+    return sim ? `${titleCase(sim)} run` : "Simulation run";
+  }
+
+  // ---- stats ---------------------------------------------------------------
+  function engineStats() {
+    const v = st.series && st.series.values;
+    if (!v) return undefined;
+    const t = v.t_s || [];
+    const thrust = v.thrust_n || [];
+    const pc = v.chamber_pressure_pa || [];
+    let peak = -Infinity;
+    for (const x of thrust) if (x !== null && x > peak) peak = x;
+    let ppc = -Infinity;
+    for (const x of pc) if (x !== null && x > ppc) ppc = x;
+    // Burn time: thrust above 1 % of its peak, first to last sample.
+    let first, last;
+    thrust.forEach((x, i) => {
+      if (x !== null && x > 0.01 * peak) {
+        if (first === undefined) first = i;
+        last = i;
+      }
+    });
+    const burn = first === undefined ? NaN : t[last] - t[first];
+    return [
+      { key: "peak_thrust_n", label: "Peak thrust", value: peak, text: force(peak) },
+      { key: "burn_time_s", label: "Burn time", value: burn, text: `${sig(burn, 3)} s` },
+      { key: "peak_chamber_pressure_pa", label: "Peak chamber pressure", value: ppc, text: pressure(ppc) },
+    ];
+  }
+
+  function flightStats() {
+    const s = st.summary;
+    if (!s) return undefined;
+    return [
+      { key: "apogee_m", label: "Apogee", value: s.apogee_m, text: `${fixed(s.apogee_m, 2)} m` },
+      { key: "max_velocity_ms", label: "Max velocity", value: s.max_velocity_ms, text: `${fixed(s.max_velocity_ms, 1)} m/s` },
+      { key: "time_to_apogee_s", label: "Time to apogee", value: s.time_to_apogee_s, text: `${fixed(s.time_to_apogee_s, 1)} s` },
+    ];
+  }
+
+  // A comparison's stats: each run's value, "a → b".
+  function compareStats() {
+    const [a, b] = st.compare;
+    if (!a.summary && !b.summary) return undefined;
+    const v = (r, k) => (r.summary && Number.isFinite(r.summary[k]) ? r.summary[k] : NaN);
+    const row = (key, label, d, unit) => ({
+      key,
+      label,
+      value: v(b, key),
+      parts: [fixed(v(a, key), d), fixed(v(b, key), d)],
+      unit,
+    });
+    return [
+      row("apogee_m", "Apogee", 1, "m"),
+      row("max_velocity_ms", "Max velocity", 1, "m/s"),
+      row("time_to_apogee_s", "Time to apogee", 1, "s"),
+    ];
+  }
+
+  // ---- chart ---------------------------------------------------------------
+  function niceStep(span, n) {
+    const raw = span / Math.max(1, n);
+    const p = Math.pow(10, Math.floor(Math.log10(raw)));
+    const f = raw / p;
+    return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * p;
+  }
+  function ticks(lo, hi, n) {
+    if (!(hi > lo)) hi = lo + 1;
+    const step = niceStep(hi - lo, n);
+    const a = Math.floor(lo / step) * step;
+    const b = Math.ceil(hi / step) * step;
+    const out = [];
+    for (let v = a; v <= b + step / 2; v += step) out.push(Math.round(v / step) * step);
+    return out;
+  }
+  const tickText = (v) => String(Number(v.toPrecision(6)));
+
+  function ringColor() {
+    const v = st.vars["--color-ring-primary"];
+    if (typeof v === "string" && v.trim() !== "") return v.trim();
+    const c = getComputedStyle(document.documentElement).getPropertyValue("--color-ring-primary").trim();
+    return c || "#3fb6a8";
+  }
+
+  const SVG = "http://www.w3.org/2000/svg";
+  function el(name, attrs, text) {
+    const e = document.createElementNS(SVG, name);
+    for (const k in attrs) e.setAttribute(k, String(attrs[k]));
+    if (text !== undefined) e.textContent = text;
+    return e;
+  }
+
+  // One drawable trace: [t, y] points (y scaled), from run_series values.
+  function trace(v, engine, scale) {
+    const xs = (engine ? v.t_s : v.t) || [];
+    const raw = (engine ? v.thrust_n : v.altitude) || [];
+    return xs
+      .map((x, i) => [x, raw[i] === null || raw[i] === undefined ? null : raw[i] * scale])
+      .filter((p) => p[1] !== null && Number.isFinite(p[0]) && Number.isFinite(p[1]))
+      // Altitude never reads below the ground (the landing sample's -1e-14).
+      .map((p) => (engine ? p : [p[0], Math.max(0, p[1])]));
+  }
+
+  // `series`: [{ values, color, key }]; one trace per run (two for a comparison).
+  function chart(width, series) {
+    series = series || (st.series && st.series.values ? [{ values: st.series.values, color: ringColor(), key: "run" }] : []);
+    if (series.length === 0) return undefined;
+    const engine = isEngine() && !st.compare;
+    let peak = 0;
+    for (const s of series) for (const y of (engine ? s.values.thrust_n : s.values.altitude) || []) if (y !== null && Math.abs(y) > peak) peak = Math.abs(y);
+    // Engine thrust in kN above 1 kN; altitudes stay in m.
+    const scale = engine && peak >= 1000 ? 1e-3 : 1;
+    const traces = series.map((s) => ({ s, pts: trace(s.values, engine, scale) })).filter((t) => t.pts.length >= 2);
+    if (traces.length === 0) return undefined;
+    const pts = traces.flatMap((t) => t.pts);
+    const W = Math.max(240, Math.round(width));
+    const wide = width >= 560;
+    const H = wide ? 200 : 90;
+    const left = 46, right = 12, top = 10, bottom = 34;
+    const x0 = left, x1 = W - right, y0 = top, y1 = H - bottom;
+    // The x axis spans the samples (it ends at the last one); ticks are the nice values inside.
+    const xa = Math.min(...pts.map((p) => p[0]));
+    let xb = Math.max(...pts.map((p) => p[0]));
+    if (!(xb > xa)) xb = xa + 1;
+    const xt = ticks(xa, xb, wide ? 5 : 3).filter((t) => t >= xa - 1e-9 && t <= xb + 1e-9);
+    // Altitude starts at 0 (thrust may dip below it); the top sits just over the peak,
+    // so the trace fills the plot, with the nice ticks inside.
+    const ya = engine ? Math.min(0, ...pts.map((p) => p[1])) : 0;
+    const ymax = Math.max(...pts.map((p) => p[1]));
+    const yb = ymax > ya ? ymax + 0.05 * (ymax - ya) : ya + 1;
+    const yt = ticks(ya, yb, wide ? 4 : 3).filter((t) => t >= ya - 1e-9 && t <= yb + 1e-9);
+    const px = (x) => x0 + ((x - xa) / (xb - xa)) * (x1 - x0);
+    const py = (y) => y1 - ((y - ya) / (yb - ya)) * (y1 - y0);
+    const svg = el("svg", {
+      viewBox: `0 0 ${W} ${H}`,
+      height: H,
+      role: "img",
+      "aria-label": engine ? "Thrust over time" : "Altitude over time",
+      "data-plot": `${x0},${y0},${x1},${y1}`,
+      "data-x-domain": `${xa},${xb}`,
+      "data-y-domain": `${ya},${yb}`,
+      "data-y-scale": scale,
+      "data-card-chart": "",
+    });
+    for (const t of yt) {
+      svg.appendChild(el("line", { class: "grid", x1: x0, x2: x1, y1: py(t), y2: py(t) }));
+      svg.appendChild(el("text", { x: x0 - 8, y: py(t) + 4, "text-anchor": "end" }, tickText(t)));
+    }
+    for (const t of xt) {
+      svg.appendChild(el("line", { class: "grid", x1: px(t), x2: px(t), y1: y0, y2: y1 }));
+      svg.appendChild(el("text", { x: px(t), y: y1 + 16, "text-anchor": "middle" }, tickText(t)));
+    }
+    svg.appendChild(el("line", { class: "axis", x1: x0, x2: x1, y1: y1, y2: y1 }));
+    svg.appendChild(el("line", { class: "axis", x1: x0, x2: x0, y1: y0, y2: y1 }));
+    svg.appendChild(el("text", { x: (x0 + x1) / 2, y: H - 2, "text-anchor": "middle" }, "Time (s)"));
+    const yl = engine ? (scale === 1 ? "Thrust (N)" : "Thrust (kN)") : "Altitude (m)";
+    svg.appendChild(el("text", { x: 10, y: (y0 + y1) / 2, "text-anchor": "middle", transform: `rotate(-90 10 ${(y0 + y1) / 2})` }, yl));
+    for (const t of traces) {
+      const points = t.pts.map((p) => `${px(p[0]).toFixed(2)},${py(p[1]).toFixed(2)}`).join(" ");
+      svg.appendChild(
+        el("polyline", {
+          class: "line",
+          "data-testid": "rw.run-card.line",
+          "data-series": t.s.key,
+          points,
+          fill: "none",
+          stroke: t.s.color,
+          "stroke-width": 2,
+          "stroke-linejoin": "round",
+          "stroke-linecap": "round",
+        }),
+      );
+    }
+    const box = document.createElement("div");
+    box.className = "chart";
+    box.appendChild(svg);
+    return box;
+  }
+
+  // ---- render --------------------------------------------------------------
+  // A visual flow study's run as a view card: icon, title, subtitle, Open.
+  function renderVisual(root) {
+    const head = document.createElement("div");
+    head.className = "head";
+    head.setAttribute("data-card-title", "");
+    const icon = el("svg", { class: "icon", viewBox: "0 0 24 24", "aria-hidden": "true", "data-testid": "rw.run-card.icon", "data-card-icon": "" });
+    const c = ringColor();
+    icon.appendChild(el("rect", { x: 3, y: 5, width: 18, height: 14, rx: 2, fill: "none", stroke: c, "stroke-width": 1.6 }));
+    icon.appendChild(el("path", { d: "M7 15c2-3 4-5 10-6", fill: "none", stroke: c, "stroke-width": 1.6, "stroke-linecap": "round" }));
+    head.appendChild(icon);
+    const titles = document.createElement("div");
+    titles.className = "titles";
+    const t = document.createElement("span");
+    t.className = "title";
+    t.setAttribute("data-testid", "rw.run-card.title");
+    t.textContent = `Section view · ${st.visual.name || titleCase(st.sim || "study")}`;
+    titles.appendChild(t);
+    const sub = document.createElement("span");
+    sub.className = "subtitle";
+    sub.setAttribute("data-testid", "rw.run-card.subtitle");
+    sub.setAttribute("data-card-subtitle", "");
+    sub.textContent = "Cutaway of tank and engine · visual model";
+    titles.appendChild(sub);
+    head.appendChild(titles);
+    const open = document.createElement("button");
+    open.type = "button";
+    open.className = "open";
+    open.setAttribute("data-testid", "rw.run-card.open");
+    open.textContent = "Open";
+    open.title = "Open the section view";
+    open.addEventListener("click", openRun);
+    head.appendChild(open);
+    root.appendChild(head);
+  }
+
+  // A simulate that started a job: one line (the run, its state, a chip). The
+  // job_status that completes the run draws the full card; this line still
+  // follows the job, so a turn without that call shows how the run ended.
+  function renderStarted(root, form) {
+    const s = statusText();
+    const head = document.createElement("div");
+    head.className = "head";
+    head.setAttribute("data-card-title", "");
+    const titles = document.createElement("div");
+    titles.className = "titles";
+    const t = document.createElement("button");
+    t.type = "button";
+    t.className = "title";
+    t.setAttribute("data-testid", "rw.run-card.open");
+    t.textContent = `${title()} ›`;
+    t.title = "Open run details";
+    t.addEventListener("click", openRun);
+    titles.appendChild(t);
+    head.appendChild(titles);
+    const state = document.createElement("span");
+    state.className = "state";
+    state.setAttribute("data-testid", "rw.run-card.state");
+    const apogee = st.summary && Number.isFinite(st.summary.apogee_m) ? `Apogee ${fixed(st.summary.apogee_m, 0)} m` : undefined;
+    state.textContent = st.phase === "complete" ? apogee || "Complete" : st.phase === "running" ? "Started" : s.subtitle;
+    head.appendChild(state);
+    const chip = document.createElement("span");
+    chip.className = "chip";
+    chip.setAttribute("data-testid", "rw.run-card.chip");
+    chip.setAttribute("data-card-chip", "");
+    chip.setAttribute("data-state", st.phase);
+    chip.textContent = s.chip;
+    head.appendChild(chip);
+    root.appendChild(head);
+    if (st.error) {
+      const e = document.createElement("div");
+      e.className = "error";
+      e.setAttribute("role", "alert");
+      e.textContent = st.error;
+      root.appendChild(e);
+    }
+  }
+
+  function formOf() {
+    const w = window.innerWidth || document.documentElement.clientWidth ||
+      (st.ctx.containerDimensions && st.ctx.containerDimensions.width) || 0;
+    return { width: w, form: w >= 560 ? "wide" : "narrow" };
+  }
+
+  function statusText() {
+    switch (st.phase) {
+      case "complete": return { chip: "Saved", subtitle: "Saved result" };
+      case "running": {
+        const pct = st.progress === undefined ? "" : ` · ${Math.round(st.progress * 100)} %`;
+        return { chip: "Running", subtitle: `Running${pct}` };
+      }
+      case "failed": return { chip: "Failed", subtitle: "Run failed" };
+      case "approval": return { chip: "Needs approval", subtitle: "Waiting for approval" };
+      default: return { chip: "Waiting", subtitle: "Waiting for the result" };
+    }
+  }
+
+  function render() {
+    const root = document.getElementById("root");
+    const { width, form } = formOf();
+    root.setAttribute("data-form", form);
+    root.setAttribute("data-card-layout", form);
+    root.setAttribute("data-phase", st.phase);
+    root.setAttribute("data-kind", st.visual ? "visual" : st.started ? "started" : isEngine() ? "engine" : "flight");
+    if (st.compare) root.setAttribute("data-compare", String(st.compare.length));
+    else root.removeAttribute("data-compare");
+    root.replaceChildren();
+    if (st.visual) {
+      renderVisual(root);
+      reportSize();
+      return;
+    }
+    if (st.started) {
+      renderStarted(root, form);
+      reportSize();
+      return;
+    }
+    const s = statusText();
+
+    const head = document.createElement("div");
+    head.className = "head";
+    head.setAttribute("data-card-title", "");
+    if (form === "wide") {
+      const icon = el("svg", { class: "icon", viewBox: "0 0 24 24", "aria-hidden": "true", "data-testid": "rw.run-card.icon", "data-card-icon": "" });
+      const c = ringColor();
+      icon.appendChild(el("rect", { x: 4, y: 12, width: 3, height: 8, rx: 1, fill: c }));
+      icon.appendChild(el("rect", { x: 10.5, y: 6, width: 3, height: 14, rx: 1, fill: c }));
+      icon.appendChild(el("rect", { x: 17, y: 9, width: 3, height: 11, rx: 1, fill: c }));
+      head.appendChild(icon);
+    }
+    const titles = document.createElement("div");
+    titles.className = "titles";
+    const t = document.createElement("button");
+    t.type = "button";
+    t.className = "title";
+    t.setAttribute("data-testid", "rw.run-card.open");
+    if (st.compare) {
+      st.compare.forEach((r, i) => {
+        if (i > 0) t.appendChild(Object.assign(document.createElement("span"), { className: "vs", textContent: " vs " }));
+        const n = document.createElement("span");
+        n.className = "run";
+        n.style.setProperty("--dot", SERIES[i]);
+        n.setAttribute("data-series", i === 0 ? "a" : "b");
+        n.textContent = r.name;
+        t.appendChild(n);
+      });
+      t.appendChild(document.createTextNode(" ›"));
+    } else t.textContent = `${title()} ›`;
+    t.title = "Open run details";
+    t.addEventListener("click", openRun);
+    titles.appendChild(t);
+    if (form === "wide") {
+      const sub = document.createElement("span");
+      sub.className = "subtitle";
+      sub.setAttribute("data-testid", "rw.run-card.subtitle");
+      sub.setAttribute("data-card-subtitle", "");
+      sub.textContent = s.subtitle;
+      titles.appendChild(sub);
+    }
+    head.appendChild(titles);
+    if (form === "narrow") {
+      const chip = document.createElement("span");
+      chip.className = "chip";
+      chip.setAttribute("data-testid", "rw.run-card.chip");
+      chip.setAttribute("data-card-chip", "");
+      chip.setAttribute("data-state", st.phase);
+      chip.textContent = s.chip;
+      head.appendChild(chip);
+    }
+    root.appendChild(head);
+
+    const stats = st.compare ? compareStats() : isEngine() ? engineStats() : flightStats();
+    if (stats) {
+      const box = document.createElement("div");
+      box.className = form === "wide" ? "tiles" : "rows";
+      box.setAttribute("data-testid", form === "wide" ? "rw.run-card.tiles" : "rw.run-card.rows");
+      for (const x of stats) {
+        const label = document.createElement("div");
+        label.className = "label";
+        label.textContent = x.label;
+        const value = document.createElement("div");
+        value.className = "value";
+        if (x.parts) {
+          // "a → b unit", each value in its run's series colour.
+          x.parts.forEach((p, i) => {
+            if (i > 0) value.appendChild(document.createTextNode(" → "));
+            const sp = document.createElement("span");
+            sp.style.color = SERIES[i];
+            sp.setAttribute("data-series", i === 0 ? "a" : "b");
+            sp.textContent = p;
+            value.appendChild(sp);
+          });
+          if (x.unit) value.appendChild(document.createTextNode(` ${x.unit}`));
+        } else value.textContent = x.text;
+        if (form === "wide") {
+          const tile = document.createElement("div");
+          tile.className = "tile";
+          tile.setAttribute("data-card-stat", "");
+          tile.setAttribute("data-key", x.key);
+          tile.setAttribute("data-value", String(x.value));
+          tile.append(label, value);
+          box.appendChild(tile);
+        } else {
+          // One element per stat; display: contents keeps the two-column grid.
+          const pair = document.createElement("div");
+          pair.className = "stat";
+          pair.setAttribute("data-card-stat", "");
+          label.setAttribute("data-key", x.key);
+          value.setAttribute("data-key", x.key);
+          value.setAttribute("data-value", String(x.value));
+          pair.append(label, value);
+          box.appendChild(pair);
+        }
+      }
+      root.appendChild(box);
+    }
+
+    const c = st.compare
+      ? chart(width - 36, st.compare.filter((r) => r.series).map((r, i) => ({ values: r.series.values, color: SERIES[st.compare.indexOf(r)], key: st.compare.indexOf(r) === 0 ? "a" : "b" })))
+      : chart(width - 36);
+    if (c) root.appendChild(c);
+    else if (st.phase === "running" || st.phase === "waiting" || (st.phase === "complete" && !(st.compare ? st.compare.some((r) => r.series) : st.series) && !st.error)) {
+      const p = document.createElement("div");
+      p.className = "placeholder";
+      p.textContent = st.phase === "complete" ? "Loading samples…" : s.subtitle;
+      root.appendChild(p);
+    }
+    if (st.reason) {
+      const n = document.createElement("div");
+      n.className = "note mono";
+      n.textContent = st.reason;
+      root.appendChild(n);
+    }
+    if (st.error) {
+      const e = document.createElement("div");
+      e.className = "error";
+      e.setAttribute("role", "alert");
+      e.textContent = st.error;
+      root.appendChild(e);
+    }
+    reportSize();
+  }
+
+  function reportSize() {
+    const r = document.documentElement.getBoundingClientRect();
+    // The content height: the root's scrollHeight never drops below the host frame's (initially 320 px).
+    notify("ui/notifications/size-changed", { width: Math.ceil(r.width), height: Math.ceil(document.body.getBoundingClientRect().height || r.height) });
+  }
+
+  function openRun() {
+    // A visual study opens as its view (the Visual flow tier), not in Results.
+    const runId = st.compare ? st.compare[st.compare.length - 1].runId : st.runId;
+    const url = st.visual ? (st.sim ? `rw:sim/${st.sim}` : undefined) : runId ? `rw:run/${runId}` : undefined;
+    if (!url) return;
+    request("ui/open-link", { url }).catch(() => undefined);
+  }
+
+  // ---- data flow -----------------------------------------------------------
+  async function loadSeries() {
+    if (st.seriesRequested || !st.sim || !st.runId) return;
+    st.seriesRequested = true;
+    const fields = isEngine() ? ["t_s", "thrust_n", "chamber_pressure_pa"] : ["t", "altitude"];
+    try {
+      const r = await callTool("run_series", { sim: st.sim, run_id: st.runId, fields, max_points: 400 });
+      const e = apiError(r);
+      if (r.isError) st.error = (e && e.message) || "The run's samples could not be read.";
+      else st.series = structured(r);
+    } catch (e) {
+      st.error = "The run's samples could not be read.";
+    }
+    render();
+  }
+
+  const POLL_MS = 1000;
+  const POLL_MAX = 900;
+
+  async function poll(jobId) {
+    let viaList = false;
+    for (let i = 0; i < POLL_MAX && st.phase === "running"; i++) {
+      if (i > 0) await new Promise((r) => setTimeout(r, POLL_MS));
+      try {
+        if (!viaList) {
+          const r = await callTool("job_status", { job_id: jobId });
+          const e = apiError(r);
+          if (r.isError && e && e.code === "not_found") {
+            // The job is gone (its owner restarted): follow the run list.
+            viaList = true;
+            continue;
+          }
+          if (r.isError) throw new Error((e && e.message) || "job_status failed");
+          applyJob(structured(r));
+        } else {
+          const r = await callTool("run_list", { sim: st.sim });
+          const runs = structured(r).runs || [];
+          const run = runs.find((x) => x.sim === st.sim && (x.run_id === st.runId || x.job_id === jobId));
+          if (run) applyRunEntry(run);
+        }
+      } catch (e) {
+        st.phase = "failed";
+        st.error = "The run's status could not be read.";
+      }
+      render();
+    }
+    if (st.phase === "complete" && !st.started) loadSeries();
+  }
+
+  function applyJob(j) {
+    if (j.sim) st.sim = j.sim;
+    if (j.run_id) st.runId = j.run_id;
+    if (typeof j.progress === "number") st.progress = j.progress;
+    if (j.state === "complete") {
+      st.phase = "complete";
+      if (j.summary) st.summary = j.summary;
+    } else if (j.state === "failed" || j.state === "cancelled") {
+      st.phase = "failed";
+      st.error = j.error || (j.state === "cancelled" ? "The run was cancelled." : "The run failed.");
+    } else {
+      st.phase = "running";
+    }
+  }
+
+  function applyRunEntry(run) {
+    if (run.run_id) st.runId = run.run_id;
+    if (run.status === "complete" || run.status === "outdated") {
+      st.phase = "complete";
+      if (run.summary) st.summary = run.summary;
+    } else if (run.status === "failed") {
+      st.phase = "failed";
+      st.error = "The run failed.";
+    }
+  }
+
+  function onResult(r) {
+    st.result = r;
+    st.tool = baseTool();
+    const sc = structured(r);
+    if (r.isError) {
+      const req = r._meta && r._meta["lecturn/approval-required"];
+      const e = apiError(r);
+      if (st.args.engine) st.sim = `engine.${st.args.engine}`;
+      else if (st.args.sim) st.sim = st.args.sim;
+      if (req) {
+        st.phase = "approval";
+        st.reason = req.reason;
+      } else {
+        st.phase = "failed";
+        st.error = (e && e.message) || "The run did not start.";
+      }
+      render();
+      return;
+    }
+    if (st.tool === "job_status") {
+      applyJob(sc);
+      render();
+      if (st.phase === "running") poll(sc.job_id);
+      // A complete job without its summary (an imported thread's row, CPW1R4A): the run list has it.
+      else if (st.phase === "complete") st.summary ? loadSeries() : classifyThenLoad();
+      return;
+    }
+    if (st.tool === "run_diff") {
+      loadComparison(sc);
+      return;
+    }
+    st.sim = sc.sim || st.args.sim;
+    st.runId = sc.run_id;
+    if (isEngine()) {
+      // engine_simulate is synchronous: the run is on disk already.
+      st.phase = sc.status === "failed" ? "failed" : "complete";
+      render();
+      loadSeries();
+      return;
+    }
+    if (sc.status === "running" && sc.job_id) {
+      st.phase = "running";
+      st.progress = 0;
+      // A started simulate is one line; the job's job_status draws the card.
+      st.started = st.tool === "simulate";
+      render();
+      poll(sc.job_id);
+      return;
+    }
+    if (sc.status === "complete" || sc.status === "outdated") {
+      st.phase = "complete";
+      if (sc.summary) st.summary = sc.summary;
+      render();
+      classifyThenLoad();
+      return;
+    }
+    st.phase = "failed";
+    st.error = "The run did not complete.";
+    render();
+  }
+
+  // `<sim>/<run id>` (run_diff's a and b), else undefined.
+  function runRef(ref) {
+    const m = typeof ref === "string" ? /^([A-Za-z0-9_.-]+)\/([0-9a-f]{12})$/.exec(ref) : null;
+    return m ? { sim: m[1], runId: m[2] } : undefined;
+  }
+
+  // A run_diff result: two flights compared (both traces), or, against a
+  // golden, the one run. Names and summaries come from the run list (sims
+  // named bare in the input resolve to their current complete run).
+  async function loadComparison(sc) {
+    const side = (out, arg) => runRef(out) || (typeof arg === "string" && /^[A-Za-z0-9_.-]+$/.test(arg) ? { sim: arg } : undefined);
+    const a = side(sc.a, st.args.a);
+    const b = side(sc.b, st.args.b);
+    if (!a) {
+      st.phase = "failed";
+      st.error = "The compared runs could not be read.";
+      render();
+      return;
+    }
+    if (!b) {
+      // A run against a golden: the run's own card.
+      st.sim = a.sim;
+      st.runId = a.runId;
+      st.phase = "complete";
+      render();
+      classifyThenLoad();
+      return;
+    }
+    st.sim = b.sim;
+    st.runId = b.runId;
+    st.compare = [a, b].map((r) => ({ sim: r.sim, runId: r.runId, name: titleCase(r.sim), summary: undefined, series: undefined }));
+    st.phase = "complete";
+    render();
+    try {
+      const runs = structured(await callTool("run_list", {})).runs || [];
+      for (const r of st.compare) {
+        const run =
+          runs.find((x) => x.sim === r.sim && r.runId && x.run_id === r.runId) ||
+          runs.find((x) => x.sim === r.sim && !x.superseded_by && (x.status === "complete" || x.status === "outdated"));
+        if (!run) continue;
+        if (!r.runId) r.runId = run.run_id;
+        if (run.sim_name) r.name = run.sim_name;
+        if (run.summary) r.summary = run.summary;
+      }
+    } catch (e) {
+      /* names stay the sim ids; the traces still load */
+    }
+    st.runId = st.compare[1].runId;
+    render();
+    await Promise.all(
+      st.compare.map(async (r) => {
+        if (!r.runId) return;
+        try {
+          const res = await callTool("run_series", { sim: r.sim, run_id: r.runId, fields: ["t", "altitude"], max_points: 400 });
+          if (!res.isError) r.series = structured(res);
+        } catch (e) {
+          /* drawn without this run */
+        }
+      }),
+    );
+    if (!st.compare.some((r) => r.series)) st.error = "The runs' samples could not be read.";
+    render();
+  }
+
+  // A complete simulate result: the run list says whether it is a visual
+  // flow study (a view card, nothing to load) and fills a missing summary;
+  // a flight then loads its samples.
+  async function classifyThenLoad() {
+    try {
+      const r = await callTool("run_list", { sim: st.sim });
+      const runs = structured(r).runs || [];
+      const run = runs.find((x) => x.sim === st.sim && x.run_id === st.runId) || runs.find((x) => x.sim === st.sim);
+      if (run && run.kind === "visual_flow") {
+        st.visual = { name: run.sim_name || titleCase(st.sim) };
+        render();
+        return;
+      }
+      if (run && run.summary && !st.summary) {
+        st.summary = run.summary;
+        render();
+      }
+    } catch (e) {
+      /* the chart still renders */
+    }
+    loadSeries();
+  }
+
+  // ---- host context --------------------------------------------------------
+  function applyContext(ctx) {
+    if (!ctx || typeof ctx !== "object") return;
+    st.ctx = Object.assign({}, st.ctx, ctx);
+    const vars = ctx.styles && ctx.styles.variables;
+    if (vars && typeof vars === "object") {
+      for (const k in vars) {
+        if (typeof vars[k] === "string") {
+          st.vars[k] = vars[k];
+          document.documentElement.style.setProperty(k, vars[k]);
+        }
+      }
+    }
+    const fonts = ctx.styles && ctx.styles.css && ctx.styles.css.fonts;
+    if (typeof fonts === "string" && fonts.trim() !== "") {
+      let s = document.getElementById("host-fonts");
+      if (!s) {
+        s = document.createElement("style");
+        s.id = "host-fonts";
+        document.head.appendChild(s);
+      }
+      s.textContent = fonts;
+    }
+    if (ctx.theme === "light" || ctx.theme === "dark") document.documentElement.style.colorScheme = ctx.theme;
+  }
+
+  window.addEventListener("message", (ev) => {
+    if (ev.source !== host) return;
+    const m = ev.data;
+    if (!m || m.jsonrpc !== "2.0") return;
+    if (m.id !== undefined && m.method === undefined) {
+      const w = waiting.get(m.id);
+      if (!w) return;
+      waiting.delete(m.id);
+      if (m.error) w.reject(m.error);
+      else w.resolve(m.result);
+      return;
+    }
+    if (m.id !== undefined) {
+      // Host requests: answer teardown and ping.
+      if (m.method === "ui/resource-teardown" || m.method === "ping") post({ jsonrpc: "2.0", id: m.id, result: {} });
+      else post({ jsonrpc: "2.0", id: m.id, error: { code: -32601, message: `Method not found: ${m.method}` } });
+      return;
+    }
+    const p = m.params || {};
+    switch (m.method) {
+      case "ui/notifications/tool-input":
+        st.args = (p.arguments && typeof p.arguments === "object" && p.arguments) || {};
+        if (typeof st.args.sim === "string") st.sim = st.args.sim;
+        if (typeof st.args.engine === "string") st.sim = `engine.${st.args.engine}`;
+        render();
+        break;
+      case "ui/notifications/tool-result":
+        onResult(p);
+        break;
+      case "ui/notifications/host-context-changed":
+        applyContext(p);
+        render();
+        break;
+      default:
+    }
+  });
+  window.addEventListener("resize", render);
+
+  render();
+  request("ui/initialize", {
+    protocolVersion: "2026-01-26",
+    appInfo: { name: "rocketwright-run-card", version: "1" },
+    appCapabilities: { availableDisplayModes: ["inline"] },
+  }).then(
+    (r) => {
+      applyContext(r && r.hostContext);
+      render();
+      notify("ui/notifications/initialized", {});
+    },
+    () => notify("ui/notifications/initialized", {}),
+  );
+})();
+</script>
+</body>
+</html>

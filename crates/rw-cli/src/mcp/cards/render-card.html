@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RocketWright render</title>
+<!--
+  ui://rw/render-card (B3, D7): a headless render, or a history_compare with
+  visual=true, as an MCP Apps card. Self-contained; the picture is the
+  result's image content block (a data: URL, no fetch), the caption comes
+  from the result (view and size, or the compared versions and metrics).
+-->
+<style>
+  :root {
+    color-scheme: dark;
+    --rw-bg: var(--color-background-secondary, #23272a);
+    --rw-fg: var(--color-text-primary, #e6e8e9);
+    --rw-muted: var(--color-text-secondary, #9aa3a8);
+    --rw-border: var(--color-border-primary, #353b3f);
+    --rw-ring: var(--color-ring-primary, #3fb6a8);
+    --rw-danger: var(--color-text-danger, #e5736b);
+    --rw-radius: var(--border-radius-md, 8px);
+    --rw-sans: var(--font-sans, Inter, system-ui, -apple-system, "Segoe UI", sans-serif);
+    --rw-mono: var(--font-mono, ui-monospace, "SF Mono", Menlo, monospace);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: transparent; }
+  body { font: 14px/1.4 var(--rw-sans); color: var(--rw-fg); }
+  .card { background: var(--rw-bg); border-radius: var(--rw-radius); padding: 12px; display: flex; gap: 12px; align-items: center; }
+  .card[data-form="wide"] { flex-direction: column; align-items: stretch; }
+  .thumb { flex: none; width: 96px; height: 72px; border-radius: calc(var(--rw-radius) - 2px); border: 1px solid var(--rw-border); object-fit: contain; background: rgba(0, 0, 0, 0.2); }
+  .card[data-form="wide"] .thumb { width: 100%; height: auto; max-height: 360px; }
+  .thumb.empty { display: flex; align-items: center; justify-content: center; color: var(--rw-muted); font-size: 12px; }
+  .text { display: flex; flex-direction: column; min-width: 0; }
+  .title { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .title .accent { color: var(--rw-ring); }
+  .caption { color: var(--rw-muted); font-size: 12.5px; }
+  .metrics { margin: 6px 0 0; padding: 0; list-style: none; font-size: 12.5px; }
+  .metrics li { display: flex; gap: 10px; justify-content: space-between; }
+  .metrics .key { font-family: var(--rw-mono); color: var(--rw-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .error { color: var(--rw-danger); font-size: 13px; }
+</style>
+</head>
+<body>
+<div id="root" class="card" data-testid="rw.render-card"></div>
+<script>
+(() => {
+  "use strict";
+
+  const host = window.parent;
+  let nextId = 1;
+  const waiting = new Map();
+  const post = (m) => host.postMessage(m, "*");
+  const request = (method, params) =>
+    new Promise((resolve, reject) => {
+      const id = `rw-${nextId++}`;
+      waiting.set(id, { resolve, reject });
+      post({ jsonrpc: "2.0", id, method, params });
+    });
+  const notify = (method, params) => post({ jsonrpc: "2.0", method, params });
+
+  const st = { ctx: {}, args: {}, result: undefined, fetched: undefined, fetching: false };
+
+  function el(tag, cls, text) {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text !== undefined) e.textContent = text;
+    return e;
+  }
+
+  const titleCase = (s) => String(s).replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
+  function fmt(v) {
+    if (v === null || v === undefined || !Number.isFinite(v)) return "–";
+    return String(Number(v.toPrecision(4)));
+  }
+
+  function picture(r) {
+    const blocks = (r && Array.isArray(r.content) && r.content) || [];
+    const img = blocks.find((b) => b && b.type === "image" && typeof b.data === "string");
+    if (!img) return undefined;
+    const mime = /^image\/(png|jpeg|webp|gif)$/.test(img.mimeType || "") ? img.mimeType : "image/png";
+    return `data:${mime};base64,${img.data}`;
+  }
+
+  // A host may pass the result on without the image bytes (Lecturn omits
+  // tool-output image data: { type: "image", mimeType } only). The card then
+  // reads the stored PNG the result names through the app-only, read-only
+  // render_picture tool, with the host's tool prefix (rw_render → rw_render_picture).
+  // Window renders (viewport_render, plot_render) name the PNG the app stored
+  // under renders/window/ the same way (CPW2B).
+  function picturePath(r) {
+    const sc = (r && r.structuredContent) || {};
+    const p = typeof sc.path === "string" ? sc.path : sc.visual && typeof sc.visual.path === "string" ? sc.visual.path : undefined;
+    return p && /^renders\//.test(p) ? p : undefined;
+  }
+  function toolPrefix() {
+    const name = st.ctx && st.ctx.toolInfo && st.ctx.toolInfo.tool && st.ctx.toolInfo.tool.name;
+    if (typeof name === "string") {
+      // Longest first: rw_plot_render's prefix is rw_, not rw_plot_.
+      for (const b of ["history_compare", "viewport_render", "plot_render", "render"]) if (name.endsWith(b)) return name.slice(0, name.length - b.length);
+    }
+    return undefined;
+  }
+  async function fetchPicture() {
+    const r = st.result;
+    const path = picturePath(r);
+    if (st.fetching || st.fetched !== undefined || !r || r.isError || picture(r) || !path) return;
+    st.fetching = true;
+    const known = toolPrefix();
+    const prefixes = known !== undefined ? [known] : ["rw_", ""];
+    for (const prefix of prefixes) {
+      try {
+        const out = await request("tools/call", { name: `${prefix}render_picture`, arguments: { path } });
+        const src = out && !out.isError ? picture(out) : undefined;
+        if (src) {
+          st.fetched = src;
+          break;
+        }
+      } catch (_) {
+        // Try the next prefix; with none left the card says No picture.
+      }
+    }
+    st.fetching = false;
+    if (st.fetched === undefined) st.fetched = null;
+    render();
+  }
+
+  function render() {
+    const root = document.getElementById("root");
+    root.replaceChildren();
+    const w = window.innerWidth || document.documentElement.clientWidth || 0;
+    const form = w >= 560 ? "wide" : "narrow";
+    root.setAttribute("data-form", form);
+    root.setAttribute("data-card-layout", form);
+    const r = st.result;
+    const sc = (r && r.structuredContent) || {};
+    const compare = sc.a !== undefined && sc.b !== undefined && Array.isArray(sc.metrics);
+    const src = picture(r) || st.fetched || undefined;
+    if (src) {
+      const img = el("img", "thumb");
+      img.setAttribute("data-testid", "rw.render-card.thumb");
+      img.alt = compare ? "Visual comparison" : "Render";
+      img.src = src;
+      root.appendChild(img);
+    } else {
+      root.appendChild(el("div", "thumb empty", r && (st.fetched === null || !picturePath(r) || r.isError) ? "No picture" : "Rendering…"));
+    }
+    const text = el("div", "text");
+    if (r && r.isError) {
+      const e = r._meta && r._meta["rw/error"];
+      text.appendChild(el("span", "title", compare ? "Comparison" : "Render"));
+      const x = el("span", "error", (e && e.message) || "The render failed.");
+      x.setAttribute("role", "alert");
+      text.appendChild(x);
+    } else if (compare) {
+      const t = el("span", "title");
+      t.append(`${sc.a} `, el("span", "accent", "→"), ` ${sc.b}`);
+      text.appendChild(t);
+      const m = sc.model || {};
+      const counts = [
+        m.added && m.added.length ? `${m.added.length} added` : "",
+        m.removed && m.removed.length ? `${m.removed.length} removed` : "",
+        m.changed && m.changed.length ? `${m.changed.length} changed` : "",
+      ].filter(Boolean);
+      text.appendChild(el("span", "caption", counts.length ? counts.join(" · ") : "No component changes"));
+      const moved = sc.metrics.filter((x) => x.delta !== null && x.delta !== undefined && x.delta !== 0).slice(0, 4);
+      if (moved.length) {
+        const ul = el("ul", "metrics");
+        for (const x of moved) {
+          const li = el("li");
+          li.append(el("span", "key", x.key), el("span", "", `${fmt(x.a)} → ${fmt(x.b)}${x.unit ? ` ${x.unit}` : ""}`));
+          ul.appendChild(li);
+        }
+        text.appendChild(ul);
+      }
+    } else {
+      const view = sc.view || st.args.view;
+      const plot = sc.plot || st.args.plot;
+      text.appendChild(el("span", "title", view ? `${titleCase(view)} view` : plot ? `${titleCase(plot)} plot` : "Render"));
+      const bits = [];
+      if (sc.width && sc.height) bits.push(`${sc.width}×${sc.height}`);
+      if (st.args.config) bits.push(String(st.args.config));
+      if (st.args.compare) bits.push(`vs ${st.args.compare}`);
+      text.appendChild(el("span", "caption", bits.join(" · ") || (r ? "" : "Waiting for the picture")));
+    }
+    // The title line is the card's title hook for Lecturn's bar probe.
+    const head = text.querySelector(".title");
+    if (head) head.setAttribute("data-card-title", "");
+    root.appendChild(text);
+    const rect = document.documentElement.getBoundingClientRect();
+    // The content height: the root's scrollHeight never drops below the host frame's (initially 320 px).
+    notify("ui/notifications/size-changed", { width: Math.ceil(rect.width), height: Math.ceil(document.body.getBoundingClientRect().height || rect.height) });
+  }
+
+  function applyContext(ctx) {
+    if (!ctx || typeof ctx !== "object") return;
+    st.ctx = Object.assign({}, st.ctx, ctx);
+    const vars = ctx.styles && ctx.styles.variables;
+    if (vars && typeof vars === "object") {
+      for (const k in vars) if (typeof vars[k] === "string") document.documentElement.style.setProperty(k, vars[k]);
+    }
+    const fonts = ctx.styles && ctx.styles.css && ctx.styles.css.fonts;
+    if (typeof fonts === "string" && fonts.trim() !== "") {
+      let s = document.getElementById("host-fonts");
+      if (!s) {
+        s = document.createElement("style");
+        s.id = "host-fonts";
+        document.head.appendChild(s);
+      }
+      s.textContent = fonts;
+    }
+    if (ctx.theme === "light" || ctx.theme === "dark") document.documentElement.style.colorScheme = ctx.theme;
+  }
+
+  window.addEventListener("message", (ev) => {
+    if (ev.source !== host) return;
+    const m = ev.data;
+    if (!m || m.jsonrpc !== "2.0") return;
+    if (m.id !== undefined && m.method === undefined) {
+      const w = waiting.get(m.id);
+      if (!w) return;
+      waiting.delete(m.id);
+      if (m.error) w.reject(m.error);
+      else w.resolve(m.result);
+      return;
+    }
+    if (m.id !== undefined) {
+      if (m.method === "ui/resource-teardown" || m.method === "ping") post({ jsonrpc: "2.0", id: m.id, result: {} });
+      else post({ jsonrpc: "2.0", id: m.id, error: { code: -32601, message: `Method not found: ${m.method}` } });
+      return;
+    }
+    const p = m.params || {};
+    if (m.method === "ui/notifications/tool-input") {
+      st.args = (p.arguments && typeof p.arguments === "object" && p.arguments) || {};
+      render();
+    } else if (m.method === "ui/notifications/tool-result") {
+      st.result = p;
+      st.fetched = undefined;
+      render();
+      void fetchPicture();
+    } else if (m.method === "ui/notifications/host-context-changed") {
+      applyContext(p);
+      render();
+    }
+  });
+  window.addEventListener("resize", render);
+
+  render();
+  request("ui/initialize", {
+    protocolVersion: "2026-01-26",
+    appInfo: { name: "rocketwright-render-card", version: "1" },
+    appCapabilities: { availableDisplayModes: ["inline"] },
+  }).then(
+    (r) => {
+      applyContext(r && r.hostContext);
+      render();
+      notify("ui/notifications/initialized", {});
+    },
+    () => notify("ui/notifications/initialized", {}),
+  );
+})();
+</script>
+</body>
+</html>

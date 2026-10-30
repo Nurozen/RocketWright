@@ -1,0 +1,17 @@
+{
+  "id": "T1",
+  "title": "Stable rocket on a generic C motor, simulated",
+  "setup": [],
+  "prompt": "The working directory is empty. The RocketWright CLI (`rw`) is on your PATH and its skill doc is at {skill_doc}. Create a rocket project here that is statically stable on an Estes-class C motor from the built-in generic motor library, then simulate it. Report the static stability margin and the apogee.",
+  "predicates": [
+    { "kind": "file", "desc": "a project exists in the working directory", "pattern": "^rocketwright\\.toml$" },
+    { "kind": "sequence", "desc": "a C-class generic motor is used", "steps": [{ "text": "\\bRW_C\\w*" }] },
+    { "kind": "sequence", "desc": "a clean check, then a successful sim", "steps": [
+      { "check": true, "ok": true, "not_output": "RW-E\\d{3}" },
+      { "input": "\\b(rw|rocketwright)\\b[^\\n]*\\bsim\\b|\"simulate\"", "ok": true }
+    ] },
+    { "kind": "last_check", "desc": "the final design check is clean", "ok": true, "not_output": "RW-E\\d{3}" },
+    { "kind": "answer", "desc": "the answer reports the apogee", "pattern": "apogee" },
+    { "kind": "answer", "desc": "the answer reports the stability margin", "pattern": "stab|margin|cal" }
+  ]
+}

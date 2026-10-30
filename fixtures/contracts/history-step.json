@@ -1,0 +1,28 @@
+{
+  "provenance": "contract-fixture",
+  "type": "history-step",
+  "payload": {
+    "seq": 4,
+    "id": "8ef5b826891c4a450d83641ab58ae1a18551fa4b",
+    "prev": "6e1ae73b097c07a04d4e8e492c5524a6eaa5be97",
+    "ts": "2026-10-15T14:04:00Z",
+    "origin": "mcp",
+    "thread": "assembly-review",
+    "tool": "model_patch",
+    "tool_call": "toolu_04",
+    "title": "Exploded assembly",
+    "files": [
+      {
+        "path": "rocket.rw.toml",
+        "status": "M"
+      }
+    ],
+    "model_hash": "1ceb288e422bb33c662e66c9265157be29a006761136f05776dd3891e9ea8822",
+    "metrics": {
+      "stability_liftoff": 1.71,
+      "mass_liftoff": 0.6219,
+      "apogee_m": 612.4
+    },
+    "rev": "rev:07"
+  }
+}

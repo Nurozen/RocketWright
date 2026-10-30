@@ -1,0 +1,72 @@
+{
+  "type": "object",
+  "properties": {
+    "code": {
+      "type": "string",
+      "description": "Stable code, e.g. `RW-E021`.",
+      "pattern": "^RW-[EWI][0-9]{3}$"
+    },
+    "severity": {
+      "$ref": "#/$defs/Severity"
+    },
+    "path": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "JSON pointer into the source model, e.g. `/c/fins/span`."
+    },
+    "file": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Project-relative file."
+    },
+    "line": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "uint32",
+      "minimum": 0
+    },
+    "col": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "uint32",
+      "minimum": 0
+    },
+    "message": {
+      "type": "string"
+    },
+    "hint": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Next action for an agent."
+    }
+  },
+  "required": [
+    "code",
+    "severity",
+    "message"
+  ],
+  "description": "One finding, phrased for an agent (`hint` says what to do next).",
+  "title": "Diagnostic",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rocketwright.dev/schema/1/diagnostic.json",
+  "$defs": {
+    "Severity": {
+      "type": "string",
+      "enum": [
+        "error",
+        "warning",
+        "info"
+      ]
+    }
+  }
+}

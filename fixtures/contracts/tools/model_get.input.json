@@ -1,0 +1,8 @@
+{
+  "provenance": "contract-fixture",
+  "type": "tools/model_get.input",
+  "payload": {
+    "path": "/components/11",
+    "config": "baseline"
+  }
+}

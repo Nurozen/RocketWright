@@ -1,0 +1,17 @@
+{
+  "id": "T2",
+  "title": "Break stability by shrinking fins, read the hint, fix it",
+  "setup": [["rw", "init", "--template", "simple-rocket"]],
+  "prompt": "The working directory holds a stable RocketWright rocket project. The RocketWright CLI (`rw`) is on your PATH and its skill doc is at {skill_doc}. Make the rocket unstable on purpose by shrinking its fins, confirm that the design check fails and gives a hint, then fix the design so it is stable again. Report the diagnostic code and hint you saw and the final stability margin.",
+  "predicates": [
+    { "kind": "sequence", "desc": "shrink fins, failing check with a stability hint, fix, clean check", "steps": [
+      { "mutation": true },
+      { "check": true, "ok": false, "output": "RW-E1\\d\\d[^\\n]*\\(hint:" },
+      { "mutation": true },
+      { "check": true, "ok": true, "not_output": "RW-E1\\d\\d" }
+    ] },
+    { "kind": "last_check", "desc": "the final design check is clean", "ok": true, "not_output": "RW-E\\d{3}" },
+    { "kind": "answer", "desc": "the answer names the stability diagnostic", "pattern": "RW-E1\\d\\d" },
+    { "kind": "answer", "desc": "the answer reports the hint", "pattern": "hint" }
+  ]
+}

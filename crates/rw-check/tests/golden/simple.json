@@ -1,0 +1,234 @@
+{
+  "aero": {
+    "alpha": 0.0,
+    "cd": 0.458463,
+    "cna": 14.0337,
+    "cp": 0.444543,
+    "mach": 0.3,
+    "terms": [
+      {
+        "cna": 2.0,
+        "component": "nose",
+        "cp": 0.0695619,
+        "model": "niskanen-2009:nose eq 3.19 3.26 3.28"
+      },
+      {
+        "cna": 0.0,
+        "component": "body",
+        "cp": 0.35,
+        "model": "niskanen-2009:body-tube eq 3.19 3.26 3.28"
+      },
+      {
+        "cna": 12.0337,
+        "component": "fins",
+        "cp": 0.506865,
+        "model": "niskanen-2009:fins eq 3.40 3.49 3.56 3.36; niskanen-2013 eq 3.54; barrowman-1967 eq 3-7 (K_3) 3-98 (K_B(T)); naca-tr-1307 eq 14 D5 chart 16 (body-load CP)"
+      }
+    ]
+  },
+  "assertions": [
+    {
+      "expr": "stability.liftoff >= 1 cal",
+      "id": "stable",
+      "needs_sim": false,
+      "pass": true,
+      "severity": "error",
+      "value": 3.4249
+    }
+  ],
+  "clearance": [
+    {
+      "a": "nose",
+      "actual": 0.0398,
+      "b": "body",
+      "dim": "length",
+      "pass": true,
+      "required": 0.0398,
+      "rule": "coupler_fit"
+    },
+    {
+      "a": "fins",
+      "actual": 0.07,
+      "b": "body",
+      "dim": "length",
+      "pass": true,
+      "required": 0.07,
+      "rule": "fin_across_joint"
+    },
+    {
+      "a": "ring",
+      "actual": 0.0398,
+      "b": "body",
+      "dim": "length",
+      "pass": true,
+      "required": 0.0398,
+      "rule": "centering_ring_fit"
+    },
+    {
+      "a": "mount",
+      "actual": 0.0197,
+      "b": "ring",
+      "dim": "length",
+      "pass": true,
+      "required": 0.0197,
+      "rule": "centering_ring_fit"
+    },
+    {
+      "a": "chute",
+      "actual": 0.000401054,
+      "b": "body",
+      "dim": "volume",
+      "pass": true,
+      "required": 0.0000577268,
+      "rule": "recovery_volume"
+    },
+    {
+      "a": "generic:RW_C6G",
+      "actual": 0.0187,
+      "b": "mount",
+      "dim": "length",
+      "pass": true,
+      "required": 0.018,
+      "rule": "motor_fit"
+    }
+  ],
+  "config": "baseline",
+  "diagnostics": [],
+  "dims": {
+    "components": [
+      {
+        "component": "nose",
+        "length": 0.15,
+        "od": 0.0416,
+        "x_aft": 0.15,
+        "x_fore": 0.0
+      },
+      {
+        "component": "body",
+        "id": 0.0398,
+        "length": 0.4,
+        "od": 0.0416,
+        "x_aft": 0.55,
+        "x_fore": 0.15
+      },
+      {
+        "component": "chute",
+        "length": 0.06,
+        "x_aft": 0.23,
+        "x_fore": 0.17
+      },
+      {
+        "component": "fins",
+        "length": 0.07,
+        "x_aft": 0.55,
+        "x_fore": 0.48
+      },
+      {
+        "component": "mount",
+        "id": 0.0187,
+        "length": 0.07,
+        "od": 0.0197,
+        "x_aft": 0.55,
+        "x_fore": 0.48
+      },
+      {
+        "component": "ring",
+        "id": 0.0197,
+        "length": 0.003,
+        "od": 0.0398,
+        "x_aft": 0.488,
+        "x_fore": 0.485
+      }
+    ],
+    "fin_span": 0.1416,
+    "fineness": 13.2212,
+    "length": 0.55,
+    "length_cal": 13.2212,
+    "max_diameter": 0.0416
+  },
+  "inputs": {
+    "configs/baseline.rw.toml": "4444444444444444444444444444444444444444444444444444444444444444",
+    "motor:generic:RW_C6G": "025d61aa8d954cbb564b70b0f03a2add19e7495f043028ccdf120c0309b4c92b",
+    "parts/fin_can.rw.toml": "3333333333333333333333333333333333333333333333333333333333333333",
+    "rocket.rw.toml": "2222222222222222222222222222222222222222222222222222222222222222",
+    "rocketwright.toml": "1111111111111111111111111111111111111111111111111111111111111111"
+  },
+  "interference": [],
+  "mass": {
+    "burnout": 0.0790418,
+    "cg": 0.302067,
+    "cg_burnout": 0.269102,
+    "components": [
+      {
+        "cg": 0.115693,
+        "component": "nose",
+        "mass": 0.035741,
+        "override": false
+      },
+      {
+        "cg": 0.35,
+        "component": "body",
+        "mass": 0.0313008,
+        "override": false
+      },
+      {
+        "cg": 0.0,
+        "component": "chute",
+        "mass": 0.0,
+        "override": false
+      },
+      {
+        "cg": 0.0,
+        "component": "fins",
+        "mass": 0.0,
+        "override": false
+      },
+      {
+        "cg": 0.0,
+        "component": "mount",
+        "mass": 0.0,
+        "override": false
+      },
+      {
+        "cg": 0.0,
+        "component": "ring",
+        "mass": 0.0,
+        "override": false
+      }
+    ],
+    "dry": 0.0670418,
+    "ixx": 0.000024477,
+    "iyy": 0.00292687,
+    "liftoff": 0.0912788,
+    "propellant": 0.012237
+  },
+  "model_hash": "f082867f5d49df9bbba2e3c2805fcd445ee3054321ae2fbb835254e0c43a98b3",
+  "motor": [
+    {
+      "burn_time": 1.6,
+      "designation": "RW_C6G",
+      "fits_mount": true,
+      "motor": "generic:RW_C6G",
+      "mount": "mount",
+      "sha256": "025d61aa8d954cbb564b70b0f03a2add19e7495f043028ccdf120c0309b4c92b",
+      "thrust_to_weight": 6.70284,
+      "total_impulse": 9.59996
+    }
+  ],
+  "report": {
+    "= c.fins.span": {
+      "dim": "length",
+      "value": 0.05
+    }
+  },
+  "schema": "rw/1",
+  "stability": {
+    "burnout": 4.21734,
+    "liftoff": 3.4249,
+    "liftoff_pct_length": 25.9047,
+    "min": 3.4249,
+    "ref_diameter": 0.0416
+  },
+  "status": "clean",
+  "tier": "static"
+}

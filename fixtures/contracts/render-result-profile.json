@@ -1,0 +1,33 @@
+{
+  "provenance": "contract-fixture",
+  "type": "render-result",
+  "payload": {
+    "view": "profile",
+    "path": "renders/baseline.profile.png",
+    "svg_path": "renders/baseline.profile.svg",
+    "png_sha256": "7a5e9fd544fdc40e6697937f9fc33daf325ea54d86e8d50ef736fac8513cfad9",
+    "width": 1200,
+    "height": 400,
+    "camera": {
+      "position": [
+        0.42,
+        -2.0,
+        0.0
+      ],
+      "target": [
+        0.42,
+        0.0,
+        0.0
+      ],
+      "up": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "orthographic": true,
+      "ortho_height": 0.3
+    },
+    "backend": "resvg",
+    "model_hash": "1ceb288e422bb33c662e66c9265157be29a006761136f05776dd3891e9ea8822"
+  }
+}

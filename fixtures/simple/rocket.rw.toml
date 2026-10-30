@@ -1,0 +1,88 @@
+name = "Simple"
+include = ["parts/fin_can.rw.toml"]
+
+[params.fin_span]
+value = "50 mm"
+min = "30 mm"
+max = "80 mm"
+step = "5 mm"
+group = "Fins"
+doc = "Fin height, root to tip"
+
+[params.body_length]
+value = "= 400 mm"
+group = "Body"
+
+[variants.long_fins]
+fin_span = "70 mm"
+
+[c.nose]
+type = "nose_cone"
+name = "Nose cone"
+material = "polystyrene"
+finish = "smooth_paint"
+appearance = { preset = "black_gloss" }
+shape = "ogive"
+length = "120 mm"
+od = "29 mm"
+thickness = "1.5 mm"
+shoulder = { length = "30 mm", od = "28.2 mm", thickness = "1.5 mm" }
+
+[c.body]
+type = "body_tube"
+name = "Body tube"
+attach = { to = "nose.base" }
+material = "cardboard"
+finish = { roughness = "60 um" }
+appearance = { preset = "composite_white" }
+length = "= params.body_length"
+od = "= c.nose.od"
+id = "28.2 mm"
+
+[c.cord]
+type = "shock_cord"
+name = "Shock cord"
+attach = { to = "body.fore", at = "attach", offset = "15 mm" }
+material = "elastic_cord"
+cord_length = "700 mm"
+packed_length = "30 mm"
+packed_diameter = "18 mm"
+
+[c.chute]
+type = "parachute"
+name = "Parachute"
+attach = { to = "body.fore", at = "attach", offset = "50 mm" }
+material = "ripstop_nylon"
+appearance = { preset = "nylon_orange" }
+diameter = "380 mm"
+cd = 0.8
+line_count = 6
+line_length = "380 mm"
+line_material = "shroud_line"
+packed_length = "50 mm"
+packed_diameter = "24 mm"
+
+[materials.polystyrene]
+density = "1.05 g/cm^3"
+
+[materials.cardboard]
+density = "680 kg/m^3"
+
+[materials.balsa]
+density = "160 kg/m^3"
+
+[materials.ripstop_nylon]
+surface_density = "67 g/m^2"
+
+[materials.shroud_line]
+line_density = "1.8 g/m"
+
+[materials.elastic_cord]
+line_density = "1.8 g/m"
+
+[[assert]]
+id = "stable"
+expr = "stability.liftoff >= 1 cal"
+
+[report]
+values = ["= c.fins.span"]

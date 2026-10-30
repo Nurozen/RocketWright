@@ -1,0 +1,5 @@
+name = "C6"
+config = "c6"
+
+[launch]
+rail_length = "1 m"

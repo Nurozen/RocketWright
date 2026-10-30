@@ -1,0 +1,9 @@
+name = "AeroTech K828FJ"
+
+[motors.mmt]
+motor = "lib:motors/AeroTech_K828FJ.eng"
+
+# RocketPy: the drogue opens when vertical velocity turns negative, 1 s lag.
+[deploy.drogue]
+event = "apogee"
+delay = "1 s"

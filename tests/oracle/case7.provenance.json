@@ -1,0 +1,16 @@
+{
+  "kind": "provenance",
+  "schema": "rw/1",
+  "case": 7,
+  "source_example": "Two stage high power rocket.ork",
+  "openrocket_version": "26.xx-SNAPSHOT+591c5e5f7b73",
+  "harness_commit": "f7274c1f27676a3e4226b0278a473545c9184d27",
+  "generic_motor": "RW_I261G+RW_I60G",
+  "files": {
+    "case7-generic.json": "d5a304ce6dce50413a75057fd5b4925e25b5b7ecdea6ec1469f74ea13959ec98",
+    "case7-generic.series.json": "9df363c02b5f07daf8662ab2be2b9b0df7c3037e43cced7a25ce6044a3b7ebab",
+    "case7-original.json": "86b0ab844e2b63d6f3c8c42d179f0587064f4fa16978b1e726842823bdb971ea",
+    "case7.aero_sweep.json": "d1dd44917b37f8acf95ec87b140ee6b65a2e464ef941629587f8dbaa31779d44",
+    "case7.geometry.json": "5329d6ce0aa3dee94e66d1a2dca93153a8bb4b0665306dce8d247b042958a732"
+  }
+}

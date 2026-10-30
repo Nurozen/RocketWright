@@ -1,0 +1,18 @@
+{
+  "provenance": "contract-fixture",
+  "type": "command",
+  "payload": {
+    "command": "model_patch",
+    "input": {
+      "ops": [
+        {
+          "op": "replace",
+          "path": "/c/fins/span",
+          "value": "90 mm"
+        }
+      ],
+      "dry_run": false,
+      "label": "Fin span 90 mm"
+    }
+  }
+}

@@ -1,0 +1,22 @@
+!  EXAMPLE 14:
+!     (a)  Output from this case is used 1) to illustrate the effect of
+!          condensed species on volume and molecular weight (see sec.2.2,part I)
+!     (b)  Assigned-temperature-and-pressure problem (tp).
+!     (c)  Reactants are H2(L) and O2(L) and amounts are specified in moles.
+!     (d)  The "exploded" formulas are given to save the program looking them
+!          up.  Reactant enthalpies are not needed for assigned temperature
+!          problems.
+!     (e)  Assigned pressure in atmospheres is p,atm =.05.
+!     (f)  Assigned temperatures in kelvin are t,k =1000,500,351,305,304.3,
+!          304, 300.
+!     (g)  Print intermediate output for the fifth point with debug = 5.
+
+reac      name H2(L) moles=100
+          name O2(L) moles=60
+
+prob      tp  p,atm=.05  case=14
+          t,k = 1000,500,350,305,304.3,304.2,304,300,
+
+output    siunits  long
+
+end

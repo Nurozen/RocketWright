@@ -1,0 +1,10 @@
+{
+  "provenance": "contract-fixture",
+  "type": "tools/motor_search.input",
+  "payload": {
+    "class": "F",
+    "diameter": "29 mm",
+    "min_impulse": "40 N*s",
+    "limit": 10
+  }
+}

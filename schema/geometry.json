@@ -1,0 +1,372 @@
+{
+  "type": "object",
+  "properties": {
+    "schema": {
+      "type": "string",
+      "const": "rw/1"
+    },
+    "model_hash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "length": {
+      "type": "number",
+      "format": "double",
+      "description": "Overall length (nose tip to the aftmost point).",
+      "x-unit-dimension": "length"
+    },
+    "max_diameter": {
+      "type": "number",
+      "format": "double",
+      "x-unit-dimension": "length"
+    },
+    "ref_diameter": {
+      "type": "number",
+      "format": "double",
+      "x-unit-dimension": "length"
+    },
+    "ref_area": {
+      "type": "number",
+      "format": "double",
+      "x-unit-dimension": "area"
+    },
+    "components": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ComponentGeometry"
+      }
+    }
+  },
+  "required": [
+    "schema",
+    "model_hash",
+    "length",
+    "max_diameter",
+    "ref_diameter",
+    "ref_area",
+    "components"
+  ],
+  "description": "The whole vehicle's geometry.",
+  "title": "Geometry",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rocketwright.dev/schema/1/geometry.json",
+  "$defs": {
+    "ComponentGeometry": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/$defs/ComponentType"
+        },
+        "aero": {
+          "type": "boolean",
+          "description": "Participates in aerodynamics."
+        },
+        "cut": {
+          "type": "boolean"
+        },
+        "x_fore": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "x_aft": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "outer": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ProfilePoint"
+          },
+          "description": "Outer profile of a solid of revolution, fore to aft (empty for plates)."
+        },
+        "inner": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ProfilePoint"
+          },
+          "description": "Inner profile (bore), fore to aft; empty when solid."
+        },
+        "fins": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FinGeometry"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "instances": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/InstanceGeometry"
+          },
+          "description": "Instance placements (one identity entry when not instanced)."
+        },
+        "volume": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "volume"
+        },
+        "wetted_area": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "area"
+        },
+        "planform_area": {
+          "type": "number",
+          "format": "double",
+          "description": "Planform area (fins) or side projected area (bodies).",
+          "x-unit-dimension": "area"
+        },
+        "bbox": {
+          "$ref": "#/$defs/Aabb"
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "aero",
+        "cut",
+        "x_fore",
+        "x_aft",
+        "outer",
+        "inner",
+        "instances",
+        "volume",
+        "wetted_area",
+        "planform_area",
+        "bbox"
+      ],
+      "description": "One component's geometry."
+    },
+    "ComponentType": {
+      "type": "string",
+      "enum": [
+        "nose_cone",
+        "body_tube",
+        "transition",
+        "trapezoidal_fin_set",
+        "elliptical_fin_set",
+        "freeform_fin_set",
+        "tube_fin_set",
+        "inner_tube",
+        "coupler",
+        "centering_ring",
+        "bulkhead",
+        "engine_block",
+        "launch_lug",
+        "rail_button",
+        "parachute",
+        "streamer",
+        "shock_cord",
+        "mass_component",
+        "tank"
+      ],
+      "description": "The component kind as a plain tag (`\"nose_cone\"`, ...)."
+    },
+    "ProfilePoint": {
+      "type": "object",
+      "properties": {
+        "x": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "r": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "length"
+        }
+      },
+      "required": [
+        "x",
+        "r"
+      ],
+      "description": "A profile vertex: station `x`, radius `r`."
+    },
+    "FinGeometry": {
+      "type": "object",
+      "properties": {
+        "count": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "planform": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "format": "double"
+            },
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "description": "Planform polygon `[x, y]`: x station, y height above the root (closed, CCW).",
+          "x-unit-dimension": "length"
+        },
+        "tab": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "format": "double"
+            },
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "description": "Tab polygon in the same frame (y ≤ 0), if any.",
+          "x-unit-dimension": "length"
+        },
+        "root_radius": {
+          "type": "number",
+          "format": "double",
+          "description": "Body radius at the root.",
+          "x-unit-dimension": "length"
+        },
+        "thickness": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "cross_section": {
+          "$ref": "#/$defs/FinCrossSection"
+        },
+        "cant": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "angle"
+        },
+        "fillet_radius": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "roll": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "description": "Roll angle of each fin about +X from +Y.",
+          "x-unit-dimension": "angle"
+        },
+        "span": {
+          "type": "number",
+          "format": "double",
+          "description": "Derived planform values used by aero.",
+          "x-unit-dimension": "length"
+        },
+        "root_chord": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "tip_chord": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "mid_chord_sweep_length": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "mean_aero_chord": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "length"
+        }
+      },
+      "required": [
+        "count",
+        "planform",
+        "root_radius",
+        "thickness",
+        "cross_section",
+        "cant",
+        "fillet_radius",
+        "roll",
+        "span",
+        "root_chord",
+        "tip_chord",
+        "mid_chord_sweep_length",
+        "mean_aero_chord"
+      ],
+      "description": "A fin set's plates."
+    },
+    "FinCrossSection": {
+      "type": "string",
+      "enum": [
+        "square",
+        "rounded",
+        "airfoil"
+      ]
+    },
+    "InstanceGeometry": {
+      "type": "object",
+      "properties": {
+        "offset": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "minItems": 3,
+          "maxItems": 3,
+          "x-unit-dimension": "length"
+        },
+        "roll": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "angle"
+        }
+      },
+      "required": [
+        "offset",
+        "roll"
+      ]
+    },
+    "Aabb": {
+      "type": "object",
+      "properties": {
+        "min": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "minItems": 3,
+          "maxItems": 3,
+          "x-unit-dimension": "length"
+        },
+        "max": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "minItems": 3,
+          "maxItems": 3,
+          "x-unit-dimension": "length"
+        }
+      },
+      "required": [
+        "min",
+        "max"
+      ],
+      "description": "Axis-aligned bounding box in the body frame."
+    }
+  }
+}

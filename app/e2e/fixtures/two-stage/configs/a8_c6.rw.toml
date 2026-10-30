@@ -1,0 +1,12 @@
+name = "A8 over C6"
+
+[motors.sustainer_mmt]
+motor = "generic:RW_A8G"
+delay = "3 s"
+ignition = "previous_burnout"
+
+[motors.booster_mmt]
+motor = "generic:RW_C6G"
+
+[deploy.chute]
+event = "ejection"

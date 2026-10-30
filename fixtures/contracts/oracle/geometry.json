@@ -1,0 +1,86 @@
+{
+  "provenance": "contract-fixture",
+  "type": "oracle-golden",
+  "note": "Contract fixture in the oracle-golden schema; invented numbers, not OpenRocket output",
+  "payload": {
+    "kind": "geometry",
+    "schema": "rw/1",
+    "case": 0,
+    "name": "Contract fixture rocket",
+    "components": [
+      {
+        "name": "Nose cone",
+        "type": "nose_cone",
+        "parent": null,
+        "x_fore_m": 0.0,
+        "length_m": 0.1,
+        "fields": {
+          "od_m": 0.025,
+          "thickness_m": 0.002
+        },
+        "material": "Polystyrene",
+        "shape": "ogive",
+        "mass_override_kg": null,
+        "cg_override_m": null
+      },
+      {
+        "name": "Body tube",
+        "type": "body_tube",
+        "parent": "Nose cone",
+        "x_fore_m": 0.1,
+        "length_m": 0.3,
+        "fields": {
+          "od_m": 0.025,
+          "id_m": 0.024
+        },
+        "material": "Cardboard",
+        "shape": null,
+        "mass_override_kg": null,
+        "cg_override_m": null
+      }
+    ],
+    "configurations": [
+      {
+        "id": "fixture-config",
+        "name": "C6-5",
+        "motors": [
+          {
+            "mount": "Inner tube",
+            "designation": "C6",
+            "digest": "92c1b7a1ca2677a23f343a8129377ab78a887c50ee2a4826759aac18d5a2d2b6",
+            "delay_s": 5.0
+          }
+        ]
+      }
+    ],
+    "sims": [
+      {
+        "name": "Contract fixture sim",
+        "config_id": "fixture-config",
+        "conditions": {
+          "rail_length_m": 1.0,
+          "rod_angle_deg": 0.0,
+          "rod_direction_deg": 0.0,
+          "site_altitude_m": 0.0,
+          "latitude_deg": 0.0,
+          "longitude_deg": 0.0,
+          "base_temperature_k": 288.15,
+          "base_pressure_pa": 101325.0,
+          "atmosphere": "ussa1976",
+          "geodetic": "flat",
+          "wind_speed_ms": 0.0,
+          "wind_direction_deg": 0.0,
+          "wind_turbulence": 0.0,
+          "time_step_s": 0.05,
+          "integrator": "rk4",
+          "gravity": {
+            "model": "constant",
+            "g_ms2": 9.80665
+          },
+          "launch_into_wind": false
+        },
+        "conditions_hash": "sha256:17c7f9cb1767a8d2164caf6280997b12df732db11f63a93fd9f983c124d56c0d"
+      }
+    ]
+  }
+}

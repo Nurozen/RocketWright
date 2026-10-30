@@ -1,0 +1,9 @@
+# The concept-art research vehicle (concepts.md section 4.1) as a real model
+# (plan M1.54c). Numbers come from the model, not from the art.
+format = 1
+name = "Research vehicle"
+default_config = "baseline"
+
+[display_units]
+length = "mm"
+mass = "g"

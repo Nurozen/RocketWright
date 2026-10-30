@@ -1,0 +1,28 @@
+#!/bin/sh
+# rocketwright-render (RL3): the headless 3D renderer of a checkout. Reads an
+# IF8 RenderRequest JSON on stdin, renders it in a hidden Electron window with
+# the built web bundle, prints one reply JSON line on stdout. `rw render
+# --view iso|top|side|front|rear` finds it through RW_RENDER (or beside the
+# binary / in the app bundle); see crates/rw-cli/src/render3d.rs.
+# Needs `make wasm`, `pnpm --dir app --filter @rw/web build`, and a logged-in
+# GUI session (WebGPU; I11).
+set -eu
+self=$0
+# Follow symlinks (a link beside the rocketwright binary points here).
+while [ -L "$self" ]; do
+  link=$(readlink "$self")
+  case $link in
+    /*) self=$link ;;
+    *) self=$(dirname "$self")/$link ;;
+  esac
+done
+root=$(cd "$(dirname "$self")/.." && pwd -P)
+desktop="$root/app/apps/desktop"
+pathfile="$desktop/node_modules/electron/path.txt"
+if [ ! -f "$pathfile" ]; then
+  printf '{"status":"error","error":"electron is not installed (run pnpm --dir %s install)"}\n' "$root/app"
+  exit 1
+fi
+electron="$desktop/node_modules/electron/dist/$(cat "$pathfile")"
+# Some agent shells export ELECTRON_RUN_AS_NODE=1, which turns Electron into plain Node.
+exec env -u ELECTRON_RUN_AS_NODE "$electron" "$desktop/src/render-main.ts" "$@" -ApplePersistenceIgnoreState YES

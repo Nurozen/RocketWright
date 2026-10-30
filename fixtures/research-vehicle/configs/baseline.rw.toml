@@ -1,0 +1,12 @@
+name = "Baseline"
+description = "Class B generic motor; the parachute opens at the ejection charge"
+
+[motors.motor_casing]
+motor = "generic:RW_B4G"
+delay = "2 s"
+
+[deploy.chute]
+event = "ejection"
+
+[deploy.streamer]
+event = "never"

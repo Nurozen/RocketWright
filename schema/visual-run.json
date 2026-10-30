@@ -1,0 +1,261 @@
+{
+  "type": "object",
+  "properties": {
+    "schema": {
+      "type": "string",
+      "const": "rw/1"
+    },
+    "sim": {
+      "type": "string"
+    },
+    "sim_name": {
+      "type": "string"
+    },
+    "run_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{12}$"
+    },
+    "provenance": {
+      "$ref": "#/$defs/Provenance"
+    },
+    "engine": {
+      "type": "string"
+    },
+    "engine_name": {
+      "type": "string"
+    },
+    "attitude": {
+      "$ref": "#/$defs/AttitudeSource"
+    },
+    "replay_run": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "`run` attitude: the replayed flight run (`<sim>/<run-id>`)."
+    },
+    "duration": {
+      "type": "number",
+      "format": "double",
+      "description": "Study length, s."
+    },
+    "burn_time": {
+      "type": "number",
+      "format": "double",
+      "description": "The engine's blowdown burn time, s (the tank is empty or the burn\nended after it)."
+    },
+    "tank": {
+      "$ref": "#/$defs/VisualTank"
+    },
+    "geometry": {
+      "$ref": "#/$defs/VisualEngineGeometry"
+    },
+    "samples": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/VisualSample"
+      },
+      "description": "On a fixed grid from 0 to `duration`."
+    },
+    "assumptions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "schema",
+    "sim",
+    "sim_name",
+    "run_id",
+    "provenance",
+    "engine",
+    "engine_name",
+    "attitude",
+    "duration",
+    "burn_time",
+    "tank",
+    "geometry",
+    "samples",
+    "assumptions"
+  ],
+  "description": "`runs/<study>/<run-id>/visual.json`: a visual flow study's timeline\n(M5.1, D10c). The tank drains with the engine's engineering blowdown\nwhile the attitude source tilts the vehicle; the page 06 GPU fluid reads\nthe body-frame specific force and the fill fraction at each time.\n`provenance` is always `visual` (I13): nothing here feeds an\nengineering number.",
+  "title": "VisualRun",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rocketwright.dev/schema/1/visual-run.json",
+  "$defs": {
+    "Provenance": {
+      "type": "string",
+      "enum": [
+        "engineering",
+        "visual",
+        "cfd"
+      ],
+      "description": "Result provenance (I13). Visual results never feed engineering numbers."
+    },
+    "AttitudeSource": {
+      "oneOf": [
+        {
+          "type": "string",
+          "const": "scripted_tilt",
+          "description": "A scripted rocking tilt (`tilt`, `swing`, `period`) on a static stand."
+        },
+        {
+          "type": "string",
+          "const": "run",
+          "description": "Replay of a flight run (`replay`)."
+        }
+      ],
+      "description": "Where a visual flow study's attitude comes from."
+    },
+    "VisualTank": {
+      "type": "object",
+      "properties": {
+        "node": {
+          "type": "string",
+          "description": "Feed node id."
+        },
+        "fluid": {
+          "type": "string"
+        },
+        "length": {
+          "type": "number",
+          "format": "double"
+        },
+        "od": {
+          "type": "number",
+          "format": "double"
+        },
+        "wall": {
+          "type": "number",
+          "format": "double"
+        },
+        "end_cap": {
+          "$ref": "#/$defs/EndCap"
+        },
+        "volume": {
+          "type": "number",
+          "format": "double",
+          "description": "Internal volume, m³."
+        },
+        "fill0": {
+          "type": "number",
+          "format": "double",
+          "description": "Liquid volume over the internal volume at t = 0."
+        }
+      },
+      "required": [
+        "node",
+        "fluid",
+        "length",
+        "od",
+        "wall",
+        "end_cap",
+        "volume",
+        "fill0"
+      ],
+      "description": "The tank the study shows (SI)."
+    },
+    "EndCap": {
+      "type": "string",
+      "enum": [
+        "flat",
+        "hemispherical",
+        "ellipsoidal"
+      ]
+    },
+    "VisualEngineGeometry": {
+      "type": "object",
+      "properties": {
+        "throat_diameter": {
+          "type": "number",
+          "format": "double"
+        },
+        "exit_diameter": {
+          "type": "number",
+          "format": "double"
+        },
+        "chamber_diameter": {
+          "type": "number",
+          "format": "double"
+        },
+        "chamber_length": {
+          "type": "number",
+          "format": "double"
+        },
+        "convergent_length": {
+          "type": "number",
+          "format": "double"
+        },
+        "nozzle_length": {
+          "type": "number",
+          "format": "double"
+        },
+        "feed_diameter": {
+          "type": "number",
+          "format": "double",
+          "description": "The tank's feed line inner diameter."
+        }
+      },
+      "required": [
+        "throat_diameter",
+        "exit_diameter",
+        "chamber_diameter",
+        "chamber_length",
+        "convergent_length",
+        "nozzle_length",
+        "feed_diameter"
+      ],
+      "description": "Engine and feed proportions for the cutaway (SI, from the design)."
+    },
+    "VisualSample": {
+      "type": "object",
+      "properties": {
+        "t": {
+          "type": "number",
+          "format": "double"
+        },
+        "tilt_deg": {
+          "type": "number",
+          "format": "double",
+          "description": "Vehicle axis from vertical, degrees."
+        },
+        "specific_force": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "minItems": 3,
+          "maxItems": 3,
+          "description": "Body-frame specific force (what an accelerometer reads), m/s²: +X\naft, +Y starboard, +Z up. The liquid settles along its opposite."
+        },
+        "relative_flow": {
+          "type": "number",
+          "format": "double",
+          "description": "Total propellant mass flow over its peak (0..1)."
+        },
+        "relative_fill": {
+          "type": "number",
+          "format": "double",
+          "description": "Tank liquid over its initial liquid (0..1)."
+        },
+        "fill_fraction": {
+          "type": "number",
+          "format": "double",
+          "description": "Tank liquid volume over the tank volume (0..1)."
+        }
+      },
+      "required": [
+        "t",
+        "tilt_deg",
+        "specific_force",
+        "relative_flow",
+        "relative_fill",
+        "fill_fraction"
+      ],
+      "description": "One study sample."
+    }
+  }
+}

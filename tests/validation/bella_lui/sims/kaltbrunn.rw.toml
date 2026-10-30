@@ -1,0 +1,23 @@
+# Kaltbrunn launch, 2020-02-22 13:00 UTC. The validation test replaces the
+# standard atmosphere and calm wind below with the ERA5 sounding
+# (era5_profile.csv).
+name = "Kaltbrunn 2020-02-22"
+config = "k828fj"
+gravity = { model = "constant", g = "9.81 m/s^2" }
+
+[launch]
+rail_length = "4.2 m"
+# Inclination 89 deg from horizontal, heading 45 deg.
+rod_angle = "1 deg"
+rod_direction = "45 deg"
+altitude = "407 m"
+latitude = "47.213476 deg"
+longitude = "9.003336 deg"
+geodetic = "flat"
+
+[atmosphere]
+model = "ussa1976"
+
+[wind]
+speed = "0 m/s"
+direction = "0 deg"

@@ -1,0 +1,8 @@
+{
+  "provenance": "contract-fixture",
+  "type": "tools/engine_simulate.input",
+  "payload": {
+    "engine": "demo",
+    "duration": "4 s"
+  }
+}

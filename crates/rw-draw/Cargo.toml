@@ -1,0 +1,19 @@
+[package]
+name = "rw-draw"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+rw-model.workspace = true
+rw-geom.workspace = true
+rw-check.workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true
+rw-cli = { path = "../rw-cli" }
+rw-aero.workspace = true
+rw-mass.workspace = true
+rw-motor.workspace = true

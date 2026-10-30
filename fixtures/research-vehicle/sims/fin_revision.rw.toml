@@ -1,0 +1,16 @@
+# Same flight as Baseline. Its seeded run predates the fin revision
+# (step 03 of seed.sh), so it shows Outdated (plan M1.55).
+name = "Fin revision"
+config = "baseline"
+
+[launch]
+rail_length = "1.5 m"
+rod_angle = "5 deg"
+rod_direction = "0 deg"
+
+[atmosphere]
+model = "ussa1976"
+
+[wind]
+speed = "3 m/s"
+direction = "270 deg"

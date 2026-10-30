@@ -1,0 +1,8 @@
+{
+  "provenance": "contract-fixture",
+  "type": "tools/design_check.input",
+  "payload": {
+    "config": "baseline",
+    "strict": true
+  }
+}

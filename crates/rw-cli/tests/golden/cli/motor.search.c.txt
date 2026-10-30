@@ -1,0 +1,1 @@
+generic:RW_C6G                   C       18 mm      9.6 Ns    1.6 s  RW_C6G

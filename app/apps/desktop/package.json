@@ -1,0 +1,30 @@
+{
+  "name": "@rw/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "license": "AGPL-3.0-or-later",
+  "type": "module",
+  "main": "./src/main.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "start": "env -u ELECTRON_RUN_AS_NODE electron src/main.ts --dev-project",
+    "typecheck": "tsc -p tsconfig.json",
+    "lint": "oxlint -c ../../.oxlintrc.json --deny-warnings .",
+    "test": "vitest run --fsModuleCachePath node_modules/.vitest-cache",
+    "test:gpu": "make -C ../../.. wasm && pnpm --filter @rw/web build && vitest run -c vitest.gpu.config.ts",
+    "browser": "node src/backend.ts --browser --dev-project --open"
+  },
+  "dependencies": {
+    "@rw/contracts": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "electron": "44.8.0",
+    "electron-builder": "26.15.3",
+    "rolldown": "1.2.14",
+    "typescript": "6.0.3",
+    "vitest": "5.0.5"
+  }
+}

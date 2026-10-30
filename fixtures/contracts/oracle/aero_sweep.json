@@ -1,0 +1,52 @@
+{
+  "provenance": "contract-fixture",
+  "type": "oracle-golden",
+  "note": "Contract fixture in the oracle-golden schema; invented numbers, not OpenRocket output",
+  "payload": {
+    "kind": "aero_sweep",
+    "schema": "rw/1",
+    "case": 0,
+    "config_id": "fixture-config",
+    "alpha_deg": 0.0,
+    "points": [
+      {
+        "mach": 0.05,
+        "cd_total": 0.55,
+        "cd_friction": 0.3,
+        "cd_pressure": 0.1,
+        "cd_base": 0.15,
+        "cna": 10.0,
+        "cp_m": 0.33,
+        "components": [
+          {
+            "name": "Nose cone",
+            "cd_total": 0.12,
+            "cd_friction": 0.08,
+            "cd_pressure": 0.04,
+            "cd_base": null,
+            "cna": 10.0,
+            "cp_m": 0.33
+          },
+          {
+            "name": "Body tube",
+            "cd_total": 0.43,
+            "cd_friction": 0.22,
+            "cd_pressure": 0.06,
+            "cd_base": 0.15,
+            "cna": null,
+            "cp_m": null
+          }
+        ]
+      },
+      {
+        "mach": 0.3,
+        "cd_total": 0.5,
+        "cd_friction": 0.27,
+        "cd_pressure": 0.09,
+        "cd_base": 0.14,
+        "cna": 10.1,
+        "cp_m": 0.331
+      }
+    ]
+  }
+}

@@ -1,0 +1,181 @@
+{
+  "note": "B4 tool parity golden: every non-window tool's name, display title, and sha256 of its canonical input/output schema (schema/tools/<name>.*.json); appOnly marks tools hidden from the model (MCP Apps visibility [\"app\"]). Regenerate: RW_UPDATE_GOLDEN=1 pnpm --filter @rw/server test -- tool-parity",
+  "tools": [
+    {
+      "name": "cfd_import",
+      "title": "Import CFD data",
+      "input": "sha256:f31f5909e3f7288529ca5dbf221bc8c519c898c4b6ea0902f3abeeef8a445b22",
+      "output": "sha256:31bf37ee00599b7fee52d1a81d4c4a4e53a067c30bab8852bac0ffd20e76b0bb"
+    },
+    {
+      "name": "component_add",
+      "title": "Add component",
+      "input": "sha256:59db0ee54eb5a12db367a670df0f3eda6e4209158336028454bceac0781d43f0",
+      "output": "sha256:71ae9fde90bb846788e65cfb7b328edddab63a36326580d3e8c9a0de55ab997b"
+    },
+    {
+      "name": "component_remove",
+      "title": "Remove component",
+      "input": "sha256:33801d667a8a0864f66b4adc3db8d3e9cc3d0347a25c3338c80bd35dfdfe7ff4",
+      "output": "sha256:0e60070b31fa85f98ddd5c9587dd075bd79d49f86ac664d6863dc65fe2a0d063"
+    },
+    {
+      "name": "design_check",
+      "title": "Check design",
+      "input": "sha256:1fc01037f261fa2091c5ea865648834426bd2e5847d3526af678c4e6df60cdfd",
+      "output": "sha256:d1657449a83981ae8e1cd8f8dbc7c9a09ff1db35979e2f1a58cdbe2ee2f2f83f"
+    },
+    {
+      "name": "engine_design",
+      "title": "Size engine",
+      "input": "sha256:05ec7d0ab4a41c7cef38a55a9d930901a7d707b59eb22aef52745e1defda274e",
+      "output": "sha256:191563158722069aaa8288a203253975cbe3101326d5f62d2f4521f70c04d9a5"
+    },
+    {
+      "name": "engine_simulate",
+      "title": "Simulate engine",
+      "input": "sha256:e85f319ffd641d70d9f683951b53081f6edfaf8cb765052e08e847c779804019",
+      "output": "sha256:6e77a81b9da87d1ea9e30e1163d64cfe351cef104e5d4d10dbda684215ea0bb1"
+    },
+    {
+      "name": "export_file",
+      "title": "Export file",
+      "input": "sha256:4c0e6f2439a373c763783e125d9eadc41f57f1d5b092209172af89c55b7bb834",
+      "output": "sha256:90fcab3f1d279e52663ade827165e88438ddfc6b9b1fab07180899de3bc3d0e6"
+    },
+    {
+      "name": "history_compare",
+      "title": "Compare versions",
+      "input": "sha256:b4842b2d340e5bdc4e39cd7343809ddc0221338c616c07c531749c79cc0e959a",
+      "output": "sha256:655ed75b87eb1c63f1a487945042400b463feee7457ea99e15e3a0551f858bc6"
+    },
+    {
+      "name": "history_list",
+      "title": "List history",
+      "input": "sha256:6c7fbe34096325fc855d6567898f2b17b4a711053d47570ba56320717ea5cfd3",
+      "output": "sha256:de08d392756ebf4554c52b65f95dca3d5fefde141a6792dd0359f85bcc10c6c8"
+    },
+    {
+      "name": "history_restore",
+      "title": "Restore version",
+      "input": "sha256:df67c6bb59bf10012d88db3fec344c048638c35ba2dc3781cf8bac57e10ee3fd",
+      "output": "sha256:90e08a69f42d57d0809260e47e63781207033287653de782c160aff09b7ebb19"
+    },
+    {
+      "name": "history_show",
+      "title": "Show history step",
+      "input": "sha256:a8c2c0f4ece19494b1b74d5650401cb5fcc00d896fd42dc44f22318ffa1dba03",
+      "output": "sha256:d8752c1ab7b176af80690016a627e9db6cbf34b82985868ce873bffd531acb3c"
+    },
+    {
+      "name": "history_tag",
+      "title": "Tag revision",
+      "input": "sha256:92bbe18426eae1a5d21985c01905712479489a1c266f4b43828b12ce203ec7a3",
+      "output": "sha256:f8d91d53fab458646f4b8c8931852e0bfc2c290140dbeaea5aabc6e903be4209"
+    },
+    {
+      "name": "import_file",
+      "title": "Import file",
+      "input": "sha256:2c89643064141e23a4f0959ed5778f14f0e5938d5f7458092207e4dc720d62f1",
+      "output": "sha256:5d80f8ca9ccfe6592ef868a4f63ab928b418b34568be2dfbd3753ff5eabf1ad6"
+    },
+    {
+      "name": "job_cancel",
+      "title": "Cancel run",
+      "input": "sha256:7abc5039e66f21bc8b7afe184e39b4f9465dcc18c9ee472ad5612052baaf873a",
+      "output": "sha256:0ce8d39f8d7b873a82e3d5523dcbca90dfc927484484a0fe35310cf2d62ef0d7"
+    },
+    {
+      "name": "job_status",
+      "title": "Check run",
+      "input": "sha256:08e7de5f0788f2c5e58cbb5f067304c07a091072f8ea5cecbd95f0668fd4ff98",
+      "output": "sha256:15d39a17d1d1e946cabe21deb7c14460de5d87d8a0c8a1256b3402dcda220302"
+    },
+    {
+      "name": "library_search",
+      "title": "Search library",
+      "input": "sha256:366ddad4b352e3b9f3a70f0caaf3378a0efee381522f891ea37d768a8a72d0f8",
+      "output": "sha256:5ee7a35670a6ea5b0f749cd055d1bfd0ecd5c83a513eecb3fd4aef120daddc47"
+    },
+    {
+      "name": "model_diff",
+      "title": "Compare models",
+      "input": "sha256:ae0ac3a9d7ef895ad3be008dcfb28652a38de3f6e4d9bbb52b6a8982f2688beb",
+      "output": "sha256:59de20fe5c8e83480b793230feb4265ba897e0ac694b7071a7941effcadd3fa9"
+    },
+    {
+      "name": "model_get",
+      "title": "Read model",
+      "input": "sha256:6e0cc4f399c735c8daf645d19b095ab5dc8301ba01b6303d9134945cbf94c3b0",
+      "output": "sha256:8f3e3f20d621cc4d27898cfffef0b7da4cb170942a7d3584a391b0d55def844e"
+    },
+    {
+      "name": "model_patch",
+      "title": "Edit model",
+      "input": "sha256:b87b32e1d74b93f2c2e2424d82f9bc25b6239395565b5d006a3c0433f469f3cc",
+      "output": "sha256:ee2edf2f8e898343640008f5acfa072c593fae1b3221b522a70255aa8b926bbc"
+    },
+    {
+      "name": "motor_search",
+      "title": "Find motors",
+      "input": "sha256:15639d3e0d6c994d0525ea2958a872923223ea2192772cd72625b21ae233abc2",
+      "output": "sha256:14857e3f24568b532a80b8ae4e45adc646e125a93bda313db5684c0e46ace8d3"
+    },
+    {
+      "name": "project_create",
+      "title": "Create project",
+      "input": "sha256:5048d90a051a4f0491aaec31300140b3c8c87830e874abc008b80baa510706b2",
+      "output": "sha256:893bc1f1eb27219bbda7b9f70935508695213b2516e81ef343e21169ee135d6d"
+    },
+    {
+      "name": "project_validate",
+      "title": "Validate project",
+      "input": "sha256:7a6c7337b9516ff95af2231b5ad92a20ff0988ef23b4bbcd7069a59886c14fcd",
+      "output": "sha256:908b5456628f806a14690b63e2404813ab7a9d350323d3d2093c95ba1ce68835"
+    },
+    {
+      "name": "render",
+      "title": "Render view",
+      "input": "sha256:7493b76efdb0f6dac951f9e97b38d0afb946edb64b5a99f5feb064923c8f78b3",
+      "output": "sha256:27101779358403d683ebdf6f39af534038a983f6dd3a76057b0a158681e5bf0b"
+    },
+    {
+      "name": "render_picture",
+      "title": "Load render",
+      "input": "sha256:312b16189815cecb068e41847acf28ac20093c9d6cb211e71ed68aeba3ccbc71",
+      "output": "sha256:861fe55bf4b77f218aed9dcdd209ec2b9bc60ce4329792ce6310921c1b601583",
+      "appOnly": true
+    },
+    {
+      "name": "run_diff",
+      "title": "Compare runs",
+      "input": "sha256:1f0b2928a552581adb2aa5a930e92ef9c76b97be3eba7604108706a25e8bccb1",
+      "output": "sha256:d414fd32755fc2012258348a38bafafea768ac26a323e34ec4b50a41db052b52"
+    },
+    {
+      "name": "run_list",
+      "title": "List runs",
+      "input": "sha256:676dd26347e8493b5f7f52e096b4720e0f94cef2b8cd62fb177349d64c672f34",
+      "output": "sha256:abd12ab51d1aeea864faef63bdafcaf71af512c7a116f08262c5c6b1958bec26"
+    },
+    {
+      "name": "run_series",
+      "title": "Read run samples",
+      "input": "sha256:ff589f660ef27e0f1f1196239ca8a9b8682605030abc9165a993cbd4c0be5a5a",
+      "output": "sha256:8ee95db85ae6ce8fadf7555d16206cb499a8c4b42417d22c1326cb807201114d",
+      "appOnly": true
+    },
+    {
+      "name": "schema_get",
+      "title": "Read schema",
+      "input": "sha256:e3fffec0832903ec8cb222fb11943fe256256ca861dc01014a6eef20c6358db7",
+      "output": "sha256:66c2d83e2bfc7c6aa15aff943aef385138f2f466af8ed53d4dcf6b6e71fdb719"
+    },
+    {
+      "name": "simulate",
+      "title": "Run simulation",
+      "input": "sha256:354cd5e319ceedd918dfc66a9fa2b56fc2741373dfea524f5cdd3874946a6857",
+      "output": "sha256:b322334086b0c948d70748bfd49e3924493a901819708ea9f9181eb77663eff4"
+    }
+  ]
+}

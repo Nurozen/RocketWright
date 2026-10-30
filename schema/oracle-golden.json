@@ -1,0 +1,1151 @@
+{
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "golden",
+          "maxLength": 200
+        },
+        "schema": {
+          "type": "string",
+          "const": "rw/1",
+          "maxLength": 200
+        },
+        "case": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "matrix": {
+          "$ref": "#/$defs/Matrix"
+        },
+        "sim_name": {
+          "type": "string",
+          "description": "The simulation's name, verbatim.",
+          "maxLength": 200
+        },
+        "config_id": {
+          "type": "string",
+          "description": "The flight configuration id, verbatim.",
+          "maxLength": 200
+        },
+        "geometry_sha256": {
+          "type": "string",
+          "description": "sha256 hex of the `case<n>.geometry.json` bytes.",
+          "pattern": "^[0-9a-f]{64}$",
+          "maxLength": 200
+        },
+        "conditions": {
+          "$ref": "#/$defs/Conditions"
+        },
+        "conditions_hash": {
+          "type": "string",
+          "description": "[`conditions_hash`] of `conditions`.",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 200
+        },
+        "motor_digest": {
+          "type": "string",
+          "description": "[`motor_digest`] over `motors`.",
+          "pattern": "^[0-9a-f]{64}$",
+          "maxLength": 200
+        },
+        "motors": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/OracleMotor"
+          }
+        },
+        "summary": {
+          "$ref": "#/$defs/OracleSummary",
+          "description": "Summary in the oracle's key names (S:177 left side)."
+        },
+        "static": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/OracleStatic"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Static block at liftoff (absent in `original` goldens)."
+        },
+        "events": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/OracleEvent"
+          }
+        },
+        "components": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/OracleComponent"
+          },
+          "description": "Per-component mass, CG, CNα, CP (D9)."
+        }
+      },
+      "required": [
+        "kind",
+        "schema",
+        "case",
+        "matrix",
+        "sim_name",
+        "config_id",
+        "geometry_sha256",
+        "conditions",
+        "conditions_hash",
+        "motor_digest",
+        "motors",
+        "summary"
+      ],
+      "description": "A golden: OpenRocket's numbers for one case, sim, and configuration.",
+      "propertyNames": {
+        "maxLength": 200
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "series",
+          "maxLength": 200
+        },
+        "schema": {
+          "type": "string",
+          "const": "rw/1",
+          "maxLength": 200
+        },
+        "case": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "sim_name": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "config_id": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "conditions_hash": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 200
+        },
+        "dt_s": {
+          "type": "number",
+          "format": "double"
+        },
+        "columns": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "description": "Column names with units in the name (`time_s`, `altitude_m`)."
+        },
+        "rows": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            }
+          },
+          "description": "One row per step, one cell per column. A cell is `null` where the\noracle has no value at that step (CP, stability, angle of attack\nbefore liftoff or at zero airspeed)."
+        },
+        "branches": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/OracleSeriesBranch"
+          },
+          "description": "Series of the released stages (booster branches), same columns."
+        }
+      },
+      "required": [
+        "kind",
+        "schema",
+        "case",
+        "sim_name",
+        "config_id",
+        "conditions_hash",
+        "dt_s",
+        "columns",
+        "rows"
+      ],
+      "description": "`case<n>-generic.series.json`: 0.05 s series (generic-curve variants only).",
+      "propertyNames": {
+        "maxLength": 200
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "aero_sweep",
+          "maxLength": 200
+        },
+        "schema": {
+          "type": "string",
+          "const": "rw/1",
+          "maxLength": 200
+        },
+        "case": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "config_id": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "alpha_deg": {
+          "type": "number",
+          "format": "double"
+        },
+        "points": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AeroSweepPoint"
+          }
+        }
+      },
+      "required": [
+        "kind",
+        "schema",
+        "case",
+        "config_id",
+        "alpha_deg",
+        "points"
+      ],
+      "description": "`case<n>.aero_sweep.json`: CD breakdown, CNα, CP over Mach 0.05-0.9 (D9).",
+      "propertyNames": {
+        "maxLength": 200
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "geometry",
+          "maxLength": 200
+        },
+        "schema": {
+          "type": "string",
+          "const": "rw/1",
+          "maxLength": 200
+        },
+        "case": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "name": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "components": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/OracleGeomComponent"
+          }
+        },
+        "configurations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/OracleConfiguration"
+          }
+        },
+        "sims": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/OracleSimRef"
+          }
+        }
+      },
+      "required": [
+        "kind",
+        "schema",
+        "case",
+        "name",
+        "components",
+        "configurations",
+        "sims"
+      ],
+      "description": "`case<n>.geometry.json`: component tree in SI so builders can author\nfixtures without the GUI (R5.3). Kinds use RocketWright's vocabulary.",
+      "propertyNames": {
+        "maxLength": 200
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "provenance",
+          "maxLength": 200
+        },
+        "schema": {
+          "type": "string",
+          "const": "rw/1",
+          "maxLength": 200
+        },
+        "case": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "source_example": {
+          "type": "string",
+          "description": "Example file name the case came from.",
+          "maxLength": 200
+        },
+        "openrocket_version": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "harness_commit": {
+          "type": "string",
+          "description": "Oracle harness commit (its own repo, D17).",
+          "maxLength": 200
+        },
+        "generic_motor": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Generic curve substituted in the variant, e.g. `RW_C6G`.",
+          "maxLength": 200
+        },
+        "files": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "description": "Exported file name → sha256 hex.",
+          "propertyNames": {
+            "maxLength": 200
+          }
+        }
+      },
+      "required": [
+        "kind",
+        "schema",
+        "case",
+        "source_example",
+        "openrocket_version",
+        "harness_commit",
+        "files"
+      ],
+      "description": "`case<n>.provenance.json`.",
+      "propertyNames": {
+        "maxLength": 200
+      }
+    }
+  ],
+  "description": "Any file under `tests/oracle/` (tag `kind`).",
+  "title": "OracleFile",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rocketwright.dev/schema/1/oracle-golden.json",
+  "$defs": {
+    "Matrix": {
+      "oneOf": [
+        {
+          "type": "string",
+          "const": "generic",
+          "description": "Generic-curve variant (the B2 gate).",
+          "maxLength": 200
+        },
+        {
+          "type": "string",
+          "const": "original",
+          "description": "The unmodified example; summary keys only, no series (import check).",
+          "maxLength": 200
+        }
+      ]
+    },
+    "Conditions": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "rail_length_m": {
+          "type": "number",
+          "format": "double"
+        },
+        "rod_angle_deg": {
+          "type": "number",
+          "format": "double",
+          "description": "From vertical."
+        },
+        "rod_direction_deg": {
+          "type": "number",
+          "format": "double",
+          "description": "Azimuth, clockwise from north."
+        },
+        "site_altitude_m": {
+          "type": "number",
+          "format": "double"
+        },
+        "latitude_deg": {
+          "type": "number",
+          "format": "double"
+        },
+        "longitude_deg": {
+          "type": "number",
+          "format": "double"
+        },
+        "base_temperature_k": {
+          "type": "number",
+          "format": "double"
+        },
+        "base_pressure_pa": {
+          "type": "number",
+          "format": "double"
+        },
+        "atmosphere": {
+          "$ref": "#/$defs/AtmosphereModel"
+        },
+        "geodetic": {
+          "$ref": "#/$defs/Geodetic"
+        },
+        "wind_speed_ms": {
+          "type": "number",
+          "format": "double"
+        },
+        "wind_direction_deg": {
+          "type": "number",
+          "format": "double",
+          "description": "Direction the wind blows from, clockwise from north."
+        },
+        "wind_turbulence": {
+          "type": "number",
+          "format": "double",
+          "description": "Turbulence intensity (fraction; 0 = steady)."
+        },
+        "time_step_s": {
+          "type": "number",
+          "format": "double",
+          "description": "Fixed step (rk4) or maximum step (dp54)."
+        },
+        "integrator": {
+          "$ref": "#/$defs/IntegratorKind"
+        },
+        "gravity": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/GravityModel"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Gravity model. Absent: the engine default (`wgs84`). Added after the\nM1.5 freeze as optional, so older files and their hashes are unchanged."
+        },
+        "launch_into_wind": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "Point the rod into the wind (the rod azimuth follows the wind\ndirection). Absent: `false`. Optional for the same reason as `gravity`."
+        }
+      },
+      "required": [
+        "rail_length_m",
+        "rod_angle_deg",
+        "rod_direction_deg",
+        "site_altitude_m",
+        "latitude_deg",
+        "longitude_deg",
+        "base_temperature_k",
+        "base_pressure_pa",
+        "atmosphere",
+        "geodetic",
+        "wind_speed_ms",
+        "wind_direction_deg",
+        "wind_turbulence",
+        "time_step_s",
+        "integrator"
+      ],
+      "description": "Launch and environment conditions. Shared verbatim by `EvalSim`,\n`SimInput`, `RunManifest`, and the oracle golden, so its hash\n(`rw_api::oracle::conditions_hash`) identifies a setup across all of them.\nUnits are in the key names.",
+      "propertyNames": {
+        "maxLength": 200
+      }
+    },
+    "AtmosphereModel": {
+      "oneOf": [
+        {
+          "type": "string",
+          "const": "ussa1976",
+          "description": "U.S. Standard Atmosphere 1976 (R4.4).",
+          "maxLength": 200
+        },
+        {
+          "type": "string",
+          "const": "isa_custom",
+          "description": "ISA with custom base temperature and pressure.",
+          "maxLength": 200
+        }
+      ]
+    },
+    "Geodetic": {
+      "type": "string",
+      "enum": [
+        "flat",
+        "spherical",
+        "wgs84"
+      ],
+      "maxLength": 200
+    },
+    "IntegratorKind": {
+      "oneOf": [
+        {
+          "type": "string",
+          "const": "dp54",
+          "description": "Dormand-Prince 5(4), adaptive, with event root-finding (default).",
+          "maxLength": 200
+        },
+        {
+          "type": "string",
+          "const": "rk4",
+          "description": "Classic RK4, fixed step (parity triage, D13).",
+          "maxLength": 200
+        }
+      ]
+    },
+    "GravityModel": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "model": {
+              "type": "string",
+              "const": "wgs84",
+              "maxLength": 200
+            }
+          },
+          "required": [
+            "model"
+          ],
+          "additionalProperties": false,
+          "description": "WGS84 normal gravity at the site latitude, falling off with altitude.",
+          "propertyNames": {
+            "maxLength": 200
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "model": {
+              "type": "string",
+              "const": "constant",
+              "maxLength": 200
+            },
+            "g_ms2": {
+              "type": "number",
+              "format": "double",
+              "description": "m/s², positive down."
+            }
+          },
+          "required": [
+            "model",
+            "g_ms2"
+          ],
+          "description": "Constant gravitational acceleration.",
+          "propertyNames": {
+            "maxLength": 200
+          }
+        }
+      ],
+      "description": "Gravity model (tag `model`)."
+    },
+    "OracleMotor": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "mount": {
+          "type": "string",
+          "description": "Mount component name.",
+          "maxLength": 200
+        },
+        "designation": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "digest": {
+          "type": "string",
+          "description": "sha256 hex of the curve file used.",
+          "pattern": "^[0-9a-f]{64}$",
+          "maxLength": 200
+        },
+        "delay_s": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        }
+      },
+      "required": [
+        "mount",
+        "designation",
+        "digest"
+      ],
+      "propertyNames": {
+        "maxLength": 200
+      }
+    },
+    "OracleSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "max_altitude_m": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        },
+        "max_velocity_ms": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        },
+        "max_accel_ms2": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        },
+        "max_mach": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        },
+        "time_to_apogee_s": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        },
+        "flight_time_s": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        },
+        "ground_hit_velocity_ms": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        },
+        "rod_clear_velocity_ms": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        },
+        "deployment_velocity_ms": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        },
+        "optimum_delay_s": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        }
+      },
+      "description": "Oracle summary keys. Map to `RunSummary` via `tests/oracle/keymap.json`.",
+      "propertyNames": {
+        "maxLength": 200
+      }
+    },
+    "OracleStatic": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "cg_m": {
+          "type": "number",
+          "format": "double"
+        },
+        "cp_m": {
+          "type": "number",
+          "format": "double"
+        },
+        "cna": {
+          "type": "number",
+          "format": "double"
+        },
+        "stability_cal": {
+          "type": "number",
+          "format": "double"
+        },
+        "mass_kg": {
+          "type": "number",
+          "format": "double"
+        },
+        "ref_diameter_m": {
+          "type": "number",
+          "format": "double"
+        },
+        "mach": {
+          "type": "number",
+          "format": "double"
+        }
+      },
+      "required": [
+        "cg_m",
+        "cp_m",
+        "cna",
+        "stability_cal",
+        "mass_kg",
+        "ref_diameter_m",
+        "mach"
+      ],
+      "description": "Static block: maps to `mass.cg`, `aero.cp`, `aero.cna`, `stability.liftoff`.",
+      "propertyNames": {
+        "maxLength": 200
+      }
+    },
+    "OracleEvent": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/OracleEventKind"
+        },
+        "t_s": {
+          "type": "number",
+          "format": "double"
+        },
+        "altitude_m": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        },
+        "velocity_ms": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        },
+        "branch": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Name of the released stage whose branch the event belongs to (a\nbooster after separation); absent on the main (sustainer) branch.",
+          "maxLength": 200
+        }
+      },
+      "required": [
+        "kind",
+        "t_s"
+      ],
+      "propertyNames": {
+        "maxLength": 200
+      }
+    },
+    "OracleEventKind": {
+      "type": "string",
+      "enum": [
+        "ignition",
+        "liftoff",
+        "launch_rod_clearance",
+        "burnout",
+        "ejection_charge",
+        "apogee",
+        "stage_separation",
+        "recovery_device_deployment",
+        "ground_hit",
+        "simulation_end"
+      ],
+      "maxLength": 200
+    },
+    "OracleComponent": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "mass_kg": {
+          "type": "number",
+          "format": "double"
+        },
+        "cg_m": {
+          "type": "number",
+          "format": "double"
+        },
+        "cna": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        },
+        "cp_m": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        }
+      },
+      "required": [
+        "name",
+        "mass_kg",
+        "cg_m"
+      ],
+      "propertyNames": {
+        "maxLength": 200
+      }
+    },
+    "OracleSeriesBranch": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "branch": {
+          "type": "string",
+          "description": "The released stage's name, verbatim.",
+          "maxLength": 200
+        },
+        "rows": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            }
+          },
+          "description": "Rows in the parent's `columns`, from the separation on."
+        }
+      },
+      "required": [
+        "branch",
+        "rows"
+      ],
+      "description": "One released stage's series in an [`OracleSeries`].",
+      "propertyNames": {
+        "maxLength": 200
+      }
+    },
+    "AeroSweepPoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "mach": {
+          "type": "number",
+          "format": "double"
+        },
+        "cd_total": {
+          "type": "number",
+          "format": "double"
+        },
+        "cd_friction": {
+          "type": "number",
+          "format": "double"
+        },
+        "cd_pressure": {
+          "type": "number",
+          "format": "double"
+        },
+        "cd_base": {
+          "type": "number",
+          "format": "double"
+        },
+        "cna": {
+          "type": "number",
+          "format": "double"
+        },
+        "cp_m": {
+          "type": "number",
+          "format": "double"
+        },
+        "components": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AeroSweepComponent"
+          },
+          "description": "Optional per-component breakdown at this Mach (D9). Absent or empty\nwhen the oracle exports only totals."
+        }
+      },
+      "required": [
+        "mach",
+        "cd_total",
+        "cd_friction",
+        "cd_pressure",
+        "cd_base",
+        "cna",
+        "cp_m"
+      ],
+      "propertyNames": {
+        "maxLength": 200
+      }
+    },
+    "AeroSweepComponent": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Component name, as in `case<n>.geometry.json`.",
+          "maxLength": 200
+        },
+        "cd_total": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        },
+        "cd_friction": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        },
+        "cd_pressure": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        },
+        "cd_base": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        },
+        "cna": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        },
+        "cp_m": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "description": "One component's share of an [`AeroSweepPoint`]. A term is `null` where\nthe component has none (a body tube has no CNα of its own, so no CP).",
+      "propertyNames": {
+        "maxLength": 200
+      }
+    },
+    "OracleGeomComponent": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "type": {
+          "$ref": "#/$defs/ComponentType"
+        },
+        "parent": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 200
+        },
+        "x_fore_m": {
+          "type": "number",
+          "format": "double",
+          "description": "Fore station from the nose tip."
+        },
+        "length_m": {
+          "type": "number",
+          "format": "double"
+        },
+        "fields": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "number",
+            "format": "double"
+          },
+          "description": "Numeric fields in SI with the unit in the key (`od_m`, `thickness_m`,\n`sweep_m`, `count`, `cd`, `mass_kg`, `density_kgm3`, `roughness_m`).",
+          "propertyNames": {
+            "maxLength": 200
+          }
+        },
+        "material": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 200
+        },
+        "shape": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Shape keyword where the kind has one (`ogive`, `conical`, ...).",
+          "maxLength": 200
+        },
+        "mass_override_kg": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        },
+        "cg_override_m": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        }
+      },
+      "required": [
+        "name",
+        "type",
+        "x_fore_m",
+        "length_m",
+        "fields"
+      ],
+      "propertyNames": {
+        "maxLength": 200
+      }
+    },
+    "ComponentType": {
+      "type": "string",
+      "enum": [
+        "nose_cone",
+        "body_tube",
+        "transition",
+        "trapezoidal_fin_set",
+        "elliptical_fin_set",
+        "freeform_fin_set",
+        "tube_fin_set",
+        "inner_tube",
+        "coupler",
+        "centering_ring",
+        "bulkhead",
+        "engine_block",
+        "launch_lug",
+        "rail_button",
+        "parachute",
+        "streamer",
+        "shock_cord",
+        "mass_component",
+        "tank"
+      ],
+      "description": "The component kind as a plain tag (`\"nose_cone\"`, ...).",
+      "maxLength": 200
+    },
+    "OracleConfiguration": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "name": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "motors": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/OracleMotor"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "motors"
+      ],
+      "propertyNames": {
+        "maxLength": 200
+      }
+    },
+    "OracleSimRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "config_id": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "conditions": {
+          "$ref": "#/$defs/Conditions"
+        },
+        "conditions_hash": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 200
+        }
+      },
+      "required": [
+        "name",
+        "config_id",
+        "conditions",
+        "conditions_hash"
+      ],
+      "propertyNames": {
+        "maxLength": 200
+      }
+    }
+  }
+}

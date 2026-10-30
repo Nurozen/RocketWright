@@ -1,0 +1,61 @@
+# Clean-room denylist (spec R8.3, plan clean-room rule 5). Owner: DATA.
+#
+# `cargo xtask audit` fails if any file in the repository names one of these.
+# This file and tests/oracle/denylist.or.txt (written by the oracle agent) are
+# the only files excluded from the scan. The two OpenRocket Java package roots
+# are built into the audit and need no entry here.
+#
+# Format: one entry per line; `#` starts a comment.
+#   - An entry made only of [A-Za-z0-9_] matches as a whole identifier:
+#     `FinSetCalc` matches `FinSetCalc::new` but not `MyFinSetCalcHelper`.
+#   - An entry containing `.` or `/` matches as a plain substring.
+#
+# Seed: distinctive OpenRocket class names, from general familiarity with the
+# project's public API surface (no source was opened to write this list). Plain
+# domain words (nose cone, body tube, fin set, thrust curve) are deliberately
+# absent: RocketWright uses them in its own model. Add a name here only if it
+# is specific to OpenRocket's implementation.
+
+# aerodynamics
+BarrowmanCalculator
+AbstractAerodynamicCalculator
+AerodynamicCalculator
+AerodynamicForces
+RocketComponentCalc
+SymmetricComponentCalc
+FinSetCalc
+TubeFinSetCalc
+LaunchLugCalc
+RailButtonCalc
+
+# simulation
+BasicEventSimulationEngine
+AbstractSimulationStepper
+RK4SimulationStepper
+RK6SimulationStepper
+BasicLandingStepper
+BasicTumbleStepper
+SimulationStatus
+DefaultSimulationOptionFactory
+FlightDataBranch
+FlightDataType
+
+# models
+ExtendedISAModel
+PinkNoiseWindModel
+ThrustCurveMotor
+ThrustCurveMotorSet
+
+# document, components, file formats
+OpenRocketDocument
+GeneralRocketLoader
+OpenRocketSaver
+RocketComponentSaver
+RocketComponent
+SymmetricComponent
+ExternalComponent
+InternalComponent
+RingComponent
+ComponentPreset
+FlightConfigurationId
+WarningSet

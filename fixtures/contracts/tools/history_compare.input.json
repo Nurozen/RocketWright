@@ -1,0 +1,8 @@
+{
+  "provenance": "contract-fixture",
+  "type": "tools/history_compare.input",
+  "payload": {
+    "a": "step:3",
+    "b": "step:4"
+  }
+}

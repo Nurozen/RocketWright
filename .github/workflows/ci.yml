@@ -1,0 +1,146 @@
+# RocketWright CI: `make check-fast`, split by runner (docs/dev/releasing.md
+# has the release side, docs/dev/environment.md the targets).
+#
+#   Lecturn kit  macOS   the vendored Lecturn tarballs app/ installs (lecturn-kit.yml)
+#   Rust         Linux   make check-rust: fmt, clippy, tests, audit, docs-check
+#   TypeScript   Linux   make schema-check wasm check-ts
+#   E2E          macOS   make wasm e2e (Playwright + Electron); not required yet
+#   Check        Linux   the one required status: every required job passed
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  lecturn-kit:
+    name: Lecturn kit
+    uses: ./.github/workflows/lecturn-kit.yml
+
+  rust:
+    name: Rust
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Rust
+        uses: ./.github/actions/setup-rust
+        with:
+          cache-key: check-rust
+
+      # rw-cli's seed_fixture test runs scripts/fixtures/seed.ts with `node`
+      # (type stripping: Node 24, as app/package.json engines says).
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          package-manager-cache: false
+
+      - name: make check-rust
+        run: make check-rust
+
+  ts:
+    name: Schema, WASM and TypeScript
+    needs: lecturn-kit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Rust
+        uses: ./.github/actions/setup-rust
+        with:
+          cache-key: check-ts
+          wasm-bindgen: "true"
+
+      - name: Setup app
+        uses: ./.github/actions/setup-app
+
+      - name: make schema-check wasm check-ts
+        run: make schema-check wasm check-ts
+
+  # Not in Check's needs yet: Playwright and Electron on a hosted macOS VM
+  # (no GPU, cold disks) have not been shown to pass reliably. Make it
+  # required by adding it to Check once it has a green track record.
+  e2e:
+    name: E2E (not required)
+    needs: lecturn-kit
+    runs-on: macos-15
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Rust
+        uses: ./.github/actions/setup-rust
+        with:
+          cache-key: e2e
+          wasm-bindgen: "true"
+
+      - name: Setup app
+        uses: ./.github/actions/setup-app
+        with:
+          electron: "true"
+
+      - name: Resolve the Playwright version
+        id: playwright
+        run: echo "version=$(node -p 'require("./app/node_modules/@playwright/test/package.json").version')" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Chromium
+        id: chromium
+        uses: actions/cache@v6
+        with:
+          path: ~/Library/Caches/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ runner.arch }}-${{ steps.playwright.outputs.version }}
+
+      - name: Install Chromium
+        if: steps.chromium.outputs.cache-hit != 'true'
+        run: pnpm --dir app exec playwright install chromium
+
+      - name: make wasm e2e
+        run: make wasm e2e
+
+      - name: Upload e2e results
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-results
+          path: |
+            .playwright/
+            dist/e2e/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  # Branch protection requires this job by name, `Check`, so splitting jobs
+  # needs no ruleset change: add every required job to `needs`. `always()`,
+  # because a skipped job reports success to branch protection; a cancelled
+  # or failed dependency must still fail this check.
+  check:
+    name: Check
+    if: ${{ always() }}
+    needs: [lecturn-kit, rust, ts]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Require every job to pass
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          echo "$RESULTS" | jq -r 'to_entries[] | "\(.key): \(.value.result)"'
+          echo "$RESULTS" | jq -e 'all(.[]; .result == "success")' > /dev/null

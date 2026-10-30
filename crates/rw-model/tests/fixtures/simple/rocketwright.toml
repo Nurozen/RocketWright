@@ -1,0 +1,4 @@
+# A tiny hand-written project for the rw-model golden test (M1.22).
+format = 1
+name = "Simple"
+default_config = "baseline"

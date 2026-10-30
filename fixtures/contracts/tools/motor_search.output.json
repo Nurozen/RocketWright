@@ -1,0 +1,30 @@
+{
+  "provenance": "contract-fixture",
+  "type": "tools/motor_search.output",
+  "payload": {
+    "motors": [
+      {
+        "id": "generic:RW_F40G",
+        "designation": "F40",
+        "manufacturer": "RocketWright generic",
+        "class": "F",
+        "diameter": 0.029,
+        "length": 0.124,
+        "total_impulse": 80.0,
+        "burn_time": 2.0,
+        "average_thrust": 40.0,
+        "delays": [
+          4.0,
+          7.0,
+          10.0
+        ],
+        "total_mass": 0.0919,
+        "source": {
+          "kind": "generic",
+          "id": "RW_F40G"
+        },
+        "sha256": "e8cf2af56dcc1b4c56e45032b7d9efb67f3d6c92f8716655d242b0b92d995761"
+      }
+    ]
+  }
+}

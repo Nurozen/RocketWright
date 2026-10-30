@@ -1,0 +1,16 @@
+{
+  "type": "object",
+  "properties": {
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Files to validate; empty = all project files.",
+      "default": []
+    }
+  },
+  "title": "ProjectValidateIn",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rocketwright.dev/schema/1/tools/project_validate.input.json"
+}

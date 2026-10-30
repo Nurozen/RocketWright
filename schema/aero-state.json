@@ -1,0 +1,54 @@
+{
+  "type": "object",
+  "properties": {
+    "mach": {
+      "type": "number",
+      "format": "double"
+    },
+    "speed": {
+      "type": "number",
+      "format": "double",
+      "description": "Airspeed.",
+      "x-unit-dimension": "velocity"
+    },
+    "alpha": {
+      "type": "number",
+      "format": "double",
+      "description": "Total angle of attack.",
+      "x-unit-dimension": "angle"
+    },
+    "roll_rate": {
+      "type": "number",
+      "format": "double",
+      "x-unit-dimension": "angular_velocity"
+    },
+    "pitch_rate": {
+      "type": "number",
+      "format": "double",
+      "description": "Pitch/yaw rate magnitude.",
+      "x-unit-dimension": "angular_velocity"
+    },
+    "kinematic_viscosity": {
+      "type": "number",
+      "format": "double",
+      "x-unit-dimension": "kinematic_viscosity"
+    },
+    "thrusting": {
+      "type": "boolean",
+      "description": "Motor burning (base drag switch)."
+    }
+  },
+  "required": [
+    "mach",
+    "speed",
+    "alpha",
+    "roll_rate",
+    "pitch_rate",
+    "kinematic_viscosity",
+    "thrusting"
+  ],
+  "description": "The flight state for one evaluation.",
+  "title": "AeroState",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rocketwright.dev/schema/1/aero-state.json"
+}

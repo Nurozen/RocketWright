@@ -1,0 +1,14 @@
+{
+  "type": "object",
+  "properties": {
+    "sim": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "title": "RunListIn",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rocketwright.dev/schema/1/tools/run_list.input.json"
+}

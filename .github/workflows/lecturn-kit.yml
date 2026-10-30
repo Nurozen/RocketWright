@@ -1,0 +1,119 @@
+# The vendored Lecturn kit (vendor/lecturn/{lecturn,lecturn-embed}.tgz and
+# patches/, gitignored) that app/ installs from, as the `lecturn-kit`
+# artifact for the calling workflow's other jobs (.github/actions/setup-app).
+#
+# Built by `make vendor-lecturn` from Nurozen/lecturn at vendor/lecturn/PIN
+# (scripts/vendor-lecturn.sh: theme drift check, build, pack, clean-install
+# and Electron/asar smoke, and the check that each tarball's sha512 equals its
+# integrity in app/pnpm-lock.yaml) and cached on the PIN and the inputs that
+# shape the kit, so most runs only restore it.
+#
+# macOS arm64: the lockfile integrity was recorded from kits built there, and
+# the build is only known to be byte-reproducible on that platform (gzip
+# output can differ across zlib builds and CPU architectures).
+name: Lecturn kit
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  kit:
+    name: Lecturn kit
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      # Side by side, like a local checkout: the script's temp worktree comes
+      # from ../lecturn, and nothing from Lecturn lands in RocketWright's tree.
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          path: rocketwright
+
+      - name: Resolve the pin
+        id: pin
+        working-directory: rocketwright
+        run: |
+          pin=$(grep -v '^[[:space:]]*#' vendor/lecturn/PIN | tr -d '[:space:]')
+          [[ "$pin" =~ ^[0-9a-f]{40}$ ]] || { echo "vendor/lecturn/PIN is not a full commit sha: '$pin'" >&2; exit 1; }
+          echo "sha=$pin" >> "$GITHUB_OUTPUT"
+          echo "electron=$(node -p 'require("./app/apps/desktop/package.json").devDependencies.electron')" >> "$GITHUB_OUTPUT"
+
+      - name: Restore the kit
+        id: cache
+        uses: actions/cache/restore@v6
+        with:
+          path: |
+            rocketwright/vendor/lecturn/*.tgz
+            rocketwright/vendor/lecturn/patches
+          key: lecturn-kit-v1-${{ steps.pin.outputs.sha }}-${{ hashFiles('rocketwright/scripts/vendor-lecturn.sh', 'rocketwright/scripts/vendor/lecturn-kit.ts', 'rocketwright/vendor/lecturn/lecturn-pack.json', 'rocketwright/app/packages/ui/generated/lecturn-theme.json', 'rocketwright/app/pnpm-workspace.yaml') }}
+
+      - name: Checkout Lecturn at the pin
+        if: steps.cache.outputs.cache-hit != 'true'
+        uses: actions/checkout@v6
+        with:
+          repository: Nurozen/lecturn
+          ref: ${{ steps.pin.outputs.sha }}
+          path: lecturn
+          persist-credentials: false
+
+      # Lecturn's CI installs Vite+ the same way (.github/actions/setup-ci-deps).
+      - name: Setup Vite+
+        if: steps.cache.outputs.cache-hit != 'true'
+        uses: voidzero-dev/setup-vp@v1
+        with:
+          working-directory: lecturn
+          node-version-file: lecturn/package.json
+          cache: true
+          cache-dependency-path: lecturn/pnpm-lock.yaml
+          run-install: false
+
+      # The smoke runs RocketWright's Electron as node and from an app.asar;
+      # app/ cannot install before the kit exists, so fetch the release zip.
+      - name: Cache Electron
+        if: steps.cache.outputs.cache-hit != 'true'
+        uses: actions/cache@v6
+        with:
+          path: ${{ runner.temp }}/electron-zip
+          key: electron-zip-${{ runner.os }}-${{ runner.arch }}-${{ steps.pin.outputs.electron }}
+
+      - name: Fetch Electron
+        if: steps.cache.outputs.cache-hit != 'true'
+        env:
+          ELECTRON_VERSION: ${{ steps.pin.outputs.electron }}
+        run: |
+          zip="electron-v$ELECTRON_VERSION-darwin-arm64.zip"
+          dir="$RUNNER_TEMP/electron-zip"
+          mkdir -p "$dir"
+          base="https://github.com/electron/electron/releases/download/v$ELECTRON_VERSION"
+          [[ -f "$dir/$zip" ]] || curl -fsSL --retry 3 -o "$dir/$zip" "$base/$zip"
+          curl -fsSL --retry 3 -o "$dir/SHASUMS256.txt" "$base/SHASUMS256.txt"
+          (cd "$dir" && grep " \*$zip\$" SHASUMS256.txt | shasum -a 256 -c -)
+          ditto -x -k "$dir/$zip" "$RUNNER_TEMP/electron"
+          echo "RW_ELECTRON=$RUNNER_TEMP/electron/Electron.app/Contents/MacOS/Electron" >> "$GITHUB_ENV"
+
+      - name: Build the kit
+        if: steps.cache.outputs.cache-hit != 'true'
+        working-directory: rocketwright
+        run: make vendor-lecturn LECTURN_REPO="$GITHUB_WORKSPACE/lecturn" LECTURN_INSTALL=none
+
+      - name: Save the kit
+        if: steps.cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: |
+            rocketwright/vendor/lecturn/*.tgz
+            rocketwright/vendor/lecturn/patches
+          key: ${{ steps.cache.outputs.cache-primary-key }}
+
+      - name: Upload the kit
+        uses: actions/upload-artifact@v7
+        with:
+          name: lecturn-kit
+          path: |
+            rocketwright/vendor/lecturn/*.tgz
+            rocketwright/vendor/lecturn/patches/
+          if-no-files-found: error
+          retention-days: 3

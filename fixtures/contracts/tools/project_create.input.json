@@ -1,0 +1,8 @@
+{
+  "provenance": "contract-fixture",
+  "type": "tools/project_create.input",
+  "payload": {
+    "name": "Research vehicle",
+    "template": "minimal"
+  }
+}

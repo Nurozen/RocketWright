@@ -1,0 +1,8 @@
+{
+  "provenance": "contract-fixture",
+  "type": "tools/model_diff.input",
+  "payload": {
+    "a": "step:3",
+    "b": "live"
+  }
+}

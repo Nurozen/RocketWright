@@ -1,0 +1,11 @@
+# EPFL Rocket Team "Bella Lui", Kaltbrunn, 2020-02-22 (plan M2.12, spec B2).
+# Validation case: our flight against the measured apogee (458.97 m AGL).
+# Inputs from RocketPy (MIT) tests/acceptance/test_bella_lui_rocket.py; see
+# README.md for every translation choice.
+
+format = 1
+name = "Bella Lui"
+default_config = "k828fj"
+
+[lib.sha256]
+"lib/motors/AeroTech_K828FJ.eng" = "ba778b6add25bb0d866ca22b68eb63a0bac93313f4ed65afc5a720f396073d1b"

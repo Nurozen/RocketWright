@@ -1,0 +1,438 @@
+{
+  "type": "object",
+  "properties": {
+    "schema": {
+      "type": "string",
+      "const": "rw/1"
+    },
+    "run_id": {
+      "type": "string",
+      "description": "First 12 hex of blake3 over the canonical inputs (I7).",
+      "pattern": "^[0-9a-f]{12}$"
+    },
+    "sim": {
+      "type": "string"
+    },
+    "sim_name": {
+      "type": "string"
+    },
+    "kind": {
+      "$ref": "#/$defs/SimKind"
+    },
+    "config": {
+      "type": "string"
+    },
+    "model_hash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "provenance": {
+      "$ref": "#/$defs/Provenance",
+      "description": "Required (I7)."
+    },
+    "conditions": {
+      "$ref": "#/$defs/Conditions"
+    },
+    "conditions_hash": {
+      "type": "string",
+      "description": "`sha256:<hex>` of the JCS-canonical `conditions` ([`crate::conditions_hash`]).",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "motors": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ManifestMotor"
+      }
+    },
+    "inputs": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "description": "Project-relative input file → blake3 hex."
+    },
+    "core_version": {
+      "type": "string"
+    },
+    "seed": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0
+    },
+    "rtol": {
+      "type": "number",
+      "format": "double"
+    },
+    "atol": {
+      "type": "number",
+      "format": "double"
+    },
+    "step": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "uint32",
+      "minimum": 0
+    },
+    "rev": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "thread": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "started": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "wall_time_s": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "format": "double"
+    }
+  },
+  "required": [
+    "schema",
+    "run_id",
+    "sim",
+    "sim_name",
+    "kind",
+    "config",
+    "model_hash",
+    "provenance",
+    "conditions",
+    "conditions_hash",
+    "motors",
+    "inputs",
+    "core_version",
+    "seed",
+    "rtol",
+    "atol"
+  ],
+  "description": "`manifest.json`: inputs and their hashes. The only run file with\ntimestamps (`started`, `wall_time_s`), which are excluded from `run_id`.",
+  "title": "RunManifest",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rocketwright.dev/schema/1/run-manifest.json",
+  "$defs": {
+    "SimKind": {
+      "type": "string",
+      "enum": [
+        "flight",
+        "visual_flow"
+      ]
+    },
+    "Provenance": {
+      "type": "string",
+      "enum": [
+        "engineering",
+        "visual",
+        "cfd"
+      ],
+      "description": "Result provenance (I13). Visual results never feed engineering numbers."
+    },
+    "Conditions": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "rail_length_m": {
+          "type": "number",
+          "format": "double"
+        },
+        "rod_angle_deg": {
+          "type": "number",
+          "format": "double",
+          "description": "From vertical."
+        },
+        "rod_direction_deg": {
+          "type": "number",
+          "format": "double",
+          "description": "Azimuth, clockwise from north."
+        },
+        "site_altitude_m": {
+          "type": "number",
+          "format": "double"
+        },
+        "latitude_deg": {
+          "type": "number",
+          "format": "double"
+        },
+        "longitude_deg": {
+          "type": "number",
+          "format": "double"
+        },
+        "base_temperature_k": {
+          "type": "number",
+          "format": "double"
+        },
+        "base_pressure_pa": {
+          "type": "number",
+          "format": "double"
+        },
+        "atmosphere": {
+          "$ref": "#/$defs/AtmosphereModel"
+        },
+        "geodetic": {
+          "$ref": "#/$defs/Geodetic"
+        },
+        "wind_speed_ms": {
+          "type": "number",
+          "format": "double"
+        },
+        "wind_direction_deg": {
+          "type": "number",
+          "format": "double",
+          "description": "Direction the wind blows from, clockwise from north."
+        },
+        "wind_turbulence": {
+          "type": "number",
+          "format": "double",
+          "description": "Turbulence intensity (fraction; 0 = steady)."
+        },
+        "time_step_s": {
+          "type": "number",
+          "format": "double",
+          "description": "Fixed step (rk4) or maximum step (dp54)."
+        },
+        "integrator": {
+          "$ref": "#/$defs/IntegratorKind"
+        },
+        "gravity": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/GravityModel"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Gravity model. Absent: the engine default (`wgs84`). Added after the\nM1.5 freeze as optional, so older files and their hashes are unchanged."
+        },
+        "launch_into_wind": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "Point the rod into the wind (the rod azimuth follows the wind\ndirection). Absent: `false`. Optional for the same reason as `gravity`."
+        }
+      },
+      "required": [
+        "rail_length_m",
+        "rod_angle_deg",
+        "rod_direction_deg",
+        "site_altitude_m",
+        "latitude_deg",
+        "longitude_deg",
+        "base_temperature_k",
+        "base_pressure_pa",
+        "atmosphere",
+        "geodetic",
+        "wind_speed_ms",
+        "wind_direction_deg",
+        "wind_turbulence",
+        "time_step_s",
+        "integrator"
+      ],
+      "description": "Launch and environment conditions. Shared verbatim by `EvalSim`,\n`SimInput`, `RunManifest`, and the oracle golden, so its hash\n(`rw_api::oracle::conditions_hash`) identifies a setup across all of them.\nUnits are in the key names."
+    },
+    "AtmosphereModel": {
+      "oneOf": [
+        {
+          "type": "string",
+          "const": "ussa1976",
+          "description": "U.S. Standard Atmosphere 1976 (R4.4)."
+        },
+        {
+          "type": "string",
+          "const": "isa_custom",
+          "description": "ISA with custom base temperature and pressure."
+        }
+      ]
+    },
+    "Geodetic": {
+      "type": "string",
+      "enum": [
+        "flat",
+        "spherical",
+        "wgs84"
+      ]
+    },
+    "IntegratorKind": {
+      "oneOf": [
+        {
+          "type": "string",
+          "const": "dp54",
+          "description": "Dormand-Prince 5(4), adaptive, with event root-finding (default)."
+        },
+        {
+          "type": "string",
+          "const": "rk4",
+          "description": "Classic RK4, fixed step (parity triage, D13)."
+        }
+      ]
+    },
+    "GravityModel": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "model": {
+              "type": "string",
+              "const": "wgs84"
+            }
+          },
+          "required": [
+            "model"
+          ],
+          "additionalProperties": false,
+          "description": "WGS84 normal gravity at the site latitude, falling off with altitude."
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "model": {
+              "type": "string",
+              "const": "constant"
+            },
+            "g_ms2": {
+              "type": "number",
+              "format": "double",
+              "description": "m/s², positive down."
+            }
+          },
+          "required": [
+            "model",
+            "g_ms2"
+          ],
+          "description": "Constant gravitational acceleration."
+        }
+      ],
+      "description": "Gravity model (tag `model`)."
+    },
+    "ManifestMotor": {
+      "type": "object",
+      "properties": {
+        "mount": {
+          "type": "string"
+        },
+        "designation": {
+          "type": "string"
+        },
+        "sha256": {
+          "type": "string",
+          "description": "The motor digest: sha256 hex of the curve file.",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "source": {
+          "$ref": "#/$defs/MotorSource"
+        }
+      },
+      "required": [
+        "mount",
+        "designation",
+        "sha256",
+        "source"
+      ]
+    },
+    "MotorSource": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "generic"
+            },
+            "id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "id"
+          ],
+          "description": "Built-in RocketWright generic curve (`lib/motors/generic/`), e.g. `RW_C6G`."
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "library"
+            },
+            "path": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "path"
+          ],
+          "description": "A project `lib/motors/` file with its recorded sha256."
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "embedded"
+            },
+            "origin": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "origin"
+          ],
+          "description": "Embedded in an imported file (e.g. an `.rse` inside an `.ork`)."
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "thrustcurve"
+            },
+            "motor_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "motor_id"
+          ],
+          "description": "ThrustCurve.org download in the gitignored cache (parity only)."
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "liquid"
+            },
+            "engine": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "engine"
+          ],
+          "description": "Generated by a liquid engine design (`engines/<id>.rw.toml`)."
+        }
+      ],
+      "description": "Where a curve came from (motor provenance; never OR-DB curves, S:31)."
+    }
+  }
+}

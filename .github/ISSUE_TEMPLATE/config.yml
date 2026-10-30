@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/Nurozen/RocketWright/security/advisories/new
+    about: Report vulnerabilities privately, never in a public issue. See SECURITY.md.
+  - name: Problem in the embedded agent pane (Lecturn)
+    url: https://github.com/Nurozen/lecturn/issues
+    about: Bugs in the chat pane itself (threads, composer, providers) belong to Lecturn.

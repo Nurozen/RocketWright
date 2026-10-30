@@ -1,0 +1,23 @@
+{
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "recursive": {
+      "type": "boolean",
+      "description": "Also remove components attached to it (otherwise they error).",
+      "default": false
+    },
+    "dry_run": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "id"
+  ],
+  "title": "ComponentRemoveIn",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rocketwright.dev/schema/1/tools/component_remove.input.json"
+}

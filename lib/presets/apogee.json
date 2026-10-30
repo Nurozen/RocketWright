@@ -1,0 +1,19 @@
+{
+ "license": "Apache-2.0",
+ "materials": {
+  "foam_urethane_bulk": {
+   "density": "48.1 kg/m^3",
+   "doc": "Foam, urethane, bulk"
+  }
+ },
+ "source": "orc/apogee.orc",
+ "upstream": "https://github.com/openrocket/openrocket-database @ c2e7c29",
+ "presets": [
+  {"component": {"length": "5.0 in", "material": "foam_urethane_bulk", "name": "Apogee 14807", "od": "2.93 in", "override": {"mass": "36.7 g"}, "type": "bulkhead"}, "description": "Egg protector, urethane foam, 3.0in, single horizontal, PN 14807", "id": "14807", "manufacturer": "Apogee", "part_number": "14807"},
+  {"component": {"length": "4.125 in", "material": "foam_urethane_bulk", "name": "Apogee 14805", "od": "2.5 in", "override": {"mass": "23.0 g"}, "type": "bulkhead"}, "description": "Egg protector, urethane foam, BT-80, single horizontal, PN 14805", "id": "14805", "manufacturer": "Apogee", "part_number": "14805"},
+  {"component": {"length": "6.5 in", "material": "foam_urethane_bulk", "name": "Apogee 14814", "od": "2.175 in", "override": {"mass": "26.4 g"}, "type": "bulkhead"}, "description": "Egg protector, urethane foam, BT-70, dual vertical, PN 14814", "id": "14814", "manufacturer": "Apogee", "part_number": "14814"},
+  {"component": {"length": "6.1 in", "material": "foam_urethane_bulk", "name": "Apogee 14817", "od": "2.486 in", "override": {"mass": "55.4 g"}, "type": "bulkhead"}, "description": "Egg protector, urethane foam, BT-80, dual vertical, PN 14817", "id": "14817", "manufacturer": "Apogee", "part_number": "14817"},
+  {"component": {"length": "2.5 in", "material": "foam_urethane_bulk", "name": "Apogee 14811", "od": "2.217 in", "override": {"mass": "23.5 g"}, "shape": "ellipsoid", "shoulder": {"length": "1.0 in", "od": "2.175 in"}, "type": "nose_cone"}, "description": "Nose cone, foam, BT-70, 2.5\", ellipsoid, PN 14811", "id": "14811", "manufacturer": "Apogee", "part_number": "14811"},
+  {"component": {"length": "2.5 in", "material": "foam_urethane_bulk", "name": "Apogee 14812", "od": "2.60 in", "override": {"mass": "29.4 g"}, "shape": "ellipsoid", "shoulder": {"length": "1.0 in", "od": "2.5 in"}, "type": "nose_cone"}, "description": "Nose cone, foam, BT-80, 2.5\", ellipsoid, PN 14812", "id": "14812", "manufacturer": "Apogee", "part_number": "14812"}
+ ]
+}

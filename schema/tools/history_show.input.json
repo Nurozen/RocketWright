@@ -1,0 +1,14 @@
+{
+  "type": "object",
+  "properties": {
+    "version": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "version"
+  ],
+  "title": "HistoryShowIn",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rocketwright.dev/schema/1/tools/history_show.input.json"
+}

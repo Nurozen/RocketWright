@@ -1,0 +1,596 @@
+{
+  "type": "object",
+  "properties": {
+    "schema": {
+      "type": "string",
+      "const": "rw/1"
+    },
+    "summary": {
+      "$ref": "#/$defs/RunSummary"
+    },
+    "events": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/FlightEvent"
+      }
+    },
+    "series": {
+      "$ref": "#/$defs/Series"
+    },
+    "branches": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Branch"
+      },
+      "description": "Per-stage branches after separation (`branches/<stage>/`)."
+    },
+    "diagnostics": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Diagnostic"
+      }
+    }
+  },
+  "required": [
+    "schema",
+    "summary",
+    "events",
+    "series",
+    "branches",
+    "diagnostics"
+  ],
+  "description": "The result of one flight (`runs/<sim>/<run-id>/`).",
+  "title": "SimResult",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rocketwright.dev/schema/1/sim-result.json",
+  "$defs": {
+    "RunSummary": {
+      "type": "object",
+      "properties": {
+        "schema": {
+          "type": "string",
+          "const": "rw/1"
+        },
+        "apogee_m": {
+          "type": "number",
+          "format": "double"
+        },
+        "max_velocity_ms": {
+          "type": "number",
+          "format": "double"
+        },
+        "max_accel_ms2": {
+          "type": "number",
+          "format": "double"
+        },
+        "max_mach": {
+          "type": "number",
+          "format": "double"
+        },
+        "time_to_apogee_s": {
+          "type": "number",
+          "format": "double"
+        },
+        "flight_time_s": {
+          "type": "number",
+          "format": "double"
+        },
+        "landing_velocity_ms": {
+          "type": "number",
+          "format": "double"
+        },
+        "rail_exit_velocity_ms": {
+          "type": "number",
+          "format": "double"
+        },
+        "deployment_velocity_ms": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "description": "Speed at the last recovery deployment (the main of a dual deploy)."
+        },
+        "optimum_delay_s": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        },
+        "min_stability_cal": {
+          "type": "number",
+          "format": "double",
+          "description": "Minimum stability margin in flight (calibers), rail exit to apogee."
+        },
+        "burnout_time_s": {
+          "type": "number",
+          "format": "double"
+        },
+        "burnout_altitude_m": {
+          "type": "number",
+          "format": "double"
+        },
+        "landing_x_m": {
+          "type": "number",
+          "format": "double"
+        },
+        "landing_y_m": {
+          "type": "number",
+          "format": "double"
+        },
+        "drift_m": {
+          "type": "number",
+          "format": "double"
+        },
+        "coast_time_s": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "description": "Coast from the last burnout to apogee (apogee time minus last burnout\ntime; the same number as `optimum_delay_s`). Absent with no burnout\nbefore apogee."
+        },
+        "deployments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DeploymentTiming"
+          },
+          "description": "Derived timing of each recovery deployment of the main flight, in time\norder (so agents never subtract event times by hand)."
+        },
+        "ejections": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/EjectionTiming"
+          },
+          "description": "Derived timing of each motor's ejection charge (motors with a\nconfigured delay), by mount id."
+        }
+      },
+      "required": [
+        "schema",
+        "apogee_m",
+        "max_velocity_ms",
+        "max_accel_ms2",
+        "max_mach",
+        "time_to_apogee_s",
+        "flight_time_s",
+        "landing_velocity_ms",
+        "rail_exit_velocity_ms",
+        "min_stability_cal",
+        "burnout_time_s",
+        "burnout_altitude_m",
+        "landing_x_m",
+        "landing_y_m",
+        "drift_m"
+      ],
+      "description": "`summary.json`. Key-sorted, fixed significant figures (I8). Absent values\n(no deployment, no delay) are omitted."
+    },
+    "DeploymentTiming": {
+      "type": "object",
+      "properties": {
+        "source": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RwRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The deployed device (rw:c/<id>)."
+        },
+        "t_s": {
+          "type": "number",
+          "format": "double",
+          "description": "Deployment time after ignition.",
+          "x-unit-dimension": "time"
+        },
+        "deploy_minus_apogee_s": {
+          "type": "number",
+          "format": "double",
+          "description": "Deployment time minus apogee time: negative = before apogee.",
+          "x-unit-dimension": "time"
+        },
+        "deploy_altitude_m": {
+          "type": "number",
+          "format": "double",
+          "description": "Altitude above the launch site at deployment.",
+          "x-unit-dimension": "length"
+        },
+        "deploy_velocity_ms": {
+          "type": "number",
+          "format": "double",
+          "description": "Speed at deployment.",
+          "x-unit-dimension": "velocity"
+        }
+      },
+      "required": [
+        "t_s",
+        "deploy_minus_apogee_s",
+        "deploy_altitude_m",
+        "deploy_velocity_ms"
+      ],
+      "description": "One recovery deployment, relative to apogee."
+    },
+    "RwRef": {
+      "type": "string",
+      "description": "An rw: ref string (rw:c/fins).",
+      "pattern": "^rw:(c|cfg|sim|run|step|rev|thread|eng)/[A-Za-z0-9_.-]+(#[A-Za-z0-9_<>]+)?(@[A-Za-z0-9_.:-]+)?(/[^\\s]*)?$"
+    },
+    "EjectionTiming": {
+      "type": "object",
+      "properties": {
+        "source": {
+          "$ref": "#/$defs/RwRef",
+          "description": "The motor mount (rw:c/<mount>)."
+        },
+        "t_s": {
+          "type": "number",
+          "format": "double",
+          "description": "Ejection time after ignition (the motor's burnout plus its delay).",
+          "x-unit-dimension": "time"
+        },
+        "delay_s": {
+          "type": "number",
+          "format": "double",
+          "description": "The configured ejection delay.",
+          "x-unit-dimension": "time"
+        },
+        "optimum_delay_s": {
+          "type": "number",
+          "format": "double",
+          "description": "Apogee time minus this motor's burnout time.",
+          "x-unit-dimension": "time"
+        },
+        "delay_minus_optimum_s": {
+          "type": "number",
+          "format": "double",
+          "description": "Configured delay minus optimum delay (= ejection time minus apogee\ntime): negative = the charge fires before apogee.",
+          "x-unit-dimension": "time"
+        }
+      },
+      "required": [
+        "source",
+        "t_s",
+        "delay_s",
+        "optimum_delay_s",
+        "delay_minus_optimum_s"
+      ],
+      "description": "One motor's ejection charge against its optimum delay."
+    },
+    "FlightEvent": {
+      "type": "object",
+      "properties": {
+        "t": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "time"
+        },
+        "kind": {
+          "$ref": "#/$defs/EventKind"
+        },
+        "altitude": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "velocity": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "velocity"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RwRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Component that caused the event (rw:c/<id>), when one did."
+        },
+        "branch": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The released stage whose branch flew the event (`branches/<stage>/`,\nM2.3); absent on the main (top-stage) flight."
+        }
+      },
+      "required": [
+        "t",
+        "kind",
+        "altitude",
+        "velocity"
+      ]
+    },
+    "EventKind": {
+      "type": "string",
+      "enum": [
+        "ignition",
+        "liftoff",
+        "rail_exit",
+        "burnout",
+        "ejection",
+        "apogee",
+        "stage_separation",
+        "deployment",
+        "tumble",
+        "landing"
+      ]
+    },
+    "Series": {
+      "type": "object",
+      "properties": {
+        "dt": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "time"
+        },
+        "columns": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SeriesColumn"
+          }
+        },
+        "rows": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "format": "double"
+            }
+          },
+          "description": "Row-major values, one per column."
+        }
+      },
+      "required": [
+        "dt",
+        "columns",
+        "rows"
+      ],
+      "description": "Fixed-grid series (`series.csv`): one row per `dt` plus exact event rows."
+    },
+    "SeriesColumn": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "dim": {
+          "$ref": "#/$defs/DimKind"
+        }
+      },
+      "required": [
+        "name",
+        "dim"
+      ]
+    },
+    "DimKind": {
+      "oneOf": [
+        {
+          "type": "string",
+          "const": "dimensionless",
+          "description": "Pure number (ratios, counts, coefficients). Bare numbers allowed."
+        },
+        {
+          "type": "string",
+          "const": "length",
+          "description": "m"
+        },
+        {
+          "type": "string",
+          "const": "mass",
+          "description": "kg"
+        },
+        {
+          "type": "string",
+          "const": "time",
+          "description": "s"
+        },
+        {
+          "type": "string",
+          "const": "temperature",
+          "description": "K"
+        },
+        {
+          "type": "string",
+          "const": "angle",
+          "description": "rad"
+        },
+        {
+          "type": "string",
+          "const": "area",
+          "description": "m^2"
+        },
+        {
+          "type": "string",
+          "const": "volume",
+          "description": "m^3"
+        },
+        {
+          "type": "string",
+          "const": "velocity",
+          "description": "m/s"
+        },
+        {
+          "type": "string",
+          "const": "acceleration",
+          "description": "m/s^2"
+        },
+        {
+          "type": "string",
+          "const": "force",
+          "description": "N"
+        },
+        {
+          "type": "string",
+          "const": "pressure",
+          "description": "Pa"
+        },
+        {
+          "type": "string",
+          "const": "density",
+          "description": "kg/m^3"
+        },
+        {
+          "type": "string",
+          "const": "area_density",
+          "description": "kg/m^2"
+        },
+        {
+          "type": "string",
+          "const": "line_density",
+          "description": "kg/m"
+        },
+        {
+          "type": "string",
+          "const": "impulse",
+          "description": "N*s"
+        },
+        {
+          "type": "string",
+          "const": "mass_flow",
+          "description": "kg/s"
+        },
+        {
+          "type": "string",
+          "const": "angular_velocity",
+          "description": "rad/s"
+        },
+        {
+          "type": "string",
+          "const": "inertia",
+          "description": "kg*m^2"
+        },
+        {
+          "type": "string",
+          "const": "energy",
+          "description": "J"
+        },
+        {
+          "type": "string",
+          "const": "power",
+          "description": "W"
+        },
+        {
+          "type": "string",
+          "const": "frequency",
+          "description": "1/s"
+        },
+        {
+          "type": "string",
+          "const": "torque",
+          "description": "N*m"
+        },
+        {
+          "type": "string",
+          "const": "kinematic_viscosity",
+          "description": "m^2/s (kinematic viscosity)"
+        },
+        {
+          "type": "string",
+          "const": "dynamic_viscosity",
+          "description": "Pa*s"
+        },
+        {
+          "type": "string",
+          "const": "specific_heat",
+          "description": "J/(kg*K)"
+        }
+      ],
+      "description": "A named physical dimension, as written in `x-unit-dimension`."
+    },
+    "Branch": {
+      "type": "object",
+      "properties": {
+        "stage": {
+          "type": "string"
+        },
+        "events": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/FlightEvent"
+          }
+        },
+        "series": {
+          "$ref": "#/$defs/Series"
+        }
+      },
+      "required": [
+        "stage",
+        "events",
+        "series"
+      ]
+    },
+    "Diagnostic": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string",
+          "description": "Stable code, e.g. `RW-E021`.",
+          "pattern": "^RW-[EWI][0-9]{3}$"
+        },
+        "severity": {
+          "$ref": "#/$defs/Severity"
+        },
+        "path": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "JSON pointer into the source model, e.g. `/c/fins/span`."
+        },
+        "file": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Project-relative file."
+        },
+        "line": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "minimum": 0
+        },
+        "col": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "minimum": 0
+        },
+        "message": {
+          "type": "string"
+        },
+        "hint": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Next action for an agent."
+        }
+      },
+      "required": [
+        "code",
+        "severity",
+        "message"
+      ],
+      "description": "One finding, phrased for an agent (`hint` says what to do next)."
+    },
+    "Severity": {
+      "type": "string",
+      "enum": [
+        "error",
+        "warning",
+        "info"
+      ]
+    }
+  }
+}

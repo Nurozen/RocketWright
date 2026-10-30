@@ -1,0 +1,175 @@
+{
+  "kind": "golden",
+  "schema": "rw/1",
+  "case": 4,
+  "matrix": "generic",
+  "sim_name": "Simulation 1",
+  "config_id": "f58f38e4-0cb4-45b3-9899-8b5e561d1b73",
+  "geometry_sha256": "1ca243fef6428750b2714d96bd015cc772add0aaa583cd57fc6d8b09b4a90701",
+  "conditions": {
+    "rail_length_m": 1.0,
+    "rod_angle_deg": 0.0,
+    "rod_direction_deg": 90.0,
+    "site_altitude_m": 0.0,
+    "latitude_deg": 45.0,
+    "longitude_deg": 0.0,
+    "base_temperature_k": 288.15,
+    "base_pressure_pa": 101325.0,
+    "atmosphere": "ussa1976",
+    "geodetic": "flat",
+    "wind_speed_ms": 0.0,
+    "wind_direction_deg": 90.0,
+    "wind_turbulence": 0.0,
+    "time_step_s": 0.05,
+    "integrator": "rk4",
+    "gravity": {
+      "model": "wgs84"
+    },
+    "launch_into_wind": true
+  },
+  "conditions_hash": "sha256:3deb085651939a41cace89b33874137dd2b03d76bb0d82bb2bd6282bd08262de",
+  "motor_digest": "b4bb848b430ff6ae0d7956fc50ccc1023518015f03cecc41981ddc413df9f801",
+  "motors": [
+    {
+      "mount": "Body tube",
+      "designation": "RW_D10G",
+      "digest": "d34ff7ac951eb0ac1a7a277f5cbf5e69a1dd8aa4ad12b4103c1c71cc844eb3e4",
+      "delay_s": 7.0
+    }
+  ],
+  "summary": {
+    "max_altitude_m": 279.83051003401073,
+    "max_velocity_ms": 119.14246060903906,
+    "max_accel_ms2": 365.67321953025925,
+    "max_mach": 0.3504913416528625,
+    "time_to_apogee_s": 5.778461273336423,
+    "flight_time_s": 73.85165649711944,
+    "ground_hit_velocity_ms": 3.888834780920058,
+    "rod_clear_velocity_ms": 22.912881342393977,
+    "deployment_velocity_ms": 11.007730786838831,
+    "optimum_delay_s": 4.220461273336422
+  },
+  "static": {
+    "cg_m": 0.4530741774760959,
+    "cp_m": 0.4964958232019648,
+    "cna": 39.87724880517861,
+    "stability_cal": 1.751550831203566,
+    "mass_kg": 0.0765994282016064,
+    "ref_diameter_m": 0.024790399999999997,
+    "mach": 0.3
+  },
+  "events": [
+    {
+      "kind": "ignition",
+      "t_s": 0.0,
+      "altitude_m": 0.0,
+      "velocity_ms": 0.0
+    },
+    {
+      "kind": "liftoff",
+      "t_s": 0.05,
+      "altitude_m": 0.034498028555283514,
+      "velocity_ms": 2.283886606836175
+    },
+    {
+      "kind": "launch_rod_clearance",
+      "t_s": 0.14689596730508847,
+      "altitude_m": 1.075136714313764,
+      "velocity_ms": 22.912881342393977
+    },
+    {
+      "kind": "burnout",
+      "t_s": 1.608,
+      "altitude_m": 149.25515511620276,
+      "velocity_ms": 105.4729523748355
+    },
+    {
+      "kind": "apogee",
+      "t_s": 5.828461273336423,
+      "altitude_m": 279.8262853901268,
+      "velocity_ms": 0.32960323591558494
+    },
+    {
+      "kind": "ejection_charge",
+      "t_s": 8.608,
+      "altitude_m": 256.0282073985457,
+      "velocity_ms": 11.00772708448301
+    },
+    {
+      "kind": "recovery_device_deployment",
+      "t_s": 8.609,
+      "altitude_m": 256.0172018979357,
+      "velocity_ms": 11.007730786838831
+    },
+    {
+      "kind": "ground_hit",
+      "t_s": 73.85165649711944,
+      "altitude_m": 0.0,
+      "velocity_ms": 3.888834780920058
+    },
+    {
+      "kind": "simulation_end",
+      "t_s": 73.85165649711944,
+      "altitude_m": 0.0,
+      "velocity_ms": 3.888834780920058
+    }
+  ],
+  "components": [
+    {
+      "name": "Nose cone",
+      "mass_kg": 0.007103566628689194,
+      "cg_m": 0.07580516986021907,
+      "cna": 2.004524712373531,
+      "cp_m": 0.055797574152958745
+    },
+    {
+      "name": "Body tube",
+      "mass_kg": 0.01037588041248341,
+      "cg_m": 0.348488,
+      "cna": 0.025830055924565935,
+      "cp_m": 0.3484879999999996
+    },
+    {
+      "name": "Shock Cord",
+      "mass_kg": 0.0021945599999999995,
+      "cg_m": 0.148263,
+      "cna": null,
+      "cp_m": null
+    },
+    {
+      "name": "Parachute kit, plastic, 12 in., PN 85564",
+      "mass_kg": 0.002318202109265932,
+      "cg_m": 0.18919789411518198,
+      "cna": null,
+      "cp_m": null
+    },
+    {
+      "name": "Engine Block",
+      "mass_kg": 0.0012804302699891443,
+      "cg_m": 0.510413,
+      "cna": null,
+      "cp_m": null
+    },
+    {
+      "name": "Tube fin set",
+      "mass_kg": 0.010375880412483373,
+      "cg_m": 0.538988,
+      "cna": 37.846894036880514,
+      "cp_m": 0.519938
+    },
+    {
+      "name": "Launch Lug",
+      "mass_kg": 0.00015290836869532993,
+      "cg_m": 0.45008799999999993,
+      "cna": 0.0,
+      "cp_m": null
+    },
+    {
+      "name": "RW_D10G",
+      "mass_kg": 0.042798,
+      "cg_m": 0.5484380000000001,
+      "cna": null,
+      "cp_m": null
+    }
+  ]
+}

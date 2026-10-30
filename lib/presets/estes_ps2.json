@@ -1,0 +1,63 @@
+{
+ "license": "Apache-2.0",
+ "materials": {
+  "fiber_bulk": {
+   "density": "657.0 kg/m^3",
+   "doc": "Fiber, bulk"
+  },
+  "nylon_fabric_ripstop_1_7_oz_actual": {
+   "doc": "Nylon fabric, ripstop, 1.7 oz actual",
+   "surface_density": "0.05764 kg/m^2"
+  },
+  "nylon_paracord_110_lb_1_16_in_dia": {
+   "doc": "Nylon Paracord, 110 lb, 1/16 in. dia.",
+   "line_density": "0.00160 kg/m"
+  },
+  "paper_spiral_kraft_glassine_estes_avg_bulk": {
+   "density": "894.4 kg/m^3",
+   "doc": "Paper, spiral kraft glassine, Estes avg, bulk"
+  },
+  "plywood_light_bulk": {
+   "density": "352.4 kg/m^3",
+   "doc": "Plywood, light, bulk"
+  },
+  "polystyrene_cast_bulk": {
+   "density": "1050.0 kg/m^3",
+   "doc": "Polystyrene, cast, bulk"
+  }
+ },
+ "source": "orc/estes_ps2.orc",
+ "upstream": "https://github.com/openrocket/openrocket-database @ c2e7c29",
+ "presets": [
+  {"component": {"id": "1.213 in", "length": "0.125 in", "material": "plywood_light_bulk", "name": "Estes 66540", "od": "1.927 in", "type": "centering_ring"}, "description": "Centering ring, plywood, 29mm to PSII 2.0\", PN 66540", "id": "66540", "manufacturer": "Estes", "part_number": "66540"},
+  {"component": {"id": "1.213 in", "length": "0.125 in", "material": "plywood_light_bulk", "name": "Estes 66475", "od": "2.427 in", "type": "centering_ring"}, "description": "Centering ring, plywood, 29mm to PSII 2.5\", PN 66475", "id": "66475", "manufacturer": "Estes", "part_number": "66475"},
+  {"component": {"id": "1.213 in", "length": "0.125 in", "material": "plywood_light_bulk", "name": "Estes 66611", "od": "2.927 in", "type": "centering_ring"}, "description": "Centering ring, plywood, 29mm to PSII 3.0\", slotted, PN 66611", "id": "66611", "manufacturer": "Estes", "part_number": "66611"},
+  {"component": {"id": "1.213 in", "length": "0.125 in", "material": "plywood_light_bulk", "name": "Estes 66468", "od": "2.927 in", "type": "centering_ring"}, "description": "Centering ring, plywood, 29mm to PSII 3.0\", PN 66468", "id": "66468", "manufacturer": "Estes", "part_number": "66468"},
+  {"component": {"id": "1.213 in", "length": "0.125 in", "material": "plywood_light_bulk", "name": "Estes 66735", "od": "3.895 in", "type": "centering_ring"}, "description": "Centering ring, plywood, 29mm to PSII 4.0\", PN 66735", "id": "66735", "manufacturer": "Estes", "part_number": "66735"},
+  {"component": {"id": "1.213 in", "length": "0.125 in", "material": "plywood_light_bulk", "name": "Estes 66736", "od": "3.895 in", "type": "centering_ring"}, "description": "Centering ring, plywood, 29mm to PSII 4.0\", 3 fin slots, PN 66736", "id": "66736", "manufacturer": "Estes", "part_number": "66736"},
+  {"component": {"id": "1.213 in", "length": "0.125 in", "material": "plywood_light_bulk", "name": "Estes 66743", "od": "3.895 in", "type": "centering_ring"}, "description": "Centering ring, plywood, 29mm to PSII 4.0\", shock cord slot, PN 66743", "id": "66743", "manufacturer": "Estes", "part_number": "66743"},
+  {"component": {"id": "1.14 in", "length": "8.0 in", "material": "paper_spiral_kraft_glassine_estes_avg_bulk", "name": "Estes 31360", "od": "1.208 in", "type": "body_tube"}, "description": "Body tube, paper, 29mm ID, white, 8.0 in., PN 31360", "id": "31360", "manufacturer": "Estes", "part_number": "31360"},
+  {"component": {"id": "0.875 in", "length": "0.25 in", "material": "fiber_bulk", "name": "Estes 31362", "od": "1.130 in", "type": "engine_block"}, "description": "Engine block, fiber, green, 29mm, 0.25\" len, PN 31362", "id": "31362", "manufacturer": "Estes", "part_number": "31362"},
+  {"component": {"id": "1.216 in", "length": "0.5 in", "material": "fiber_bulk", "name": "Estes 31361", "od": "1.92 in", "type": "body_tube"}, "description": "Body tube, paper, 29mm+, green, 0.5 in., PN 31361", "id": "31361", "manufacturer": "Estes", "part_number": "31361"},
+  {"component": {"id": "1.932 in", "length": "13.5 in", "material": "paper_spiral_kraft_glassine_estes_avg_bulk", "name": "Estes 30615", "od": "2.00 in", "type": "body_tube"}, "description": "Body tube, 2.0 dia, white, 13.5 in., PN 30615", "id": "30615", "manufacturer": "Estes", "part_number": "30615"},
+  {"component": {"id": "1.932 in", "length": "13.5 in", "material": "paper_spiral_kraft_glassine_estes_avg_bulk", "name": "Estes 85866", "od": "2.00 in", "type": "body_tube"}, "description": "Body tube, 2.0 dia, white, 13.5 in., 4 slots, PN 85866", "id": "85866", "manufacturer": "Estes", "part_number": "85866"},
+  {"component": {"id": "1.860 in", "length": "4.0 in", "material": "paper_spiral_kraft_glassine_estes_avg_bulk", "name": "Estes 30618", "od": "1.920 in", "type": "coupler"}, "description": "Tube coupler, 2.0\" series, paper, white,PN 30618", "id": "30618", "manufacturer": "Estes", "part_number": "30618"},
+  {"component": {"length": "9.6 in", "material": "polystyrene_cast_bulk", "name": "Estes 72653", "od": "2.000 in", "shape": "ogive", "shoulder": {"length": "2.0 in", "od": "1.920 in"}, "thickness": "0.125 in", "type": "nose_cone"}, "description": "Nose cone, plastic, 2.0\" series, 9.6\" len, PN 72653", "id": "72653", "manufacturer": "Estes", "part_number": "72653"},
+  {"component": {"aft_od": "2.5 in", "aft_shoulder": {"length": "2.5 in", "od": "2.420 in"}, "fore_od": "2.0 in", "fore_shoulder": {"length": "2.0 in", "od": "1.920 in"}, "length": "2.25 in", "material": "polystyrene_cast_bulk", "name": "Estes 72657", "shape": "conical", "thickness": "0.125 in", "type": "transition"}, "description": "Transition, plastic, PSII 2.0 to 2.5 series, increasing, PN 72657", "id": "72657", "manufacturer": "Estes", "part_number": "72657"},
+  {"component": {"id": "2.432 in", "length": "15.5 in", "material": "paper_spiral_kraft_glassine_estes_avg_bulk", "name": "Estes 31390", "od": "2.50 in", "type": "body_tube"}, "description": "Body tube, 2.5 dia, white, 15.5 in., PN 31390", "id": "31390", "manufacturer": "Estes", "part_number": "31390"},
+  {"component": {"id": "2.432 in", "length": "15.5 in", "material": "paper_spiral_kraft_glassine_estes_avg_bulk", "name": "Estes 85865", "od": "2.50 in", "type": "body_tube"}, "description": "Body tube, 2.5 dia, white, 15.5 in., 3 slots, PN 85865", "id": "85865", "manufacturer": "Estes", "part_number": "85865"},
+  {"component": {"id": "2.432 in", "length": "6.5 in", "material": "paper_spiral_kraft_glassine_estes_avg_bulk", "name": "Estes 31380", "od": "2.50 in", "type": "body_tube"}, "description": "Body tube, 2.5 dia, white, 6.5 in., PN 31390", "id": "31380", "manufacturer": "Estes", "part_number": "31380"},
+  {"component": {"id": "2.360 in", "length": "4.0 in", "material": "fiber_bulk", "name": "Estes 30189", "od": "2.420 in", "type": "coupler"}, "description": "Tube coupler, 2.5\" series, paper, kraft, PN 30189", "id": "30189", "manufacturer": "Estes", "part_number": "30189"},
+  {"component": {"length": "9.75 in", "material": "polystyrene_cast_bulk", "name": "Estes 72413", "od": "2.500 in", "shape": "ogive", "shoulder": {"length": "2.43 in", "od": "2.420 in"}, "thickness": "0.125 in", "type": "nose_cone"}, "description": "Nose cone, plastic, 2.5\" series, 10.75\" len, PN 72413", "id": "72413", "manufacturer": "Estes", "part_number": "72413"},
+  {"component": {"id": "2.932 in", "length": "21.5 in", "material": "paper_spiral_kraft_glassine_estes_avg_bulk", "name": "Estes 31799", "od": "3.0 in", "type": "body_tube"}, "description": "Body tube, paper, 3.0 dia, white, 21.5 in., PN 31799", "id": "31799", "manufacturer": "Estes", "part_number": "31799"},
+  {"component": {"id": "2.932 in", "length": "10.0 in", "material": "paper_spiral_kraft_glassine_estes_avg_bulk", "name": "Estes 31751", "od": "3.0 in", "type": "body_tube"}, "description": "Body tube, paper, 3.0 dia, white, 10.0 in., 4 slots, PN 31751", "id": "31751", "manufacturer": "Estes", "part_number": "31751"},
+  {"component": {"id": "2.932 in", "length": "23.67 in", "material": "paper_spiral_kraft_glassine_estes_avg_bulk", "name": "Estes 85867", "od": "3.0 in", "type": "body_tube"}, "description": "Body tube, paper, 3.0 dia, white, 23.67 in., 4 slots, PN 31751", "id": "85867", "manufacturer": "Estes", "part_number": "85867"},
+  {"component": {"id": "2.860 in", "length": "4.0 in", "material": "fiber_bulk", "name": "Estes 31800", "od": "2.920 in", "type": "coupler"}, "description": "Tube coupler, 3.0\" series, paper, PN 31800", "id": "31800", "manufacturer": "Estes", "part_number": "31800"},
+  {"component": {"length": "8.0 in", "material": "polystyrene_cast_bulk", "name": "Estes 72695", "od": "3.000 in", "shape": "ogive", "shoulder": {"length": "3.0 in", "od": "2.920 in"}, "thickness": "0.125 in", "type": "nose_cone"}, "description": "Nose cone, plastic, 3.0\" series, 8.0\" len, PN 72695", "id": "72695", "manufacturer": "Estes", "part_number": "72695"},
+  {"component": {"length": "17.4 in", "material": "polystyrene_cast_bulk", "name": "Estes 72753", "od": "3.000 in", "shape": "conical", "shoulder": {"length": "3.0 in", "od": "2.920 in"}, "thickness": "0.125 in", "type": "nose_cone"}, "description": "Nose cone, plastic, 3.0\" series, 17.4\" len, PN 72753", "id": "72753", "manufacturer": "Estes", "part_number": "72753"},
+  {"component": {"id": "3.9 in", "length": "20.75 in", "material": "paper_spiral_kraft_glassine_estes_avg_bulk", "name": "Estes 85868", "od": "4.0 in", "type": "body_tube"}, "description": "Body tube, paper, 4.0\" dia, white, 20.75 in., PN 85868", "id": "85868", "manufacturer": "Estes", "part_number": "85868"},
+  {"component": {"length": "12.75 in", "material": "polystyrene_cast_bulk", "name": "Estes 72415", "od": "4.0 in", "shape": "ogive", "shoulder": {"length": "3.75 in", "od": "3.88 in"}, "thickness": "0.125 in", "type": "nose_cone"}, "description": "Nose cone, plastic, 4.0\" series, 12.5\" ogive, PN 72415", "id": "72415", "manufacturer": "Estes", "part_number": "72415"},
+  {"component": {"diameter": "24.0 in", "line_count": 6, "line_length": "24.0 in", "line_material": "nylon_paracord_110_lb_1_16_in_dia", "material": "nylon_fabric_ripstop_1_7_oz_actual", "name": "Estes 002261", "type": "parachute"}, "description": "Parachute, 24 in., nylon, 6 lines, PN 002261", "id": "002261", "manufacturer": "Estes", "part_number": "002261"},
+  {"component": {"diameter": "30.0 in", "line_count": 8, "line_length": "30.0 in", "line_material": "nylon_paracord_110_lb_1_16_in_dia", "material": "nylon_fabric_ripstop_1_7_oz_actual", "name": "Estes 002273", "type": "parachute"}, "description": "Parachute, 30 in., nylon, 8 lines, PN 002273", "id": "002273", "manufacturer": "Estes", "part_number": "002273"}
+ ]
+}

@@ -1,0 +1,252 @@
+{
+  "kind": "golden",
+  "schema": "rw/1",
+  "case": 5,
+  "matrix": "generic",
+  "sim_name": "Simulation 5",
+  "config_id": "1654d8fb-f69f-43de-984a-d55765ad8a9d",
+  "geometry_sha256": "ecd33fc0d9c6fe8345f9f5486887dbc30c50874511dc4d672e83c1fe426bcee3",
+  "conditions": {
+    "rail_length_m": 3.048,
+    "rod_angle_deg": 0.0,
+    "rod_direction_deg": 90.0,
+    "site_altitude_m": 0.0,
+    "latitude_deg": 28.61,
+    "longitude_deg": -80.6,
+    "base_temperature_k": 288.15,
+    "base_pressure_pa": 101325.0,
+    "atmosphere": "ussa1976",
+    "geodetic": "flat",
+    "wind_speed_ms": 0.0,
+    "wind_direction_deg": 90.0,
+    "wind_turbulence": 0.0,
+    "time_step_s": 0.05,
+    "integrator": "rk4",
+    "gravity": {
+      "model": "wgs84"
+    },
+    "launch_into_wind": true
+  },
+  "conditions_hash": "sha256:881511566771fc3cb24d7d212499d12dcad4cb9da5e90386e32d39ec82faae85",
+  "motor_digest": "4314193a46b932bce7a9aeb1ae48319b6ec133a26dd3a631355af181e7235d59",
+  "motors": [
+    {
+      "mount": "Inner Tube",
+      "designation": "RW_I1294G",
+      "digest": "d2f7dbb4e1e1a56c6e94677e09c9a3cbb27ee31d1dfb4fe695b6801e49d9bf83",
+      "delay_s": null
+    }
+  ],
+  "summary": {
+    "max_altitude_m": 1146.67193252942,
+    "max_velocity_ms": 241.3275519086812,
+    "max_accel_ms2": 863.775407333455,
+    "max_mach": 0.7093273087657757,
+    "time_to_apogee_s": 13.375500000000057,
+    "flight_time_s": 90.37493200554393,
+    "ground_hit_velocity_ms": 4.267150925550479,
+    "rod_clear_velocity_ms": 74.86890755724046,
+    "deployment_velocity_ms": 24.00729601977656,
+    "optimum_delay_s": 13.097500000000059
+  },
+  "static": {
+    "cg_m": 0.9937102498564967,
+    "cp_m": 1.232813186651554,
+    "cna": 18.18975639171342,
+    "stability_cal": 4.221301098037803,
+    "mass_kg": 1.8180611088,
+    "ref_diameter_m": 0.056642,
+    "mach": 0.3
+  },
+  "events": [
+    {
+      "kind": "ignition",
+      "t_s": 0.0,
+      "altitude_m": 0.0,
+      "velocity_ms": 0.0
+    },
+    {
+      "kind": "liftoff",
+      "t_s": 0.016,
+      "altitude_m": 0.05185194630523072,
+      "velocity_ms": 8.798219294264548
+    },
+    {
+      "kind": "launch_rod_clearance",
+      "t_s": 0.09427588722460957,
+      "altitude_m": 3.338391297360591,
+      "velocity_ms": 74.86890755724046
+    },
+    {
+      "kind": "burnout",
+      "t_s": 0.328,
+      "altitude_m": 42.8053489163116,
+      "velocity_ms": 241.3275519086812
+    },
+    {
+      "kind": "apogee",
+      "t_s": 13.425500000000058,
+      "altitude_m": 1146.6648830934505,
+      "velocity_ms": 0.38570325380002185
+    },
+    {
+      "kind": "recovery_device_deployment",
+      "t_s": 13.426500000000058,
+      "altitude_m": 1146.664252683518,
+      "velocity_ms": 0.39549142453272984
+    },
+    {
+      "kind": "recovery_device_deployment",
+      "t_s": 55.58876597816693,
+      "altitude_m": 150.87629060982667,
+      "velocity_ms": 24.00729601977656
+    },
+    {
+      "kind": "ground_hit",
+      "t_s": 90.37493200554393,
+      "altitude_m": 0.0,
+      "velocity_ms": 4.267150925550479
+    },
+    {
+      "kind": "simulation_end",
+      "t_s": 90.37493200554393,
+      "altitude_m": 0.0,
+      "velocity_ms": 4.267150925550479
+    }
+  ],
+  "components": [
+    {
+      "name": "Nose cone",
+      "mass_kg": 0.060311549221210764,
+      "cg_m": 0.17752931413932588,
+      "cna": 2.004677461944443,
+      "cp_m": 0.1318429843027066
+    },
+    {
+      "name": "Tube coupler",
+      "mass_kg": 0.04446551944691297,
+      "cg_m": 0.29591,
+      "cna": null,
+      "cp_m": null
+    },
+    {
+      "name": "Bulkhead",
+      "mass_kg": 0.007499270690642966,
+      "cg_m": 0.33301000000000003,
+      "cna": null,
+      "cp_m": null
+    },
+    {
+      "name": "Body tube",
+      "mass_kg": 0.1302116128289328,
+      "cg_m": 0.48641,
+      "cna": 0.010048882743348819,
+      "cp_m": 0.4864099999999997
+    },
+    {
+      "name": "Elliptical 12-Gore 42\" Parachute",
+      "mass_kg": 0.07512623621499999,
+      "cg_m": 0.40295836785891953,
+      "cna": null,
+      "cp_m": null
+    },
+    {
+      "name": "Body tube",
+      "mass_kg": 0.0029913478622862937,
+      "cg_m": 0.7023100000000001,
+      "cna": 0.010048882743348819,
+      "cp_m": 0.4864099999999997
+    },
+    {
+      "name": "Tube coupler",
+      "mass_kg": 0.07513351321291722,
+      "cg_m": 0.7023100000000001,
+      "cna": null,
+      "cp_m": null
+    },
+    {
+      "name": "Body tube",
+      "mass_kg": 0.09765870962169984,
+      "cg_m": 0.86741,
+      "cna": 0.010048882743348819,
+      "cp_m": 0.4864099999999997
+    },
+    {
+      "name": "Apex 12\" Drouge Parachute",
+      "mass_kg": 0.034019427719999995,
+      "cg_m": 0.86741,
+      "cna": null,
+      "cp_m": null
+    },
+    {
+      "name": "Body tube",
+      "mass_kg": 0.14648806443254966,
+      "cg_m": 1.24841,
+      "cna": 0.010048882743348819,
+      "cp_m": 0.4864099999999997
+    },
+    {
+      "name": "Inner Tube",
+      "mass_kg": 0.09508835259073206,
+      "cg_m": 1.27381,
+      "cna": null,
+      "cp_m": null
+    },
+    {
+      "name": "Trapezoidal fin set",
+      "mass_kg": 0.13651507496930398,
+      "cg_m": 1.403734415385974,
+      "cna": 16.155560336710387,
+      "cp_m": 1.3700725206852695
+    },
+    {
+      "name": "Tube coupler",
+      "mass_kg": 0.06010681057033378,
+      "cg_m": 1.01981,
+      "cna": null,
+      "cp_m": null
+    },
+    {
+      "name": "Bulkhead",
+      "mass_kg": 0.007499270690642966,
+      "cg_m": 0.9700100000000001,
+      "cna": null,
+      "cp_m": null
+    },
+    {
+      "name": "Rail Button",
+      "mass_kg": 0.0016531801959055739,
+      "cg_m": 1.27381,
+      "cna": 0.0,
+      "cp_m": null
+    },
+    {
+      "name": "Centering Ring",
+      "mass_kg": 0.0038829423811183525,
+      "cg_m": 1.0906600000000002,
+      "cna": null,
+      "cp_m": null
+    },
+    {
+      "name": "Centering Ring",
+      "mass_kg": 8.569309479846299e-05,
+      "cg_m": 1.3216034,
+      "cna": null,
+      "cp_m": null
+    },
+    {
+      "name": "Centering Ring",
+      "mass_kg": 8.569309479846299e-05,
+      "cg_m": 1.47601,
+      "cna": null,
+      "cp_m": null
+    },
+    {
+      "name": "RW_I1294G",
+      "mass_kg": 0.45728399999999997,
+      "cg_m": 1.33671,
+      "cna": null,
+      "cp_m": null
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "provenance": "contract-fixture",
+  "type": "tools/schema_get.output",
+  "payload": {
+    "names": [
+      "check-delta",
+      "check-report"
+    ],
+    "schema": {
+      "$id": "https://rocketwright.dev/schema/1/check-delta.json"
+    }
+  }
+}

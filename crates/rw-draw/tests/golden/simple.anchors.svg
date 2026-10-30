@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="498" viewBox="0 0 1200 498" font-family="Inter">
+  <rect x="0" y="0" width="1200" height="498" fill="#ffffff" stroke="none" stroke-width="0"/>
+  <text x="40" y="28" font-size="15" text-anchor="start" fill="#1f2933">Simple · anchors · baseline</text>
+  <line x1="68" y1="323.88" x2="1132" y2="323.88" stroke="#5b6b7c" stroke-width="0.75" stroke-dasharray="12 3 2 3"/>
+  <polygon points="987.64,284.55 1120,284.55 1110.55,190 1053.82,190" fill="#c9d3de" stroke="#1f2933" stroke-width="1.25" stroke-linejoin="round"/>
+  <polygon points="987.64,363.21 1120,363.21 1110.55,457.75 1053.82,457.75" fill="#c9d3de" stroke="#1f2933" stroke-width="1.25" stroke-linejoin="round"/>
+  <polygon points="80,323.88 80.18,323.83 80.71,323.68 81.6,323.43 82.84,323.08 84.43,322.63 86.38,322.09 88.69,321.46 91.35,320.74 94.36,319.93 97.73,319.03 101.45,318.06 105.53,317.01 109.96,315.88 114.75,314.7 119.89,313.44 125.38,312.14 131.23,310.78 137.44,309.38 144,307.95 150.91,306.48 158.18,304.99 165.8,303.49 173.78,301.98 182.11,300.47 190.8,298.97 199.84,297.5 209.23,296.04 218.98,294.63 229.09,293.27 239.55,291.96 250.36,290.72 261.53,289.56 273.05,288.49 284.93,287.52 297.16,286.67 309.75,285.94 322.69,285.35 335.98,284.91 349.63,284.64 363.64,284.55 363.64,286.25 439.27,286.25 439.27,361.51 363.64,361.51 363.64,363.21 349.63,363.11 335.98,362.84 322.69,362.4 309.75,361.81 297.16,361.09 284.93,360.23 273.05,359.26 261.53,358.19 250.36,357.03 239.55,355.79 229.09,354.49 218.98,353.12 209.23,351.71 199.84,350.26 190.8,348.78 182.11,347.28 173.78,345.77 165.8,344.26 158.18,342.76 150.91,341.27 144,339.8 137.44,338.37 131.23,336.97 125.38,335.61 119.89,334.31 114.75,333.06 109.96,331.87 105.53,330.75 101.45,329.7 97.73,328.72 94.36,327.83 91.35,327.02 88.69,326.29 86.38,325.66 84.43,325.12 82.84,324.67 81.6,324.33 80.71,324.08 80.18,323.93 80,323.88" fill="#e4e9ef" stroke="#1f2933" stroke-width="1.5" stroke-linejoin="round"/>
+  <polygon points="363.64,284.55 1120,284.55 1120,363.21 363.64,363.21" fill="#e4e9ef" stroke="#1f2933" stroke-width="1.5" stroke-linejoin="round"/>
+  <polygon points="401.45,290.79 514.91,290.79 514.91,356.97 401.45,356.97" fill="none" stroke="#5b6b7c" stroke-width="1" stroke-linejoin="round" stroke-dasharray="4 3"/>
+  <polygon points="987.64,305.25 1120,305.25 1120,342.5 987.64,342.5" fill="none" stroke="#5b6b7c" stroke-width="1" stroke-linejoin="round" stroke-dasharray="4 3"/>
+  <polygon points="997.09,286.25 1002.76,286.25 1002.76,361.51 997.09,361.51" fill="none" stroke="#5b6b7c" stroke-width="1" stroke-linejoin="round" stroke-dasharray="4 3"/>
+  <polyline points="80,288.33 80,176 80,166" fill="none" stroke="#2b6cb0" stroke-width="0.4"/>
+  <polyline points="80,323.88 80,176 91,166" fill="none" stroke="#2b6cb0" stroke-width="0.4"/>
+  <polyline points="363.64,284.55 363.64,176 363.64,166" fill="none" stroke="#2b6cb0" stroke-width="0.4"/>
+  <polyline points="363.64,286.25 363.64,176 374.64,166" fill="none" stroke="#2b6cb0" stroke-width="0.4"/>
+  <polyline points="363.64,284.55 363.64,176 385.64,166" fill="none" stroke="#2b6cb0" stroke-width="0.4"/>
+  <polyline points="363.64,284.55 363.64,176 396.64,166" fill="none" stroke="#2b6cb0" stroke-width="0.4"/>
+  <polyline points="363.64,286.25 363.64,176 407.64,166" fill="none" stroke="#2b6cb0" stroke-width="0.4"/>
+  <polyline points="401.45,323.88 401.45,176 418.64,166" fill="none" stroke="#2b6cb0" stroke-width="0.4"/>
+  <polyline points="439.27,286.25 439.27,176 439.27,166" fill="none" stroke="#2b6cb0" stroke-width="0.4"/>
+  <polyline points="741.82,284.55 741.82,176 741.82,166" fill="none" stroke="#2b6cb0" stroke-width="0.4"/>
+  <polyline points="987.64,284.55 987.64,176 987.64,166" fill="none" stroke="#2b6cb0" stroke-width="0.4"/>
+  <polyline points="987.64,284.55 987.64,176 998.64,166" fill="none" stroke="#2b6cb0" stroke-width="0.4"/>
+  <polyline points="987.64,284.55 987.64,176 1009.64,166" fill="none" stroke="#2b6cb0" stroke-width="0.4"/>
+  <polyline points="987.64,284.55 987.64,176 1020.64,166" fill="none" stroke="#2b6cb0" stroke-width="0.4"/>
+  <polyline points="987.64,305.25 987.64,176 1031.64,166" fill="none" stroke="#2b6cb0" stroke-width="0.4"/>
+  <polyline points="987.64,306.2 987.64,176 1042.64,166" fill="none" stroke="#2b6cb0" stroke-width="0.4"/>
+  <polyline points="987.64,305.25 987.64,176 1053.64,166" fill="none" stroke="#2b6cb0" stroke-width="0.4"/>
+  <polyline points="997.09,323.88 997.09,176 1064.64,166" fill="none" stroke="#2b6cb0" stroke-width="0.4"/>
+  <polyline points="1002.76,323.88 1002.76,176 1075.64,166" fill="none" stroke="#2b6cb0" stroke-width="0.4"/>
+  <polyline points="1053.82,190 1053.82,176 1086.64,166" fill="none" stroke="#2b6cb0" stroke-width="0.4"/>
+  <polyline points="1110.55,190 1110.55,176 1110.55,166" fill="none" stroke="#2b6cb0" stroke-width="0.4"/>
+  <polyline points="1120,284.55 1120,176 1121.55,166" fill="none" stroke="#2b6cb0" stroke-width="0.4"/>
+  <polyline points="1120,284.55 1120,176 1132.55,166" fill="none" stroke="#2b6cb0" stroke-width="0.4"/>
+  <polyline points="1120,305.25 1120,176 1143.55,166" fill="none" stroke="#2b6cb0" stroke-width="0.4"/>
+  <polyline points="1120,306.2 1120,176 1154.55,166" fill="none" stroke="#2b6cb0" stroke-width="0.4"/>
+  <polygon points="80,284.83 83.5,288.33 80,291.83 76.5,288.33" fill="#2b6cb0" stroke="#ffffff" stroke-width="0.75" stroke-linejoin="round"/>
+  <text x="83" y="163" font-size="9" text-anchor="start" fill="#2b6cb0" transform="rotate(-90 83 163)">nose.inner</text>
+  <polygon points="80,320.38 83.5,323.88 80,327.38 76.5,323.88" fill="#2b6cb0" stroke="#ffffff" stroke-width="0.75" stroke-linejoin="round"/>
+  <text x="94" y="163" font-size="9" text-anchor="start" fill="#2b6cb0" transform="rotate(-90 94 163)">nose.tip</text>
+  <polygon points="363.64,281.05 367.14,284.55 363.64,288.05 360.14,284.55" fill="#2b6cb0" stroke="#ffffff" stroke-width="0.75" stroke-linejoin="round"/>
+  <text x="366.64" y="163" font-size="9" text-anchor="start" fill="#2b6cb0" transform="rotate(-90 366.64 163)">body.fore</text>
+  <polygon points="363.64,282.75 367.14,286.25 363.64,289.75 360.14,286.25" fill="#2b6cb0" stroke="#ffffff" stroke-width="0.75" stroke-linejoin="round"/>
+  <text x="377.64" y="163" font-size="9" text-anchor="start" fill="#2b6cb0" transform="rotate(-90 377.64 163)">body.inner</text>
+  <polygon points="363.64,281.05 367.14,284.55 363.64,288.05 360.14,284.55" fill="#2b6cb0" stroke="#ffffff" stroke-width="0.75" stroke-linejoin="round"/>
+  <text x="388.64" y="163" font-size="9" text-anchor="start" fill="#2b6cb0" transform="rotate(-90 388.64 163)">body.outer</text>
+  <polygon points="363.64,281.05 367.14,284.55 363.64,288.05 360.14,284.55" fill="#2b6cb0" stroke="#ffffff" stroke-width="0.75" stroke-linejoin="round"/>
+  <text x="399.64" y="163" font-size="9" text-anchor="start" fill="#2b6cb0" transform="rotate(-90 399.64 163)">nose.base</text>
+  <polygon points="363.64,282.75 367.14,286.25 363.64,289.75 360.14,286.25" fill="#2b6cb0" stroke="#ffffff" stroke-width="0.75" stroke-linejoin="round"/>
+  <text x="410.64" y="163" font-size="9" text-anchor="start" fill="#2b6cb0" transform="rotate(-90 410.64 163)">nose.shoulder_fore</text>
+  <polygon points="401.45,320.38 404.95,323.88 401.45,327.38 397.95,323.88" fill="#2b6cb0" stroke="#ffffff" stroke-width="0.75" stroke-linejoin="round"/>
+  <text x="421.64" y="163" font-size="9" text-anchor="start" fill="#2b6cb0" transform="rotate(-90 421.64 163)">chute.attach</text>
+  <polygon points="439.27,282.75 442.77,286.25 439.27,289.75 435.77,286.25" fill="#2b6cb0" stroke="#ffffff" stroke-width="0.75" stroke-linejoin="round"/>
+  <text x="442.27" y="163" font-size="9" text-anchor="start" fill="#2b6cb0" transform="rotate(-90 442.27 163)">nose.shoulder_aft</text>
+  <polygon points="741.82,281.05 745.32,284.55 741.82,288.05 738.32,284.55" fill="#2b6cb0" stroke="#ffffff" stroke-width="0.75" stroke-linejoin="round"/>
+  <text x="744.82" y="163" font-size="9" text-anchor="start" fill="#2b6cb0" transform="rotate(-90 744.82 163)">body.mid</text>
+  <polygon points="987.64,281.05 991.14,284.55 987.64,288.05 984.14,284.55" fill="#2b6cb0" stroke="#ffffff" stroke-width="0.75" stroke-linejoin="round"/>
+  <text x="990.64" y="163" font-size="9" text-anchor="start" fill="#2b6cb0" transform="rotate(-90 990.64 163)">fins.fin0</text>
+  <polygon points="987.64,281.05 991.14,284.55 987.64,288.05 984.14,284.55" fill="#2b6cb0" stroke="#ffffff" stroke-width="0.75" stroke-linejoin="round"/>
+  <text x="1001.64" y="163" font-size="9" text-anchor="start" fill="#2b6cb0" transform="rotate(-90 1001.64 163)">fins.fin1</text>
+  <polygon points="987.64,281.05 991.14,284.55 987.64,288.05 984.14,284.55" fill="#2b6cb0" stroke="#ffffff" stroke-width="0.75" stroke-linejoin="round"/>
+  <text x="1012.64" y="163" font-size="9" text-anchor="start" fill="#2b6cb0" transform="rotate(-90 1012.64 163)">fins.fin2</text>
+  <polygon points="987.64,281.05 991.14,284.55 987.64,288.05 984.14,284.55" fill="#2b6cb0" stroke="#ffffff" stroke-width="0.75" stroke-linejoin="round"/>
+  <text x="1023.64" y="163" font-size="9" text-anchor="start" fill="#2b6cb0" transform="rotate(-90 1023.64 163)">fins.root_le</text>
+  <polygon points="987.64,301.75 991.14,305.25 987.64,308.75 984.14,305.25" fill="#2b6cb0" stroke="#ffffff" stroke-width="0.75" stroke-linejoin="round"/>
+  <text x="1034.64" y="163" font-size="9" text-anchor="start" fill="#2b6cb0" transform="rotate(-90 1034.64 163)">mount.fore</text>
+  <polygon points="987.64,302.7 991.14,306.2 987.64,309.7 984.14,306.2" fill="#2b6cb0" stroke="#ffffff" stroke-width="0.75" stroke-linejoin="round"/>
+  <text x="1045.64" y="163" font-size="9" text-anchor="start" fill="#2b6cb0" transform="rotate(-90 1045.64 163)">mount.inner</text>
+  <polygon points="987.64,301.75 991.14,305.25 987.64,308.75 984.14,305.25" fill="#2b6cb0" stroke="#ffffff" stroke-width="0.75" stroke-linejoin="round"/>
+  <text x="1056.64" y="163" font-size="9" text-anchor="start" fill="#2b6cb0" transform="rotate(-90 1056.64 163)">mount.outer</text>
+  <polygon points="997.09,320.38 1000.59,323.88 997.09,327.38 993.59,323.88" fill="#2b6cb0" stroke="#ffffff" stroke-width="0.75" stroke-linejoin="round"/>
+  <text x="1067.64" y="163" font-size="9" text-anchor="start" fill="#2b6cb0" transform="rotate(-90 1067.64 163)">ring.fore</text>
+  <polygon points="1002.76,320.38 1006.26,323.88 1002.76,327.38 999.26,323.88" fill="#2b6cb0" stroke="#ffffff" stroke-width="0.75" stroke-linejoin="round"/>
+  <text x="1078.64" y="163" font-size="9" text-anchor="start" fill="#2b6cb0" transform="rotate(-90 1078.64 163)">ring.aft</text>
+  <polygon points="1053.82,186.5 1057.32,190 1053.82,193.5 1050.32,190" fill="#2b6cb0" stroke="#ffffff" stroke-width="0.75" stroke-linejoin="round"/>
+  <text x="1089.64" y="163" font-size="9" text-anchor="start" fill="#2b6cb0" transform="rotate(-90 1089.64 163)">fins.tip_le</text>
+  <polygon points="1110.55,186.5 1114.05,190 1110.55,193.5 1107.05,190" fill="#2b6cb0" stroke="#ffffff" stroke-width="0.75" stroke-linejoin="round"/>
+  <text x="1113.55" y="163" font-size="9" text-anchor="start" fill="#2b6cb0" transform="rotate(-90 1113.55 163)">fins.tip_te</text>
+  <polygon points="1120,281.05 1123.5,284.55 1120,288.05 1116.5,284.55" fill="#2b6cb0" stroke="#ffffff" stroke-width="0.75" stroke-linejoin="round"/>
+  <text x="1124.55" y="163" font-size="9" text-anchor="start" fill="#2b6cb0" transform="rotate(-90 1124.55 163)">body.aft</text>
+  <polygon points="1120,281.05 1123.5,284.55 1120,288.05 1116.5,284.55" fill="#2b6cb0" stroke="#ffffff" stroke-width="0.75" stroke-linejoin="round"/>
+  <text x="1135.55" y="163" font-size="9" text-anchor="start" fill="#2b6cb0" transform="rotate(-90 1135.55 163)">fins.root_te</text>
+  <polygon points="1120,301.75 1123.5,305.25 1120,308.75 1116.5,305.25" fill="#2b6cb0" stroke="#ffffff" stroke-width="0.75" stroke-linejoin="round"/>
+  <text x="1146.55" y="163" font-size="9" text-anchor="start" fill="#2b6cb0" transform="rotate(-90 1146.55 163)">mount.aft</text>
+  <polygon points="1120,302.7 1123.5,306.2 1120,309.7 1116.5,306.2" fill="#2b6cb0" stroke="#ffffff" stroke-width="0.75" stroke-linejoin="round"/>
+  <text x="1157.55" y="163" font-size="9" text-anchor="start" fill="#2b6cb0" transform="rotate(-90 1157.55 163)">mount.motor_retainer</text>
+</svg>

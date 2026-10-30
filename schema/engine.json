@@ -1,0 +1,779 @@
+{
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "name": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "propellants": {
+      "$ref": "#/$defs/Propellants",
+      "x-ui-group": "Propellants"
+    },
+    "mixture_ratio": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "string",
+          "pattern": "^\\s*=.+$"
+        }
+      ],
+      "x-unit-dimension": "dimensionless",
+      "x-expr": true,
+      "x-ui-group": "Engine"
+    },
+    "chamber_pressure": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+        },
+        {
+          "const": 0
+        }
+      ],
+      "x-unit-dimension": "pressure",
+      "x-expr": true,
+      "x-ui-group": "Engine"
+    },
+    "thrust": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+        },
+        {
+          "const": 0
+        }
+      ],
+      "x-unit-dimension": "force",
+      "x-expr": true,
+      "x-ui-group": "Engine"
+    },
+    "expansion_ratio": {
+      "anyOf": [
+        {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string",
+              "pattern": "^\\s*=.+$"
+            }
+          ],
+          "x-unit-dimension": "dimensionless",
+          "x-expr": true
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "x-ui-group": "Nozzle"
+    },
+    "exit_pressure": {
+      "anyOf": [
+        {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+            },
+            {
+              "const": 0
+            }
+          ],
+          "x-unit-dimension": "pressure",
+          "x-expr": true
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "x-ui-group": "Nozzle"
+    },
+    "contraction_ratio": {
+      "anyOf": [
+        {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string",
+              "pattern": "^\\s*=.+$"
+            }
+          ],
+          "x-unit-dimension": "dimensionless",
+          "x-expr": true
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "x-ui-group": "Chamber"
+    },
+    "l_star": {
+      "anyOf": [
+        {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+            },
+            {
+              "const": 0
+            }
+          ],
+          "x-unit-dimension": "length",
+          "x-expr": true
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "x-ui-group": "Chamber"
+    },
+    "injector": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Injector"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "x-ui-group": "Injector"
+    },
+    "fluid_model": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/FluidModel"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Fluid model (unset → `RW-W210 fluid-model-missing`)."
+    },
+    "feed": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/FeedGraph"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "x-ui-group": "Feed"
+    }
+  },
+  "required": [
+    "propellants",
+    "mixture_ratio",
+    "chamber_pressure",
+    "thrust"
+  ],
+  "description": "`engines/<id>.rw.toml`: a liquid engine and its feed system (R2.7; M4).",
+  "title": "EngineDoc",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rocketwright.dev/schema/1/engine.json",
+  "$defs": {
+    "Propellants": {
+      "type": "object",
+      "properties": {
+        "oxidizer": {
+          "type": "string"
+        },
+        "fuel": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "oxidizer",
+        "fuel"
+      ]
+    },
+    "Injector": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "$ref": "#/$defs/InjectorType"
+        },
+        "pressure_drop": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+                },
+                {
+                  "const": 0
+                }
+              ],
+              "x-unit-dimension": "pressure",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "pressure_drop_fraction": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "string",
+                  "pattern": "^\\s*=.+$"
+                }
+              ],
+              "x-unit-dimension": "dimensionless",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Pressure drop as a fraction of chamber pressure."
+        },
+        "cd": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "string",
+                  "pattern": "^\\s*=.+$"
+                }
+              ],
+              "x-unit-dimension": "dimensionless",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    "InjectorType": {
+      "type": "string",
+      "enum": [
+        "impinging",
+        "showerhead",
+        "pintle",
+        "swirl"
+      ]
+    },
+    "FluidModel": {
+      "type": "string",
+      "enum": [
+        "single_phase_liquid",
+        "two_phase_equilibrium"
+      ]
+    },
+    "FeedGraph": {
+      "type": "object",
+      "properties": {
+        "node": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/FeedNode"
+          },
+          "default": {}
+        },
+        "edge": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/FeedEdge"
+          },
+          "default": []
+        }
+      },
+      "description": "`[feed.node.<id>]` + `[[feed.edge]]`."
+    },
+    "FeedNode": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/FeedNodeKind"
+        },
+        "component": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The `tank` component this node stands for."
+        },
+        "fluid": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "volume": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+                },
+                {
+                  "const": 0
+                }
+              ],
+              "x-unit-dimension": "volume",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "pressure": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+                },
+                {
+                  "const": 0
+                }
+              ],
+              "x-unit-dimension": "pressure",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "pressurant": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "pressurant_mass": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+                },
+                {
+                  "const": 0
+                }
+              ],
+              "x-unit-dimension": "mass",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "flow_area": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+                },
+                {
+                  "const": 0
+                }
+              ],
+              "x-unit-dimension": "area",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "cd": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "string",
+                  "pattern": "^\\s*=.+$"
+                }
+              ],
+              "x-unit-dimension": "dimensionless",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "station": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+                },
+                {
+                  "const": 0
+                }
+              ],
+              "x-unit-dimension": "length",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Viewport placement: station of the node's centre (from the nose\ntip, +aft) and signed radial offset in the layout plane (+Y)."
+        },
+        "radial": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+                },
+                {
+                  "const": 0
+                }
+              ],
+              "x-unit-dimension": "length",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "tank": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Tank"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Tank geometry and fill given on the node itself (a tank outside the\nrocket's tubes, e.g. a propulsion test module), in place of `component`."
+        },
+        "material": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Wall material of an inline `tank` (`[materials.*]`), for its mass and\nhoop-stress check."
+        }
+      },
+      "required": [
+        "kind"
+      ]
+    },
+    "FeedNodeKind": {
+      "type": "string",
+      "enum": [
+        "tank",
+        "valve",
+        "line",
+        "engine",
+        "sensor"
+      ]
+    },
+    "Tank": {
+      "type": "object",
+      "properties": {
+        "length": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+            },
+            {
+              "const": 0
+            }
+          ],
+          "x-unit-dimension": "length",
+          "x-expr": true
+        },
+        "od": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+            },
+            {
+              "const": 0
+            }
+          ],
+          "x-unit-dimension": "length",
+          "x-expr": true
+        },
+        "wall": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+            },
+            {
+              "const": 0
+            }
+          ],
+          "x-unit-dimension": "length",
+          "x-expr": true
+        },
+        "end_cap": {
+          "$ref": "#/$defs/EndCap"
+        },
+        "fill": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TankFill"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "x-ui-group": "Propellant"
+        }
+      },
+      "required": [
+        "length",
+        "od",
+        "wall",
+        "end_cap"
+      ],
+      "description": "A propellant tank (inner component) used by liquid engines (R2.5, R2.7).",
+      "x-ui-group": "Tank"
+    },
+    "EndCap": {
+      "type": "string",
+      "enum": [
+        "flat",
+        "hemispherical",
+        "ellipsoidal"
+      ]
+    },
+    "TankFill": {
+      "type": "object",
+      "properties": {
+        "propellant": {
+          "type": "string",
+          "description": "Propellant name (e.g. `n2o`, `ethanol`)."
+        },
+        "fraction": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "string",
+                  "pattern": "^\\s*=.+$"
+                }
+              ],
+              "x-unit-dimension": "dimensionless",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Fill as a fraction of internal volume, or give `volume`."
+        },
+        "volume": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+                },
+                {
+                  "const": 0
+                }
+              ],
+              "x-unit-dimension": "volume",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "propellant"
+      ]
+    },
+    "FeedEdge": {
+      "type": "object",
+      "properties": {
+        "from": {
+          "type": "string"
+        },
+        "to": {
+          "type": "string"
+        },
+        "diameter": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+                },
+                {
+                  "const": 0
+                }
+              ],
+              "x-unit-dimension": "length",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "length": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+                },
+                {
+                  "const": 0
+                }
+              ],
+              "x-unit-dimension": "length",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "bc": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EdgeBc"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Boundary condition (unset → `RW-W211 feed-bc-missing`)."
+        },
+        "waypoints": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/FeedPoint"
+          },
+          "description": "Explicit routing between the two nodes, in order (replaces the\nviewport's automatic elbows)."
+        }
+      },
+      "required": [
+        "from",
+        "to"
+      ]
+    },
+    "EdgeBc": {
+      "type": "string",
+      "enum": [
+        "open",
+        "closed",
+        "check_valve",
+        "orifice"
+      ]
+    },
+    "FeedPoint": {
+      "type": "object",
+      "properties": {
+        "station": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+            },
+            {
+              "const": 0
+            }
+          ],
+          "x-unit-dimension": "length",
+          "x-expr": true
+        },
+        "radial": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+            },
+            {
+              "const": 0
+            }
+          ],
+          "x-unit-dimension": "length",
+          "x-expr": true
+        },
+        "depth": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+                },
+                {
+                  "const": 0
+                }
+              ],
+              "x-unit-dimension": "length",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "station",
+        "radial"
+      ],
+      "description": "A routing point of a feed line: station from the nose tip (+aft), signed\nradial offset in the layout plane (+Y), and an optional offset normal to\nthat plane (+Z)."
+    }
+  }
+}

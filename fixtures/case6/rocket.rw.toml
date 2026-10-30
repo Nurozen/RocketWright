@@ -1,0 +1,280 @@
+# Oracle case 6 ('Three stage low power rocket', generic-curve variant), re-authored
+# from tests/oracle/case6.geometry.json by scripts/fixtures/oracle_case.py.
+# Do not edit; modelling choices are listed in fixtures/README.md.
+
+name = "Three stage low power rocket"
+
+[stage.sustainer]
+first = "nose_cone"
+name = "Sustainer"
+
+[stage.middle]
+first = "body_tube_2"
+name = "Middle"
+
+[stage.booster]
+first = "body_tube_3"
+name = "Booster"
+
+[c.nose_cone]
+type = "nose_cone"
+name = "Nose cone"
+material = "polystyrene"
+finish = { roughness = "0.00006 m" }
+shape = "ogive"
+shape_param = 1
+length = "0.1 m"
+od = "0.025 m"
+thickness = "0.002 m"
+shoulder = { length = "0.02 m", od = "0.023 m", thickness = "0.002 m", capped = true }
+
+[c.body_tube]
+type = "body_tube"
+name = "Body tube"
+attach = { to = "nose_cone.base" }
+material = "cardboard"
+finish = { roughness = "0.00006 m" }
+length = "0.3 m"
+od = "0.025 m"
+thickness = "0.001 m"
+
+[c.shock_cord]
+type = "shock_cord"
+name = "Shock cord"
+attach = { to = "body_tube.fore", at = "attach", offset = "0.020000000000000004 m" }
+material = "elastic_cord_round_2mm_1"
+cord_length = "0.4 m"
+packed_length = "0.052000000000000005 m"
+packed_diameter = "0.012 m"
+
+[c.parachute]
+type = "parachute"
+name = "Parachute"
+attach = { to = "body_tube.fore", at = "attach", offset = "0.032 m" }
+material = "ripstop_nylon"
+diameter = "0.3 m"
+cd = 0.8
+line_count = 6
+line_length = "0.3 m"
+line_material = "shroud_lines"
+packed_length = "0.042 m"
+packed_diameter = "0.018000000000000002 m"
+
+[c.wadding]
+type = "mass_component"
+name = "Wadding"
+attach = { to = "body_tube.fore", at = "fore", offset = "0.07999999999999999 m" }
+mass = "0.002 kg"
+length = "0.03 m"
+od = "0.023 m"
+
+[c.inner_tube]
+type = "inner_tube"
+name = "Inner Tube"
+attach = { to = "body_tube.fore", at = "fore", offset = "0.22499999999999995 m" }
+material = "cardboard"
+length = "0.075 m"
+od = "0.019 m"
+thickness = "0.0005000000000000004 m"
+motor_mount = true
+overhang = "0.003 m"
+
+[c.engine_block]
+type = "engine_block"
+name = "Engine block"
+attach = { to = "inner_tube.inner", at = "fore", offset = "0.0020000000000000018 m" }
+material = "cardboard"
+length = "0.005 m"
+od = "0.018 m"
+id = "0.011999999999999999 m"
+
+[c.centering_ring]
+type = "centering_ring"
+name = "Centering ring"
+attach = { to = "body_tube.fore", at = "fore", offset = "0.23132499999999998 m" }
+material = "cardboard"
+length = "0.002 m"
+od = "0.023 m"
+id = "0.019 m"
+
+[c.centering_ring_2]
+type = "centering_ring"
+name = "Centering ring"
+attach = { to = "body_tube.fore", at = "fore", offset = "0.2781372 m" }
+material = "cardboard"
+length = "0.002 m"
+od = "0.023 m"
+id = "0.019 m"
+
+[c.trapezoidal_fin_set]
+type = "trapezoidal_fin_set"
+name = "Trapezoidal fin set"
+attach = { to = "body_tube.fore", at = "root_le", offset = "0.24999999999999997 m" }
+material = "cardboard"
+finish = { roughness = "0.00006 m" }
+count = 3
+root_chord = "0.05 m"
+tip_chord = "0.05 m"
+span = "0.03 m"
+sweep = "0.025 m"
+thickness = "0.002 m"
+cross_section = "rounded"
+
+[c.launch_lug]
+type = "launch_lug"
+name = "Launch lug"
+attach = { to = "body_tube.fore", at = "fore", offset = "0.1325 m", spin = "0.33161255787892263 rad" }
+material = "cardboard"
+finish = { roughness = "0.00006 m" }
+length = "0.035 m"
+od = "0.007 m"
+thickness = "0.001 m"
+
+[c.body_tube_2]
+type = "body_tube"
+name = "Body tube"
+attach = { to = "body_tube.aft" }
+material = "cardboard"
+finish = { roughness = "0.00006 m" }
+length = "0.08 m"
+od = "0.025 m"
+thickness = "0.001 m"
+
+[c.tube_coupler]
+type = "coupler"
+name = "Tube coupler"
+attach = { to = "body_tube_2.fore", at = "fore", offset = "-0.020000000000000018 m" }
+material = "cardboard"
+length = "0.04 m"
+od = "0.023 m"
+thickness = "0 m"
+
+[c.inner_tube_2]
+type = "inner_tube"
+name = "Inner Tube"
+attach = { to = "body_tube_2.fore", at = "fore", offset = "0.010000000000000009 m" }
+material = "cardboard"
+length = "0.07 m"
+od = "0.019 m"
+thickness = "0.0005000000000000004 m"
+motor_mount = true
+
+[c.centering_ring_3]
+type = "centering_ring"
+name = "Centering ring"
+attach = { to = "body_tube_2.fore", at = "fore", offset = "0.019862800000000014 m" }
+material = "cardboard"
+length = "0.002 m"
+od = "0.023 m"
+id = "0.019 m"
+
+[c.centering_ring_4]
+type = "centering_ring"
+name = "Centering ring"
+attach = { to = "body_tube_2.fore", at = "fore", offset = "0.0581372 m" }
+material = "cardboard"
+length = "0.002 m"
+od = "0.023 m"
+id = "0.019 m"
+
+[c.freeform_fin_set]
+type = "freeform_fin_set"
+name = "Freeform fin set"
+attach = { to = "body_tube_2.fore", at = "root_le", offset = "0 m" }
+material = "cardboard"
+finish = { roughness = "0.00006 m" }
+count = 3
+points = [["0 m", "0 m"], ["0.025 m", "0.03 m"], ["0.10500949758429275 m", "0.04 m"], ["0.08 m", "0 m"]]
+thickness = "0.002 m"
+cross_section = "rounded"
+
+[c.body_tube_3]
+type = "body_tube"
+name = "Body tube"
+attach = { to = "body_tube_2.aft" }
+material = "cardboard"
+finish = { roughness = "0.00006 m" }
+length = "0.08 m"
+od = "0.025 m"
+thickness = "0.001 m"
+
+[c.tube_coupler_2]
+type = "coupler"
+name = "Tube coupler"
+attach = { to = "body_tube_3.fore", at = "fore", offset = "-0.020000000000000018 m" }
+material = "cardboard"
+length = "0.04 m"
+od = "0.023 m"
+thickness = "0 m"
+
+[c.inner_tube_3]
+type = "inner_tube"
+name = "Inner Tube"
+attach = { to = "body_tube_3.fore", at = "fore", offset = "0.010000000000000009 m" }
+material = "cardboard"
+length = "0.07 m"
+od = "0.019 m"
+thickness = "0.0005000000000000004 m"
+motor_mount = true
+
+[c.centering_ring_5]
+type = "centering_ring"
+name = "Centering ring"
+attach = { to = "body_tube_3.fore", at = "fore", offset = "0.019862800000000014 m" }
+material = "cardboard"
+length = "0.002 m"
+od = "0.023 m"
+id = "0.019 m"
+
+[c.centering_ring_6]
+type = "centering_ring"
+name = "Centering ring"
+attach = { to = "body_tube_3.fore", at = "fore", offset = "0.07800000000000001 m" }
+material = "cardboard"
+length = "0.002 m"
+od = "0.023 m"
+id = "0.019 m"
+
+[c.trapezoidal_fin_set_2]
+type = "trapezoidal_fin_set"
+name = "Trapezoidal fin set"
+attach = { to = "body_tube_3.fore", at = "root_le", offset = "0 m" }
+material = "cardboard"
+finish = { roughness = "0.00006 m" }
+count = 3
+root_chord = "0.08 m"
+tip_chord = "0.03 m"
+span = "0.04 m"
+sweep = "0.025 m"
+thickness = "0.002 m"
+cross_section = "rounded"
+
+[c.launch_lug_2]
+type = "launch_lug"
+name = "Launch lug"
+attach = { to = "body_tube_3.fore", at = "fore", offset = "0.02250000000000002 m", spin = "0.33161255787892263 rad" }
+material = "cardboard"
+finish = { roughness = "0.00006 m" }
+length = "0.035 m"
+od = "0.007 m"
+thickness = "0.001 m"
+
+[materials.polystyrene]
+density = "1050 kg/m^3"
+name = "Polystyrene"
+
+[materials.cardboard]
+density = "680 kg/m^3"
+name = "Cardboard"
+
+[materials.elastic_cord_round_2mm_1]
+line_density = "0.0018 kg/m"
+name = "Elastic cord (round 2mm, 1/16 in)"
+
+[materials.ripstop_nylon]
+surface_density = "0.067 kg/m^2"
+name = "Ripstop nylon"
+
+[materials.shroud_lines]
+line_density = "0.0018 kg/m"
+name = "shroud lines"

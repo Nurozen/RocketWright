@@ -1,0 +1,8 @@
+# A small three-fin model rocket for tests and demos (plan M1.54c): includes a
+# part file, params with a variant, two configurations, and two simulations.
+format = 1
+name = "Simple"
+default_config = "c6"
+
+[display_units]
+length = "mm"

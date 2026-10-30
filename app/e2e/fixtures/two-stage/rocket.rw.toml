@@ -1,0 +1,102 @@
+name = "Two stage"
+
+[stage.sustainer]
+first = "nose"
+name = "Sustainer"
+
+[stage.booster]
+first = "booster_tube"
+name = "Booster"
+
+[c.nose]
+type = "nose_cone"
+name = "Nose"
+material = "polystyrene"
+shape = "ogive"
+length = "100 mm"
+od = "24.8 mm"
+thickness = "1 mm"
+
+[c.sustainer_tube]
+type = "body_tube"
+name = "Sustainer tube"
+attach = { to = "nose.base" }
+material = "cardboard"
+length = "250 mm"
+od = "24.8 mm"
+id = "24 mm"
+
+[c.chute]
+type = "parachute"
+name = "Parachute"
+attach = { to = "sustainer_tube.inner", at = "attach", offset = "20 mm" }
+material = "ripstop_nylon"
+diameter = "300 mm"
+cd = 0.8
+packed_length = "40 mm"
+packed_diameter = "20 mm"
+
+[c.sustainer_mmt]
+type = "inner_tube"
+name = "Sustainer mount"
+attach = { to = "sustainer_tube.aft", at = "aft" }
+material = "cardboard"
+length = "75 mm"
+od = "19.6 mm"
+id = "19 mm"
+motor_mount = true
+
+[c.sustainer_fins]
+type = "trapezoidal_fin_set"
+name = "Sustainer fins"
+attach = { to = "sustainer_tube.aft", at = "root_te" }
+material = "balsa"
+count = 3
+root_chord = "50 mm"
+tip_chord = "25 mm"
+span = "35 mm"
+sweep = "20 mm"
+thickness = "2 mm"
+
+[c.booster_tube]
+type = "body_tube"
+name = "Booster tube"
+attach = { to = "sustainer_tube.aft" }
+material = "cardboard"
+length = "110 mm"
+od = "24.8 mm"
+id = "24 mm"
+
+[c.booster_mmt]
+type = "inner_tube"
+name = "Booster mount"
+attach = { to = "booster_tube.aft", at = "aft" }
+material = "cardboard"
+length = "75 mm"
+od = "19.6 mm"
+id = "19 mm"
+motor_mount = true
+
+[c.booster_fins]
+type = "trapezoidal_fin_set"
+name = "Booster fins"
+attach = { to = "booster_tube.aft", at = "root_te" }
+material = "balsa"
+count = 3
+root_chord = "60 mm"
+tip_chord = "30 mm"
+span = "45 mm"
+sweep = "25 mm"
+thickness = "2 mm"
+
+[materials.polystyrene]
+density = "1050 kg/m^3"
+
+[materials.cardboard]
+density = "680 kg/m^3"
+
+[materials.balsa]
+density = "160 kg/m^3"
+
+[materials.ripstop_nylon]
+surface_density = "67 g/m^2"

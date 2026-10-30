@@ -1,0 +1,32 @@
+{
+  "type": "object",
+  "properties": {
+    "thread": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Filter to one thread (`cli`, `ui`, a thread id)."
+    },
+    "limit": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "uint32",
+      "minimum": 0
+    },
+    "before": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "uint32",
+      "minimum": 0,
+      "description": "Only steps with `seq` below this."
+    }
+  },
+  "title": "HistoryListIn",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rocketwright.dev/schema/1/tools/history_list.input.json"
+}

@@ -1,0 +1,21 @@
+{
+  "source": "rocketwright_spec.md B2 key map (S:177), verbatim",
+  "summary": {
+    "max_altitude_m": "apogee_m",
+    "max_velocity_ms": "max_velocity_ms",
+    "max_accel_ms2": "max_accel_ms2",
+    "max_mach": "max_mach",
+    "time_to_apogee_s": "time_to_apogee_s",
+    "flight_time_s": "flight_time_s",
+    "ground_hit_velocity_ms": "landing_velocity_ms",
+    "rod_clear_velocity_ms": "rail_exit_velocity_ms",
+    "deployment_velocity_ms": "deployment_velocity_ms",
+    "optimum_delay_s": "optimum_delay_s"
+  },
+  "static": {
+    "cg_m": "mass.cg",
+    "cp_m": "aero.cp",
+    "cna": "aero.cna",
+    "stability_cal": "stability.liftoff"
+  }
+}

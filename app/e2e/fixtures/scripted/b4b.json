@@ -1,0 +1,28 @@
+{
+  "description": "M5.6 B4(b) driver rehearsal (`node scripts/bar/live-smoke.ts --rehearse`, no network, B14): stands in for the live agent on the minimum template through the embedded Lecturn pane. A Lecturn scripted-provider turn (D22; it replaced the old stand-in script, deleted at B17); `scripts` is the scripts file, keyed by run ordinal (the first turn of a new thread).",
+  "prompt": "Design a rocket that reaches about 300 m on a C-class motor, check it, simulate it, and show me the results",
+  "scripts": {
+    "1": [
+      { "assistantText": "Fitting a C6 to the minimum rocket, then checking and simulating." },
+      {
+        "toolCall": {
+          "name": "rw_model_patch",
+          "arguments": { "ops": [{ "op": "replace", "path": "/configs/default/motors/mount/motor", "value": "generic:RW_C6G" }], "label": "C6 motor" }
+        },
+        "saveAs": "patch"
+      },
+      { "toolCall": { "name": "rw_design_check", "arguments": {} } },
+      { "toolCall": { "name": "rw_simulate", "arguments": { "sim": "default" } }, "saveAs": "sim" },
+      {
+        "poll": {
+          "toolCall": { "name": "rw_job_status", "arguments": { "job_id": "${sim.result.structuredContent.job_id}" } },
+          "until": { "path": "result.structuredContent.state", "equals": "complete" },
+          "maxTries": 300,
+          "intervalMs": 200
+        },
+        "saveAs": "job"
+      },
+      { "assistantText": "Default is Complete." }
+    ]
+  }
+}

@@ -1,0 +1,64 @@
+{
+  "kind": "golden",
+  "schema": "rw/1",
+  "case": 6,
+  "matrix": "original",
+  "sim_name": "Simulation 3",
+  "config_id": "b13e8ca2-f54d-4ca8-9b23-06c6c9eb237a",
+  "geometry_sha256": "c158affafcfa6489d40028a5396d6a941a1a40f54b1d9070ccada9b9e829c6a8",
+  "conditions": {
+    "rail_length_m": 1.0,
+    "rod_angle_deg": 0.0,
+    "rod_direction_deg": 90.0,
+    "site_altitude_m": 0.0,
+    "latitude_deg": 45.0,
+    "longitude_deg": 0.0,
+    "base_temperature_k": 288.15,
+    "base_pressure_pa": 101325.0,
+    "atmosphere": "ussa1976",
+    "geodetic": "flat",
+    "wind_speed_ms": 0.0,
+    "wind_direction_deg": 90.0,
+    "wind_turbulence": 0.0,
+    "time_step_s": 0.05,
+    "integrator": "rk4",
+    "gravity": {
+      "model": "wgs84"
+    },
+    "launch_into_wind": true
+  },
+  "conditions_hash": "sha256:3deb085651939a41cace89b33874137dd2b03d76bb0d82bb2bd6282bd08262de",
+  "motor_digest": "c471f675f61d1300d16b345985f1e68b5835c0a53ea27ab0cb6a8c886b1105c5",
+  "motors": [
+    {
+      "mount": "Inner Tube",
+      "designation": "C6",
+      "digest": "de4b4fd8a2786028032a4373ff72bd67f0f9df0a9c3f22c32ec6d595c8ea626a",
+      "delay_s": 0.0
+    },
+    {
+      "mount": "Inner Tube",
+      "designation": "C6",
+      "digest": "de4b4fd8a2786028032a4373ff72bd67f0f9df0a9c3f22c32ec6d595c8ea626a",
+      "delay_s": 7.0
+    },
+    {
+      "mount": "Inner Tube",
+      "designation": "C6",
+      "digest": "de4b4fd8a2786028032a4373ff72bd67f0f9df0a9c3f22c32ec6d595c8ea626a",
+      "delay_s": 0.0
+    }
+  ],
+  "summary": {
+    "max_altitude_m": 679.4958473214501,
+    "max_velocity_ms": 129.47816527057114,
+    "max_accel_ms2": 139.16355525283922,
+    "max_mach": 0.3820415629896981,
+    "time_to_apogee_s": 12.330529128199819,
+    "flight_time_s": 174.28463114879656,
+    "ground_hit_velocity_ms": 4.134150478279909,
+    "rod_clear_velocity_ms": 10.144554559304764,
+    "deployment_velocity_ms": 2.6051164258292645,
+    "optimum_delay_s": 6.750529128199819
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "name": "@rw/ui",
+  "version": "0.1.0",
+  "private": true,
+  "license": "AGPL-3.0-or-later",
+  "type": "module",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./tokens.css": "./tokens.css",
+    "./lecturn-theme.json": "./generated/lecturn-theme.json",
+    "./lecturn-theme-host.json": "./generated/lecturn-theme-host.json"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "lint": "oxlint -c ../../.oxlintrc.json --deny-warnings .",
+    "test": "vitest run --fsModuleCachePath node_modules/.vitest-cache",
+    "gen:lecturn-theme": "node scripts/gen-lecturn-theme.ts",
+    "gen:lecturn-theme:check": "node scripts/gen-lecturn-theme.ts --check"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "harfbuzzjs": "1.6.4",
+    "subset-font": "2.9.0",
+    "typescript": "6.0.3",
+    "vitest": "5.0.5",
+    "wawoff2": "2.0.1"
+  }
+}

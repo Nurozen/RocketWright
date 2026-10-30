@@ -1,0 +1,5 @@
+name = "C6"
+
+[motors.mmt]
+motor = "generic:RW_C6G"
+delay = "5 s"

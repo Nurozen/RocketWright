@@ -1,0 +1,24 @@
+{
+  "description": "W-B2 follow-up rehearsal (`node scripts/bar/live-smoke.ts --rehearse`, no network, B16; D14, decision 12): stands in for the live agent on a temp copy of fixtures/research-vehicle, one thread, four turns keyed by run ordinal. 1 Supervised: rw_engine_simulate of demo with no duration (one connectedAppTool approval, approved). 2 Full access and 3 Auto: the same call, no approval. 4 Supervised: rw_simulate mc=500 (not_implemented, no approval). `prompt` is turn 1's; the driver sends live-smoke.ts's FOLLOW_UP_PROMPT, MODE_CHECK_PROMPTS and MC_PROMPT.",
+  "prompt": "Simulate the demo engine with rw_engine_simulate. Do not pass a duration: leave it at the tool's default.",
+  "scripts": {
+    "1": [
+      { "assistantText": "Simulating the demo engine at the default duration." },
+      { "expectApproval": true },
+      { "toolCall": { "name": "rw_engine_simulate", "arguments": { "engine": "demo" } } },
+      { "assistantText": "The demo engine run is complete." }
+    ],
+    "2": [
+      { "toolCall": { "name": "rw_engine_simulate", "arguments": { "engine": "demo" } } },
+      { "assistantText": "Ran it again in Full access." }
+    ],
+    "3": [
+      { "toolCall": { "name": "rw_engine_simulate", "arguments": { "engine": "demo" } } },
+      { "assistantText": "Ran it once more in Auto." }
+    ],
+    "4": [
+      { "toolCall": { "name": "rw_simulate", "arguments": { "sim": "baseline", "mc": 500 } } },
+      { "assistantText": "Monte Carlo with 500 samples is not implemented." }
+    ]
+  }
+}

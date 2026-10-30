@@ -1,0 +1,21 @@
+[package]
+name = "rw-liquid"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[features]
+# Acceptance 8 tests (plan M4.5): hand calculations, analytic blowdown, and
+# the RocketPy liquid-motor example. `cargo test -p rw-liquid --features acceptance`.
+acceptance = []
+
+[dependencies]
+rw-model.workspace = true
+rw-thermo.workspace = true
+rw-motor.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+schemars.workspace = true
+sha2.workspace = true

@@ -1,0 +1,7 @@
+{
+  "provenance": "contract-fixture",
+  "type": "tools/history_show.input",
+  "payload": {
+    "version": "step:4"
+  }
+}

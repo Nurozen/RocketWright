@@ -1,0 +1,72 @@
+{
+  "version": 1,
+  "source": "artifacts/research/concepts.md §6 (defects in the art, do not copy). A checklist item whose text matches a pattern copies the defect and fails `bar:lint-checklists`. Patterns are case-insensitive JavaScript regexes.",
+  "defects": [
+    {
+      "id": "04-parabola",
+      "page": "04",
+      "defect": "The altitude curve is a symmetric parabola; real descent under a parachute is slower and longer.",
+      "pattern": "\\bsymmetric|\\bparabol"
+    },
+    {
+      "id": "04-burnout-20s",
+      "page": "04",
+      "defect": "Burnout is shown at about 20 s, but the thrust curve on page 03 burns 2.5 s.",
+      "pattern": "burnout[^.]{0,40}\\b(?:about |around |near |at |~)?(?:20|twenty) ?s\\b"
+    },
+    {
+      "id": "04-ballistic-arcs",
+      "page": "04",
+      "defect": "The inset arcs are symmetric ballistic shapes.",
+      "pattern": "\\bballistic"
+    },
+    {
+      "id": "01-fins-3",
+      "page": "01",
+      "defect": "The tree says Fins (3), while 02 has Fin count 4 and 4 rendered fins.",
+      "pattern": "\\bfins \\(3\\)|\\bthree fins\\b|\\b3 fins\\b"
+    },
+    {
+      "id": "01-fin-can-and-fins",
+      "page": "01",
+      "defect": "The tree rows differ between pages (Fin can + Fins (3) vs Fin set).",
+      "pattern": "\\bfin can\\b.{0,60}\\bfins\\b"
+    },
+    {
+      "id": "02-step-02-twice",
+      "page": "02",
+      "defect": "The history shows step 02 twice (Assembly layout and Fin revision).",
+      "pattern": "\\b02\\b.{0,60}\\b02\\b|step 02 (?:twice|two times)|duplicate step"
+    },
+    {
+      "id": "02-upper-fin-only",
+      "page": "02",
+      "defect": "The selected-fin teal fill sits on the upper fin only.",
+      "pattern": "\\bupper fin only\\b|\\bonly (?:on )?the upper fin\\b|\\bone fin (?:only )?(?:is )?(?:teal|filled|highlighted)"
+    },
+    {
+      "id": "02-unequal-fins",
+      "page": "02",
+      "defect": "The dorsal fin is larger than the ventral one, which is not plausible for a fin set.",
+      "pattern": "\\b(?:dorsal|upper) fin (?:is )?larger|\\blarger (?:dorsal|upper) fin|\\bventral fin (?:is )?smaller"
+    },
+    {
+      "id": "05-history-two-owners",
+      "page": "05",
+      "defect": "The history appears both in the agent pane and in the bottom strip with different contents. Choose one owner.",
+      "pattern": "\\bdesign history\\b.{0,40}\\b(?:in|inside) the agent pane|\\bagent pane\\b.{0,40}\\bdesign history\\b|\\bdifferent (?:contents|steps)\\b"
+    },
+    {
+      "id": "06-drops-components",
+      "page": "06",
+      "defect": "The left rail drops the Components tree and adds analyses with no defined pages.",
+      "pattern": "\\b(?:drops?|removes?|without|no) (?:the )?components tree\\b|\\bthermal analysis\\b.{0,40}\\bfull (?:analysis|page)"
+    },
+    {
+      "id": "forbidden-styling",
+      "page": "*",
+      "defect": "concepts.md §2 forbidden elements must never be required by a checklist item.",
+      "pattern": "\\b(?:neon|glow(?:s|ing)?|hologram\\w*|sparkles?|plume|fire|kpi tiles?|purple gradients?|certification badges?)\\b"
+    }
+  ]
+}

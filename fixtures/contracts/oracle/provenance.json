@@ -1,0 +1,17 @@
+{
+  "provenance": "contract-fixture",
+  "type": "oracle-golden",
+  "note": "Contract fixture in the oracle-golden schema; invented numbers, not OpenRocket output",
+  "payload": {
+    "kind": "provenance",
+    "schema": "rw/1",
+    "case": 0,
+    "source_example": "contract-fixture.ork",
+    "openrocket_version": "0.0.0",
+    "harness_commit": "0a4ca4ce7e4990cd01a24d592212e71d0a5c3237",
+    "generic_motor": "RW_C6G",
+    "files": {
+      "case0-generic.json": "cd0aa9856147b6c5b4ff2b7dfee5da20aa38253099ef1b4a64aced233c9afe29"
+    }
+  }
+}

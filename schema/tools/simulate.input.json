@@ -1,0 +1,36 @@
+{
+  "type": "object",
+  "properties": {
+    "sim": {
+      "type": "string",
+      "description": "Sim id (`sims/<id>.rw.toml`)."
+    },
+    "config": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Override the sim's config."
+    },
+    "force": {
+      "type": "boolean",
+      "description": "Re-run even on a cache hit.",
+      "default": false
+    },
+    "mc": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "uint32",
+      "minimum": 0,
+      "description": "Monte Carlo sample count (large counts need approval)."
+    }
+  },
+  "required": [
+    "sim"
+  ],
+  "title": "SimulateIn",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rocketwright.dev/schema/1/tools/simulate.input.json"
+}

@@ -1,0 +1,7 @@
+{
+  "provenance": "contract-fixture",
+  "type": "tools/engine_design.input",
+  "payload": {
+    "engine": "demo-incomplete"
+  }
+}

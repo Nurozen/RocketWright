@@ -1,0 +1,31 @@
+{
+  "type": "object",
+  "properties": {
+    "path": {
+      "type": "string"
+    },
+    "kind": {
+      "$ref": "#/$defs/ImportKind"
+    },
+    "dry_run": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "path",
+    "kind"
+  ],
+  "title": "ImportFileIn",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rocketwright.dev/schema/1/tools/import_file.input.json",
+  "$defs": {
+    "ImportKind": {
+      "type": "string",
+      "enum": [
+        "ork",
+        "motor"
+      ]
+    }
+  }
+}

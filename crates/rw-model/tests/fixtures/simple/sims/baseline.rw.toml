@@ -1,0 +1,6 @@
+name = "Baseline"
+config = "baseline"
+
+[launch]
+rail_length = "1.5 m"
+rod_angle = "5 deg"

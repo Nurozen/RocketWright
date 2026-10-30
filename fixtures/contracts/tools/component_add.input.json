@@ -1,0 +1,25 @@
+{
+  "provenance": "contract-fixture",
+  "type": "tools/component_add.input",
+  "payload": {
+    "id": "rail_buttons",
+    "component": {
+      "type": "rail_button",
+      "attach": {
+        "to": "airframe.outer",
+        "at": "fore",
+        "offset": "160 mm",
+        "radial": "outer"
+      },
+      "od": "11 mm",
+      "id": "6 mm",
+      "height": "9 mm",
+      "instances": {
+        "count": 2,
+        "pattern": "linear",
+        "spacing": "250 mm"
+      }
+    },
+    "dry_run": true
+  }
+}

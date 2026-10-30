@@ -1,0 +1,31 @@
+{
+  "provenance": "contract-fixture",
+  "type": "tools/job_status.output",
+  "payload": {
+    "job_id": "job-0007",
+    "kind": "simulate",
+    "state": "complete",
+    "progress": 1.0,
+    "sim": "baseline",
+    "run_id": "f8eb21388e28",
+    "summary": {
+      "schema": "rw/1",
+      "apogee_m": 612.4,
+      "max_velocity_ms": 118.6,
+      "max_accel_ms2": 61.2,
+      "max_mach": 0.349,
+      "time_to_apogee_s": 10.84,
+      "flight_time_s": 62.3,
+      "landing_velocity_ms": 4.92,
+      "rail_exit_velocity_ms": 17.8,
+      "deployment_velocity_ms": 9.6,
+      "optimum_delay_s": 8.8,
+      "min_stability_cal": 1.62,
+      "burnout_time_s": 2.0,
+      "burnout_altitude_m": 104.7,
+      "landing_x_m": 0.0,
+      "landing_y_m": 0.0,
+      "drift_m": 0.0
+    }
+  }
+}

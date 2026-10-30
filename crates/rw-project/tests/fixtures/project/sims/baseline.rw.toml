@@ -1,0 +1,7 @@
+name = "Baseline"
+config = "baseline"
+
+# Launch site.
+[launch]
+rail_length = "1.5 m"
+rod_angle = "5 deg"   # into the wind

@@ -1,0 +1,5 @@
+name = "A8 over C6"
+config = "a8_c6"
+
+[launch]
+rail_length = "1 m"

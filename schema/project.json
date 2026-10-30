@@ -1,0 +1,79 @@
+{
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "format": {
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0,
+      "description": "Format version (`1`)."
+    },
+    "name": {
+      "type": "string"
+    },
+    "model": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Model file (default `rocket.rw.toml`)."
+    },
+    "default_config": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "display_units": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "description": "Display unit per dimension name, e.g. `length = \"mm\"`."
+    },
+    "lib": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/LibManifest"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "required": [
+    "format",
+    "name"
+  ],
+  "description": "`rocketwright.toml`: the project manifest.",
+  "title": "ProjectManifest",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rocketwright.dev/schema/1/project.json",
+  "$defs": {
+    "LibManifest": {
+      "type": "object",
+      "properties": {
+        "paths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "sha256": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Project-relative path → sha256 hex."
+        }
+      },
+      "description": "`[lib]`: project library paths and the sha256 of every file under `lib/`."
+    }
+  }
+}

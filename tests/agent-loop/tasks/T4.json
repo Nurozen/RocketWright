@@ -1,0 +1,18 @@
+{
+  "id": "T4",
+  "title": "Compare two history steps and report the metric deltas",
+  "setup": [
+    ["rw", "init", "--template", "simple-rocket"],
+    ["rw", "set", "params.fin_span.value=60 mm", "--label", "longer fins"],
+    ["rw", "set", "params.body_length.value=500 mm", "--label", "longer body"]
+  ],
+  "prompt": "The working directory holds a RocketWright rocket project with several history steps. The RocketWright CLI (`rw`) is on your PATH and its skill doc is at {skill_doc}. Compare the first and the latest history steps and report how the design metrics changed between them.",
+  "predicates": [
+    { "kind": "sequence", "desc": "the history was listed and two steps compared", "steps": [
+      { "input": "\\bhistory\\s+log\\b|history_list", "ok": true },
+      { "input": "\\bhistory\\s+compare\\b|history_compare", "ok": true }
+    ] },
+    { "kind": "answer", "desc": "the answer reports numeric deltas", "pattern": "\\d" },
+    { "kind": "answer", "desc": "the answer names a metric", "pattern": "stab|cg|cp|mass|apogee|margin" }
+  ]
+}

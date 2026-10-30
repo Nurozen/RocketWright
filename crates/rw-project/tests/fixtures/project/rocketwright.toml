@@ -1,0 +1,4 @@
+# Store fixture (M1.25): a small project with comments everywhere.
+format = 1
+name = "Store"   # project name
+default_config = "baseline"

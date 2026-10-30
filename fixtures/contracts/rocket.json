@@ -1,0 +1,163 @@
+{
+  "provenance": "contract-fixture",
+  "type": "rocket",
+  "note": "JSON twin of a trimmed research-vehicle rocket.rw.toml",
+  "payload": {
+    "name": "Research vehicle",
+    "params": {
+      "fin_span": {
+        "value": "90 mm",
+        "min": "60 mm",
+        "max": "120 mm",
+        "step": "5 mm",
+        "group": "Fins",
+        "doc": "Fin height"
+      }
+    },
+    "variants": {
+      "long_fins": {
+        "fin_span": "110 mm"
+      }
+    },
+    "stage": {
+      "sustainer": {
+        "first": "nose",
+        "name": "Sustainer"
+      }
+    },
+    "c": {
+      "nose": {
+        "type": "nose_cone",
+        "shape": "ogive",
+        "length": "220 mm",
+        "od": "54 mm",
+        "thickness": "2 mm",
+        "shoulder": {
+          "length": "60 mm",
+          "od": "51.8 mm",
+          "thickness": "2 mm"
+        },
+        "material": "fiberglass",
+        "appearance": {
+          "preset": "composite_white"
+        }
+      },
+      "recovery_bay": {
+        "type": "body_tube",
+        "attach": {
+          "to": "nose.base",
+          "at": "fore"
+        },
+        "length": "120 mm",
+        "od": "54 mm",
+        "id": "51.8 mm",
+        "material": "polycarbonate",
+        "appearance": {
+          "preset": "clear_polycarbonate"
+        },
+        "joint": {
+          "type": "twist_lock",
+          "count": 4
+        }
+      },
+      "parachute": {
+        "type": "parachute",
+        "attach": {
+          "to": "recovery_bay.inner",
+          "at": "attach",
+          "offset": "15 mm"
+        },
+        "diameter": "610 mm",
+        "cd": 0.8,
+        "packed_length": "80 mm",
+        "packed_diameter": "45 mm",
+        "appearance": {
+          "preset": "nylon_orange"
+        }
+      },
+      "airframe": {
+        "type": "body_tube",
+        "attach": {
+          "to": "recovery_bay.aft",
+          "at": "fore"
+        },
+        "length": "300 mm",
+        "od": "54 mm",
+        "thickness": "1.1 mm"
+      },
+      "avionics": {
+        "type": "mass_component",
+        "attach": {
+          "to": "airframe.inner",
+          "at": "fore",
+          "offset": "20 mm"
+        },
+        "mass": "85 g",
+        "length": "100 mm",
+        "od": "50 mm",
+        "role": "flight_computer",
+        "override": {
+          "cg": "50 mm",
+          "subtree": false
+        }
+      },
+      "fin_can": {
+        "type": "body_tube",
+        "attach": {
+          "to": "airframe.aft",
+          "at": "fore"
+        },
+        "length": "200 mm",
+        "od": "54 mm",
+        "id": "51.8 mm"
+      },
+      "motor_mount": {
+        "type": "inner_tube",
+        "attach": {
+          "to": "fin_can.aft",
+          "at": "aft"
+        },
+        "length": "180 mm",
+        "od": "32 mm",
+        "id": "29.2 mm",
+        "motor_mount": true
+      },
+      "fins": {
+        "type": "trapezoidal_fin_set",
+        "attach": {
+          "to": "fin_can.aft",
+          "at": "root_te",
+          "offset": 0
+        },
+        "count": 4,
+        "root_chord": "140 mm",
+        "tip_chord": "60 mm",
+        "span": "= params.fin_span",
+        "sweep": "45 mm",
+        "thickness": "3 mm",
+        "cross_section": "rounded",
+        "finish": "smooth_paint"
+      }
+    },
+    "materials": {
+      "fiberglass": {
+        "density": "1850 kg/m^3"
+      },
+      "polycarbonate": {
+        "density": "1.2 g/cm^3"
+      }
+    },
+    "assert": [
+      {
+        "id": "stable",
+        "expr": "stability.liftoff >= 1.0 cal",
+        "severity": "error"
+      }
+    ],
+    "report": {
+      "values": [
+        "= c.fins.span"
+      ]
+    }
+  }
+}

@@ -1,0 +1,154 @@
+{
+  "type": "object",
+  "properties": {
+    "code": {
+      "$ref": "#/$defs/ApiErrorCode"
+    },
+    "message": {
+      "type": "string"
+    },
+    "hint": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "diagnostics": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Diagnostic"
+      }
+    },
+    "outcome": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ErrorOutcome"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Set when the call's effect is not known (`unavailable`, D4)."
+    }
+  },
+  "required": [
+    "code",
+    "message"
+  ],
+  "title": "ApiError",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rocketwright.dev/schema/1/api-error.json",
+  "$defs": {
+    "ApiErrorCode": {
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "invalid_input",
+            "not_found",
+            "io",
+            "conflict",
+            "internal"
+          ]
+        },
+        {
+          "type": "string",
+          "const": "not_implemented",
+          "description": "The command exists but its body has not landed (e.g. `import_file` before M2.5)."
+        },
+        {
+          "type": "string",
+          "const": "locked",
+          "description": "`.rw/lock` is held by another live owner (D4)."
+        },
+        {
+          "type": "string",
+          "const": "approval_required",
+          "description": "Needs a human approval first (gated tool, I16)."
+        },
+        {
+          "type": "string",
+          "const": "unavailable",
+          "description": "The project's owner went away before answering; retryable (D4). A\nlost mutation carries `outcome: \"unknown\"`: it may have committed, so\nreconcile through `history_list` before retrying it."
+        }
+      ]
+    },
+    "Diagnostic": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string",
+          "description": "Stable code, e.g. `RW-E021`.",
+          "pattern": "^RW-[EWI][0-9]{3}$"
+        },
+        "severity": {
+          "$ref": "#/$defs/Severity"
+        },
+        "path": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "JSON pointer into the source model, e.g. `/c/fins/span`."
+        },
+        "file": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Project-relative file."
+        },
+        "line": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "minimum": 0
+        },
+        "col": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "minimum": 0
+        },
+        "message": {
+          "type": "string"
+        },
+        "hint": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Next action for an agent."
+        }
+      },
+      "required": [
+        "code",
+        "severity",
+        "message"
+      ],
+      "description": "One finding, phrased for an agent (`hint` says what to do next)."
+    },
+    "Severity": {
+      "type": "string",
+      "enum": [
+        "error",
+        "warning",
+        "info"
+      ]
+    },
+    "ErrorOutcome": {
+      "oneOf": [
+        {
+          "type": "string",
+          "const": "unknown",
+          "description": "The call may or may not have taken effect (a mutation lost with the\nproject's owner, after it may have committed)."
+        }
+      ],
+      "description": "What is known about the effect of a call that failed (D4)."
+    }
+  }
+}

@@ -1,0 +1,57 @@
+name = "Vented freeform"
+
+[c.nose]
+type = "nose_cone"
+name = "Nose"
+material = "polystyrene"
+shape = "ogive"
+length = "120 mm"
+od = "41.6 mm"
+thickness = "1.2 mm"
+
+[c.body]
+type = "body_tube"
+name = "Vented tube"
+attach = { to = "nose.base" }
+material = "cardboard"
+length = "300 mm"
+od = "41.6 mm"
+id = "40 mm"
+
+[c.vents]
+type = "launch_lug"
+name = "Vents"
+attach = { to = "body.fore", at = "fore", offset = "60 mm", radial = "20.4 mm" }
+instances = { count = 4, pattern = "radial", start = "45 deg" }
+cut = true
+length = "30 mm"
+od = "6 mm"
+id = "0.5 mm"
+
+[c.fins]
+type = "freeform_fin_set"
+name = "Freeform fins"
+attach = { to = "body.aft", at = "root_te" }
+material = "balsa"
+count = 3
+points = [["0 mm", "0 mm"], ["40 mm", "45 mm"], ["70 mm", "45 mm"], ["80 mm", "0 mm"]]
+thickness = "3 mm"
+
+[c.mmt]
+type = "inner_tube"
+name = "Motor mount"
+attach = { to = "body.aft", at = "aft" }
+material = "cardboard"
+length = "75 mm"
+od = "19.6 mm"
+id = "19 mm"
+motor_mount = true
+
+[materials.polystyrene]
+density = "1050 kg/m^3"
+
+[materials.cardboard]
+density = "680 kg/m^3"
+
+[materials.balsa]
+density = "160 kg/m^3"

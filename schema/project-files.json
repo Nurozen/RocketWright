@@ -1,0 +1,24 @@
+{
+  "type": "object",
+  "properties": {
+    "model_hash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "files": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "description": "Project-relative path → text."
+    }
+  },
+  "required": [
+    "model_hash",
+    "files"
+  ],
+  "description": "`rw://project/files`: every source file's text (the web never reads disk).",
+  "title": "ProjectFiles",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rocketwright.dev/schema/1/project-files.json"
+}

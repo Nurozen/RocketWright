@@ -1,0 +1,576 @@
+{
+  "page": "03",
+  "title": "Design > Configurations",
+  "exemplar": "03-flight-configurations.png",
+  "captureState": "Seeded fixture; Design > Configurations; Baseline configuration selected; Motors sub-tab; first motor selected; thread 'Motor comparison' with its canned exchange.",
+  "source": "concepts.md §3, §4.3; spec B1; plan D10 (U11 minimal); BC0 critic (M1.15b)",
+  "items": [
+    {
+      "id": "03.shell.header",
+      "kind": "region",
+      "testid": "header",
+      "milestone": "M1",
+      "source": "C§3 Header; C§2 Spacing",
+      "text": "Header bar across the top, about 56 px tall, flat, with a 1 px hairline below.",
+      "level": "required"
+    },
+    {
+      "id": "03.header.brand",
+      "kind": "field",
+      "testid": "header.wordmark",
+      "milestone": "M1",
+      "source": "C§3 Header; C§intro product name",
+      "text": "Rocket mark and the wordmark 'RocketWright' (the product name, not the art's name).",
+      "level": "required"
+    },
+    {
+      "id": "03.header.project-switcher",
+      "kind": "control",
+      "testid": "header.project-switcher",
+      "milestone": "M1",
+      "source": "C§3 Header",
+      "text": "Project switcher showing the loaded project name ('Research vehicle') with a ▾ menu.",
+      "level": "required"
+    },
+    {
+      "id": "03.header.save-state",
+      "kind": "field",
+      "testid": "header.save-state",
+      "milestone": "M1",
+      "source": "C§3 Header",
+      "text": "Save state with a cloud icon and a relative time computed from the real last save ('Saved … ago').",
+      "level": "required"
+    },
+    {
+      "id": "03.header.tabs",
+      "kind": "control",
+      "testid": "header.tab",
+      "milestone": "M1",
+      "source": "C§3 Header",
+      "text": "Centred tabs Design | Propulsion | Simulate | Results.",
+      "level": "required"
+    },
+    {
+      "id": "03.header.active-tab",
+      "kind": "state",
+      "testid": "header.tab",
+      "milestone": "M2",
+      "source": "C§3 Header; C§2 accent/teal",
+      "text": "Design is the active tab, marked by a 2 px teal underline.",
+      "level": "required"
+    },
+    {
+      "id": "03.header.check-model",
+      "kind": "control",
+      "testid": "header.check-model",
+      "milestone": "M1",
+      "source": "C§3 Header; C§2 accent/teal-fill",
+      "text": "'✓ Check model' primary button: deep teal fill, 1 px teal border, white text; its state reflects the real model check result (status, issue count).",
+      "level": "required"
+    },
+    {
+      "id": "03.header.settings",
+      "kind": "control",
+      "testid": "header.settings",
+      "milestone": "M1",
+      "source": "C§3 Header; U17",
+      "text": "Settings gear button opening minimal settings.",
+      "level": "minimal"
+    },
+    {
+      "id": "03.header.help",
+      "kind": "control",
+      "testid": "header.help",
+      "milestone": "M1",
+      "source": "C§3 Header; U17",
+      "text": "Help '?' button.",
+      "level": "minimal"
+    },
+    {
+      "id": "03.shell.left-rail",
+      "kind": "region",
+      "testid": "left-rail",
+      "milestone": "M1",
+      "source": "C§2 Layout; C§3 Left rail",
+      "text": "Left rail, about 17% of the width, threads group above the page navigation section, hairline divider on its right.",
+      "level": "required"
+    },
+    {
+      "id": "03.rail.threads",
+      "kind": "field",
+      "testid": "rail.thread-row",
+      "milestone": "M2",
+      "source": "C§3 Left rail, threads group; S:169 seeded threads",
+      "text": "Thread rows with icon, name, and relative age: Assembly review, Fin revision, Flight comparison (seeded).",
+      "level": "required"
+    },
+    {
+      "id": "03.rail.thread-selected",
+      "kind": "state",
+      "testid": "rail.thread-row",
+      "milestone": "M1",
+      "source": "C§3 Left rail, threads group",
+      "text": "The selected thread row is highlighted.",
+      "level": "required"
+    },
+    {
+      "id": "03.rail.new-thread",
+      "kind": "control",
+      "testid": "rail.new-thread",
+      "milestone": "M1",
+      "source": "C§3 Left rail, threads group",
+      "text": "'+ New thread' row below the threads.",
+      "level": "required"
+    },
+    {
+      "id": "03.rail.nav-section",
+      "kind": "control",
+      "testid": "rail.nav-title",
+      "milestone": "M2",
+      "source": "C§3 Left rail, page navigation",
+      "text": "Titled navigation section 'Components' with a search icon and '+'.",
+      "level": "required"
+    },
+    {
+      "id": "03.shell.workspace",
+      "kind": "region",
+      "testid": "workspace",
+      "milestone": "M1",
+      "source": "C§2 Layout",
+      "text": "Workspace column, about 58% of the width, between the rail and the agent pane.",
+      "level": "required"
+    },
+    {
+      "id": "03.shell.agent-pane",
+      "kind": "region",
+      "testid": "agent-pane",
+      "milestone": "M1",
+      "source": "C§2 Layout; C§3 Agent pane",
+      "text": "Docked agent pane, about 25% of the width, full height below the header, hairline divider on its left (not a floating dock).",
+      "level": "required"
+    },
+    {
+      "id": "03.agent.header",
+      "kind": "field",
+      "testid": "agent.title",
+      "milestone": "M2",
+      "source": "C§3 Agent pane; D10; D31",
+      "text": "Pane head rendered by RocketWright above the embedded chat: thread icon and the open thread's title 'Motor comparison', the same thread the left rail highlights.",
+      "level": "required"
+    },
+    {
+      "id": "03.agent.model-picker",
+      "kind": "control",
+      "testid": "agent.model-picker",
+      "milestone": "M1",
+      "source": "C§3 Agent pane; S:169 allowed deviation; U17; D10; D31",
+      "text": "'Agent' settings button in the pane head that opens the agent's provider and model settings (the S:169 'Agent ▾' mapping).",
+      "level": "minimal"
+    },
+    {
+      "id": "03.agent.user-message",
+      "kind": "field",
+      "testid": "chat-user-message-bubble",
+      "milestone": "M1",
+      "source": "C§3 Agent pane; C§2 bubble/user; D31",
+      "text": "The user's message in a teal-tinted bubble, radius about 6 px, with the round user avatar beside it.",
+      "level": "required"
+    },
+    {
+      "id": "03.agent.context-chip",
+      "kind": "control",
+      "testid": "app-ref-chip",
+      "milestone": "M1",
+      "source": "C§3 Agent pane; C§5.1; D31",
+      "text": "An `rw:` app reference in the thread renders as a chip naming the entity, not as raw text; it resolves to a stable entity id and opens that entity in RocketWright.",
+      "level": "required"
+    },
+    {
+      "id": "03.agent.reply",
+      "kind": "field",
+      "testid": "message-role.assistant",
+      "milestone": "M1",
+      "source": "C§3 Agent pane; D31",
+      "text": "Agent reply after the turn's tool rows and cards, written as plain prose with no bubble, under the agent's name.",
+      "level": "required"
+    },
+    {
+      "id": "03.shell.composer",
+      "kind": "region",
+      "testid": "composer",
+      "milestone": "M1",
+      "source": "C§3 Agent pane",
+      "text": "Composer pinned to the bottom of the agent pane.",
+      "level": "required"
+    },
+    {
+      "id": "03.composer.placeholder",
+      "kind": "field",
+      "testid": "composer.input",
+      "milestone": "M2",
+      "source": "C§3 Agent pane",
+      "text": "Composer placeholder 'Ask about this configuration…'.",
+      "level": "required"
+    },
+    {
+      "id": "03.composer.attach",
+      "kind": "control",
+      "testid": "composer.attach",
+      "milestone": "M1",
+      "source": "C§3 Agent pane; U18",
+      "text": "Paperclip attach button.",
+      "level": "minimal"
+    },
+    {
+      "id": "03.composer.send",
+      "kind": "control",
+      "testid": "composer.send",
+      "milestone": "M1",
+      "source": "C§3 Agent pane",
+      "text": "Send button.",
+      "level": "required"
+    },
+    {
+      "id": "03.agent.provenance-footer",
+      "kind": "field",
+      "testid": "agent.provenance-footer",
+      "milestone": "M1",
+      "source": "C§2 Layout; U20",
+      "text": "Bottom-right footer of the agent pane states the provenance of the data shown (it replaces the art's placeholder footer).",
+      "level": "minimal"
+    },
+    {
+      "id": "03.shell.history-strip",
+      "kind": "region",
+      "testid": "history-strip",
+      "milestone": "M1",
+      "source": "C§3 Design history strip",
+      "text": "Design history strip along the bottom of the rail and workspace.",
+      "level": "required"
+    },
+    {
+      "id": "03.history.steps",
+      "kind": "field",
+      "testid": "history.step",
+      "milestone": "M1",
+      "source": "C§3 Design history strip; C§6 (02); D10",
+      "text": "Label 'Design history', then numbered step circles joined by hairlines, each with a name and date; numbers are sequential and unique, from the seeded history.",
+      "level": "required"
+    },
+    {
+      "id": "03.history.current",
+      "kind": "state",
+      "testid": "history.step",
+      "milestone": "M1",
+      "source": "C§3 Design history strip",
+      "text": "The current step has a teal ring.",
+      "level": "required"
+    },
+    {
+      "id": "03.history.compare",
+      "kind": "control",
+      "testid": "history.compare",
+      "milestone": "M1",
+      "source": "C§3 Design history strip; U13",
+      "text": "'Compare' button at the end of the strip.",
+      "level": "required"
+    },
+    {
+      "id": "03.history.menu",
+      "kind": "control",
+      "testid": "history.menu",
+      "milestone": "M1",
+      "source": "C§3 Design history strip",
+      "text": "'⋯' menu after Compare.",
+      "level": "required"
+    },
+    {
+      "id": "03.shell.local-tabs",
+      "kind": "region",
+      "testid": "local-tabs",
+      "milestone": "M2",
+      "source": "C§3 Local tabs (Design)",
+      "text": "Design local tabs Assembly | Components | Configurations, with Configurations active.",
+      "level": "required"
+    },
+    {
+      "id": "03.shell.viewport-toolbar",
+      "kind": "region",
+      "testid": "viewport-toolbar",
+      "milestone": "M2",
+      "source": "C§3 Viewport toolbar; C§2 Spacing",
+      "text": "Viewport toolbar row, about 64 px, above the history strip.",
+      "level": "required"
+    },
+    {
+      "id": "03.toolbar.view-chips",
+      "kind": "control",
+      "testid": "toolbar.view-chip",
+      "milestone": "M2",
+      "source": "C§3 Viewport toolbar; C§5.6",
+      "text": "'View' chips Iso | Top | Side | Front | Rear, active chip teal.",
+      "level": "required"
+    },
+    {
+      "id": "03.toolbar.units",
+      "kind": "control",
+      "testid": "toolbar.units",
+      "milestone": "M2",
+      "source": "C§3 Viewport toolbar; C§5.7",
+      "text": "'Units' dropdown (mm ▾) that switches the displayed units.",
+      "level": "required"
+    },
+    {
+      "id": "03.page.title",
+      "kind": "field",
+      "testid": "page.title",
+      "milestone": "M2",
+      "source": "C§4.3 Configurations table; C§2 Typography",
+      "text": "Page title 'Flight configurations' (22-28 px).",
+      "level": "required"
+    },
+    {
+      "id": "03.configs.actions",
+      "kind": "control",
+      "testid": "configs.action",
+      "milestone": "M2",
+      "source": "C§4.3 Configurations table",
+      "text": "Actions '+ New', 'Duplicate', 'Rename'.",
+      "level": "required"
+    },
+    {
+      "id": "03.configs.region",
+      "kind": "region",
+      "testid": "config-table",
+      "milestone": "M2",
+      "source": "C§4.3 Configurations table",
+      "text": "Configurations table.",
+      "level": "required"
+    },
+    {
+      "id": "03.configs.columns",
+      "kind": "field",
+      "testid": "configs.header",
+      "milestone": "M2",
+      "source": "C§4.3 Configurations table",
+      "text": "Columns: radio select, Configuration, Motor, Recovery, Simulation.",
+      "level": "required"
+    },
+    {
+      "id": "03.configs.rows",
+      "kind": "field",
+      "testid": "configs.row",
+      "milestone": "M2",
+      "source": "C§4.3 Configurations table; D10",
+      "text": "Rows for the fixture's configurations (Baseline, Higher altitude, Recovery test) with their motor and recovery device.",
+      "level": "required"
+    },
+    {
+      "id": "03.configs.status",
+      "kind": "state",
+      "testid": "configs.status",
+      "milestone": "M2",
+      "source": "C§4.3; C§5.2 status vocabulary; U11",
+      "text": "Simulation column uses the status vocabulary from real run state: teal ✓ Simulated with date, — Not simulated, amber ⚠ Outdated with date.",
+      "level": "required"
+    },
+    {
+      "id": "03.configs.selected",
+      "kind": "state",
+      "testid": "configs.row",
+      "milestone": "M2",
+      "source": "C§2 selection row",
+      "text": "Selected configuration row has a teal radio and teal-tinted row.",
+      "level": "required"
+    },
+    {
+      "id": "03.subtabs",
+      "kind": "control",
+      "testid": "configs.subtab",
+      "milestone": "M2",
+      "source": "C§4.3 Sub-tabs",
+      "text": "Sub-tabs Motors | Recovery | Stage separation, Motors active.",
+      "level": "required"
+    },
+    {
+      "id": "03.motors.region",
+      "kind": "region",
+      "testid": "motor-panel",
+      "milestone": "M2",
+      "source": "C§4.3 Motors split view",
+      "text": "Motors split view: motor list left, motor detail right.",
+      "level": "required"
+    },
+    {
+      "id": "03.motors.search",
+      "kind": "control",
+      "testid": "motors.search",
+      "milestone": "M2",
+      "source": "C§4.3 Motors split view",
+      "text": "'Select a motor' list with a 'Search motors…' field.",
+      "level": "required"
+    },
+    {
+      "id": "03.motors.filters",
+      "kind": "control",
+      "testid": "motors.filter",
+      "milestone": "M2",
+      "source": "C§4.3 Motors split view",
+      "text": "Filter dropdowns Diameter, Manufacturer, Impulse class, each defaulting to All.",
+      "level": "required"
+    },
+    {
+      "id": "03.motors.rows",
+      "kind": "field",
+      "testid": "motors.row",
+      "milestone": "M2",
+      "source": "C§4.3 Motors split view",
+      "text": "Motor rows with a casing thumbnail, name, 'diameter · manufacturer' subtitle, and an ⓘ; the selected row is teal.",
+      "level": "required"
+    },
+    {
+      "id": "03.motor.title",
+      "kind": "field",
+      "testid": "motor.title",
+      "milestone": "M2",
+      "source": "C§4.3 Motors split view",
+      "text": "Motor detail title with a mount-size pill.",
+      "level": "required"
+    },
+    {
+      "id": "03.motor.thrust-curve",
+      "kind": "render",
+      "testid": "motor.thrust-curve",
+      "milestone": "M2",
+      "source": "C§4.3 Motors split view",
+      "text": "Teal thrust curve plotted from the motor file: 'Thrust (N)' against 'Time (s)'.",
+      "level": "required"
+    },
+    {
+      "id": "03.motor.casing",
+      "kind": "render",
+      "testid": "motor.casing",
+      "milestone": "M3",
+      "source": "C§4.3 Motors split view; U11",
+      "text": "Rendered sealed motor casing.",
+      "level": "minimal"
+    },
+    {
+      "id": "03.motor.silhouette",
+      "kind": "render",
+      "testid": "motor.silhouette",
+      "milestone": "M2",
+      "source": "C§4.3 Motors split view; U11",
+      "text": "Rocket silhouette with the aft mount highlighted in teal and labelled 'Motor mount …'.",
+      "level": "minimal"
+    },
+    {
+      "id": "03.motor.fields",
+      "kind": "field",
+      "testid": "motor.field",
+      "milestone": "M2",
+      "source": "C§4.3 Motors split view",
+      "text": "Fields Motor mount and Ejection delay with units.",
+      "level": "required"
+    },
+    {
+      "id": "03.motor.manufacturer-data",
+      "kind": "control",
+      "testid": "motor.manufacturer-data",
+      "milestone": "M2",
+      "source": "C§4.3 Motors split view; U11",
+      "text": "'Use manufacturer data' checkbox and the note on where the thrust curve and timing come from.",
+      "level": "minimal"
+    },
+    {
+      "id": "03.motor.assign",
+      "kind": "control",
+      "testid": "motor.assign",
+      "milestone": "M2",
+      "source": "C§4.3 Motors split view",
+      "text": "Primary 'Assign to configuration' button.",
+      "level": "required"
+    },
+    {
+      "id": "03.toolbar.rendering",
+      "kind": "control",
+      "testid": "toolbar.rendering",
+      "milestone": "M2",
+      "source": "C§4.3 Toolbar; U11",
+      "text": "'Rendering' dropdown (Realistic ▾).",
+      "level": "minimal"
+    },
+    {
+      "id": "03.toolbar.show-rocket",
+      "kind": "control",
+      "testid": "toolbar.show-rocket",
+      "milestone": "M2",
+      "source": "C§4.3 Toolbar; U11",
+      "text": "'Show rocket' toggle.",
+      "level": "minimal"
+    },
+    {
+      "id": "03.toolbar.show-grid",
+      "kind": "control",
+      "testid": "toolbar.show-grid",
+      "milestone": "M2",
+      "source": "C§4.3 Toolbar; U11",
+      "text": "'Show grid' toggle.",
+      "level": "minimal"
+    },
+    {
+      "id": "03.agent.candidates",
+      "kind": "control",
+      "testid": "app-tool-row",
+      "milestone": "M2",
+      "source": "C§4.3 Agent pane; BC0 critic; D31",
+      "text": "Tool row for the candidate motor lookup: a leading chevron that expands the call, the tool's label in sans, and a teal success check.",
+      "level": "required"
+    },
+    {
+      "id": "03.agent.run-configs",
+      "kind": "control",
+      "testid": "agent.run-configurations",
+      "milestone": "M2",
+      "source": "C§4.3 Agent pane; D10; D31",
+      "text": "Primary '▶ Run configurations' button in the strip between the pane head and the embedded chat that batch-runs the configurations.",
+      "level": "required"
+    },
+    {
+      "id": "03.rail.component-rows",
+      "kind": "field",
+      "testid": "tree.row",
+      "milestone": "M2",
+      "source": "C§4.3 Left rail; BC0 critic",
+      "text": "Component tree rows under 'Components' listing the fixture's parts by name.",
+      "level": "required"
+    },
+    {
+      "id": "03.rail.eye-toggle",
+      "kind": "control",
+      "testid": "tree.eye",
+      "milestone": "M2",
+      "source": "C§4.3 Left rail; BC0 critic",
+      "text": "Per-row eye toggle controlling part visibility; hidden parts show an eye-off icon and dimmed text.",
+      "level": "required"
+    },
+    {
+      "id": "03.configs.delete",
+      "kind": "control",
+      "testid": "configs.action",
+      "milestone": "M2",
+      "source": "C§4.3 Workspace (Delete required by the notes); BC0 critic",
+      "text": "'Delete' action for the selected configuration (required by the notes, not shown in the art).",
+      "level": "required"
+    },
+    {
+      "id": "03.configs.selection-persists",
+      "kind": "state",
+      "testid": "configs.row",
+      "milestone": "M2",
+      "source": "C§4.3 Interactions; BC0 critic",
+      "text": "The selected configuration stays selected when switching between the Motors, Recovery, and Stage separation sub-tabs.",
+      "level": "required"
+    }
+  ]
+}

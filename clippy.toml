@@ -1,0 +1,46 @@
+# Invariant I5: pure crates (rw-units .. rw-api, rw-wasm) have no filesystem,
+# clock, randomness, or threads. They opt in with
+#   #![deny(clippy::disallowed_methods, clippy::disallowed_types)]
+# Native crates (rw-project, rw-cli, rw-cea-sys, xtask) opt out with #![allow(..)].
+# `cargo xtask audit` adds a `cargo tree` denylist (rand, getrandom) at M1.3.
+
+disallowed-methods = [
+    # filesystem
+    { path = "std::fs::read", reason = "I5: pure crates take bytes, not paths" },
+    { path = "std::fs::read_to_string", reason = "I5: pure crates take strings, not paths" },
+    { path = "std::fs::read_dir", reason = "I5: no filesystem in pure crates" },
+    { path = "std::fs::write", reason = "I5: only rw-project::Session writes files" },
+    { path = "std::fs::create_dir", reason = "I5: no filesystem in pure crates" },
+    { path = "std::fs::create_dir_all", reason = "I5: no filesystem in pure crates" },
+    { path = "std::fs::remove_file", reason = "I5: no filesystem in pure crates" },
+    { path = "std::fs::remove_dir_all", reason = "I5: no filesystem in pure crates" },
+    { path = "std::fs::rename", reason = "I5: no filesystem in pure crates" },
+    { path = "std::fs::copy", reason = "I5: no filesystem in pure crates" },
+    { path = "std::fs::metadata", reason = "I5: no filesystem in pure crates" },
+    { path = "std::fs::File::open", reason = "I5: no filesystem in pure crates" },
+    { path = "std::fs::File::create", reason = "I5: no filesystem in pure crates" },
+    { path = "std::fs::OpenOptions::open", reason = "I5: no filesystem in pure crates" },
+    # clock
+    { path = "std::time::SystemTime::now", reason = "I5/I8: deterministic outputs; pass time in" },
+    { path = "std::time::Instant::now", reason = "I5: no clock in pure crates (panics on wasm32)" },
+    # threads
+    { path = "std::thread::spawn", reason = "I5: no threads in pure crates" },
+    { path = "std::thread::scope", reason = "I5: no threads in pure crates" },
+    { path = "std::thread::sleep", reason = "I5: no threads in pure crates" },
+    { path = "std::thread::Builder::spawn", reason = "I5: no threads in pure crates" },
+    # randomness (crates may be absent; allow-invalid keeps the path list valid)
+    { path = "rand::random", reason = "I5: seeded RNG only, seed passed in", allow-invalid = true },
+    { path = "rand::thread_rng", reason = "I5: seeded RNG only, seed passed in", allow-invalid = true },
+    { path = "rand::rng", reason = "I5: seeded RNG only, seed passed in", allow-invalid = true },
+    { path = "getrandom::getrandom", reason = "I5: seeded RNG only, seed passed in", allow-invalid = true },
+    { path = "getrandom::fill", reason = "I5: seeded RNG only, seed passed in", allow-invalid = true },
+]
+
+disallowed-types = [
+    { path = "std::fs::File", reason = "I5: no filesystem in pure crates" },
+    { path = "std::fs::OpenOptions", reason = "I5: no filesystem in pure crates" },
+    { path = "std::time::SystemTime", reason = "I5/I8: deterministic outputs; pass time in" },
+    { path = "std::time::Instant", reason = "I5: no clock in pure crates" },
+    { path = "std::thread::JoinHandle", reason = "I5: no threads in pure crates" },
+    { path = "rand::rngs::ThreadRng", reason = "I5: seeded RNG only", allow-invalid = true },
+]

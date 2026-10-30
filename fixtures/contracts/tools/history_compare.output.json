@@ -1,0 +1,57 @@
+{
+  "provenance": "contract-fixture",
+  "type": "tools/history_compare.output",
+  "payload": {
+    "a": "step:3",
+    "b": "step:4",
+    "model": {
+      "a": "step:3",
+      "b": "step:4",
+      "added": [],
+      "removed": [],
+      "changed": [
+        {
+          "component": "fins",
+          "path": "/c/fins/span",
+          "old": "80 mm",
+          "new": "= params.fin_span",
+          "unit": "m",
+          "old_si": 0.08
+        }
+      ]
+    },
+    "metrics": [
+      {
+        "key": "stability.liftoff",
+        "a": 1.42,
+        "b": 1.71,
+        "delta": 0.29,
+        "delta_pct": 20.4,
+        "unit": "cal"
+      },
+      {
+        "key": "mass.liftoff",
+        "a": 0.6188,
+        "b": 0.6219,
+        "delta": 0.0031,
+        "delta_pct": 0.5,
+        "unit": "kg"
+      }
+    ],
+    "marks": [
+      {
+        "id": "fins",
+        "name": "Fins (4)",
+        "status": "changed",
+        "fields": [
+          {
+            "path": "/shape/span",
+            "old": 0.08,
+            "new": 0.09,
+            "unit": "m"
+          }
+        ]
+      }
+    ]
+  }
+}

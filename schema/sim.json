@@ -1,0 +1,673 @@
+{
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "name": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "kind": {
+      "$ref": "#/$defs/SimKind",
+      "default": "flight"
+    },
+    "config": {
+      "type": "string",
+      "description": "Config id (`configs/<id>.rw.toml`)."
+    },
+    "launch": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/LaunchSpec"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "x-ui-group": "Launch"
+    },
+    "atmosphere": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/AtmosphereSpec"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "x-ui-group": "Atmosphere"
+    },
+    "wind": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/WindSpec"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "x-ui-group": "Wind"
+    },
+    "integrator": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/IntegratorSpec"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "x-ui-group": "Integrator"
+    },
+    "series_dt": {
+      "anyOf": [
+        {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+            },
+            {
+              "const": 0
+            }
+          ],
+          "x-unit-dimension": "time",
+          "x-expr": true
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Series grid (default 0.01 s).",
+      "x-ui-group": "Output"
+    },
+    "gravity": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/GravitySpec"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Gravity model (absent: the engine default, `wgs84`).",
+      "x-ui-group": "Launch"
+    },
+    "launch_into_wind": {
+      "type": [
+        "boolean",
+        "null"
+      ],
+      "description": "Point the rod into the wind: the rod azimuth follows the wind\ndirection (absent: `false`).",
+      "x-ui-group": "Launch"
+    },
+    "seed": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "uint64",
+      "minimum": 0
+    },
+    "visual_flow": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/VisualFlowSpec"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "`kind = \"visual_flow\"` studies (page 06, D10c)."
+    }
+  },
+  "required": [
+    "config"
+  ],
+  "description": "`sims/<id>.rw.toml`: a simulation definition.",
+  "title": "SimDoc",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rocketwright.dev/schema/1/sim.json",
+  "$defs": {
+    "SimKind": {
+      "type": "string",
+      "enum": [
+        "flight",
+        "visual_flow"
+      ]
+    },
+    "LaunchSpec": {
+      "type": "object",
+      "properties": {
+        "rail_length": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+            },
+            {
+              "const": 0
+            }
+          ],
+          "x-unit-dimension": "length",
+          "x-expr": true
+        },
+        "rod_angle": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+                },
+                {
+                  "const": 0
+                }
+              ],
+              "x-unit-dimension": "angle",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "From vertical."
+        },
+        "rod_direction": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+                },
+                {
+                  "const": 0
+                }
+              ],
+              "x-unit-dimension": "angle",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Azimuth, clockwise from north."
+        },
+        "altitude": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+                },
+                {
+                  "const": 0
+                }
+              ],
+              "x-unit-dimension": "length",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "latitude": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+                },
+                {
+                  "const": 0
+                }
+              ],
+              "x-unit-dimension": "angle",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "longitude": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+                },
+                {
+                  "const": 0
+                }
+              ],
+              "x-unit-dimension": "angle",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "geodetic": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Geodetic"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "rail_length"
+      ]
+    },
+    "Geodetic": {
+      "type": "string",
+      "enum": [
+        "flat",
+        "spherical",
+        "wgs84"
+      ]
+    },
+    "AtmosphereSpec": {
+      "type": "object",
+      "properties": {
+        "model": {
+          "$ref": "#/$defs/AtmosphereModel"
+        },
+        "base_temperature": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+                },
+                {
+                  "const": 0
+                }
+              ],
+              "x-unit-dimension": "temperature",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Sea-level base temperature (ISA/USSA default 288.15 K)."
+        },
+        "base_pressure": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+                },
+                {
+                  "const": 0
+                }
+              ],
+              "x-unit-dimension": "pressure",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "model"
+      ]
+    },
+    "AtmosphereModel": {
+      "oneOf": [
+        {
+          "type": "string",
+          "const": "ussa1976",
+          "description": "U.S. Standard Atmosphere 1976 (R4.4)."
+        },
+        {
+          "type": "string",
+          "const": "isa_custom",
+          "description": "ISA with custom base temperature and pressure."
+        }
+      ]
+    },
+    "WindSpec": {
+      "type": "object",
+      "properties": {
+        "speed": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+            },
+            {
+              "const": 0
+            }
+          ],
+          "x-unit-dimension": "velocity",
+          "x-expr": true
+        },
+        "direction": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+                },
+                {
+                  "const": 0
+                }
+              ],
+              "x-unit-dimension": "angle",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Direction the wind blows from, clockwise from north."
+        },
+        "turbulence": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "string",
+                  "pattern": "^\\s*=.+$"
+                }
+              ],
+              "x-unit-dimension": "dimensionless",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Turbulence intensity (fraction)."
+        }
+      },
+      "required": [
+        "speed"
+      ]
+    },
+    "IntegratorSpec": {
+      "type": "object",
+      "properties": {
+        "method": {
+          "$ref": "#/$defs/IntegratorKind"
+        },
+        "dt": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+                },
+                {
+                  "const": 0
+                }
+              ],
+              "x-unit-dimension": "time",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Fixed step (rk4) or initial/max step (dp54)."
+        },
+        "rtol": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        },
+        "atol": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        },
+        "max_time": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+                },
+                {
+                  "const": 0
+                }
+              ],
+              "x-unit-dimension": "time",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "method"
+      ]
+    },
+    "IntegratorKind": {
+      "oneOf": [
+        {
+          "type": "string",
+          "const": "dp54",
+          "description": "Dormand-Prince 5(4), adaptive, with event root-finding (default)."
+        },
+        {
+          "type": "string",
+          "const": "rk4",
+          "description": "Classic RK4, fixed step (parity triage, D13)."
+        }
+      ]
+    },
+    "GravitySpec": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "model": {
+              "type": "string",
+              "const": "wgs84"
+            }
+          },
+          "required": [
+            "model"
+          ],
+          "additionalProperties": false,
+          "description": "WGS84 normal gravity at the site latitude, falling off with altitude."
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "model": {
+              "type": "string",
+              "const": "constant"
+            },
+            "g": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+                },
+                {
+                  "const": 0
+                }
+              ],
+              "x-unit-dimension": "acceleration",
+              "x-expr": true
+            }
+          },
+          "required": [
+            "model",
+            "g"
+          ],
+          "description": "Constant gravitational acceleration, positive down."
+        }
+      ],
+      "description": "`gravity = { model = \"wgs84\" }` or `{ model = \"constant\", g = \"9.80665 m/s^2\" }`."
+    },
+    "VisualFlowSpec": {
+      "type": "object",
+      "properties": {
+        "engine": {
+          "type": "string",
+          "description": "Engine id (`engines/<id>.rw.toml`) whose blowdown drains the tank."
+        },
+        "attitude": {
+          "$ref": "#/$defs/AttitudeSource"
+        },
+        "duration": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+                },
+                {
+                  "const": 0
+                }
+              ],
+              "x-unit-dimension": "time",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Study length (default 10 s)."
+        },
+        "tank": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Feed node id of the tank shown (default: the oxidizer branch's tank)."
+        },
+        "tilt": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+                },
+                {
+                  "const": 0
+                }
+              ],
+              "x-unit-dimension": "angle",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "`scripted_tilt`: mean tilt from vertical (default 50 deg)."
+        },
+        "swing": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+                },
+                {
+                  "const": 0
+                }
+              ],
+              "x-unit-dimension": "angle",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "`scripted_tilt`: swing amplitude about the mean (default 10 deg)."
+        },
+        "period": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+                },
+                {
+                  "const": 0
+                }
+              ],
+              "x-unit-dimension": "time",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "`scripted_tilt`: swing period (default 4 s)."
+        },
+        "replay": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "`run`: the flight sim whose latest run supplies the attitude and the\nbody-frame specific force (6DOF replay)."
+        }
+      },
+      "required": [
+        "engine",
+        "attitude"
+      ],
+      "description": "A page 06 visual flow study (`kind = \"visual_flow\"`, D10c): the GPU\nfluid in one tank of a liquid engine, draining with the engine's\nengineering blowdown while the vehicle tilts. Its runs carry\n`provenance = \"visual\"` and never feed engineering numbers (I13)."
+    },
+    "AttitudeSource": {
+      "oneOf": [
+        {
+          "type": "string",
+          "const": "scripted_tilt",
+          "description": "A scripted rocking tilt (`tilt`, `swing`, `period`) on a static stand."
+        },
+        {
+          "type": "string",
+          "const": "run",
+          "description": "Replay of a flight run (`replay`)."
+        }
+      ],
+      "description": "Where a visual flow study's attitude comes from."
+    }
+  }
+}

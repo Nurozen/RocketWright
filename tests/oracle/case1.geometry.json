@@ -1,0 +1,368 @@
+{
+  "kind": "geometry",
+  "schema": "rw/1",
+  "case": 1,
+  "name": "A simple model rocket",
+  "components": [
+    {
+      "name": "Nose cone",
+      "type": "nose_cone",
+      "parent": null,
+      "x_fore_m": 0.0,
+      "length_m": 0.1,
+      "fields": {
+        "axial_offset_m": 0.0,
+        "clipped": 0.0,
+        "component_mass_kg": 0.013155976161946574,
+        "density_kgm3": 1050.0,
+        "filled": 0.0,
+        "flipped": 0.0,
+        "instances": 1.0,
+        "od_m": 0.025,
+        "roughness_m": 6e-05,
+        "shape_parameter": 1.0,
+        "shoulder_capped": 1.0,
+        "shoulder_length_m": 0.02,
+        "shoulder_od_m": 0.023,
+        "shoulder_thickness_m": 0.002,
+        "thickness_m": 0.002,
+        "volume_m3": 1.2529501106615785e-05,
+        "wet_area_m2": 0.005284812704482903
+      },
+      "material": "Polystyrene",
+      "shape": "ogive",
+      "mass_override_kg": null,
+      "cg_override_m": null
+    },
+    {
+      "name": "Body tube",
+      "type": "body_tube",
+      "parent": null,
+      "x_fore_m": 0.1,
+      "length_m": 0.3,
+      "fields": {
+        "axial_offset_m": 0.0,
+        "component_mass_kg": 0.015381237631975636,
+        "density_kgm3": 680.0,
+        "filled": 0.0,
+        "instances": 1.0,
+        "motor_mount": 0.0,
+        "od_m": 0.025,
+        "roughness_m": 6e-05,
+        "thickness_m": 0.001,
+        "volume_m3": 2.2619467105846523e-05,
+        "wet_area_m2": 0.023561944901923447
+      },
+      "material": "Cardboard",
+      "shape": null,
+      "mass_override_kg": null,
+      "cg_override_m": null
+    },
+    {
+      "name": "Parachute",
+      "type": "parachute",
+      "parent": "Body tube",
+      "x_fore_m": 0.132,
+      "length_m": 0.042,
+      "fields": {
+        "axial_offset_m": 0.032,
+        "cd": 0.8,
+        "cd_automatic": 1.0,
+        "component_mass_kg": 0.007975950925286614,
+        "deploy_altitude_m": 200.0,
+        "deploy_delay_s": 0.0,
+        "diameter_m": 0.3,
+        "instances": 1.0,
+        "line_count": 6.0,
+        "line_length_m": 0.3,
+        "line_line_density_kgm": 0.0018,
+        "packed_length_m": 0.042,
+        "packed_radius_m": 0.009000000000000001,
+        "radial_direction_rad": 0.0,
+        "radial_position_m": 0.0,
+        "surface_density_kgm2": 0.067
+      },
+      "material": "Ripstop nylon",
+      "shape": null,
+      "mass_override_kg": null,
+      "cg_override_m": null
+    },
+    {
+      "name": "Shock cord",
+      "type": "shock_cord",
+      "parent": "Body tube",
+      "x_fore_m": 0.12000000000000001,
+      "length_m": 0.052000000000000005,
+      "fields": {
+        "axial_offset_m": 0.02,
+        "component_mass_kg": 0.00072,
+        "cord_length_m": 0.4,
+        "instances": 1.0,
+        "line_density_kgm": 0.0018,
+        "packed_length_m": 0.052000000000000005,
+        "packed_radius_m": 0.006,
+        "radial_direction_rad": 0.0,
+        "radial_position_m": 0.0
+      },
+      "material": "Elastic cord (round 2mm, 1/16 in)",
+      "shape": null,
+      "mass_override_kg": null,
+      "cg_override_m": null
+    },
+    {
+      "name": "Wadding",
+      "type": "mass_component",
+      "parent": "Body tube",
+      "x_fore_m": 0.18,
+      "length_m": 0.03,
+      "fields": {
+        "axial_offset_m": 0.08,
+        "component_mass_kg": 0.002,
+        "instances": 1.0,
+        "mass_kg": 0.002,
+        "packed_length_m": 0.03,
+        "packed_radius_m": 0.0115,
+        "radial_direction_rad": 0.0,
+        "radial_position_m": 0.0
+      },
+      "material": null,
+      "shape": null,
+      "mass_override_kg": null,
+      "cg_override_m": null
+    },
+    {
+      "name": "Launch lug",
+      "type": "launch_lug",
+      "parent": "Body tube",
+      "x_fore_m": 0.2325,
+      "length_m": 0.035,
+      "fields": {
+        "angle_offset_rad": 0.33161255787892263,
+        "axial_offset_m": 0.0,
+        "component_mass_kg": 0.00044861943093262263,
+        "density_kgm3": 680.0,
+        "instance_separation_m": 0.0,
+        "instances": 1.0,
+        "od_m": 0.007,
+        "roughness_m": 6e-05,
+        "thickness_m": 0.001
+      },
+      "material": "Cardboard",
+      "shape": null,
+      "mass_override_kg": null,
+      "cg_override_m": null
+    },
+    {
+      "name": "Trapezoidal fin set",
+      "type": "trapezoidal_fin_set",
+      "parent": "Body tube",
+      "x_fore_m": 0.34919999999999995,
+      "length_m": 0.0508,
+      "fields": {
+        "angle_offset_rad": 0.0,
+        "axial_offset_m": 0.0,
+        "body_radius_m": 0.0125,
+        "cant_rad": 0.0,
+        "component_mass_kg": 0.006155740799999998,
+        "count": 3.0,
+        "cross_section_rounded": 1.0,
+        "density_kgm3": 680.0,
+        "fillet_density_kgm3": 680.0,
+        "fillet_radius_m": 0.0,
+        "height_m": 0.03,
+        "instances": 3.0,
+        "planform_area_m2": 0.0015239999999999997,
+        "radius_offset_m": 0.0,
+        "root_chord_m": 0.0508,
+        "roughness_m": 6e-05,
+        "sweep_m": 0.0254,
+        "tab_height_m": 0.0,
+        "tab_length_m": 0.05,
+        "tab_offset_m": 0.0,
+        "thickness_m": 0.002,
+        "tip_chord_m": 0.0508
+      },
+      "material": "Cardboard",
+      "shape": null,
+      "mass_override_kg": null,
+      "cg_override_m": null
+    },
+    {
+      "name": "Centering ring",
+      "type": "centering_ring",
+      "parent": "Body tube",
+      "x_fore_m": 0.353,
+      "length_m": 0.002,
+      "fields": {
+        "axial_offset_m": -0.045,
+        "component_mass_kg": 0.00017944777237304893,
+        "density_kgm3": 680.0,
+        "id_m": 0.019,
+        "instance_separation_m": 0.0,
+        "instances": 1.0,
+        "od_m": 0.023,
+        "radial_direction_rad": 0.0,
+        "radial_position_m": 0.0
+      },
+      "material": "Cardboard",
+      "shape": null,
+      "mass_override_kg": null,
+      "cg_override_m": null
+    },
+    {
+      "name": "Centering ring",
+      "type": "centering_ring",
+      "parent": "Body tube",
+      "x_fore_m": 0.398,
+      "length_m": 0.002,
+      "fields": {
+        "axial_offset_m": 0.0,
+        "component_mass_kg": 0.00017944777237304893,
+        "density_kgm3": 680.0,
+        "id_m": 0.019,
+        "instance_separation_m": 0.0,
+        "instances": 1.0,
+        "od_m": 0.023,
+        "radial_direction_rad": 0.0,
+        "radial_position_m": 0.0
+      },
+      "material": "Cardboard",
+      "shape": null,
+      "mass_override_kg": null,
+      "cg_override_m": null
+    },
+    {
+      "name": "Inner Tube",
+      "type": "inner_tube",
+      "parent": "Body tube",
+      "x_fore_m": 0.32999999999999996,
+      "length_m": 0.075,
+      "fields": {
+        "axial_offset_m": 0.005,
+        "cluster_rotation_rad": 0.0,
+        "cluster_scale": 1.0,
+        "component_mass_kg": 0.0014820463343309862,
+        "density_kgm3": 680.0,
+        "instances": 1.0,
+        "motor_mount": 1.0,
+        "motor_overhang_m": 0.003,
+        "od_m": 0.019,
+        "radial_direction_rad": 0.0,
+        "radial_position_m": 0.0,
+        "thickness_m": 0.0005000000000000004
+      },
+      "material": "Cardboard",
+      "shape": null,
+      "mass_override_kg": null,
+      "cg_override_m": null
+    },
+    {
+      "name": "Engine block",
+      "type": "engine_block",
+      "parent": "Inner Tube",
+      "x_fore_m": 0.33199999999999996,
+      "length_m": 0.005,
+      "fields": {
+        "axial_offset_m": 0.002,
+        "component_mass_kg": 0.00048066367599923835,
+        "density_kgm3": 680.0,
+        "id_m": 0.011999999999999999,
+        "instances": 1.0,
+        "od_m": 0.018,
+        "radial_direction_rad": 0.0,
+        "radial_position_m": 0.0,
+        "thickness_m": 0.003
+      },
+      "material": "Cardboard",
+      "shape": null,
+      "mass_override_kg": null,
+      "cg_override_m": null
+    }
+  ],
+  "configurations": [
+    {
+      "id": "da326836-0959-4c94-bcd5-49dee07235a4",
+      "name": "[RW_C6G-3]",
+      "motors": [
+        {
+          "mount": "Inner Tube",
+          "designation": "RW_C6G",
+          "digest": "025d61aa8d954cbb564b70b0f03a2add19e7495f043028ccdf120c0309b4c92b",
+          "delay_s": 3.0
+        }
+      ]
+    },
+    {
+      "id": "05896b5a-71a7-48ac-b7ae-eadeb267975b",
+      "name": "[RW_C6G-4]",
+      "motors": [
+        {
+          "mount": "Inner Tube",
+          "designation": "RW_C6G",
+          "digest": "025d61aa8d954cbb564b70b0f03a2add19e7495f043028ccdf120c0309b4c92b",
+          "delay_s": 4.0
+        }
+      ]
+    },
+    {
+      "id": "b13e8ca2-f54d-4ca8-9b23-06c6c9eb237a",
+      "name": "[RW_C6G-3]",
+      "motors": [
+        {
+          "mount": "Inner Tube",
+          "designation": "RW_C6G",
+          "digest": "025d61aa8d954cbb564b70b0f03a2add19e7495f043028ccdf120c0309b4c92b",
+          "delay_s": 3.0
+        }
+      ]
+    },
+    {
+      "id": "e1dc7488-77c0-403a-b54f-c01db07aba2f",
+      "name": "[RW_C6G-5]",
+      "motors": [
+        {
+          "mount": "Inner Tube",
+          "designation": "RW_C6G",
+          "digest": "025d61aa8d954cbb564b70b0f03a2add19e7495f043028ccdf120c0309b4c92b",
+          "delay_s": 5.0
+        }
+      ]
+    },
+    {
+      "id": "5d9a2765-395d-4d9c-9678-38eed0988c72",
+      "name": "[RW_C6G-7]",
+      "motors": [
+        {
+          "mount": "Inner Tube",
+          "designation": "RW_C6G",
+          "digest": "025d61aa8d954cbb564b70b0f03a2add19e7495f043028ccdf120c0309b4c92b",
+          "delay_s": 7.0
+        }
+      ]
+    }
+  ],
+  "sims": [
+    {
+      "name": "Simulation 5",
+      "config_id": "5d9a2765-395d-4d9c-9678-38eed0988c72",
+      "conditions": {
+        "rail_length_m": 1.0,
+        "rod_angle_deg": 0.0,
+        "rod_direction_deg": 90.0,
+        "site_altitude_m": 0.0,
+        "latitude_deg": 45.0,
+        "longitude_deg": 0.0,
+        "base_temperature_k": 288.15,
+        "base_pressure_pa": 101325.0,
+        "atmosphere": "ussa1976",
+        "geodetic": "flat",
+        "wind_speed_ms": 0.0,
+        "wind_direction_deg": 90.0,
+        "wind_turbulence": 0.0,
+        "time_step_s": 0.05,
+        "integrator": "rk4"
+      },
+      "conditions_hash": "sha256:b64dda66467f04f666ed88c4be288a1a680024fe0a07ac709ac397ea34abc11b"
+    }
+  ]
+}

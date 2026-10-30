@@ -1,0 +1,10 @@
+export { AgentPane } from "./AgentPane.tsx";
+export { AppShell } from "./AppShell.tsx";
+export { Header } from "./Header.tsx";
+export { HistoryStrip } from "./HistoryStrip.tsx";
+export { Icon, ICON_NAMES, iconMarkup } from "./Icon.tsx";
+export type { IconName } from "./Icon.tsx";
+export { LeftRail } from "./LeftRail.tsx";
+export { ViewportToolbar, VIEW_CHIPS } from "./ViewportToolbar.tsx";
+export { Workspace } from "./Workspace.tsx";
+export * from "./model.ts";

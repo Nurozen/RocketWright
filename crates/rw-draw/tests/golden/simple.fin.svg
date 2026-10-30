@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="310" viewBox="0 0 1200 310" font-family="Inter">
+  <rect x="0" y="0" width="1200" height="310" fill="#ffffff" stroke="none" stroke-width="0"/>
+  <text x="40" y="28" font-size="15" text-anchor="start" fill="#1f2933">Simple · fins</text>
+  <text x="40" y="68" font-size="13" text-anchor="start" fill="#1f2933">fins · 3 fins · rounded · t = 3.0 mm</text>
+  <line x1="405" y1="250" x2="675" y2="250" stroke="#1f2933" stroke-width="2"/>
+  <polygon points="435,250 645,250 630,100 540,100" fill="#c9d3de" stroke="#1f2933" stroke-width="1.5" stroke-linejoin="round"/>
+  <line x1="435" y1="250" x2="435" y2="282" stroke="#3d4852" stroke-width="0.5"/>
+  <line x1="645" y1="250" x2="645" y2="282" stroke="#3d4852" stroke-width="0.5"/>
+  <line x1="435" y1="276" x2="645" y2="276" stroke="#3d4852" stroke-width="1"/>
+  <polygon points="435,276 443,273 443,279" fill="#3d4852" stroke="none" stroke-width="0" stroke-linejoin="round"/>
+  <polygon points="645,276 637,279 637,273" fill="#3d4852" stroke="none" stroke-width="0" stroke-linejoin="round"/>
+  <text x="540" y="284" font-size="12" text-anchor="middle" fill="#3d4852">root 70.0 mm</text>
+  <line x1="540" y1="100" x2="540" y2="76" stroke="#3d4852" stroke-width="0.5"/>
+  <line x1="630" y1="100" x2="630" y2="76" stroke="#3d4852" stroke-width="0.5"/>
+  <line x1="540" y1="82" x2="630" y2="82" stroke="#3d4852" stroke-width="1"/>
+  <polygon points="540,82 548,79 548,85" fill="#3d4852" stroke="none" stroke-width="0" stroke-linejoin="round"/>
+  <polygon points="630,82 622,85 622,79" fill="#3d4852" stroke="none" stroke-width="0" stroke-linejoin="round"/>
+  <text x="585" y="74" font-size="12" text-anchor="middle" fill="#3d4852">tip 30.0 mm</text>
+  <line x1="435" y1="250" x2="435" y2="56" stroke="#3d4852" stroke-width="0.5" stroke-dasharray="2 2"/>
+  <line x1="435" y1="62" x2="540" y2="62" stroke="#3d4852" stroke-width="1"/>
+  <polygon points="435,62 443,59 443,65" fill="#3d4852" stroke="none" stroke-width="0" stroke-linejoin="round"/>
+  <polygon points="540,62 532,65 532,59" fill="#3d4852" stroke="none" stroke-width="0" stroke-linejoin="round"/>
+  <text x="487.5" y="54" font-size="12" text-anchor="middle" fill="#3d4852">sweep 35.0 mm</text>
+  <line x1="630" y1="100" x2="691" y2="100" stroke="#3d4852" stroke-width="0.5"/>
+  <line x1="645" y1="250" x2="691" y2="250" stroke="#3d4852" stroke-width="0.5"/>
+  <line x1="685" y1="250" x2="685" y2="100" stroke="#3d4852" stroke-width="1"/>
+  <polygon points="685,250 682,242 688,242" fill="#3d4852" stroke="none" stroke-width="0" stroke-linejoin="round"/>
+  <polygon points="685,100 688,108 682,108" fill="#3d4852" stroke="none" stroke-width="0" stroke-linejoin="round"/>
+  <text x="695" y="175" font-size="12" text-anchor="middle" fill="#3d4852" transform="rotate(-90 695 175)">span 50.0 mm</text>
+</svg>

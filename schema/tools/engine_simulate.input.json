@@ -1,0 +1,34 @@
+{
+  "type": "object",
+  "properties": {
+    "engine": {
+      "type": "string"
+    },
+    "duration": {
+      "anyOf": [
+        {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+            },
+            {
+              "const": 0
+            }
+          ],
+          "x-unit-dimension": "time",
+          "x-expr": true
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "required": [
+    "engine"
+  ],
+  "title": "EngineSimulateIn",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rocketwright.dev/schema/1/tools/engine_simulate.input.json"
+}

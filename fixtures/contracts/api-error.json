@@ -1,0 +1,9 @@
+{
+  "provenance": "contract-fixture",
+  "type": "api-error",
+  "payload": {
+    "code": "not_implemented",
+    "message": "import_file is not implemented yet",
+    "hint": "Lands in M2.5."
+  }
+}

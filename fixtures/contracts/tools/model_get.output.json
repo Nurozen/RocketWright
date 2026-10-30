@@ -1,0 +1,136 @@
+{
+  "provenance": "contract-fixture",
+  "type": "tools/model_get.output",
+  "payload": {
+    "model_hash": "1ceb288e422bb33c662e66c9265157be29a006761136f05776dd3891e9ea8822",
+    "path": "/components/11",
+    "value": {
+      "id": "fins",
+      "name": "Fins (4)",
+      "children": [],
+      "stage": "sustainer",
+      "containment": "surface",
+      "aero": true,
+      "cut": false,
+      "x_fore": 0.7,
+      "x_aft": 0.84,
+      "radial": 0.0,
+      "roll": 0.0,
+      "instances": [
+        {
+          "index": 0,
+          "pattern": "radial",
+          "offset": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "roll": 0.0
+        },
+        {
+          "index": 1,
+          "pattern": "radial",
+          "offset": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "roll": 1.5707963267948966
+        },
+        {
+          "index": 2,
+          "pattern": "radial",
+          "offset": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "roll": 3.141592653589793
+        },
+        {
+          "index": 3,
+          "pattern": "radial",
+          "offset": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "roll": 4.71238898038469
+        }
+      ],
+      "anchors": [
+        {
+          "name": "root_le",
+          "kind": "surface",
+          "x": 0.7,
+          "r": 0.027
+        },
+        {
+          "name": "root_te",
+          "kind": "surface",
+          "x": 0.84,
+          "r": 0.027
+        },
+        {
+          "name": "tip_le",
+          "kind": "surface",
+          "x": 0.745,
+          "r": 0.11699999999999999
+        },
+        {
+          "name": "tip_te",
+          "kind": "surface",
+          "x": 0.805,
+          "r": 0.11699999999999999
+        },
+        {
+          "name": "fin0",
+          "kind": "surface",
+          "x": 0.7,
+          "r": 0.027
+        },
+        {
+          "name": "fin1",
+          "kind": "surface",
+          "x": 0.7,
+          "r": 0.027
+        },
+        {
+          "name": "fin2",
+          "kind": "surface",
+          "x": 0.7,
+          "r": 0.027
+        },
+        {
+          "name": "fin3",
+          "kind": "surface",
+          "x": 0.7,
+          "r": 0.027
+        }
+      ],
+      "parent": "fin_can",
+      "attach": {
+        "to": "fin_can.aft",
+        "at": "root_te",
+        "offset": 0.0
+      },
+      "material": "g10",
+      "roughness": 2e-05,
+      "appearance": {
+        "preset": "composite_white"
+      },
+      "shape": {
+        "type": "trapezoidal_fin_set",
+        "count": 4,
+        "thickness": 0.003,
+        "cross_section": "rounded",
+        "cant": 0.0,
+        "fillet_radius": 0.0,
+        "root_chord": 0.14,
+        "tip_chord": 0.06,
+        "span": 0.09,
+        "sweep": 0.045
+      }
+    }
+  }
+}

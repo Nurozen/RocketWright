@@ -1,0 +1,33 @@
+{
+  "type": "object",
+  "properties": {
+    "number": {
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0
+    },
+    "name": {
+      "type": "string",
+      "description": "User-facing name, e.g. `Flight-ready fins`."
+    },
+    "step": {
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    }
+  },
+  "required": [
+    "number",
+    "name",
+    "step",
+    "id"
+  ],
+  "description": "A named revision (`Rev NN`, `refs/rw/rev/<NN>`).",
+  "title": "Revision",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rocketwright.dev/schema/1/tools/history_tag.output.json"
+}

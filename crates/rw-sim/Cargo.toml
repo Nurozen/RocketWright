@@ -1,0 +1,29 @@
+[package]
+name = "rw-sim"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[features]
+# IF5 doubles (`src/doubles.rs`, stub-first rule). Test builds only: enabled
+# through the dev-dependency below; `xtask audit` fails if a non-test build
+# turns it on.
+doubles = []
+
+[dependencies]
+rw-atmos.workspace = true
+rw-units.workspace = true
+rw-model.workspace = true
+rw-motor.workspace = true
+rw-aero.workspace = true
+rw-mass.workspace = true
+rw-geom.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+schemars.workspace = true
+
+[dev-dependencies]
+rw-sim = { path = ".", features = ["doubles"] }
+ode_solvers.workspace = true

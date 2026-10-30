@@ -1,0 +1,156 @@
+# RocketWright literature citations.
+# Every physics `pub fn` cites `/// cite: <lit-id> eq <n> p <p>` (p = PDF page, see literature-map.md)
+# or `// Ported from RocketPy (MIT) <path>:<fn>`. Each lit-id below must exist.
+# `file` is the local copy's path in the maintainers' reference folder; the PDFs are not
+# shipped. Get each source from `url` and compare it with `sha256`.
+# usage: "equations-only" = cite and re-derive equations in our own notation; never copy prose, tables verbatim, or figures.
+
+[barrowman-1967]
+file = "references/rocketry-literature/barrowman-1967-practical-calculation-slender-finned-vehicles.pdf"
+sha256 = "09d62b014a706c700e1b596c8cc58c60e87d613da4ce963db3f72361ef0187eb"
+citation = "Barrowman, J. S. The Practical Calculation of the Aerodynamic Characteristics of Slender Finned Vehicles. M.S. thesis, The Catholic University of America, Washington DC, March 1967. Reissued as NASA/TM-2001-209983."
+url = "https://ntrs.nasa.gov/citations/20010047838"
+license = "NASA NTRS, distribution PUBLIC, GOV_PUBLIC_USE_PERMITTED"
+usage = "equations-only"
+
+[niskanen-2009]
+file = "references/rocketry-literature/niskanen-2009-development-open-source-model-rocket-simulation-software-thesis.pdf"
+sha256 = "b948abf452c2f1c2ac63f0e0acfcb12dda2af856f8a7b51b22e0afca76d78d0c"
+citation = "Niskanen, S. Development of an Open Source Model Rocket Simulation Software. M.Sc. thesis, Helsinki University of Technology (TKK), 2009."
+url = "https://openrocket.sourceforge.net/thesis.pdf"
+license = "CC BY-NC-ND 1.0 Finland"
+usage = "equations-only"
+page_offset = "printed = pdf - 10"
+
+[niskanen-2013]
+file = "references/rocketry-literature/niskanen-2013-openrocket-technical-documentation-v13.05.pdf"
+sha256 = "cc6fd3291ade76ee044ffd40ff285cf814c7496b97d1ff7b35222d8f2d23cf8c"
+citation = "Niskanen, S. OpenRocket Technical Documentation, version 13.05, May 2013."
+url = "https://openrocket.sourceforge.net/techdoc.pdf"
+license = "unstated (project-hosted; derived from the CC BY-NC-ND thesis)"
+usage = "equations-only; cite only when absent from niskanen-2009 / barrowman-1967 / amcp-706-280"
+page_offset = "printed = pdf - 9"
+
+[amcp-706-280]
+file = "references/rocketry-literature/amcp-706-280-1968-design-of-aerodynamically-stabilized-free-rockets.pdf"
+sha256 = "10aed7f03e443322ab7adcd5dcec0cc16b367c6cd8b9e3760d61b68844d45d49"
+citation = "U.S. Army Materiel Command. Engineering Design Handbook: Design of Aerodynamically Stabilized Free Rockets. AMCP 706-280, July 1968. DTIC AD0840582."
+url = "https://everyspec.com/ARMY/ARMY-General/AMCP_706-280_JUL1968_50859/"
+license = "public domain (U.S. Government work); approved for public release, distribution unlimited"
+usage = "equations-only"
+
+[naca-tn-4117]
+file = "references/rocketry-literature/naca-tn-4117-1957-fletcher-annular-airfoils.pdf"
+sha256 = "f5183921ee77b2319e42036e592aa63af1882e2ad4452453f1590c7b71df6df7"
+citation = "Fletcher, H. S. Experimental Investigation of Lift, Drag, and Pitching Moment of Five Annular Airfoils. NACA TN 4117, October 1957."
+url = "https://ntrs.nasa.gov/citations/19930084906"
+license = "public domain (NACA, U.S. Government work); NTRS distribution PUBLIC"
+usage = "equations-only"
+page_offset = "printed = pdf - 2"
+
+[mil-hdbk-762]
+file = "references/rocketry-literature/mil-hdbk-762-1990-design-of-aerodynamically-stabilized-free-rockets.pdf"
+sha256 = "d0fd6a9bbbaabb33667df733d06a3d3c66aeb7a65a853f4541fdce442843c26b"
+citation = "U.S. Department of Defense (U.S. Army Missile Command). MIL-HDBK-762(MI): Design of Aerodynamically Stabilized Free Rockets. 17 July 1990."
+url = "http://mae-nas.eng.usu.edu/MAE_5900_Web/5900/USLI_2010/PDF_files/rocket_handbook.pdf"
+license = "public domain (U.S. Government work); Distribution Statement A"
+usage = "equations-only"
+
+[ussa-1976]
+file = "references/rocketry-literature/noaa-nasa-usaf-1976-us-standard-atmosphere.pdf"
+sha256 = "23eb6b68346d4abc6071fc598872d51c40cf8c613d1a5d1006c6261bcd09dcea"
+citation = "NOAA, NASA, and U.S. Air Force. U.S. Standard Atmosphere, 1976. U.S. Government Printing Office, Washington DC, October 1976. NOAA-S/T-76-1562, NASA-TM-X-74335."
+url = "https://ntrs.nasa.gov/citations/19770009539"
+license = "public domain (U.S. Government work); NASA NTRS distribution PUBLIC, GOV_PUBLIC_USE_PERMITTED"
+usage = "equations and tabulated constants"
+
+[rocketpy]
+file = "references/RocketPy"
+commit = "9bd6ad3af8f97bafa3201d4e70eba2877e66e040"
+citation = "RocketPy Team (Ceotto, G. H., et al.). RocketPy: 6-DOF rocket trajectory simulator. https://github.com/RocketPy-Team/RocketPy"
+url = "https://github.com/RocketPy-Team/RocketPy"
+license = "MIT (Copyright (c) 2018 Giovani Hidalgo Ceotto)"
+usage = "implementation cross-check; ported code must be listed in NOTICE.md"
+
+# Numerical-methods sources (M1.39a). No local PDF copy yet, so page numbers
+# below are printed pages of the cited edition and `pages_verified = false`;
+# a reviewer confirms them against the book before M1 sign-off.
+
+[hnw1993]
+title = "Solving Ordinary Differential Equations I: Nonstiff Problems, 2nd revised ed."
+authors = "E. Hairer, S. P. Norsett, G. Wanner"
+year = 1993
+publisher = "Springer (Springer Series in Computational Mathematics 8)"
+isbn = "978-3-540-56670-0"
+used_for = "DP5(4) tableau (Table 5.2, sec. II.5), step-size control and starting step (sec. II.4), dense output and event location (sec. II.6), classical RK4 (Table 1.2, sec. II.1)"
+pages_verified = false
+
+[dp1980]
+title = "A family of embedded Runge-Kutta formulae"
+authors = "J. R. Dormand, P. J. Prince"
+year = 1980
+journal = "Journal of Computational and Applied Mathematics 6(1), 19-26"
+doi = "10.1016/0771-050X(80)90013-3"
+used_for = "origin of the DP5(4) pair tabulated in hnw1993"
+pages_verified = false
+
+[shampine1986]
+title = "Some practical Runge-Kutta formulas"
+authors = "L. F. Shampine"
+year = 1986
+journal = "Mathematics of Computation 46(173), 135-150"
+doi = "10.1090/S0025-5718-1986-0815836-3"
+used_for = "4th-order continuous extension of DP5(4) (dense output weights)"
+pages_verified = false
+
+[brent1973]
+title = "Algorithms for Minimization without Derivatives"
+authors = "R. P. Brent"
+year = 1973
+publisher = "Prentice-Hall"
+used_for = "zero finder combining bisection, secant and inverse quadratic interpolation (ch. 4)"
+pages_verified = false
+
+[naca-tm-1299]
+file = "references/rocketry-literature/naca-tm-1299-1951-tillmann-drag-of-surface-irregularities.pdf"
+sha256 = "b60abc39b6615e48b9a7346ef92650fa9a092598dba2fc86e468601bc0d8e998"
+citation = "Tillmann, W. Additional Measurements of the Drag of Surface Irregularities in Turbulent Boundary Layers. NACA TM 1299, January 1951."
+url = "https://ntrs.nasa.gov/citations/19930093931"
+license = "public domain (NACA, U.S. Government work); NTRS distribution PUBLIC"
+usage = "equations-only"
+page_offset = "printed = pdf - 1"
+
+[naca-tm-1218]
+file = "references/rocketry-literature/naca-tm-1218-1949-schlichting-boundary-layer-theory-turbulent.pdf"
+sha256 = "1a28d9b2580de5bc748c12c8b5486644f17d6a92cfa28e3ce8476f87b0822dd7"
+citation = "Schlichting, H. Lecture Series \"Boundary Layer Theory\", Part II: Turbulent Flows. NACA TM 1218, April 1949."
+url = "https://ntrs.nasa.gov/citations/20050040758"
+license = "public domain (NACA, U.S. Government work); NTRS distribution PUBLIC"
+usage = "equations-only"
+page_offset = "printed = pdf - 2"
+
+[naca-tr-1307]
+sha256 = "c1a18686adcc73dbeed56b198417a4f878ed0c1bdb85c605f13878543ea5b37d"
+citation = "Pitts, W. C., Nielsen, J. N., and Kaattari, G. E. Lift and Center of Pressure of Wing-Body-Tail Combinations at Subsonic, Transonic, and Supersonic Speeds. NACA Report 1307, 1957."
+url = "https://ntrs.nasa.gov/citations/19930091008"
+license = "public domain (NACA, U.S. Government work); NTRS distribution PUBLIC"
+usage = "equations-only; chart 16 ordinates digitised by us (crates/rw-aero/src/body_load.rs)"
+page_offset = "printed = pdf - 4"
+local_copy = "not in references/ (downloaded from NTRS to verify; the catalog lists it)"
+
+[openrocket-techdoc-2026]
+file = "references/rocketry-literature/openrocket-technical-documentation-github-unstable-2026-08.pdf"
+sha256 = "84d51513e0f330ee9b3f1fe5530a7ade63fdd976e55caf489ec7d2c0168094cd"
+citation = "OpenRocket Technical Documentation, GitHub unstable build, August 2026."
+license = "unstated (project-hosted)"
+usage = "equations-only; cite only when absent from niskanen-2009 / barrowman-1967 / naca-tr-1307"
+
+[sp-125]
+file = "references/rocketry-literature/huzel-huang-1967-nasa-sp-125-design-of-liquid-propellant-rocket-engines.pdf"
+sha256 = "471e590a0c8e99c36a98132104a3ddcc7097b0b7c561fb2638ce9d3c80e26c87"
+citation = "Huzel, D. K., and D. H. Huang. Design of Liquid Propellant Rocket Engines. NASA SP-125, NASA Office of Technology Utilization, Washington DC, 1967 (Rocketdyne Division, North American Aviation)."
+url = "https://ntrs.nasa.gov/citations/19710019929"
+license = "NASA NTRS, distribution PUBLIC, GOV_PUBLIC_USE_PERMITTED"
+usage = "equations-only"
+page_offset = "printed = pdf - 9"
+used_for = "rw-liquid: thrust coefficient and throat sizing (eq 1-32..1-34), chamber volume and L* (eq 4-4, 4-5), conical nozzle (eq 4-7), injector orifices (eq 4-39, 4-40), pressurant gas law and polytropic expansion (eq 5-1, 5-15), line losses (eq 7-7), tank volume, geometry, and hoop stress (eq 8-1, 8-16, 8-29, 8-30)"

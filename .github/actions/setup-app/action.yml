@@ -1,0 +1,65 @@
+name: Setup app
+description: >-
+  Node and pnpm, the vendored Lecturn kit from the lecturn-kit job's artifact,
+  and a frozen install of app/. Optionally Electron's binary.
+inputs:
+  electron:
+    description: Download Electron's binary (packaging, e2e).
+    required: false
+    default: "false"
+runs:
+  using: composite
+  steps:
+    - name: Setup Node
+      uses: actions/setup-node@v6
+      with:
+        node-version: 24
+        package-manager-cache: false
+
+    # The pnpm version comes from app/package.json `packageManager`.
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v6
+      with:
+        package_json_file: app/package.json
+        cache: true
+        cache_dependency_path: app/pnpm-lock.yaml
+
+    # Built and verified against app/pnpm-lock.yaml by .github/workflows/lecturn-kit.yml.
+    - name: Download the Lecturn kit
+      uses: actions/download-artifact@v8
+      with:
+        name: lecturn-kit
+        path: vendor/lecturn
+
+    # The stamp says the tarballs match vendor/lecturn/PIN, so make's
+    # vendor-lecturn prerequisite is current and never needs a Lecturn checkout.
+    - name: Mark the Lecturn kit current
+      shell: bash
+      run: |
+        ls -l vendor/lecturn vendor/lecturn/patches
+        grep -v '^[[:space:]]*#' vendor/lecturn/PIN | tr -d '[:space:]' > vendor/lecturn/.stamp
+
+    - name: Install app dependencies
+      shell: bash
+      run: pnpm --dir app install --frozen-lockfile
+
+    - name: Resolve the Electron version
+      id: electron
+      if: inputs.electron == 'true'
+      shell: bash
+      run: |
+        echo "version=$(node -p 'require("./app/apps/desktop/node_modules/electron/package.json").version')" >> "$GITHUB_OUTPUT"
+        if [[ "$RUNNER_OS" == macOS ]]; then echo "cache=$HOME/Library/Caches/electron" >> "$GITHUB_OUTPUT"; else echo "cache=$HOME/.cache/electron" >> "$GITHUB_OUTPUT"; fi
+
+    - name: Cache Electron
+      if: inputs.electron == 'true'
+      uses: actions/cache@v6
+      with:
+        path: ${{ steps.electron.outputs.cache }}
+        key: electron-${{ runner.os }}-${{ runner.arch }}-${{ steps.electron.outputs.version }}
+
+    # Electron 44 has no install script; this unpacks the (cached) release zip.
+    - name: Install Electron
+      if: inputs.electron == 'true'
+      shell: bash
+      run: env -u ELECTRON_RUN_AS_NODE node app/apps/desktop/node_modules/electron/install.js

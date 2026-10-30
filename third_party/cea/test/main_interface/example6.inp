@@ -1,0 +1,16 @@
+!  EXAMPLE 6:
+!     (a)  Chapman-Jouguet detonation problem (detonation)
+!     (b)  The reactants are H2 and O2 gases.  The mixture is
+!          stoichiometric (r,e=1).
+!     (c)  The unburned gases are at 298.15 and 500 K and pressures
+!          1 bar and 30 bars (t,k=298.15,500, pbar=1,30)
+!     (d)  Thermal transport properties are called for (transport).
+!     (e)  Energy units in the final tables are in calories (calories).
+
+reac  oxid O2  wt%=100
+      fuel H2  wt%=100.
+
+ prob  detonation   case=6  t=298.15,500, r,e=1, pbar=1,20
+
+output  calories transport long
+end

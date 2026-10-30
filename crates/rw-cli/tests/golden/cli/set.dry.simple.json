@@ -1,0 +1,109 @@
+{
+  "model_hash": "bda5e91e5f55fa9faa2cfeb7ab6ff6f5d16c791db20a291848e0b8a533e9880a",
+  "dry_run": true,
+  "files": [
+    {
+      "path": "rocket.rw.toml",
+      "status": "M"
+    }
+  ],
+  "delta": {
+    "status": "clean",
+    "model_hash": "bda5e91e5f55fa9faa2cfeb7ab6ff6f5d16c791db20a291848e0b8a533e9880a",
+    "changed": {
+      "aero.cd": [
+        0.641171,
+        0.673802
+      ],
+      "aero.cna": [
+        24.1922,
+        30.7857
+      ],
+      "aero.cp": [
+        0.442176,
+        0.449779
+      ],
+      "aero.terms.fins.cna": [
+        22.1922,
+        28.7857
+      ],
+      "aero.terms.fins.cp": [
+        0.477003,
+        0.477157
+      ],
+      "dims.fin_span": [
+        0.129,
+        0.149
+      ],
+      "mass.burnout": [
+        0.0550421,
+        0.0556181
+      ],
+      "mass.cg": [
+        0.319603,
+        0.321062
+      ],
+      "mass.cg_burnout": [
+        0.282165,
+        0.284333
+      ],
+      "mass.components.fins.mass": [
+        0.00288,
+        0.003456
+      ],
+      "mass.dry": [
+        0.0430421,
+        0.0436181
+      ],
+      "mass.ixx": [
+        0.0000106877,
+        0.000013003
+      ],
+      "mass.iyy": [
+        0.00199068,
+        0.00200886
+      ],
+      "mass.liftoff": [
+        0.0672791,
+        0.0678551
+      ],
+      "motor.mount.thrust_to_weight": [
+        9.09387,
+        9.01668
+      ],
+      "stability.burnout": [
+        5.51764,
+        5.70504
+      ],
+      "stability.liftoff": [
+        4.22667,
+        4.43851
+      ],
+      "stability.liftoff_pct_length": [
+        23.4366,
+        24.6112
+      ],
+      "stability.min": [
+        4.22667,
+        4.43851
+      ]
+    },
+    "new_diagnostics": [],
+    "resolved_diagnostics": []
+  },
+  "units": {
+    "length": "m",
+    "mass": "kg",
+    "velocity": "m/s",
+    "altitude": "m",
+    "time": "s",
+    "angle": "rad",
+    "acceleration": "m/s^2",
+    "area": "m^2",
+    "volume": "m^3",
+    "inertia": "kg*m^2",
+    "impulse": "N*s",
+    "force": "N",
+    "stability": "cal"
+  }
+}

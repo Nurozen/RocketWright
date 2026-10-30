@@ -1,0 +1,52 @@
+{
+  "kind": "golden",
+  "schema": "rw/1",
+  "case": 2,
+  "matrix": "original",
+  "sim_name": "Simulation 5",
+  "config_id": "5d9a2765-395d-4d9c-9678-38eed0988c72",
+  "geometry_sha256": "b43024eabd29d3f50af7d31ecd22f27624a4c94a92f7c4f61630c8d002a156cd",
+  "conditions": {
+    "rail_length_m": 1.0,
+    "rod_angle_deg": 0.0,
+    "rod_direction_deg": 90.0,
+    "site_altitude_m": 0.0,
+    "latitude_deg": 45.0,
+    "longitude_deg": 0.0,
+    "base_temperature_k": 288.15,
+    "base_pressure_pa": 101325.0,
+    "atmosphere": "ussa1976",
+    "geodetic": "flat",
+    "wind_speed_ms": 0.0,
+    "wind_direction_deg": 90.0,
+    "wind_turbulence": 0.0,
+    "time_step_s": 0.05,
+    "integrator": "rk4",
+    "gravity": {
+      "model": "wgs84"
+    },
+    "launch_into_wind": true
+  },
+  "conditions_hash": "sha256:3deb085651939a41cace89b33874137dd2b03d76bb0d82bb2bd6282bd08262de",
+  "motor_digest": "04966e27e865db038d313348a36c8f25bdd086b0ece7c1c9f0d0a5a5a7d8db19",
+  "motors": [
+    {
+      "mount": "Inner Tube",
+      "designation": "C6",
+      "digest": "de4b4fd8a2786028032a4373ff72bd67f0f9df0a9c3f22c32ec6d595c8ea626a",
+      "delay_s": 7.0
+    }
+  ],
+  "summary": {
+    "max_altitude_m": 273.81606536551635,
+    "max_velocity_ms": 83.19041352444032,
+    "max_accel_ms2": 167.89147964481356,
+    "max_mach": 0.24464544255339968,
+    "time_to_apogee_s": 7.402624999999982,
+    "flight_time_s": 69.77514308760811,
+    "ground_hit_velocity_ms": 4.299740441972773,
+    "rod_clear_velocity_ms": 16.307902734262516,
+    "deployment_velocity_ms": 11.117574680472549,
+    "optimum_delay_s": 5.592624999999981
+  }
+}

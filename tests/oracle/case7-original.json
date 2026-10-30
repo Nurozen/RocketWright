@@ -1,0 +1,58 @@
+{
+  "kind": "golden",
+  "schema": "rw/1",
+  "case": 7,
+  "matrix": "original",
+  "sim_name": "Simulation 2",
+  "config_id": "fadeeef3-4aa4-49e9-9581-71e14fa91c14",
+  "geometry_sha256": "5329d6ce0aa3dee94e66d1a2dca93153a8bb4b0665306dce8d247b042958a732",
+  "conditions": {
+    "rail_length_m": 1.016,
+    "rod_angle_deg": 0.0,
+    "rod_direction_deg": 90.0,
+    "site_altitude_m": 0.0,
+    "latitude_deg": 32.367,
+    "longitude_deg": -106.83,
+    "base_temperature_k": 288.15,
+    "base_pressure_pa": 101325.0,
+    "atmosphere": "ussa1976",
+    "geodetic": "flat",
+    "wind_speed_ms": 0.0,
+    "wind_direction_deg": 90.0,
+    "wind_turbulence": 0.0,
+    "time_step_s": 0.05,
+    "integrator": "rk4",
+    "gravity": {
+      "model": "wgs84"
+    },
+    "launch_into_wind": true
+  },
+  "conditions_hash": "sha256:f585353b1c386756cc1371018a0e79ae499f7c557b9a470465d76c55ce2a0e42",
+  "motor_digest": "22a3580beaf609a81f34b1d2a8914fd80ea97df7260c5c516a8ca0090aa7d38b",
+  "motors": [
+    {
+      "mount": "Sustainer Motor Mount",
+      "designation": "I59WN",
+      "digest": "66770e68cede2264f72f4d9c85ce6b391fd2664bfae5f5045f796287373c64b9",
+      "delay_s": null
+    },
+    {
+      "mount": "Booster motor mount",
+      "designation": "I357T",
+      "digest": "d756a53895c06b655b84fac49ddc1fbaf833dd4a53ede69f83b4810e28a7b8b6",
+      "delay_s": 14.0
+    }
+  ],
+  "summary": {
+    "max_altitude_m": 1380.003971660483,
+    "max_velocity_ms": 175.50412299681767,
+    "max_accel_ms2": 116.62112434048643,
+    "max_mach": 0.5176094261224935,
+    "time_to_apogee_s": 16.216050781250082,
+    "flight_time_s": 103.86902726264066,
+    "ground_hit_velocity_ms": 6.062319188714849,
+    "rod_clear_velocity_ms": 15.526475110232537,
+    "deployment_velocity_ms": 19.32355096874939,
+    "optimum_delay_s": 6.147050781250083
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "type": "object",
+  "properties": {
+    "origin": {
+      "$ref": "#/$defs/Origin"
+    },
+    "thread": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "tool_call": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "label": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "required": [
+    "origin"
+  ],
+  "description": "Call context; the app sets it from MCP `_meta`\n(`rw/thread`, `rw/tool_call`, `rw/label`).",
+  "title": "CallCtx",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rocketwright.dev/schema/1/call-ctx.json",
+  "$defs": {
+    "Origin": {
+      "type": "string",
+      "enum": [
+        "cli",
+        "mcp",
+        "socket",
+        "watcher",
+        "ui"
+      ],
+      "description": "Where a command came from."
+    }
+  }
+}

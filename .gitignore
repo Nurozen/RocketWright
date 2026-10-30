@@ -1,0 +1,22 @@
+artifacts/
+.DS_Store
+target/
+node_modules/
+.rw/
+**/runs/*/*/series.csv
+**/runs/*/*/branches/*/series.csv
+tests/oracle/cache/
+third_party/cea/build/
+app/**/dist
+app/packages/rw-wasm/pkg/
+dist/
+.playwright/
+__pycache__/
+
+# Vendored Lecturn kit (scripts/vendor-lecturn.sh): PIN and lecturn-pack.json
+# are committed; the tarballs, Lecturn's patches/ (third-party code the
+# clean-room audit would scan) and run outputs are regenerated.
+vendor/lecturn/*.tgz
+vendor/lecturn/patches/
+vendor/lecturn/.stamp
+vendor/lecturn/smoke.json

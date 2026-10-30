@@ -1,0 +1,57 @@
+{
+  "provenance": "contract-fixture",
+  "type": "run-manifest",
+  "payload": {
+    "schema": "rw/1",
+    "run_id": "f8eb21388e28",
+    "sim": "baseline",
+    "sim_name": "Baseline",
+    "kind": "flight",
+    "config": "baseline",
+    "model_hash": "1ceb288e422bb33c662e66c9265157be29a006761136f05776dd3891e9ea8822",
+    "provenance": "engineering",
+    "conditions": {
+      "rail_length_m": 1.5,
+      "rod_angle_deg": 0.0,
+      "rod_direction_deg": 0.0,
+      "site_altitude_m": 0.0,
+      "latitude_deg": 0.0,
+      "longitude_deg": 0.0,
+      "base_temperature_k": 288.15,
+      "base_pressure_pa": 101325.0,
+      "atmosphere": "ussa1976",
+      "geodetic": "flat",
+      "wind_speed_ms": 0.0,
+      "wind_direction_deg": 0.0,
+      "wind_turbulence": 0.0,
+      "time_step_s": 0.01,
+      "integrator": "dp54"
+    },
+    "conditions_hash": "sha256:e46c2dc913f388ed4e6f54a258cf43e79c2b7a13568c09a7ba550bf905641d3c",
+    "motors": [
+      {
+        "mount": "motor_mount",
+        "designation": "F40",
+        "sha256": "e8cf2af56dcc1b4c56e45032b7d9efb67f3d6c92f8716655d242b0b92d995761",
+        "source": {
+          "kind": "generic",
+          "id": "RW_F40G"
+        }
+      }
+    ],
+    "inputs": {
+      "rocket.rw.toml": "c58dd0a3760008c901839e21a0a5ae6cc92e3765513823ca9553e6ef5f733b36",
+      "configs/baseline.rw.toml": "e67d23e7820c49a8051dac2831f38290f5e72f66c8db5079eeb60d82f14894c0",
+      "sims/baseline.rw.toml": "507a9a8be3d145a86daa9644b28bf42a8dc0720d8baeabdf0406c393692bf082"
+    },
+    "core_version": "0.1.0",
+    "seed": 0,
+    "rtol": 1e-06,
+    "atol": 1e-09,
+    "step": 4,
+    "rev": "rev:07",
+    "thread": "assembly-review",
+    "started": "2026-10-15T14:05:00Z",
+    "wall_time_s": 0.41
+  }
+}

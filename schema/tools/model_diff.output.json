@@ -1,0 +1,82 @@
+{
+  "type": "object",
+  "properties": {
+    "a": {
+      "type": "string"
+    },
+    "b": {
+      "type": "string"
+    },
+    "added": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Added component ids."
+    },
+    "removed": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "changed": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/FieldChange"
+      }
+    }
+  },
+  "required": [
+    "a",
+    "b",
+    "added",
+    "removed",
+    "changed"
+  ],
+  "description": "Semantic model diff keyed by component id.",
+  "title": "ModelDiff",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rocketwright.dev/schema/1/tools/model_diff.output.json",
+  "$defs": {
+    "FieldChange": {
+      "type": "object",
+      "properties": {
+        "component": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string",
+          "description": "Source pointer, e.g. `/c/fins/span`."
+        },
+        "old": true,
+        "new": true,
+        "unit": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "SI unit of the field (`m`, `kg/m^3`) when a side is a quantity\nliteral (`\"70 mm\"`); `old_si`/`new_si` are those sides in that unit."
+        },
+        "old_si": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        },
+        "new_si": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        }
+      },
+      "required": [
+        "component",
+        "path"
+      ]
+    }
+  }
+}

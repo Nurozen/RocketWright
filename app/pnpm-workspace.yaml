@@ -1,0 +1,55 @@
+packages:
+  - apps/*
+  - packages/*
+
+# pnpm 12 replaced `onlyBuiltDependencies` with `allowBuilds`; only these
+# packages may run install scripts (electron downloads its binary; esbuild
+# installs its native binary; node-pty, from the vendored Lecturn server,
+# checks its N-API prebuild).
+allowBuilds:
+  electron: true
+  electron-winstaller: false
+  esbuild: true
+  node-pty: true
+
+# Vendored Lecturn (plan B7, `make vendor-lecturn`): the settings its kit asks
+# for in vendor/lecturn/lecturn-pack.json, which scripts/vendor-lecturn.sh
+# checks are present. @cursor/sdk finds its platform helper by walking up from
+# the server entry, so an isolated install must hoist `@cursor/sdk-*` to
+# node_modules/. The fff-node patch loads libfff_c from *.asar.unpacked
+# inside an asar; the node-pty patch only changes Windows.
+publicHoistPattern:
+  - '@cursor/sdk-*'
+patchedDependencies:
+  '@ff-labs/fff-node@0.11.0': ../vendor/lecturn/patches/@ff-labs__fff-node@0.11.0.patch
+  node-pty@1.2.0-beta.15: ../vendor/lecturn/patches/node-pty@1.2.0-beta.15.patch
+
+# The Claude Agent SDK entries below are for the bar-only `@rw/bar-agent`
+# package (`make bar-agent`, B17); the app itself no longer depends on it.
+minimumReleaseAgeExclude:
+  - '@vitest/mocker@5.0.5'
+  - '@vitest/spy@5.0.5'
+  - electron@44.8.0
+  - vitest@5.0.5
+  - '@anthropic-ai/claude-agent-sdk-darwin-arm64@0.3.301'
+  - '@anthropic-ai/claude-agent-sdk-darwin-x64@0.3.301'
+  - '@anthropic-ai/claude-agent-sdk-linux-arm64-musl@0.3.301'
+  - '@anthropic-ai/claude-agent-sdk-linux-arm64@0.3.301'
+  - '@anthropic-ai/claude-agent-sdk-linux-x64-musl@0.3.301'
+  - '@anthropic-ai/claude-agent-sdk-linux-x64@0.3.301'
+  - '@anthropic-ai/claude-agent-sdk-win32-arm64@0.3.301'
+  - '@anthropic-ai/claude-agent-sdk-win32-x64@0.3.301'
+  - '@anthropic-ai/claude-agent-sdk@0.3.301'
+  - '@anthropic-ai/sdk@0.135.0'
+
+# manifold-3d (RL1c section cuts) lists its CLI/tooling packages as required
+# peers; the app imports only manifold.js + manifold.wasm. Marking them optional
+# keeps @gltf-transform/functions -> sharp -> libvips (LGPL-3.0, not on the
+# NOTICE.md allowlist) out of the install.
+packageExtensions:
+  manifold-3d@3.5.4:
+    peerDependenciesMeta:
+      esbuild-wasm: { optional: true }
+      '@gltf-transform/core': { optional: true }
+      '@gltf-transform/functions': { optional: true }
+      '@gltf-transform/extensions': { optional: true }

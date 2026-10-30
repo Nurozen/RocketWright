@@ -1,0 +1,974 @@
+/*
+ * Shell layout and chrome (M1.19). Colours, type, and sizes come only from
+ * the custom properties in @rw/ui/tokens.css; no literal colours here.
+ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--rw-bg-canvas);
+  color: var(--rw-text-primary);
+  font-family: var(--rw-font-sans);
+  font-size: var(--rw-font-size-body);
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+input {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+h2 {
+  margin: 0;
+  font: inherit;
+}
+
+.rw-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rw-icon {
+  flex: none;
+  display: block;
+}
+
+/* ---- grid ---------------------------------------------------------------- */
+
+.rw-shell {
+  display: grid;
+  width: 100vw;
+  height: 100vh;
+  grid-template-columns: calc(var(--rw-rail-w) + var(--rw-hairline)) minmax(0, 1fr) calc(var(--rw-agent-w) + var(--rw-hairline));
+  grid-template-rows: calc(var(--rw-header-h) + var(--rw-hairline)) minmax(0, 1fr) auto calc(var(--rw-history-h) + var(--rw-hairline));
+  grid-template-areas:
+    "header header header"
+    "rail work agent"
+    "toolbar toolbar agent"
+    "history history agent";
+  background: var(--rw-bg-canvas);
+}
+
+/* ---- header -------------------------------------------------------------- */
+
+.rw-header {
+  grid-area: header;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: stretch;
+  padding: 0 16px 0 20px;
+  background: var(--rw-bg-canvas);
+  border-bottom: var(--rw-hairline) solid var(--rw-line);
+}
+
+.rw-header__start,
+.rw-header__end {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+
+.rw-header__end {
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.rw-undo {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.rw-undo__button:disabled {
+  color: var(--rw-text-secondary);
+  opacity: 0.45;
+  cursor: default;
+  background: none;
+}
+
+.rw-header__sep {
+  width: var(--rw-hairline);
+  height: 28px;
+  background: var(--rw-line);
+}
+
+.rw-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.rw-brand__word {
+  font-size: var(--rw-font-size-wordmark);
+  font-weight: var(--rw-font-weight-strong);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+.rw-project {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 4px;
+  border: 0;
+  background: none;
+  font-size: 15px;
+  font-weight: var(--rw-font-weight-strong);
+  white-space: nowrap;
+}
+
+.rw-save {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--rw-text-secondary);
+  font-size: var(--rw-font-size-secondary);
+  white-space: nowrap;
+}
+
+.rw-tabs {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.rw-tab {
+  padding: 0 16px;
+  border: 0;
+  border-top: 2px solid transparent;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--rw-text-secondary);
+  font-size: 15px;
+  white-space: nowrap;
+}
+
+.rw-tab:hover {
+  color: var(--rw-text-primary);
+}
+
+.rw-tab[aria-selected="true"] {
+  color: var(--rw-text-primary);
+  font-weight: var(--rw-font-weight-strong);
+  border-bottom-color: var(--rw-accent);
+}
+
+/* ---- buttons ------------------------------------------------------------- */
+
+.rw-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 16px;
+  border: var(--rw-hairline) solid var(--rw-line);
+  border-radius: var(--rw-radius);
+  background: transparent;
+  color: var(--rw-text-primary);
+  white-space: nowrap;
+}
+
+.rw-button--primary {
+  min-width: 150px;
+  justify-content: center;
+  border-color: var(--rw-accent);
+  background: var(--rw-accent-fill);
+  color: var(--rw-on-accent);
+  font-size: 14px;
+}
+
+.rw-button--quiet {
+  height: 34px;
+  padding: 0 10px;
+}
+
+/* Filled-disc glyphs knock their check out to the surface behind them. */
+.rw-icon__knock {
+  stroke: var(--rw-bg-canvas);
+}
+
+.rw-button--primary .rw-icon__knock {
+  stroke: var(--rw-accent-fill);
+}
+
+.rw-check__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--rw-warning);
+}
+
+.rw-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.rw-badge {
+  min-width: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--rw-warning);
+  color: var(--rw-bg-canvas);
+  font-size: 11px;
+  line-height: 18px;
+  text-align: center;
+}
+
+.rw-icon-button {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--rw-radius-sm);
+  background: none;
+  color: var(--rw-text-primary);
+}
+
+.rw-icon-button:hover,
+.rw-button:hover:not(.rw-button--primary) {
+  background: var(--rw-panel);
+}
+
+/* ---- left rail ----------------------------------------------------------- */
+
+.rw-rail {
+  grid-area: rail;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden auto;
+  background: var(--rw-bg-canvas);
+  border-right: var(--rw-hairline) solid var(--rw-line);
+}
+
+.rw-rail__threads {
+  padding: 12px 8px;
+}
+
+.rw-thread {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  height: 38px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--rw-radius-sm);
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.rw-thread[aria-selected="true"] {
+  background: var(--rw-panel);
+}
+
+.rw-thread__title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rw-thread__age {
+  color: var(--rw-text-secondary);
+  font-size: var(--rw-font-size-secondary);
+}
+
+.rw-thread .rw-icon {
+  color: var(--rw-text-secondary);
+}
+
+.rw-rail__nav {
+  border-top: var(--rw-hairline) solid var(--rw-line);
+  padding: 8px;
+}
+
+.rw-rail__nav-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 48px;
+  padding: 0 4px 0 12px;
+}
+
+.rw-section-title {
+  flex: 1;
+  font-size: var(--rw-font-size-pane-title);
+  font-weight: var(--rw-font-weight-strong);
+}
+
+.rw-nav-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  height: var(--rw-tree-row-h);
+  padding: 0 12px;
+  border-left: 2px solid transparent;
+  border-radius: var(--rw-radius-sm);
+  cursor: pointer;
+}
+
+.rw-nav-row[aria-selected="true"] {
+  background: var(--rw-selection-row);
+  border-left-color: var(--rw-accent);
+  color: var(--rw-accent);
+}
+
+.rw-nav-row[data-hidden="true"] {
+  color: var(--rw-text-secondary);
+}
+
+.rw-nav-row__part {
+  color: var(--rw-text-secondary);
+}
+
+/* ---- workspace ----------------------------------------------------------- */
+
+.rw-workspace {
+  grid-area: work;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  background: var(--rw-bg-canvas);
+}
+
+.rw-local-tabs {
+  display: flex;
+  align-items: stretch;
+  flex: none;
+  height: calc(var(--rw-local-tabs-h) + var(--rw-hairline));
+  padding: 0 12px;
+  border-bottom: var(--rw-hairline) solid var(--rw-line);
+}
+
+.rw-tab--local {
+  font-size: 14px;
+}
+
+.rw-workspace__body {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+.rw-viewport {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(var(--rw-bg-viewport-top), var(--rw-bg-viewport-bottom));
+}
+
+/* ---- viewport toolbar ---------------------------------------------------- */
+
+.rw-toolbar {
+  grid-area: toolbar;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: calc(var(--rw-toolbar-h) + var(--rw-hairline));
+  padding: 0 24px;
+  background: var(--rw-bg-canvas);
+  border-top: var(--rw-hairline) solid var(--rw-line);
+  font-size: var(--rw-font-size-secondary);
+}
+
+.rw-toolbar__label {
+  color: var(--rw-text-primary);
+}
+
+.rw-toolbar__controls {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+
+.rw-chips {
+  display: flex;
+  gap: 8px;
+}
+
+.rw-chip,
+.rw-select {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 14px;
+  border: var(--rw-hairline) solid var(--rw-line);
+  border-radius: var(--rw-radius-sm);
+  background: transparent;
+}
+
+.rw-chip[aria-checked="true"] {
+  border-color: var(--rw-accent);
+  background: var(--rw-accent-fill);
+}
+
+/* ---- history strip ------------------------------------------------------- */
+
+.rw-history {
+  grid-area: history;
+  display: flex;
+  flex-direction: column;
+  background: var(--rw-bg-canvas);
+  border-top: var(--rw-hairline) solid var(--rw-line);
+}
+
+.rw-history__row {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  height: var(--rw-history-row-h);
+  padding: 0 24px;
+}
+
+.rw-history__title {
+  font-size: var(--rw-font-size-pane-title);
+  font-weight: var(--rw-font-weight-strong);
+  white-space: nowrap;
+}
+
+.rw-history__steps {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  /* Clipped to the row: with many steps the wrapped labels would otherwise
+     spill up over the viewport toolbar and take its clicks. */
+  max-height: 100%;
+  overflow: hidden;
+  min-width: 0;
+  margin: 0;
+  padding: 0 0 0 24px;
+  border-left: var(--rw-hairline) solid var(--rw-line);
+  list-style: none;
+}
+
+.rw-step {
+  display: flex;
+  flex: 0 1 auto;
+  align-items: center;
+  gap: 10px;
+  min-width: 76px;
+  cursor: pointer;
+}
+
+/* Short of room, the newest step (the longest meta: date, revision, name)
+   gives way first: its shrink weight dwarfs the others (their share rounds to
+   0 px), so the earlier steps truncate only once it is at its minimum. */
+.rw-step:last-child {
+  flex-shrink: 100000;
+}
+
+/* Steps are joined by visible hairlines (concept 01). Each connector is its
+   own flex item with a zero basis, so all of them take an equal share of the
+   free width, and its margins keep it clear of the labels on both sides. */
+.rw-step__link {
+  flex: 1 1 0;
+  min-width: 24px;
+  max-width: 120px;
+  height: var(--rw-hairline);
+  margin: 0 12px;
+  background: color-mix(in srgb, var(--rw-text-secondary) 40%, var(--rw-bg-canvas));
+}
+
+.rw-step__ring {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: var(--rw-hairline) solid color-mix(in srgb, var(--rw-text-secondary) 40%, var(--rw-bg-canvas));
+  border-radius: 50%;
+  background: var(--rw-panel);
+  font-size: var(--rw-font-size-secondary);
+}
+
+.rw-step[aria-current="step"] .rw-step__ring {
+  border: 2px solid var(--rw-accent);
+  background: var(--rw-bg-canvas);
+}
+
+/* Name and meta never truncate: they stay on one line while the strip has
+   room and wrap within the step's width when it does not (title has the
+   full text, including the revision name). */
+.rw-step__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.rw-step__name,
+.rw-step__date {
+  overflow-wrap: anywhere;
+  line-height: 1.3;
+}
+
+.rw-step__name {
+  font-size: var(--rw-font-size-secondary);
+}
+
+.rw-step__date {
+  color: var(--rw-text-secondary);
+  font-size: var(--rw-font-size-secondary);
+}
+
+/* ---- agent pane ---------------------------------------------------------- */
+
+.rw-agent {
+  position: relative;
+  grid-area: agent;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--rw-bg-canvas);
+  border-left: var(--rw-hairline) solid var(--rw-line);
+  /* The composer lines up with the viewport toolbar row; the history height is the footer below it. */
+  padding-bottom: calc(var(--rw-history-h) + var(--rw-hairline));
+}
+
+.rw-agent__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: none;
+  height: 68px;
+  padding: 0 16px;
+  border-bottom: var(--rw-hairline) solid var(--rw-line);
+}
+
+.rw-agent__title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--rw-text-primary);
+  font-size: var(--rw-font-size-pane-title);
+  font-weight: var(--rw-font-weight-strong);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rw-agent__body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 16px 24px;
+}
+
+.rw-agent__hint {
+  color: var(--rw-text-secondary);
+}
+
+/* Provenance footer (U20): bottom-right of the agent pane, in the band level with the history strip. */
+.rw-agent__provenance {
+  position: absolute;
+  right: 24px;
+  bottom: 52px;
+  max-width: calc(100% - 48px);
+  margin: 0;
+  overflow: hidden;
+  color: var(--rw-text-secondary);
+  font-size: var(--rw-font-size-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/*
+ * Embedded agent pane (B10, D10). The rect is reserved for the Lecturn
+ * embed view, which paints above the host DOM: nothing of ours sits inside
+ * it except the D11 overlay snapshot (shown only while the view is hidden).
+ * The RocketWright strip (`AgentExtras`) sits between the head and the rect;
+ * the provenance footer leaves the absolute band and flows below the rect.
+ */
+.rw-agent-extras[data-placement="body"] {
+  display: contents;
+}
+
+.rw-agent-extras[data-placement="embed"] {
+  flex: none;
+  max-height: 40%;
+  overflow: auto;
+  padding: 0 24px 12px;
+  border-bottom: var(--rw-hairline) solid var(--rw-line);
+}
+
+.rw-embed {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--rw-bg-canvas);
+}
+
+.rw-embed__frame {
+  position: absolute;
+  inset: 0;
+}
+
+.rw-embed__snapshot {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.rw-embed__error {
+  position: absolute;
+  inset: auto 24px 24px;
+  margin: 0;
+  color: var(--rw-text-secondary);
+}
+
+/*
+ * With the embed the pane has no composer to line up with the toolbar row,
+ * so the history-height band below it goes: the rect runs to the pane's
+ * bottom on every page (Results' taller history strip left ~180 px empty,
+ * CP-W1 r2), with only the provenance footer under it.
+ */
+.rw-agent[data-embedded="true"] {
+  padding-bottom: 0;
+}
+
+.rw-agent[data-embedded="true"] .rw-agent__provenance {
+  position: static;
+  flex: none;
+  max-width: none;
+  padding: 8px 24px 12px;
+  text-align: right;
+}
+
+:focus-visible {
+  outline: 2px solid var(--rw-accent);
+  outline-offset: 1px;
+}
+
+/* ---- M1.49: shell controls ------------------------------------------------ */
+
+@keyframes rw-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.rw-spin {
+  animation: rw-spin 0.9s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rw-spin {
+    animation: none;
+  }
+}
+
+button:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.rw-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--rw-text-secondary);
+}
+
+.rw-status[data-tone="teal"],
+.rw-nav-row__status[data-tone="teal"] {
+  color: var(--rw-success);
+}
+
+.rw-status[data-tone="amber"],
+.rw-nav-row__status[data-tone="amber"] {
+  color: var(--rw-warning);
+}
+
+.rw-status[data-tone="danger"],
+.rw-nav-row__status[data-tone="danger"] {
+  color: var(--rw-danger);
+}
+
+.rw-project-wrap {
+  position: relative;
+}
+
+.rw-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 20;
+  min-width: 220px;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  border: var(--rw-hairline) solid var(--rw-line);
+  border-radius: var(--rw-radius);
+  background: var(--rw-panel);
+}
+
+.rw-menu__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 32px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: var(--rw-radius-sm);
+  background: none;
+  text-align: left;
+}
+
+.rw-menu__item:hover,
+.rw-menu__item[aria-checked="true"] {
+  background: var(--rw-selection-row);
+}
+
+.rw-menu__gap {
+  width: 16px;
+}
+
+.rw-menu__empty {
+  padding: 8px;
+  color: var(--rw-text-secondary);
+}
+
+.rw-save[data-tone="amber"] {
+  color: var(--rw-warning);
+}
+
+.rw-badge[data-tone="danger"] {
+  background: var(--rw-danger);
+}
+
+.rw-button--accent {
+  height: 32px;
+  border-color: var(--rw-accent);
+  background: var(--rw-accent-fill);
+  color: var(--rw-on-accent);
+}
+
+.rw-thread--new {
+  color: var(--rw-text-primary);
+}
+
+.rw-thread__busy {
+  color: var(--rw-accent);
+}
+
+.rw-rail__empty {
+  margin: 4px 12px 12px;
+  color: var(--rw-text-secondary);
+  font-size: var(--rw-font-size-secondary);
+}
+
+.rw-eye {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  margin-left: -4px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--rw-radius-sm);
+  background: none;
+  color: var(--rw-text-primary);
+}
+
+.rw-nav-row[data-hidden="true"] .rw-eye,
+.rw-nav-row[data-hidden="true"] .rw-thumb {
+  color: var(--rw-text-secondary);
+  opacity: 0.6;
+}
+
+.rw-thumb {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--rw-radius-sm);
+  background: var(--rw-panel);
+}
+
+.rw-nav-row__label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rw-nav-row__status {
+  color: var(--rw-text-secondary);
+  font-size: var(--rw-font-size-secondary);
+}
+
+.rw-nav-row__dot {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  margin: 0 3px;
+  border-radius: 50%;
+}
+
+.rw-nav-row__ask {
+  display: none;
+  width: 26px;
+  height: 26px;
+  color: var(--rw-text-secondary);
+}
+
+.rw-nav-row:hover .rw-nav-row__ask,
+.rw-nav-row[aria-selected="true"] .rw-nav-row__ask,
+.rw-nav-row:focus-within .rw-nav-row__ask {
+  display: inline-grid;
+}
+
+.rw-step__rev {
+  color: var(--rw-accent);
+  white-space: nowrap;
+}
+
+.rw-history__empty {
+  color: var(--rw-text-secondary);
+}
+
+.rw-compare {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 36px;
+  margin: 0 24px;
+  padding: 0 4px 0 12px;
+  border: var(--rw-hairline) solid var(--rw-line);
+  border-radius: var(--rw-radius);
+  background: var(--rw-panel);
+  font-size: var(--rw-font-size-secondary);
+}
+
+.rw-compare__title {
+  font-weight: var(--rw-font-weight-strong);
+}
+
+.rw-compare__chip[data-kind="changed"] {
+  color: var(--rw-warning);
+}
+
+.rw-compare__chip[data-kind="added"] {
+  color: var(--rw-success);
+}
+
+.rw-compare__chip[data-kind="removed"] {
+  color: var(--rw-danger);
+}
+
+.rw-compare__metric {
+  color: var(--rw-text-secondary);
+}
+
+.rw-compare .rw-icon-button {
+  margin-left: auto;
+}
+
+.rw-history__menu {
+  position: relative;
+}
+
+.rw-history__popover {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 6px);
+  z-index: 20;
+  min-width: 220px;
+  padding: 4px;
+  border: var(--rw-hairline) solid var(--rw-line);
+  border-radius: var(--rw-radius);
+  background: var(--rw-panel);
+}
+
+.rw-history__item {
+  display: block;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: var(--rw-radius-sm);
+  background: none;
+  color: var(--rw-text-primary);
+  font: inherit;
+  font-size: var(--rw-font-size-secondary);
+  text-align: left;
+  cursor: pointer;
+}
+
+.rw-history__item:hover:not(:disabled) {
+  background: var(--rw-selection-row);
+}
+
+.rw-history__item:disabled {
+  color: var(--rw-text-secondary);
+  cursor: default;
+}
+
+.rw-button[aria-pressed="true"] {
+  border-color: var(--rw-accent);
+  color: var(--rw-accent);
+}
+
+/* ---- rail footer (02: view chips) ----------------------------------------- */
+
+.rw-rail__footer {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex: none;
+  height: 58px;
+  margin-top: auto;
+  padding: 0 10px 0 20px;
+  border-top: var(--rw-hairline) solid var(--rw-line);
+  font-size: var(--rw-font-size-secondary);
+}
+
+/* Components has no toolbar row: the editor runs down to a taller history strip (regions.json 02). */
+.rw-shell[data-page="components"] {
+  --rw-history-h: 123px;
+}
+
+/* The static shell's agent pane picture (no server; `chat/placeholder.ts`, D19). */
+.rw-agent__placeholder {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin-bottom: 16px;
+}

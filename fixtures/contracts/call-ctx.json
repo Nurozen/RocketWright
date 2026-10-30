@@ -1,0 +1,10 @@
+{
+  "provenance": "contract-fixture",
+  "type": "call-ctx",
+  "payload": {
+    "origin": "mcp",
+    "thread": "assembly-review",
+    "tool_call": "toolu_04",
+    "label": "Fin span 90 mm"
+  }
+}

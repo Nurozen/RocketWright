@@ -1,0 +1,27 @@
+{
+  "description": "B4(a) (spec S:198, plan M1.18, W5.2/B14): set fin span to 90 mm and rerun Baseline. A Lecturn scripted-provider turn (D22; it replaced the old stand-in script, deleted at B17). `scripts` is written as the scripts file (LECTURN_SCRIPTED_PROVIDER_SCRIPTS), keyed by run ordinal: the turn is the first of a new thread. The simulate result is saved as `sim` and job_status is polled with its job id until complete; both tools carry a ui://rw/run-card, so Lecturn returns their result inside the card envelope (`structuredContent: {lecturnMcpApp, result}`) and the paths start `result.structuredContent.`. Asserted by app/e2e/b4a.spec.ts.",
+  "prompt": "set fin span to 90 mm and rerun Baseline",
+  "scripts": {
+    "1": [
+      { "assistantText": "Setting the fin span to 90 mm, then rerunning Baseline." },
+      {
+        "toolCall": {
+          "name": "rw_model_patch",
+          "arguments": { "ops": [{ "op": "replace", "path": "/c/fins/span", "value": "90 mm" }], "label": "Fin span 90 mm" }
+        },
+        "saveAs": "patch"
+      },
+      { "toolCall": { "name": "rw_simulate", "arguments": { "sim": "baseline" } }, "saveAs": "sim" },
+      {
+        "poll": {
+          "toolCall": { "name": "rw_job_status", "arguments": { "job_id": "${sim.result.structuredContent.job_id}" } },
+          "until": { "path": "result.structuredContent.state", "equals": "complete" },
+          "maxTries": 150,
+          "intervalMs": 200
+        },
+        "saveAs": "job"
+      },
+      { "assistantText": "Baseline is Complete with the 90 mm fins; the previous Baseline run is now Outdated." }
+    ]
+  }
+}

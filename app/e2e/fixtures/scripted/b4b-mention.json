@@ -1,0 +1,10 @@
+{
+  "description": "W-B2 step 3 rehearsal (`node scripts/bar/live-smoke.ts --rehearse`, no network, B16b): run 2 of the B4(b) thread, after b4b.json's run 1, on the minimum template (the C6 patch leaves the fins alone). The user sent rw:c/fins from the viewport's @ plus the span question (`scripts/bar/mention.ts` MENTION_PROMPT, folded by Lecturn); the agent reads the fins with rw_model_get (/components/4 is the fins in tree order) and quotes its span, 0.045 (SI m), naming rw:c/fins so the reply carries the chip the driver clicks.",
+  "prompt": "What is the span of this part? Read it now with rw_model_get, quote the span value exactly as the tool returns it, and name the part by the rw: reference I attached.",
+  "scripts": {
+    "2": [
+      { "toolCall": { "name": "rw_model_get", "arguments": { "path": "/components/4" } }, "saveAs": "fins" },
+      { "assistantText": "The span of rw:c/fins is 0.045 (m), as rw_model_get returns it (shape.span)." }
+    ]
+  }
+}

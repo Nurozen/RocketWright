@@ -1,0 +1,466 @@
+{
+  "version": 1,
+  "appId": "dev.rocketwright.app",
+  "sourceEnvironmentId": "rw-fixtures",
+  "exportedAt": "2026-10-24T12:00:00.000Z",
+  "projects": [
+    {
+      "workspaceRoot": "{workspaceRoot}",
+      "title": "{projectName}",
+      "threads": [
+        {
+          "sourceThreadId": "rw-06-flight-comparison",
+          "title": "Flight comparison",
+          "createdAt": "2026-10-24T09:44:40.000Z",
+          "updatedAt": "2026-10-24T09:45:00.000Z",
+          "historyRevision": 6,
+          "appData": "{\"page\":\"propulsion-sim\"}",
+          "subtitle": null,
+          "pinned": false,
+          "runtimeMode": "approval-required",
+          "interactionMode": "default",
+          "messages": [
+            {
+              "createdBy": "user",
+              "creationSource": "web",
+              "id": "rw-06-flight-comparison:t1:user",
+              "threadId": "rw-06-flight-comparison",
+              "runId": "rw-06-flight-comparison:run:1",
+              "nodeId": null,
+              "role": "user",
+              "text": "What changed between these flights? rw:sim/baseline rw:sim/higher_altitude",
+              "attachments": [],
+              "streaming": false,
+              "createdAt": "2026-10-24T09:44:40.000Z",
+              "updatedAt": "2026-10-24T09:44:40.000Z"
+            },
+            {
+              "createdBy": "agent",
+              "creationSource": "web",
+              "id": "rw-06-flight-comparison:t1:assistant",
+              "threadId": "rw-06-flight-comparison",
+              "runId": "rw-06-flight-comparison:run:1",
+              "nodeId": null,
+              "role": "assistant",
+              "text": "The second configuration reaches a higher apogee in this example. Review launch and recovery conditions before comparing.",
+              "attachments": [],
+              "streaming": false,
+              "createdAt": "2026-10-24T09:45:00.000Z",
+              "updatedAt": "2026-10-24T09:45:00.000Z"
+            }
+          ],
+          "turnItems": [
+            {
+              "id": "rw-06-flight-comparison:t1:user",
+              "threadId": "rw-06-flight-comparison",
+              "runId": "rw-06-flight-comparison:run:1",
+              "nodeId": "rw-06-flight-comparison:node:1",
+              "providerThreadId": null,
+              "providerTurnId": null,
+              "nativeItemRef": null,
+              "parentItemId": null,
+              "ordinal": 1,
+              "status": "completed",
+              "title": null,
+              "startedAt": "2026-10-24T09:44:40.000Z",
+              "completedAt": "2026-10-24T09:44:40.000Z",
+              "updatedAt": "2026-10-24T09:44:40.000Z",
+              "createdBy": "user",
+              "creationSource": "web",
+              "type": "user_message",
+              "messageId": "rw-06-flight-comparison:t1:user",
+              "inputIntent": "turn_start",
+              "text": "What changed between these flights? rw:sim/baseline rw:sim/higher_altitude",
+              "attachments": []
+            },
+            {
+              "id": "rw-06-flight-comparison:t1:tool1",
+              "threadId": "rw-06-flight-comparison",
+              "runId": "rw-06-flight-comparison:run:1",
+              "nodeId": "rw-06-flight-comparison:node:1",
+              "providerThreadId": null,
+              "providerTurnId": null,
+              "nativeItemRef": null,
+              "parentItemId": null,
+              "ordinal": 2,
+              "status": "completed",
+              "title": "List runs",
+              "startedAt": "2026-10-24T09:44:41.000Z",
+              "completedAt": "2026-10-24T09:44:41.500Z",
+              "updatedAt": "2026-10-24T09:44:41.500Z",
+              "toolSource": {
+                "key": "app:dev.rocketwright.app",
+                "name": "RocketWright",
+                "kind": "integration"
+              },
+              "type": "dynamic_tool",
+              "toolName": "lecturn.rw_run_list",
+              "input": {},
+              "output": {
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "{}"
+                  }
+                ],
+                "structuredContent": {},
+                "_meta": {
+                  "lecturn/summary": "4 runs"
+                }
+              }
+            },
+            {
+              "id": "rw-06-flight-comparison:t1:tool2",
+              "threadId": "rw-06-flight-comparison",
+              "runId": "rw-06-flight-comparison:run:1",
+              "nodeId": "rw-06-flight-comparison:node:1",
+              "providerThreadId": null,
+              "providerTurnId": null,
+              "nativeItemRef": null,
+              "parentItemId": null,
+              "ordinal": 3,
+              "status": "completed",
+              "title": "Compare runs",
+              "startedAt": "2026-10-24T09:44:42.000Z",
+              "completedAt": "2026-10-24T09:44:42.500Z",
+              "updatedAt": "2026-10-24T09:44:42.500Z",
+              "toolSource": {
+                "key": "app:dev.rocketwright.app",
+                "name": "RocketWright",
+                "kind": "integration"
+              },
+              "type": "dynamic_tool",
+              "toolName": "lecturn.rw_run_diff",
+              "input": {
+                "a": "baseline",
+                "b": "higher_altitude"
+              },
+              "output": {
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "{}"
+                  }
+                ],
+                "structuredContent": {},
+                "_meta": {
+                  "lecturn/summary": "2 runs"
+                }
+              }
+            },
+            {
+              "id": "rw-06-flight-comparison:t1:assistant",
+              "threadId": "rw-06-flight-comparison",
+              "runId": "rw-06-flight-comparison:run:1",
+              "nodeId": "rw-06-flight-comparison:node:1",
+              "providerThreadId": null,
+              "providerTurnId": null,
+              "nativeItemRef": null,
+              "parentItemId": null,
+              "ordinal": 4,
+              "status": "completed",
+              "title": null,
+              "startedAt": "2026-10-24T09:45:00.000Z",
+              "completedAt": "2026-10-24T09:45:00.000Z",
+              "updatedAt": "2026-10-24T09:45:00.000Z",
+              "type": "assistant_message",
+              "messageId": "rw-06-flight-comparison:t1:assistant",
+              "text": "The second configuration reaches a higher apogee in this example. Review launch and recovery conditions before comparing.",
+              "streaming": false
+            }
+          ]
+        },
+        {
+          "sourceThreadId": "rw-06-fin-revision",
+          "title": "Fin revision",
+          "createdAt": "2026-10-24T10:54:40.000Z",
+          "updatedAt": "2026-10-24T10:55:00.000Z",
+          "historyRevision": 5,
+          "appData": "{\"page\":\"propulsion-sim\"}",
+          "subtitle": null,
+          "pinned": false,
+          "runtimeMode": "approval-required",
+          "interactionMode": "default",
+          "messages": [
+            {
+              "createdBy": "user",
+              "creationSource": "web",
+              "id": "rw-06-fin-revision:t1:user",
+              "threadId": "rw-06-fin-revision",
+              "runId": "rw-06-fin-revision:run:1",
+              "nodeId": null,
+              "role": "user",
+              "text": "Did the fin change move the stability margin? rw:c/fins",
+              "attachments": [],
+              "streaming": false,
+              "createdAt": "2026-10-24T10:54:40.000Z",
+              "updatedAt": "2026-10-24T10:54:40.000Z"
+            },
+            {
+              "createdBy": "agent",
+              "creationSource": "web",
+              "id": "rw-06-fin-revision:t1:assistant",
+              "threadId": "rw-06-fin-revision",
+              "runId": "rw-06-fin-revision:run:1",
+              "nodeId": null,
+              "role": "assistant",
+              "text": "The larger fin span moves the centre of pressure aft. Compare the runs before and after step 03 to see the margin.",
+              "attachments": [],
+              "streaming": false,
+              "createdAt": "2026-10-24T10:55:00.000Z",
+              "updatedAt": "2026-10-24T10:55:00.000Z"
+            }
+          ],
+          "turnItems": [
+            {
+              "id": "rw-06-fin-revision:t1:user",
+              "threadId": "rw-06-fin-revision",
+              "runId": "rw-06-fin-revision:run:1",
+              "nodeId": "rw-06-fin-revision:node:1",
+              "providerThreadId": null,
+              "providerTurnId": null,
+              "nativeItemRef": null,
+              "parentItemId": null,
+              "ordinal": 1,
+              "status": "completed",
+              "title": null,
+              "startedAt": "2026-10-24T10:54:40.000Z",
+              "completedAt": "2026-10-24T10:54:40.000Z",
+              "updatedAt": "2026-10-24T10:54:40.000Z",
+              "createdBy": "user",
+              "creationSource": "web",
+              "type": "user_message",
+              "messageId": "rw-06-fin-revision:t1:user",
+              "inputIntent": "turn_start",
+              "text": "Did the fin change move the stability margin? rw:c/fins",
+              "attachments": []
+            },
+            {
+              "id": "rw-06-fin-revision:t1:tool1",
+              "threadId": "rw-06-fin-revision",
+              "runId": "rw-06-fin-revision:run:1",
+              "nodeId": "rw-06-fin-revision:node:1",
+              "providerThreadId": null,
+              "providerTurnId": null,
+              "nativeItemRef": null,
+              "parentItemId": null,
+              "ordinal": 2,
+              "status": "completed",
+              "title": "Read model",
+              "startedAt": "2026-10-24T10:54:41.000Z",
+              "completedAt": "2026-10-24T10:54:41.500Z",
+              "updatedAt": "2026-10-24T10:54:41.500Z",
+              "toolSource": {
+                "key": "app:dev.rocketwright.app",
+                "name": "RocketWright",
+                "kind": "integration"
+              },
+              "type": "dynamic_tool",
+              "toolName": "lecturn.rw_model_get",
+              "input": {},
+              "output": {
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "{}"
+                  }
+                ],
+                "structuredContent": {},
+                "_meta": {
+                  "lecturn/summary": "Whole model"
+                }
+              }
+            },
+            {
+              "id": "rw-06-fin-revision:t1:assistant",
+              "threadId": "rw-06-fin-revision",
+              "runId": "rw-06-fin-revision:run:1",
+              "nodeId": "rw-06-fin-revision:node:1",
+              "providerThreadId": null,
+              "providerTurnId": null,
+              "nativeItemRef": null,
+              "parentItemId": null,
+              "ordinal": 3,
+              "status": "completed",
+              "title": null,
+              "startedAt": "2026-10-24T10:55:00.000Z",
+              "completedAt": "2026-10-24T10:55:00.000Z",
+              "updatedAt": "2026-10-24T10:55:00.000Z",
+              "type": "assistant_message",
+              "messageId": "rw-06-fin-revision:t1:assistant",
+              "text": "The larger fin span moves the centre of pressure aft. Compare the runs before and after step 03 to see the margin.",
+              "streaming": false
+            }
+          ]
+        },
+        {
+          "sourceThreadId": "rw-06-tank-motion",
+          "title": "Tank motion",
+          "createdAt": "2026-10-24T11:56:40.000Z",
+          "updatedAt": "2026-10-24T11:57:00.000Z",
+          "historyRevision": 6,
+          "appData": "{\"page\":\"propulsion-sim\"}",
+          "subtitle": null,
+          "pinned": true,
+          "runtimeMode": "approval-required",
+          "interactionMode": "default",
+          "messages": [
+            {
+              "createdBy": "user",
+              "creationSource": "web",
+              "id": "rw-06-tank-motion:t1:user",
+              "threadId": "rw-06-tank-motion",
+              "runId": "rw-06-tank-motion:run:1",
+              "nodeId": null,
+              "role": "user",
+              "text": "Show how the fluid moves as the vehicle tilts. rw:eng/demo/feed/node/tank_a",
+              "attachments": [],
+              "streaming": false,
+              "createdAt": "2026-10-24T11:56:40.000Z",
+              "updatedAt": "2026-10-24T11:56:40.000Z"
+            },
+            {
+              "createdBy": "agent",
+              "creationSource": "web",
+              "id": "rw-06-tank-motion:t1:assistant",
+              "threadId": "rw-06-tank-motion",
+              "runId": "rw-06-tank-motion:run:1",
+              "nodeId": null,
+              "role": "assistant",
+              "text": "The visual preview highlights motion and flow direction. Engineering outputs are available in the Engineering tab.",
+              "attachments": [],
+              "streaming": false,
+              "createdAt": "2026-10-24T11:57:00.000Z",
+              "updatedAt": "2026-10-24T11:57:00.000Z"
+            }
+          ],
+          "turnItems": [
+            {
+              "id": "rw-06-tank-motion:t1:user",
+              "threadId": "rw-06-tank-motion",
+              "runId": "rw-06-tank-motion:run:1",
+              "nodeId": "rw-06-tank-motion:node:1",
+              "providerThreadId": null,
+              "providerTurnId": null,
+              "nativeItemRef": null,
+              "parentItemId": null,
+              "ordinal": 1,
+              "status": "completed",
+              "title": null,
+              "startedAt": "2026-10-24T11:56:40.000Z",
+              "completedAt": "2026-10-24T11:56:40.000Z",
+              "updatedAt": "2026-10-24T11:56:40.000Z",
+              "createdBy": "user",
+              "creationSource": "web",
+              "type": "user_message",
+              "messageId": "rw-06-tank-motion:t1:user",
+              "inputIntent": "turn_start",
+              "text": "Show how the fluid moves as the vehicle tilts. rw:eng/demo/feed/node/tank_a",
+              "attachments": []
+            },
+            {
+              "id": "rw-06-tank-motion:t1:tool1",
+              "threadId": "rw-06-tank-motion",
+              "runId": "rw-06-tank-motion:run:1",
+              "nodeId": "rw-06-tank-motion:node:1",
+              "providerThreadId": null,
+              "providerTurnId": null,
+              "nativeItemRef": null,
+              "parentItemId": null,
+              "ordinal": 2,
+              "status": "completed",
+              "title": "Run simulation",
+              "startedAt": "2026-10-24T11:56:41.000Z",
+              "completedAt": "2026-10-24T11:56:41.500Z",
+              "updatedAt": "2026-10-24T11:56:41.500Z",
+              "toolSource": {
+                "key": "app:dev.rocketwright.app",
+                "name": "RocketWright",
+                "kind": "integration"
+              },
+              "type": "dynamic_tool",
+              "toolName": "lecturn.rw_simulate",
+              "input": {
+                "sim": "study_01"
+              },
+              "output": {
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "{}"
+                  }
+                ],
+                "structuredContent": {},
+                "_meta": {
+                  "lecturn/summary": "Tank study · Study 01"
+                }
+              }
+            },
+            {
+              "id": "rw-06-tank-motion:t1:card1",
+              "threadId": "rw-06-tank-motion",
+              "runId": "rw-06-tank-motion:run:1",
+              "nodeId": "rw-06-tank-motion:node:1",
+              "providerThreadId": null,
+              "providerTurnId": null,
+              "nativeItemRef": null,
+              "parentItemId": null,
+              "ordinal": 3,
+              "status": "completed",
+              "title": "Render view",
+              "startedAt": "2026-10-24T11:56:42.000Z",
+              "completedAt": "2026-10-24T11:56:42.500Z",
+              "updatedAt": "2026-10-24T11:56:42.500Z",
+              "toolSource": {
+                "key": "app:dev.rocketwright.app",
+                "name": "RocketWright",
+                "kind": "integration"
+              },
+              "type": "dynamic_tool",
+              "toolName": "lecturn.rw_render",
+              "input": {
+                "ref": "rw:sim/study_01"
+              },
+              "output": {
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "{\"ref\":\"rw:sim/study_01\",\"title\":\"Section view · Cutaway of tank and engine\"}"
+                  }
+                ],
+                "structuredContent": {
+                  "ref": "rw:sim/study_01",
+                  "title": "Section view · Cutaway of tank and engine"
+                },
+                "_meta": {
+                  "lecturn/summary": "Section view"
+                }
+              }
+            },
+            {
+              "id": "rw-06-tank-motion:t1:assistant",
+              "threadId": "rw-06-tank-motion",
+              "runId": "rw-06-tank-motion:run:1",
+              "nodeId": "rw-06-tank-motion:node:1",
+              "providerThreadId": null,
+              "providerTurnId": null,
+              "nativeItemRef": null,
+              "parentItemId": null,
+              "ordinal": 4,
+              "status": "completed",
+              "title": null,
+              "startedAt": "2026-10-24T11:57:00.000Z",
+              "completedAt": "2026-10-24T11:57:00.000Z",
+              "updatedAt": "2026-10-24T11:57:00.000Z",
+              "type": "assistant_message",
+              "messageId": "rw-06-tank-motion:t1:assistant",
+              "text": "The visual preview highlights motion and flow direction. Engineering outputs are available in the Engineering tab.",
+              "streaming": false
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "assets": []
+}

@@ -1,0 +1,123 @@
+{
+  "version": 2,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 20,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "dev-ub-hunt",
+      "inherits": "gnu",
+      "displayName": "Sofware Development Config (GNU)",
+      "description": "Configuration for software development with gfortran and undefined behavior hunting enabled.",
+      "binaryDir": "build-dev-ub-hunt",
+      "cacheVariables": {
+        "CEA_UB_HUNT": "ON",
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CEA_ENABLE_BIND_C": "TRUE",
+        "CEA_ENABLE_BIND_PYTHON": "TRUE",
+        "CEA_ENABLE_BIND_MATLAB": "TRUE",
+        "CEA_ENABLE_BIND_EXCEL": "FALSE",
+        "CMAKE_Fortran_FLAGS_DEBUG": "-g -O0 -Wall -Wextra -Wpedantic -Wcharacter-truncation -Werror=conversion -fcheck=all -fbacktrace -ffpe-trap=invalid,zero,overflow -finit-real=snan -finit-integer=-999999 -finit-logical=true -Wimplicit-interface -Wsurprising"
+      }
+    },
+    {
+      "name": "dev",
+      "inherits": "gnu",
+      "displayName": "Sofware Development Config (GNU)",
+      "description": "Default configuration for software development with gfortran.",
+      "binaryDir": "build-dev",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CEA_ENABLE_BIND_C": "TRUE",
+        "CEA_ENABLE_BIND_PYTHON": "TRUE",
+        "CEA_ENABLE_BIND_MATLAB": "TRUE",
+        "CEA_ENABLE_BIND_EXCEL": "FALSE",
+        "CMAKE_Fortran_FLAGS_DEBUG": "-g -O0 -Wall -Wextra -Wpedantic -Wcharacter-truncation -Wno-maybe-uninitialized -fcheck=all -fbacktrace"
+      }
+    },
+    {
+      "name": "dev-intel",
+      "inherits": "intel",
+      "displayName": "Sofware Development Config (Intel)",
+      "description": "Default configuration for software development with ifort.",
+      "binaryDir": "build-dev-intel",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CEA_ENABLE_BIND_C": "TRUE",
+        "CEA_ENABLE_BIND_PYTHON": "TRUE",
+        "CEA_ENABLE_BIND_EXCEL": "FALSE",
+        "CMAKE_Fortran_FLAGS_DEBUG": "-g -O0 -warn all -check all -traceback -fpe0 -warn all -warn interfaces -assume nostd_intent_in"
+      }
+    },
+    {
+      "name": "core",
+      "inherits": "gnu",
+      "displayName": "Core (Fortran only)",
+      "description": "Minimal Fortran-only build without Python bindings.",
+      "binaryDir": "build-core",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CEA_ENABLE_BIND_C": "FALSE",
+        "CEA_ENABLE_BIND_CXX": "FALSE",
+        "CEA_ENABLE_BIND_PYTHON": "FALSE",
+        "CEA_ENABLE_BIND_MATLAB": "FALSE",
+        "CEA_ENABLE_BIND_EXCEL": "FALSE"
+      }
+    },
+    {
+      "name": "core-c",
+      "inherits": "gnu",
+      "displayName": "Core (Fortran + C)",
+      "description": "Minimal Fortran + C build without Python bindings.",
+      "binaryDir": "build-core-c",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CEA_ENABLE_BIND_C": "TRUE",
+        "CEA_ENABLE_BIND_CXX": "FALSE",
+        "CEA_ENABLE_BIND_PYTHON": "FALSE",
+        "CEA_ENABLE_BIND_MATLAB": "FALSE",
+        "CEA_ENABLE_BIND_EXCEL": "FALSE"
+      }
+    },
+    {
+      "name": "gnu",
+      "displayName": "Baseline GNU/GFortran Config",
+      "description": "Default configuration for GNU-like compiliers.",
+      "binaryDir": "build-gnu",
+      "generator": "Unix Makefiles",
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "gcc",
+        "CMAKE_CXX_COMPILER": "g++",
+        "CMAKE_Fortran_COMPILER": "gfortran",
+        "CMAKE_Fortran_FLAGS": "-fimplicit-none -ffree-line-length-none"
+      }
+    },
+    {
+      "name": "intel",
+      "displayName": "Baseline Intel/ifort Config",
+      "description": "Default configuration for the ifort compilier.",
+      "binaryDir": "build-intel",
+      "generator": "Unix Makefiles",
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "icc",
+        "CMAKE_CXX_COMPILER": "icpc",
+        "CMAKE_Fortran_COMPILER": "ifort"
+      }
+    },
+    {
+      "name": "intel-ifx",
+      "displayName": "Baseline Intel ifx Config",
+      "description": "Default configuration for the ifort compilier.",
+      "binaryDir": "build-intel",
+      "generator": "Ninja",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_C_COMPILER": "icx",
+        "CMAKE_CXX_COMPILER": "icpx",
+        "CMAKE_Fortran_COMPILER": "ifx"
+      }
+    }
+  ]
+}

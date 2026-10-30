@@ -1,0 +1,62 @@
+<?xml version='1.0' encoding='utf-8'?>
+<openrocket version="1.9" creator="RocketWright test">
+  <rocket>
+    <name>Two</name>
+    <motorconfiguration configid="c1" default="true"/>
+    <subcomponents>
+      <stage>
+        <name>Sustainer</name>
+        <subcomponents>
+          <nosecone>
+            <name>Nose</name>
+            <length>0.15</length><thickness>0.002</thickness><shape>conical</shape>
+            <aftradius>0.02</aftradius>
+          </nosecone>
+          <bodytube>
+            <name>Upper</name>
+            <length>0.3</length><thickness>0.001</thickness><radius>auto</radius>
+            <subcomponents>
+              <innertube>
+                <name>Upper mount</name>
+                <axialoffset method="bottom">0.0</axialoffset>
+                <length>0.08</length><outerradius>0.0095</outerradius><thickness>0.0005</thickness>
+                <motormount>
+                  <ignitionevent>burnout</ignitionevent>
+                  <motor configid="c1"><designation>C6</designation><diameter>0.018</diameter><delay>3.0</delay></motor>
+                </motormount>
+              </innertube>
+              <podset><name>Pods</name></podset>
+            </subcomponents>
+          </bodytube>
+        </subcomponents>
+      </stage>
+      <stage>
+        <name>Booster</name>
+        <separationevent>burnout</separationevent>
+        <subcomponents>
+          <transition>
+            <name>Interstage</name>
+            <length>0.05</length><thickness>0.001</thickness><shape>conical</shape>
+            <foreradius>auto</foreradius><aftradius>0.025</aftradius>
+          </transition>
+          <bodytube>
+            <name>Lower</name>
+            <length>0.25</length><thickness>0.001</thickness><radius>auto</radius>
+            <subcomponents>
+              <innertube>
+                <name>Booster mounts</name>
+                <axialoffset method="bottom">0.0</axialoffset>
+                <length>0.08</length><outerradius>0.0095</outerradius><thickness>0.0005</thickness>
+                <clusterconfiguration>3-ring</clusterconfiguration>
+                <clusterscale>1.0</clusterscale>
+                <motormount>
+                  <motor configid="c1"><designation>C6</designation><diameter>0.018</diameter><delay>0.0</delay></motor>
+                </motormount>
+              </innertube>
+            </subcomponents>
+          </bodytube>
+        </subcomponents>
+      </stage>
+    </subcomponents>
+  </rocket>
+</openrocket>

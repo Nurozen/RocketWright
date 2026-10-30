@@ -1,0 +1,204 @@
+{
+  "description": "Page 02 canned chat (concept 02, Design > Components). Seeded through app_seed_thread in this order on the seeded research vehicle (fixtures/research-vehicle/seed.sh); the last thread is the one the capture opens. The rail shows the concept's three threads bound to the page (Assembly review 3m, Fin revision 1h, Flight comparison 2h). The Fin revision exchange names the real seeded step 03 (fin span 90 -> 100 mm, sweep 45 -> 40 mm) through its edits' step ids. Illustrative chat text, not engineering output. The Fin revision turn is one fin edit (rw_model_patch with the Fin revision step card) and the comparison with the previous fins (rw_model_diff), so an imported turn keeps both rows (CPW1R4A); a two-line request and a one-line reply let the turn fit the embedded pane under Lecturn's 80 px card frame (CP-W1 r4).",
+  "threads": [
+    {
+      "thread": "Flight comparison",
+      "binding": {
+        "page": "components"
+      },
+      "ageMs": 8100000,
+      "messages": [
+        {
+          "role": "user",
+          "text": "What changed between these flights?",
+          "mentions": [
+            {
+              "ref": "rw:sim/baseline",
+              "label": "Baseline"
+            },
+            {
+              "ref": "rw:sim/higher_altitude",
+              "label": "Higher altitude"
+            }
+          ]
+        },
+        {
+          "role": "assistant",
+          "text": "The second configuration reaches a higher apogee in this example. Review launch and recovery conditions before comparing.",
+          "steps": [
+            {
+              "tool": "run_list",
+              "input": {},
+              "output": {},
+              "summary": "4 runs"
+            },
+            {
+              "tool": "run_diff",
+              "input": {
+                "a": "baseline",
+                "b": "higher_altitude"
+              },
+              "output": {},
+              "summary": "2 runs"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "thread": "Assembly review",
+      "binding": {
+        "page": "components"
+      },
+      "ageMs": 220000,
+      "messages": [
+        {
+          "role": "user",
+          "text": "Show how the recovery bay fits.",
+          "mentions": [
+            {
+              "ref": "rw:c/recovery_bay",
+              "label": "Recovery bay"
+            }
+          ]
+        },
+        {
+          "role": "assistant",
+          "text": "Exploded view ready. The recovery bay is selected in the model.",
+          "steps": [
+            {
+              "tool": "viewport_select",
+              "input": {
+                "refs": [
+                  "rw:c/recovery_bay"
+                ]
+              },
+              "output": {
+                "selected": [
+                  "rw:c/recovery_bay"
+                ]
+              },
+              "summary": "1 selected"
+            },
+            {
+              "tool": "viewport_set_camera",
+              "input": {
+                "view": "iso",
+                "explode": 0.6
+              },
+              "output": {},
+              "summary": "Iso view · exploded 60%"
+            },
+            {
+              "tool": "viewport_render",
+              "input": {
+                "view": "iso"
+              },
+              "output": {
+                "width": 1536,
+                "height": 1024,
+                "backend": "webgpu",
+                "adapter": "capture"
+              },
+              "summary": "Iso view"
+            }
+          ],
+          "cards": [
+            {
+              "kind": "step",
+              "ref": "rw:step/2",
+              "title": "Assembly layout",
+              "summary": "3 fields changed"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "thread": "Fin revision",
+      "binding": {
+        "page": "components"
+      },
+      "ageMs": 3900000,
+      "messages": [
+        {
+          "role": "user",
+          "text": "Try more span with less sweep and compare with the old fins.",
+          "mentions": [
+            {
+              "ref": "rw:c/fins",
+              "label": "Fins"
+            }
+          ]
+        },
+        {
+          "role": "assistant",
+          "text": "New fins in teal; the previous outline in amber.",
+          "steps": [
+            {
+              "tool": "model_patch",
+              "input": {
+                "label": "Fin revision",
+                "ops": [
+                  {
+                    "op": "replace",
+                    "path": "/params/fin_span/value",
+                    "value": "100 mm"
+                  },
+                  {
+                    "op": "replace",
+                    "path": "/params/fin_sweep/value",
+                    "value": "40 mm"
+                  }
+                ]
+              },
+              "output": {
+                "step": "step:3"
+              },
+              "card": {
+                "kind": "step",
+                "ref": "rw:step/3",
+                "title": "Fin revision"
+              },
+              "summary": "2 fields changed"
+            },
+            {
+              "tool": "model_diff",
+              "input": {
+                "a": "step:2",
+                "b": "step:3"
+              },
+              "output": {
+                "a": "step:2",
+                "b": "step:3",
+                "added": [],
+                "removed": [],
+                "changed": [
+                  {
+                    "component": "fins",
+                    "path": "/params/fin_span/value",
+                    "old": "90 mm",
+                    "new": "100 mm",
+                    "unit": "m",
+                    "old_si": 0.09,
+                    "new_si": 0.1
+                  },
+                  {
+                    "component": "fins",
+                    "path": "/params/fin_sweep/value",
+                    "old": "45 mm",
+                    "new": "40 mm",
+                    "unit": "m",
+                    "old_si": 0.045,
+                    "new_si": 0.04
+                  }
+                ]
+              },
+              "summary": "2 changes"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

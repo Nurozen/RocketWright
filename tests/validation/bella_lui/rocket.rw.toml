@@ -1,0 +1,87 @@
+# Bella Lui (EPFL Rocket Team), from RocketPy (MIT)
+# tests/acceptance/test_bella_lui_rocket.py. Stations from the nose tip; the
+# RocketPy positions are measured from the dry CG, which sits 1.542 m aft of
+# the tip (nose_distance_to_cm 1.3 m + nose length 0.242 m).
+#
+# Mass: the team's measured dry properties (17.227 kg, I = 0.78267 kg m^2
+# transverse, CG at 1.542 m) live in one lumped mass component sized so its
+# solid-cylinder inertia matches; the aerodynamic shells carry no material.
+
+name = "Bella Lui"
+
+[c.nose]
+type = "nose_cone"
+name = "Nose cone"
+finish = "smooth_paint"
+shape = "ogive"
+shape_param = 1
+length = "242 mm"
+od = "156 mm"
+thickness = "3 mm"
+
+[c.body]
+type = "body_tube"
+name = "Airframe"
+attach = { to = "nose.base" }
+finish = "smooth_paint"
+length = "2385.6 mm"
+od = "156 mm"
+thickness = "3 mm"
+
+[c.tail]
+type = "transition"
+name = "Boattail"
+attach = { to = "body.aft" }
+finish = "smooth_paint"
+shape = "conical"
+length = "50 mm"
+fore_od = "156 mm"
+aft_od = "135 mm"
+thickness = "3 mm"
+
+[c.fins]
+type = "trapezoidal_fin_set"
+name = "Fins"
+# Root leading edge 0.75 m aft of the dry CG: 2.292 m; trailing edge 2.572 m.
+attach = { to = "body.aft", at = "root_te", offset = "-55.6 mm" }
+finish = "smooth_paint"
+count = 3
+root_chord = "280 mm"
+tip_chord = "125 mm"
+span = "200 mm"
+# RocketPy's default: tip trailing edge in line with the root trailing edge.
+sweep = "155 mm"
+# Not in the source; a composite fin of this size.
+thickness = "4 mm"
+cross_section = "rounded"
+
+[c.mmt]
+type = "inner_tube"
+name = "Motor mount"
+attach = { to = "body.aft", at = "aft" }
+length = "529 mm"
+od = "58 mm"
+id = "54 mm"
+motor_mount = true
+# The nozzle exits at the boattail's aft end (RocketPy nozzle position).
+overhang = "50 mm"
+
+[c.dry]
+type = "mass_component"
+name = "Dry vehicle (measured)"
+# Centred on the dry CG (1.542 m): fore end 1.542 - 0.363425 m.
+attach = { to = "body.fore", at = "fore", offset = "936.575 mm" }
+mass = "17.227 kg"
+# Solid cylinder: I_t = m (3 r^2 + L^2) / 12 = 0.78267 kg m^2.
+length = "726.85 mm"
+od = "150 mm"
+
+[c.drogue]
+type = "parachute"
+name = "Drogue"
+attach = { to = "body.fore", at = "attach", offset = "100 mm" }
+# Cd S = pi/4 m^2 (RocketPy CdS_drogue).
+diameter = "1 m"
+cd = 1.0
+packed_length = "150 mm"
+packed_diameter = "120 mm"

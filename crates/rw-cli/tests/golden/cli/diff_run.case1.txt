@@ -1,0 +1,33 @@
+simulation_5/21b2f7681ed3 vs tests/oracle/case1-generic.json: pass
+  key                            a (ours)     b (golden)          a - b   delta %      tol  result
+  apogee_m                       347.57 m       345.78 m      +1.7921 m     +0.52       3%  pass
+  max_velocity_ms              105.19 m/s     103.77 m/s    +1.4187 m/s     +1.37       3%  pass
+  max_accel_ms2              216.91 m/s^2   217.06 m/s^2 -0.14258 m/s^2     -0.07     none  not gated
+  max_mach                        0.30947        0.30521     +0.0042585     +1.40     none  not gated
+  time_to_apogee_s               7.7192 s       7.7437 s    -0.024496 s     -0.32    0.3 s  pass
+  flight_time_s                  90.993 s       90.694 s     +0.29938 s     +0.33     none  not gated
+  landing_velocity_ms          4.1293 m/s     4.1272 m/s +0.0021496 m/s     +0.05     none  not gated
+  rail_exit_velocity_ms        18.329 m/s     18.645 m/s   -0.31593 m/s     -1.69     none  not gated
+  deployment_velocity_ms       8.5624 m/s     8.3413 m/s   +0.22105 m/s     +2.65     none  not gated
+  optimum_delay_s                6.1192 s       6.1437 s    -0.024496 s     -0.40     none  not gated
+  static (rw check of the run's configuration vs the golden's static block)
+  mass.cg                       261.69 mm      261.59 mm    +0.10505 mm     +0.04     1 mm  pass
+  aero.cp                       330.56 mm       330.4 mm    +0.15801 mm     +0.05     3 mm  pass
+  aero.cna                         14.903         14.923       -0.02053     -0.14     none  not gated
+  stability.liftoff            2.7545 cal     2.7524 cal +0.0021085 cal     +0.08  0.1 cal  pass
+  phases (main-flight events in time order: rail exit, burnout, apogee, deployment, landing; compared, not gated)
+  rail_exit.t_s                 0.17085 s      0.17195 s   -0.0011049 s     -0.64
+  rail_exit.altitude_m                1 m       1.0147 m    -0.014678 m     -1.45
+  rail_exit.velocity_ms        18.329 m/s     18.645 m/s   -0.31593 m/s     -1.69
+  burnout.t_s                       1.6 s          1.6 s           +0 s     +0.00
+  burnout.altitude_m             112.36 m       111.59 m      +0.7748 m     +0.69
+  burnout.velocity_ms          103.03 m/s     101.46 m/s    +1.5716 m/s     +1.55
+  apogee.t_s                     7.7192 s       7.7437 s    -0.024496 s     -0.32
+  apogee.altitude_m              347.57 m       345.78 m      +1.7921 m     +0.52
+  deployment.t_s                    8.6 s        8.601 s       -0.001 s     -0.01
+  deployment.altitude_m          343.79 m       342.06 m      +1.7232 m     +0.50
+  deployment.velocity_ms       8.5624 m/s     8.3413 m/s   +0.22105 m/s     +2.65
+  landing.t_s                    90.993 s       90.694 s     +0.29938 s     +0.33
+  landing.velocity_ms          4.1293 m/s     4.1272 m/s +0.0021496 m/s     +0.05
+  gated: 6 key(s) with a tolerance, 6 pass, 0 FAIL
+  no tolerance (compared, not gated): max_accel_ms2, max_mach, flight_time_s, landing_velocity_ms, rail_exit_velocity_ms, deployment_velocity_ms, optimum_delay_s, aero.cna

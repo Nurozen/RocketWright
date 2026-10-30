@@ -1,0 +1,61 @@
+{
+  "provenance": "contract-fixture",
+  "type": "events",
+  "payload": {
+    "schema": "rw/1",
+    "events": [
+      {
+        "t": 0.0,
+        "kind": "ignition",
+        "altitude": 0.0,
+        "velocity": 0.0,
+        "source": "rw:c/motor_mount"
+      },
+      {
+        "t": 0.02,
+        "kind": "liftoff",
+        "altitude": 0.0,
+        "velocity": 0.0
+      },
+      {
+        "t": 0.21,
+        "kind": "rail_exit",
+        "altitude": 1.5,
+        "velocity": 17.8
+      },
+      {
+        "t": 2.0,
+        "kind": "burnout",
+        "altitude": 104.7,
+        "velocity": 118.6,
+        "source": "rw:c/motor_mount"
+      },
+      {
+        "t": 9.0,
+        "kind": "ejection",
+        "altitude": 598.1,
+        "velocity": 9.6,
+        "source": "rw:c/motor_mount"
+      },
+      {
+        "t": 9.0,
+        "kind": "deployment",
+        "altitude": 598.1,
+        "velocity": 9.6,
+        "source": "rw:c/parachute"
+      },
+      {
+        "t": 10.84,
+        "kind": "apogee",
+        "altitude": 612.4,
+        "velocity": 0.0
+      },
+      {
+        "t": 62.3,
+        "kind": "landing",
+        "altitude": 0.0,
+        "velocity": 4.92
+      }
+    ]
+  }
+}

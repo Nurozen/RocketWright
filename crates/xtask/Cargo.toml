@@ -1,0 +1,26 @@
+[package]
+name = "xtask"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[features]
+# `cargo xtask tables` solves with native CEA (gfortran + cmake); without
+# this feature the task re-runs itself through cargo with it enabled.
+cea = ["rw-cea-sys/cea"]
+
+[dependencies]
+rw-cea-sys.workspace = true
+rw-thermo.workspace = true
+rw-api.workspace = true
+rw-check.workspace = true
+rw-model.workspace = true
+rw-liquid.workspace = true
+rw-units.workspace = true
+schemars.workspace = true
+jsonschema.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+toml.workspace = true

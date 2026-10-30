@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="235" viewBox="0 0 1200 235" font-family="Inter">
+  <rect x="0" y="0" width="1200" height="235" fill="#ffffff" stroke="none" stroke-width="0"/>
+  <text x="40" y="28" font-size="15" text-anchor="start" fill="#1f2933">Surface parts · profile</text>
+  <line x1="68" y1="117.22" x2="1132" y2="117.22" stroke="#5b6b7c" stroke-width="0.75" stroke-dasharray="12 3 2 3"/>
+  <polygon points="80,117.22 80.15,117.17 80.6,117.01 81.35,116.74 82.4,116.37 83.75,115.89 85.4,115.32 87.35,114.64 89.6,113.87 92.15,113 95,112.05 98.15,111.01 101.6,109.89 105.35,108.7 109.4,107.43 113.75,106.1 118.4,104.71 123.35,103.27 128.6,101.79 134.15,100.27 140,98.71 146.15,97.14 152.6,95.55 159.35,93.95 166.4,92.36 173.75,90.78 181.4,89.22 189.35,87.69 197.6,86.21 206.15,84.77 215,83.4 224.15,82.09 233.6,80.88 243.35,79.75 253.4,78.74 263.75,77.84 274.4,77.08 285.35,76.47 296.6,76.01 308.15,75.72 320,75.62 320,158.82 308.15,158.72 296.6,158.44 285.35,157.98 274.4,157.36 263.75,156.6 253.4,155.71 243.35,154.69 233.6,153.57 224.15,152.35 215,151.05 206.15,149.68 197.6,148.24 189.35,146.75 181.4,145.22 173.75,143.66 166.4,142.08 159.35,140.49 152.6,138.9 146.15,137.31 140,135.73 134.15,134.18 128.6,132.66 123.35,131.17 118.4,129.73 113.75,128.34 109.4,127.02 105.35,125.75 101.6,124.56 98.15,123.44 95,122.4 92.15,121.44 89.6,120.58 87.35,119.8 85.4,119.13 83.75,118.55 82.4,118.08 81.35,117.7 80.6,117.44 80.15,117.28 80,117.22" fill="#e4e9ef" stroke="#1f2933" stroke-width="1.5" stroke-linejoin="round"/>
+  <polygon points="320,75.62 1120,75.62 1120,158.82 320,158.82" fill="#e4e9ef" stroke="#1f2933" stroke-width="1.5" stroke-linejoin="round"/>
+  <polygon points="440,75.62 440,71.62 444,71.62 444,63.62 440,63.62 440,59.62 460,59.62 460,63.62 456,63.62 456,71.62 460,71.62 460,75.62" fill="#e4e9ef" stroke="#1f2933" stroke-width="1" stroke-linejoin="round"/>
+  <polygon points="940,75.62 940,71.62 944,71.62 944,63.62 940,63.62 940,59.62 960,59.62 960,63.62 956,63.62 956,71.62 960,71.62 960,75.62" fill="#e4e9ef" stroke="#1f2933" stroke-width="1" stroke-linejoin="round"/>
+  <polygon points="480,170.82 540,170.82 540,158.82 480,158.82" fill="#e4e9ef" stroke="#1f2933" stroke-width="1" stroke-linejoin="round"/>
+  <polygon points="720,63.62 820,63.62 820,75.62 720,75.62" fill="#e4e9ef" stroke="#1f2933" stroke-width="1" stroke-linejoin="round"/>
+  <line x1="80" y1="117.22" x2="80" y2="204.45" stroke="#3d4852" stroke-width="0.5"/>
+  <line x1="1120" y1="117.22" x2="1120" y2="204.45" stroke="#3d4852" stroke-width="0.5"/>
+  <line x1="80" y1="198.45" x2="1120" y2="198.45" stroke="#3d4852" stroke-width="1"/>
+  <polygon points="80,198.45 88,195.45 88,201.45" fill="#3d4852" stroke="none" stroke-width="0" stroke-linejoin="round"/>
+  <polygon points="1120,198.45 1112,201.45 1112,195.45" fill="#3d4852" stroke="none" stroke-width="0" stroke-linejoin="round"/>
+  <text x="600" y="208.45" font-size="12" text-anchor="middle" fill="#3d4852">520.0 mm</text>
+  <line x1="320" y1="75.62" x2="38" y2="75.62" stroke="#3d4852" stroke-width="0.5"/>
+  <line x1="320" y1="158.82" x2="38" y2="158.82" stroke="#3d4852" stroke-width="0.5"/>
+  <line x1="44" y1="75.62" x2="44" y2="158.82" stroke="#3d4852" stroke-width="1"/>
+  <polygon points="44,75.62 47,83.62 41,83.62" fill="#3d4852" stroke="none" stroke-width="0" stroke-linejoin="round"/>
+  <polygon points="44,158.82 41,150.82 47,150.82" fill="#3d4852" stroke="none" stroke-width="0" stroke-linejoin="round"/>
+  <text x="54" y="117.22" font-size="12" text-anchor="middle" fill="#3d4852" transform="rotate(-90 54 117.22)">Ø41.6 mm</text>
+</svg>

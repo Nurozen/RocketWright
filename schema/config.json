@@ -1,0 +1,308 @@
+{
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "name": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "description": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "motors": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/MotorAssignment"
+      },
+      "description": "Motor per mount (inner-tube id → assignment).",
+      "x-ui-group": "Motors"
+    },
+    "stages": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/StageConfig"
+      },
+      "description": "Stage id → separation settings.",
+      "x-ui-group": "Stages"
+    },
+    "deploy": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/Deployment"
+      },
+      "description": "Recovery component id → deployment.",
+      "x-ui-group": "Recovery"
+    }
+  },
+  "description": "`configs/<id>.rw.toml`: a flight configuration (R2.6).",
+  "title": "ConfigDoc",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rocketwright.dev/schema/1/config.json",
+  "$defs": {
+    "MotorAssignment": {
+      "type": "object",
+      "properties": {
+        "motor": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Motor ref: `generic:RW_C6G`, `lib:<path>`, or a designation `rw motor search` resolves."
+        },
+        "engine": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Liquid engine id (`engines/<id>.rw.toml`), in place of a solid motor."
+        },
+        "delay": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+                },
+                {
+                  "const": 0
+                }
+              ],
+              "x-unit-dimension": "time",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Ejection delay; absent means plugged (no ejection charge)."
+        },
+        "ignition": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/IgnitionEvent"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "ignition_delay": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+                },
+                {
+                  "const": 0
+                }
+              ],
+              "x-unit-dimension": "time",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "import": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MotorImport"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Import provenance: the motor the imported file named and how it was\nresolved (`substituted` is reported as `RW-W103 motor-substituted`)."
+        },
+        "accept_substitution": {
+          "type": "boolean",
+          "description": "`true`: the generic curve standing in for a `substituted` import is\naccepted, so `RW-W103 motor-substituted` is no longer reported."
+        }
+      }
+    },
+    "IgnitionEvent": {
+      "type": "string",
+      "enum": [
+        "launch",
+        "previous_burnout",
+        "stage_separation",
+        "never"
+      ]
+    },
+    "MotorImport": {
+      "type": "object",
+      "properties": {
+        "manufacturer": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "designation": {
+          "type": "string"
+        },
+        "digest": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The imported file's motor digest, when it has one."
+        },
+        "resolution": {
+          "$ref": "#/$defs/MotorResolution"
+        }
+      },
+      "required": [
+        "designation",
+        "resolution"
+      ],
+      "description": "The motor an imported file (`.ork`) named for a mount, and how\n`rw import` resolved it."
+    },
+    "MotorResolution": {
+      "oneOf": [
+        {
+          "type": "string",
+          "const": "embedded",
+          "description": "A curve embedded in the imported file, copied into `lib/motors/`."
+        },
+        {
+          "type": "string",
+          "const": "cache",
+          "description": "A curve from the local ThrustCurve cache, copied into `lib/motors/`."
+        },
+        {
+          "type": "string",
+          "const": "substituted",
+          "description": "No curve was available offline: the nearest built-in generic curve\nby impulse class and diameter stands in."
+        }
+      ],
+      "description": "How an imported motor was resolved."
+    },
+    "StageConfig": {
+      "type": "object",
+      "properties": {
+        "active": {
+          "type": "boolean",
+          "default": true
+        },
+        "separation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SeparationEvent"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "separation_delay": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+                },
+                {
+                  "const": 0
+                }
+              ],
+              "x-unit-dimension": "time",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "SeparationEvent": {
+      "type": "string",
+      "enum": [
+        "upper_ignition",
+        "burnout",
+        "ejection",
+        "launch",
+        "never"
+      ]
+    },
+    "Deployment": {
+      "type": "object",
+      "properties": {
+        "event": {
+          "$ref": "#/$defs/DeployEvent"
+        },
+        "altitude": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+                },
+                {
+                  "const": 0
+                }
+              ],
+              "x-unit-dimension": "length",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "For `altitude` (on descent)."
+        },
+        "delay": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+                },
+                {
+                  "const": 0
+                }
+              ],
+              "x-unit-dimension": "time",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Delay after the event (`timer`: after launch)."
+        }
+      },
+      "required": [
+        "event"
+      ]
+    },
+    "DeployEvent": {
+      "type": "string",
+      "enum": [
+        "ejection",
+        "apogee",
+        "altitude",
+        "timer",
+        "never"
+      ]
+    }
+  }
+}

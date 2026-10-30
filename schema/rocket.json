@@ -1,0 +1,3085 @@
+{
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "name": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "include": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Part files merged into this document (`parts/fin_can.rw.toml`)."
+    },
+    "params": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/Param"
+      }
+    },
+    "variants": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": {
+          "$ref": "#/$defs/ParamValue"
+        }
+      },
+      "description": "Named param sets: variant → param → value."
+    },
+    "stage": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/StageDef"
+      },
+      "description": "`[stage.<id>]`: stages by their first body component."
+    },
+    "c": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/Component"
+      },
+      "description": "`[c.<id>]`: components keyed by stable id.",
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9_]*$"
+      }
+    },
+    "materials": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/Material"
+      }
+    },
+    "assert": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/AssertRule"
+      },
+      "description": "`[[assert]]` design rules."
+    },
+    "report": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ReportSpec"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "description": "`rocket.rw.toml` (also `parts/*.rw.toml`): params, components, materials,\nasserts, and report values.",
+  "title": "RocketDoc",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rocketwright.dev/schema/1/rocket.json",
+  "$defs": {
+    "Param": {
+      "type": "object",
+      "properties": {
+        "value": {
+          "$ref": "#/$defs/ParamValue"
+        },
+        "min": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ParamValue"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "max": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ParamValue"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "step": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ParamValue"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "choices": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ParamValue"
+          }
+        },
+        "group": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "doc": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "value"
+      ],
+      "description": "`[params.<name>]` (the OpenSCAD Customizer analogue)."
+    },
+    "ParamValue": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "number",
+          "format": "double"
+        },
+        {
+          "type": "string"
+        }
+      ],
+      "description": "A param value: a number, a bool, or a string (`\"140 mm\"`, `\"= expr\"`, or a choice)."
+    },
+    "StageDef": {
+      "type": "object",
+      "properties": {
+        "first": {
+          "type": "string",
+          "description": "First body component of the stage."
+        },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "override": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Overrides"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Mass and CG override of the whole stage (`subtree = true`: a stage\nowns no mass of its own). CG is measured from the stage's fore end."
+        }
+      },
+      "required": [
+        "first"
+      ]
+    },
+    "Overrides": {
+      "type": "object",
+      "properties": {
+        "mass": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+                },
+                {
+                  "const": 0
+                }
+              ],
+              "x-unit-dimension": "mass",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "cg": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+                },
+                {
+                  "const": 0
+                }
+              ],
+              "x-unit-dimension": "length",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "CG measured from this component's fore end."
+        },
+        "cd": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "string",
+                  "pattern": "^\\s*=.+$"
+                }
+              ],
+              "x-unit-dimension": "dimensionless",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "subtree": {
+          "type": "boolean",
+          "description": "`true`: the override replaces the whole subtree's values.",
+          "default": false
+        }
+      },
+      "description": "`override = { mass, cg, cd, subtree }`."
+    },
+    "Component": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Display name; defaults to the id.",
+          "x-ui-group": "General"
+        },
+        "attach": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Attach"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Placement relative to a parent anchor. Absent only on the first body component.",
+          "x-ui-group": "Attachment"
+        },
+        "instances": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Instances"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "x-ui-group": "Attachment"
+        },
+        "override": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Overrides"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Mass, CG, and CD overrides (flagged in the check report).",
+          "x-ui-group": "Mass"
+        },
+        "cut": {
+          "type": "boolean",
+          "description": "`true`: this component subtracts material from its parent (BOSL2 `diff()`).",
+          "x-ui-group": "General"
+        },
+        "material": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Material name (project `[materials.*]` or library).",
+          "x-ui-group": "Material"
+        },
+        "finish": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Finish"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "x-ui-group": "Material"
+        },
+        "appearance": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Appearance"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "x-ui-group": "Appearance"
+        },
+        "joint": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Joint"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "x-ui-group": "Attachment"
+        },
+        "import": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ImportInfo"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Import provenance (`.ork` UUID), kept for event mapping.",
+          "x-ui-group": "General"
+        }
+      },
+      "oneOf": [
+        {
+          "$ref": "#/$defs/NoseCone",
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "nose_cone"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "x-anchors": [
+            "tip",
+            "base",
+            "shoulder_fore",
+            "shoulder_aft",
+            "inner"
+          ]
+        },
+        {
+          "$ref": "#/$defs/BodyTube",
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "body_tube"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "x-anchors": [
+            "fore",
+            "aft",
+            "mid",
+            "inner",
+            "outer"
+          ]
+        },
+        {
+          "$ref": "#/$defs/Transition",
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "transition"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "x-anchors": [
+            "fore",
+            "aft",
+            "shoulder_fore",
+            "shoulder_aft",
+            "inner"
+          ]
+        },
+        {
+          "$ref": "#/$defs/TrapezoidalFinSet",
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "trapezoidal_fin_set"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "x-anchors": [
+            "root_le",
+            "root_te",
+            "tip_le",
+            "tip_te",
+            "tab_fore",
+            "tab_aft",
+            "fin<n>"
+          ]
+        },
+        {
+          "$ref": "#/$defs/EllipticalFinSet",
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "elliptical_fin_set"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "x-anchors": [
+            "root_le",
+            "root_te",
+            "tip_le",
+            "tip_te",
+            "tab_fore",
+            "tab_aft",
+            "fin<n>"
+          ]
+        },
+        {
+          "$ref": "#/$defs/FreeformFinSet",
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "freeform_fin_set"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "x-anchors": [
+            "root_le",
+            "root_te",
+            "tab_fore",
+            "tab_aft",
+            "fin<n>"
+          ]
+        },
+        {
+          "$ref": "#/$defs/TubeFinSet",
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "tube_fin_set"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "x-anchors": [
+            "fore",
+            "aft",
+            "fin<n>"
+          ]
+        },
+        {
+          "$ref": "#/$defs/InnerTube",
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "inner_tube"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "x-anchors": [
+            "fore",
+            "aft",
+            "motor_retainer",
+            "inner",
+            "outer"
+          ]
+        },
+        {
+          "$ref": "#/$defs/Coupler",
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "coupler"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "x-anchors": [
+            "fore",
+            "aft",
+            "mid",
+            "inner",
+            "outer"
+          ]
+        },
+        {
+          "$ref": "#/$defs/CenteringRing",
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "centering_ring"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "x-anchors": [
+            "fore",
+            "aft"
+          ]
+        },
+        {
+          "$ref": "#/$defs/Bulkhead",
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "bulkhead"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "x-anchors": [
+            "fore",
+            "aft"
+          ]
+        },
+        {
+          "$ref": "#/$defs/EngineBlock",
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "engine_block"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "x-anchors": [
+            "fore",
+            "aft"
+          ]
+        },
+        {
+          "$ref": "#/$defs/LaunchLug",
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "launch_lug"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "x-anchors": [
+            "fore",
+            "aft",
+            "mid"
+          ]
+        },
+        {
+          "$ref": "#/$defs/RailButton",
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "rail_button"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "x-anchors": [
+            "fore",
+            "aft",
+            "mid",
+            "top"
+          ]
+        },
+        {
+          "$ref": "#/$defs/Parachute",
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "parachute"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "x-anchors": [
+            "attach"
+          ]
+        },
+        {
+          "$ref": "#/$defs/Streamer",
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "streamer"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "x-anchors": [
+            "attach"
+          ]
+        },
+        {
+          "$ref": "#/$defs/ShockCord",
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "shock_cord"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "x-anchors": [
+            "attach"
+          ]
+        },
+        {
+          "$ref": "#/$defs/MassComponent",
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "mass_component"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "x-anchors": [
+            "fore",
+            "aft",
+            "cg"
+          ]
+        },
+        {
+          "$ref": "#/$defs/Tank",
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "tank"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "x-anchors": [
+            "fore",
+            "aft",
+            "inner",
+            "outlet"
+          ]
+        }
+      ],
+      "description": "One `[c.<id>]` table. Common fields first; the `type` key selects the kind."
+    },
+    "Attach": {
+      "type": "object",
+      "properties": {
+        "to": {
+          "type": "string",
+          "description": "Parent anchor, `<id>.<anchor>`.",
+          "pattern": "^[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*$"
+        },
+        "at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Own anchor that lands on `to`; default is the mirrored anchor."
+        },
+        "offset": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+                },
+                {
+                  "const": 0
+                }
+              ],
+              "x-unit-dimension": "length",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Axial offset, +aft."
+        },
+        "spin": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+                },
+                {
+                  "const": 0
+                }
+              ],
+              "x-unit-dimension": "angle",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Roll about +X."
+        },
+        "radial": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Radial"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Radial placement: `outer`, `inner`, `axis`, or a radius."
+        }
+      },
+      "required": [
+        "to"
+      ],
+      "description": "`attach = { to = \"<id>.<anchor>\", at = \"<anchor>\", offset, spin, radial }`."
+    },
+    "Radial": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/RadialKeyword"
+        },
+        {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+            },
+            {
+              "const": 0
+            }
+          ],
+          "x-unit-dimension": "length",
+          "x-expr": true
+        }
+      ]
+    },
+    "RadialKeyword": {
+      "type": "string",
+      "enum": [
+        "outer",
+        "inner",
+        "axis"
+      ]
+    },
+    "Instances": {
+      "type": "object",
+      "properties": {
+        "count": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 1
+        },
+        "pattern": {
+          "$ref": "#/$defs/InstancePattern"
+        },
+        "start": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+                },
+                {
+                  "const": 0
+                }
+              ],
+              "x-unit-dimension": "angle",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "First instance roll angle (radial)."
+        },
+        "spacing": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+                },
+                {
+                  "const": 0
+                }
+              ],
+              "x-unit-dimension": "length",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Spacing (linear)."
+        },
+        "preset": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Cluster preset name, e.g. `3-ring`."
+        },
+        "scale": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+                },
+                {
+                  "const": 0
+                }
+              ],
+              "x-unit-dimension": "length",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Cluster scale (center distance)."
+        }
+      },
+      "required": [
+        "count",
+        "pattern"
+      ],
+      "description": "`instances = { count = 4, pattern = \"radial\", start = \"0 deg\" }`."
+    },
+    "InstancePattern": {
+      "type": "string",
+      "enum": [
+        "radial",
+        "cluster",
+        "linear"
+      ]
+    },
+    "Finish": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/FinishPreset"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "roughness": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+                },
+                {
+                  "const": 0
+                }
+              ],
+              "x-unit-dimension": "length",
+              "x-expr": true
+            }
+          },
+          "required": [
+            "roughness"
+          ]
+        }
+      ],
+      "description": "Surface finish: a named preset or an explicit roughness."
+    },
+    "FinishPreset": {
+      "type": "string",
+      "enum": [
+        "rough",
+        "unfinished",
+        "regular_paint",
+        "smooth_paint",
+        "polished"
+      ]
+    },
+    "Appearance": {
+      "type": "object",
+      "properties": {
+        "preset": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AppearancePreset"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "color": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "`#rrggbb`.",
+          "pattern": "^#[0-9a-fA-F]{6}$"
+        },
+        "roughness": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
+        "metalness": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
+        "transmission": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "minimum": 0.0,
+          "maximum": 1.0
+        }
+      },
+      "description": "Renderer appearance (R2.5). Presets map to PBR materials."
+    },
+    "AppearancePreset": {
+      "type": "string",
+      "enum": [
+        "composite_white",
+        "composite_gray",
+        "carbon_fiber",
+        "aluminium_brushed",
+        "steel_machined",
+        "clear_polycarbonate",
+        "nylon_orange",
+        "pcb_green",
+        "black_gloss",
+        "kraft_paper",
+        "wood"
+      ]
+    },
+    "Joint": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "$ref": "#/$defs/JointType"
+        },
+        "count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "description": "`joint = { type, count }` (display and check metadata)."
+    },
+    "JointType": {
+      "type": "string",
+      "enum": [
+        "friction",
+        "twist_lock",
+        "shear_pin",
+        "screw"
+      ]
+    },
+    "ImportInfo": {
+      "type": "object",
+      "properties": {
+        "uuid": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "NoseShape": {
+      "type": "string",
+      "enum": [
+        "conical",
+        "ogive",
+        "ellipsoid",
+        "power",
+        "parabolic",
+        "haack"
+      ],
+      "description": "Nose and transition profile shapes."
+    },
+    "Shoulder": {
+      "type": "object",
+      "properties": {
+        "length": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+            },
+            {
+              "const": 0
+            }
+          ],
+          "x-unit-dimension": "length",
+          "x-expr": true
+        },
+        "od": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+            },
+            {
+              "const": 0
+            }
+          ],
+          "x-unit-dimension": "length",
+          "x-expr": true
+        },
+        "thickness": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+                },
+                {
+                  "const": 0
+                }
+              ],
+              "x-unit-dimension": "length",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "capped": {
+          "type": "boolean",
+          "description": "Closed end (bulkhead) at the shoulder's free end.",
+          "default": false
+        }
+      },
+      "required": [
+        "length",
+        "od"
+      ],
+      "description": "A shoulder on a nose cone or transition."
+    },
+    "NoseCone": {
+      "type": "object",
+      "properties": {
+        "shape": {
+          "$ref": "#/$defs/NoseShape"
+        },
+        "shape_param": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "string",
+                  "pattern": "^\\s*=.+$"
+                }
+              ],
+              "x-unit-dimension": "dimensionless",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Power exponent, Haack C, or parabolic K (shape-dependent)."
+        },
+        "length": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+            },
+            {
+              "const": 0
+            }
+          ],
+          "x-unit-dimension": "length",
+          "x-expr": true
+        },
+        "od": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+            },
+            {
+              "const": 0
+            }
+          ],
+          "x-unit-dimension": "length",
+          "x-expr": true,
+          "description": "Base outer diameter."
+        },
+        "thickness": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+                },
+                {
+                  "const": 0
+                }
+              ],
+              "x-unit-dimension": "length",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Wall thickness; absent means solid."
+        },
+        "shoulder": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Shoulder"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "x-ui-group": "Shoulder"
+        }
+      },
+      "required": [
+        "shape",
+        "length",
+        "od"
+      ],
+      "x-ui-group": "Geometry"
+    },
+    "BodyTube": {
+      "type": "object",
+      "properties": {
+        "length": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+            },
+            {
+              "const": 0
+            }
+          ],
+          "x-unit-dimension": "length",
+          "x-expr": true
+        },
+        "od": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+            },
+            {
+              "const": 0
+            }
+          ],
+          "x-unit-dimension": "length",
+          "x-expr": true
+        },
+        "id": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+                },
+                {
+                  "const": 0
+                }
+              ],
+              "x-unit-dimension": "length",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Inner diameter (or give `thickness`)."
+        },
+        "thickness": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+                },
+                {
+                  "const": 0
+                }
+              ],
+              "x-unit-dimension": "length",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "length",
+        "od"
+      ],
+      "x-ui-group": "Geometry"
+    },
+    "Transition": {
+      "type": "object",
+      "properties": {
+        "shape": {
+          "$ref": "#/$defs/NoseShape"
+        },
+        "shape_param": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "string",
+                  "pattern": "^\\s*=.+$"
+                }
+              ],
+              "x-unit-dimension": "dimensionless",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "length": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+            },
+            {
+              "const": 0
+            }
+          ],
+          "x-unit-dimension": "length",
+          "x-expr": true
+        },
+        "fore_od": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+            },
+            {
+              "const": 0
+            }
+          ],
+          "x-unit-dimension": "length",
+          "x-expr": true
+        },
+        "aft_od": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+            },
+            {
+              "const": 0
+            }
+          ],
+          "x-unit-dimension": "length",
+          "x-expr": true
+        },
+        "thickness": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+                },
+                {
+                  "const": 0
+                }
+              ],
+              "x-unit-dimension": "length",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "fore_shoulder": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Shoulder"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "x-ui-group": "Shoulder"
+        },
+        "aft_shoulder": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Shoulder"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "x-ui-group": "Shoulder"
+        }
+      },
+      "required": [
+        "shape",
+        "length",
+        "fore_od",
+        "aft_od"
+      ],
+      "x-ui-group": "Geometry"
+    },
+    "FinCrossSection": {
+      "type": "string",
+      "enum": [
+        "square",
+        "rounded",
+        "airfoil"
+      ]
+    },
+    "FinTab": {
+      "type": "object",
+      "properties": {
+        "height": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+            },
+            {
+              "const": 0
+            }
+          ],
+          "x-unit-dimension": "length",
+          "x-expr": true
+        },
+        "length": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+            },
+            {
+              "const": 0
+            }
+          ],
+          "x-unit-dimension": "length",
+          "x-expr": true
+        },
+        "offset": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+                },
+                {
+                  "const": 0
+                }
+              ],
+              "x-unit-dimension": "length",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Offset of the tab's fore edge from the root leading edge, +aft."
+        }
+      },
+      "required": [
+        "height",
+        "length"
+      ],
+      "description": "A fin tab through the body wall."
+    },
+    "TrapezoidalFinSet": {
+      "type": "object",
+      "properties": {
+        "count": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 1,
+          "maximum": 8
+        },
+        "root_chord": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+            },
+            {
+              "const": 0
+            }
+          ],
+          "x-unit-dimension": "length",
+          "x-expr": true
+        },
+        "tip_chord": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+            },
+            {
+              "const": 0
+            }
+          ],
+          "x-unit-dimension": "length",
+          "x-expr": true
+        },
+        "span": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+            },
+            {
+              "const": 0
+            }
+          ],
+          "x-unit-dimension": "length",
+          "x-expr": true,
+          "description": "Height from root to tip."
+        },
+        "sweep": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+            },
+            {
+              "const": 0
+            }
+          ],
+          "x-unit-dimension": "length",
+          "x-expr": true,
+          "description": "Leading-edge sweep length (root LE to tip LE, axial)."
+        },
+        "thickness": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+            },
+            {
+              "const": 0
+            }
+          ],
+          "x-unit-dimension": "length",
+          "x-expr": true
+        },
+        "cross_section": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FinCrossSection"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "cant": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+                },
+                {
+                  "const": 0
+                }
+              ],
+              "x-unit-dimension": "angle",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "tab": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FinTab"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "x-ui-group": "Tab"
+        },
+        "fillet_radius": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+                },
+                {
+                  "const": 0
+                }
+              ],
+              "x-unit-dimension": "length",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "count",
+        "root_chord",
+        "tip_chord",
+        "span",
+        "sweep",
+        "thickness"
+      ],
+      "x-ui-group": "Fins"
+    },
+    "EllipticalFinSet": {
+      "type": "object",
+      "properties": {
+        "count": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 1,
+          "maximum": 8
+        },
+        "root_chord": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+            },
+            {
+              "const": 0
+            }
+          ],
+          "x-unit-dimension": "length",
+          "x-expr": true
+        },
+        "span": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+            },
+            {
+              "const": 0
+            }
+          ],
+          "x-unit-dimension": "length",
+          "x-expr": true
+        },
+        "thickness": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+            },
+            {
+              "const": 0
+            }
+          ],
+          "x-unit-dimension": "length",
+          "x-expr": true
+        },
+        "cross_section": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FinCrossSection"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "cant": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+                },
+                {
+                  "const": 0
+                }
+              ],
+              "x-unit-dimension": "angle",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "tab": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FinTab"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "x-ui-group": "Tab"
+        },
+        "fillet_radius": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+                },
+                {
+                  "const": 0
+                }
+              ],
+              "x-unit-dimension": "length",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "count",
+        "root_chord",
+        "span",
+        "thickness"
+      ],
+      "x-ui-group": "Fins"
+    },
+    "FreeformFinSet": {
+      "type": "object",
+      "properties": {
+        "count": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 1,
+          "maximum": 8
+        },
+        "points": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+                },
+                {
+                  "const": 0
+                }
+              ],
+              "x-unit-dimension": "length",
+              "x-expr": true
+            },
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "description": "Planform `[x, y]` points from the root LE (x +aft, y outward), root first and last on y = 0.",
+          "minItems": 3
+        },
+        "thickness": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+            },
+            {
+              "const": 0
+            }
+          ],
+          "x-unit-dimension": "length",
+          "x-expr": true
+        },
+        "cross_section": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FinCrossSection"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "cant": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+                },
+                {
+                  "const": 0
+                }
+              ],
+              "x-unit-dimension": "angle",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "tab": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FinTab"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "x-ui-group": "Tab"
+        },
+        "fillet_radius": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+                },
+                {
+                  "const": 0
+                }
+              ],
+              "x-unit-dimension": "length",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "count",
+        "points",
+        "thickness"
+      ],
+      "x-ui-group": "Fins"
+    },
+    "TubeFinSet": {
+      "type": "object",
+      "properties": {
+        "count": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 1,
+          "maximum": 12
+        },
+        "length": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+            },
+            {
+              "const": 0
+            }
+          ],
+          "x-unit-dimension": "length",
+          "x-expr": true
+        },
+        "od": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+            },
+            {
+              "const": 0
+            }
+          ],
+          "x-unit-dimension": "length",
+          "x-expr": true
+        },
+        "id": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+                },
+                {
+                  "const": 0
+                }
+              ],
+              "x-unit-dimension": "length",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "thickness": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+                },
+                {
+                  "const": 0
+                }
+              ],
+              "x-unit-dimension": "length",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "count",
+        "length",
+        "od"
+      ],
+      "x-ui-group": "Fins"
+    },
+    "InnerTube": {
+      "type": "object",
+      "properties": {
+        "length": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+            },
+            {
+              "const": 0
+            }
+          ],
+          "x-unit-dimension": "length",
+          "x-expr": true
+        },
+        "od": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+            },
+            {
+              "const": 0
+            }
+          ],
+          "x-unit-dimension": "length",
+          "x-expr": true
+        },
+        "id": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+                },
+                {
+                  "const": 0
+                }
+              ],
+              "x-unit-dimension": "length",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "thickness": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+                },
+                {
+                  "const": 0
+                }
+              ],
+              "x-unit-dimension": "length",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "motor_mount": {
+          "type": "boolean",
+          "description": "Accepts a motor (configs assign one by this component's id).",
+          "default": false,
+          "x-ui-group": "Motor"
+        },
+        "overhang": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+                },
+                {
+                  "const": 0
+                }
+              ],
+              "x-unit-dimension": "length",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Motor overhang past the aft end.",
+          "x-ui-group": "Motor"
+        }
+      },
+      "required": [
+        "length",
+        "od"
+      ],
+      "x-ui-group": "Geometry"
+    },
+    "Coupler": {
+      "type": "object",
+      "properties": {
+        "length": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+            },
+            {
+              "const": 0
+            }
+          ],
+          "x-unit-dimension": "length",
+          "x-expr": true
+        },
+        "od": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+            },
+            {
+              "const": 0
+            }
+          ],
+          "x-unit-dimension": "length",
+          "x-expr": true
+        },
+        "id": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+                },
+                {
+                  "const": 0
+                }
+              ],
+              "x-unit-dimension": "length",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "thickness": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+                },
+                {
+                  "const": 0
+                }
+              ],
+              "x-unit-dimension": "length",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "length",
+        "od"
+      ],
+      "x-ui-group": "Geometry"
+    },
+    "CenteringRing": {
+      "type": "object",
+      "properties": {
+        "length": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+            },
+            {
+              "const": 0
+            }
+          ],
+          "x-unit-dimension": "length",
+          "x-expr": true,
+          "description": "Axial thickness."
+        },
+        "od": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+                },
+                {
+                  "const": 0
+                }
+              ],
+              "x-unit-dimension": "length",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Defaults to the parent's inner diameter."
+        },
+        "id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+            },
+            {
+              "const": 0
+            }
+          ],
+          "x-unit-dimension": "length",
+          "x-expr": true
+        }
+      },
+      "required": [
+        "length",
+        "id"
+      ],
+      "x-ui-group": "Geometry"
+    },
+    "Bulkhead": {
+      "type": "object",
+      "properties": {
+        "length": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+            },
+            {
+              "const": 0
+            }
+          ],
+          "x-unit-dimension": "length",
+          "x-expr": true
+        },
+        "od": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+                },
+                {
+                  "const": 0
+                }
+              ],
+              "x-unit-dimension": "length",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "length"
+      ],
+      "x-ui-group": "Geometry"
+    },
+    "EngineBlock": {
+      "type": "object",
+      "properties": {
+        "length": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+            },
+            {
+              "const": 0
+            }
+          ],
+          "x-unit-dimension": "length",
+          "x-expr": true
+        },
+        "od": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+                },
+                {
+                  "const": 0
+                }
+              ],
+              "x-unit-dimension": "length",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+            },
+            {
+              "const": 0
+            }
+          ],
+          "x-unit-dimension": "length",
+          "x-expr": true
+        }
+      },
+      "required": [
+        "length",
+        "id"
+      ],
+      "x-ui-group": "Geometry"
+    },
+    "LaunchLug": {
+      "type": "object",
+      "properties": {
+        "length": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+            },
+            {
+              "const": 0
+            }
+          ],
+          "x-unit-dimension": "length",
+          "x-expr": true
+        },
+        "od": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+            },
+            {
+              "const": 0
+            }
+          ],
+          "x-unit-dimension": "length",
+          "x-expr": true
+        },
+        "id": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+                },
+                {
+                  "const": 0
+                }
+              ],
+              "x-unit-dimension": "length",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "thickness": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+                },
+                {
+                  "const": 0
+                }
+              ],
+              "x-unit-dimension": "length",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "length",
+        "od"
+      ],
+      "x-ui-group": "Geometry"
+    },
+    "RailButton": {
+      "type": "object",
+      "properties": {
+        "od": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+            },
+            {
+              "const": 0
+            }
+          ],
+          "x-unit-dimension": "length",
+          "x-expr": true,
+          "description": "Outer diameter of the base and the flange."
+        },
+        "id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+            },
+            {
+              "const": 0
+            }
+          ],
+          "x-unit-dimension": "length",
+          "x-expr": true,
+          "description": "Neck (waist) diameter."
+        },
+        "height": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+            },
+            {
+              "const": 0
+            }
+          ],
+          "x-unit-dimension": "length",
+          "x-expr": true,
+          "description": "Total height above the body surface."
+        },
+        "base_height": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+                },
+                {
+                  "const": 0
+                }
+              ],
+              "x-unit-dimension": "length",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Height of the base at the body surface (default `height / 4`)."
+        },
+        "flange_height": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+                },
+                {
+                  "const": 0
+                }
+              ],
+              "x-unit-dimension": "length",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Height of the flange at the outer face (default `height / 4`)."
+        }
+      },
+      "required": [
+        "od",
+        "id",
+        "height"
+      ],
+      "x-ui-group": "Geometry"
+    },
+    "Parachute": {
+      "type": "object",
+      "properties": {
+        "diameter": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+            },
+            {
+              "const": 0
+            }
+          ],
+          "x-unit-dimension": "length",
+          "x-expr": true
+        },
+        "cd": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string",
+              "pattern": "^\\s*=.+$"
+            }
+          ],
+          "x-unit-dimension": "dimensionless",
+          "x-expr": true
+        },
+        "spill_hole": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+                },
+                {
+                  "const": 0
+                }
+              ],
+              "x-unit-dimension": "length",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "line_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "minimum": 0
+        },
+        "line_length": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+                },
+                {
+                  "const": 0
+                }
+              ],
+              "x-unit-dimension": "length",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "line_material": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Shroud-line material (needs a `line_density`); the canopy uses `material`.",
+          "x-ui-group": "Material"
+        },
+        "packed_length": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+            },
+            {
+              "const": 0
+            }
+          ],
+          "x-unit-dimension": "length",
+          "x-expr": true,
+          "x-ui-group": "Packed"
+        },
+        "packed_diameter": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+            },
+            {
+              "const": 0
+            }
+          ],
+          "x-unit-dimension": "length",
+          "x-expr": true,
+          "x-ui-group": "Packed"
+        }
+      },
+      "required": [
+        "diameter",
+        "cd",
+        "packed_length",
+        "packed_diameter"
+      ],
+      "x-ui-group": "Recovery"
+    },
+    "Streamer": {
+      "type": "object",
+      "properties": {
+        "length": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+            },
+            {
+              "const": 0
+            }
+          ],
+          "x-unit-dimension": "length",
+          "x-expr": true
+        },
+        "width": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+            },
+            {
+              "const": 0
+            }
+          ],
+          "x-unit-dimension": "length",
+          "x-expr": true
+        },
+        "cd": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "string",
+                  "pattern": "^\\s*=.+$"
+                }
+              ],
+              "x-unit-dimension": "dimensionless",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "packed_length": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+            },
+            {
+              "const": 0
+            }
+          ],
+          "x-unit-dimension": "length",
+          "x-expr": true,
+          "x-ui-group": "Packed"
+        },
+        "packed_diameter": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+            },
+            {
+              "const": 0
+            }
+          ],
+          "x-unit-dimension": "length",
+          "x-expr": true,
+          "x-ui-group": "Packed"
+        }
+      },
+      "required": [
+        "length",
+        "width",
+        "packed_length",
+        "packed_diameter"
+      ],
+      "x-ui-group": "Recovery"
+    },
+    "ShockCord": {
+      "type": "object",
+      "properties": {
+        "cord_length": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+            },
+            {
+              "const": 0
+            }
+          ],
+          "x-unit-dimension": "length",
+          "x-expr": true
+        },
+        "packed_length": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+            },
+            {
+              "const": 0
+            }
+          ],
+          "x-unit-dimension": "length",
+          "x-expr": true,
+          "x-ui-group": "Packed"
+        },
+        "packed_diameter": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+            },
+            {
+              "const": 0
+            }
+          ],
+          "x-unit-dimension": "length",
+          "x-expr": true,
+          "x-ui-group": "Packed"
+        }
+      },
+      "required": [
+        "cord_length",
+        "packed_length",
+        "packed_diameter"
+      ],
+      "x-ui-group": "Recovery"
+    },
+    "MassRole": {
+      "type": "string",
+      "enum": [
+        "flight_computer",
+        "altimeter",
+        "battery",
+        "tracker",
+        "payload",
+        "ballast",
+        "other"
+      ]
+    },
+    "MassComponent": {
+      "type": "object",
+      "properties": {
+        "mass": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+            },
+            {
+              "const": 0
+            }
+          ],
+          "x-unit-dimension": "mass",
+          "x-expr": true
+        },
+        "length": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+            },
+            {
+              "const": 0
+            }
+          ],
+          "x-unit-dimension": "length",
+          "x-expr": true,
+          "x-ui-group": "Packed"
+        },
+        "od": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+                },
+                {
+                  "const": 0
+                }
+              ],
+              "x-unit-dimension": "length",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "x-ui-group": "Packed"
+        },
+        "role": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MassRole"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "mass",
+        "length"
+      ],
+      "x-ui-group": "Mass"
+    },
+    "EndCap": {
+      "type": "string",
+      "enum": [
+        "flat",
+        "hemispherical",
+        "ellipsoidal"
+      ]
+    },
+    "TankFill": {
+      "type": "object",
+      "properties": {
+        "propellant": {
+          "type": "string",
+          "description": "Propellant name (e.g. `n2o`, `ethanol`)."
+        },
+        "fraction": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "string",
+                  "pattern": "^\\s*=.+$"
+                }
+              ],
+              "x-unit-dimension": "dimensionless",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Fill as a fraction of internal volume, or give `volume`."
+        },
+        "volume": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+                },
+                {
+                  "const": 0
+                }
+              ],
+              "x-unit-dimension": "volume",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "propellant"
+      ]
+    },
+    "Tank": {
+      "type": "object",
+      "properties": {
+        "length": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+            },
+            {
+              "const": 0
+            }
+          ],
+          "x-unit-dimension": "length",
+          "x-expr": true
+        },
+        "od": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+            },
+            {
+              "const": 0
+            }
+          ],
+          "x-unit-dimension": "length",
+          "x-expr": true
+        },
+        "wall": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+            },
+            {
+              "const": 0
+            }
+          ],
+          "x-unit-dimension": "length",
+          "x-expr": true
+        },
+        "end_cap": {
+          "$ref": "#/$defs/EndCap"
+        },
+        "fill": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TankFill"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "x-ui-group": "Propellant"
+        }
+      },
+      "required": [
+        "length",
+        "od",
+        "wall",
+        "end_cap"
+      ],
+      "description": "A propellant tank (inner component) used by liquid engines (R2.5, R2.7).",
+      "x-ui-group": "Tank"
+    },
+    "Material": {
+      "type": "object",
+      "properties": {
+        "density": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+                },
+                {
+                  "const": 0
+                }
+              ],
+              "x-unit-dimension": "density",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "surface_density": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+                },
+                {
+                  "const": 0
+                }
+              ],
+              "x-unit-dimension": "area_density",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "line_density": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+                },
+                {
+                  "const": 0
+                }
+              ],
+              "x-unit-dimension": "line_density",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "yield_strength": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+                },
+                {
+                  "const": 0
+                }
+              ],
+              "x-unit-dimension": "pressure",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Yield strength (tank hoop-stress check, liquid engines)."
+        },
+        "doc": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "description": "A material in `[materials.<name>]` (bulk, surface, or line density)."
+    },
+    "AssertRule": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "expr": {
+          "type": "string",
+          "description": "Expression over metric paths, e.g. `stability.liftoff >= 1.0 cal`."
+        },
+        "severity": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Severity"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "message": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "expr"
+      ],
+      "description": "`[[assert]] id, expr, severity, message`."
+    },
+    "Severity": {
+      "type": "string",
+      "enum": [
+        "error",
+        "warning",
+        "info"
+      ]
+    },
+    "ReportSpec": {
+      "type": "object",
+      "properties": {
+        "values": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        }
+      },
+      "description": "`[report] values = [\"= c.fins.span\", ...]`."
+    }
+  }
+}

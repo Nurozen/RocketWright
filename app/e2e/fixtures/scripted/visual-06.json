@@ -1,0 +1,15 @@
+{
+  "description": "Page 06 live pane state (plan B13, W5.1; CPW1R3A: the tank-motion turn in view in the pane, not the engine run card of 01). After the 06 bundle import, a Supervised scripted turn in Tank motion: the user's message with the demo engine's tank chip, then two tool rows, each a real call: rw_simulate of the Study 01 visual flow study (a cache hit or a millisecond visual run; its run card is the view card 'Section view · Study 01', Cutaway of tank and engine, whose Open goes to rw:sim/study_01, the study's section view on the Visual flow tier) and rw_render of the profile drawing (a render card with the picture); the reply; then a full-length demo engine run without a duration, whose app-decided approval stays pending (the approval card). The host then inserts rw:c/fins (the composer chip). Text is illustrative (decision 10).",
+  "thread": "Tank motion",
+  "runtimeMode": "approval-required",
+  "user": "Show how the fluid moves as the vehicle tilts. rw:eng/demo/feed/node/tank_a",
+  "approve": 0,
+  "cards": ["visual", "render"],
+  "mention": { "ref": "rw:c/fins", "label": "Fins" },
+  "script": [
+    { "toolCall": { "name": "rw_simulate", "arguments": { "sim": "study_01" } } },
+    { "toolCall": { "name": "rw_render", "arguments": { "view": "profile" } } },
+    { "assistantText": "The section view shows the liquid moving as the vehicle tilts. A full engine burn needs your approval." },
+    { "toolCall": { "name": "rw_engine_simulate", "arguments": { "engine": "demo" } } }
+  ]
+}

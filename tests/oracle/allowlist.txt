@@ -1,0 +1,13 @@
+# One-way valve (R8, D24): the only file names openrocket/oracle/export.sh may
+# copy into tests/oracle/. Any other file aborts the export.
+# `<n>` matches a case number (one or more digits); everything else is literal.
+# Every *.json here must validate against schema/oracle-golden.json:
+#   cargo test -p rw-api --test oracle_golden_schema
+# Owned by CORE. BAR's README.md, keymap.json, and tolerances.json are not exports.
+case<n>-generic.json
+case<n>-generic.series.json
+case<n>.aero_sweep.json
+case<n>.geometry.json
+case<n>.provenance.json
+case<n>-original.json
+denylist.or.txt

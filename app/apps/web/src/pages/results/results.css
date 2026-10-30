@@ -1,0 +1,806 @@
+/*
+ * Results page (M1.51, concepts.md §4.4). Sizes follow tests/bar/regions.json
+ * page 04; colours, type, and radii come only from the custom properties in
+ * @rw/ui/tokens.css (no literal colours).
+ */
+
+/* ---- shell on Results: taller history strip with the snapshot row -------- */
+
+.rw-shell[data-tab="results"] {
+  --rw-history-h: 182px;
+}
+
+.rw-shell[data-tab="results"] .rw-history__row {
+  height: 66px;
+}
+
+.rw-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ---- page ---------------------------------------------------------------- */
+
+.rw-results {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  padding: 0 10px 15px 11px;
+}
+
+.rw-results__head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: none;
+  height: 75px;
+  padding: 0 0 0 8px;
+}
+
+.rw-page-title {
+  flex: 1;
+  margin: 0;
+  font-size: var(--rw-font-size-page-title);
+  font-weight: var(--rw-font-weight-strong);
+  letter-spacing: -0.01em;
+}
+
+.rw-results__actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.rw-results .rw-button:disabled,
+.rw-menu__list button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.rw-split {
+  display: flex;
+}
+
+.rw-split__main.rw-button--primary {
+  min-width: 0;
+  border-radius: var(--rw-radius) 0 0 var(--rw-radius);
+}
+
+.rw-split .rw-menu-button .rw-split__more.rw-button--primary {
+  min-width: 0;
+  padding: 0 10px;
+  border-left: 0;
+  border-radius: 0 var(--rw-radius) var(--rw-radius) 0;
+}
+
+/* ---- menus --------------------------------------------------------------- */
+
+.rw-menu-button {
+  position: relative;
+}
+
+.rw-menu__list {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 20;
+  min-width: 220px;
+  padding: 4px;
+  border: var(--rw-hairline) solid var(--rw-line);
+  border-radius: var(--rw-radius);
+  background: var(--rw-panel);
+}
+
+.rw-menu__list[data-align="right"] {
+  left: auto;
+  right: 0;
+}
+
+.rw-menu__list button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  height: 32px;
+  padding: 0 10px 0 4px;
+  border: 0;
+  border-radius: var(--rw-radius-sm);
+  background: none;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.rw-menu__list button:hover:not(:disabled) {
+  background: var(--rw-selection-row);
+}
+
+.rw-menu__check {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  color: var(--rw-accent);
+}
+
+/* ---- status glyphs and dots ---------------------------------------------- */
+
+.rw-status-glyph {
+  display: inline-grid;
+  place-items: center;
+  color: var(--rw-text-secondary);
+}
+
+.rw-status-glyph[data-tone="teal"] {
+  color: var(--rw-success);
+}
+
+.rw-status-glyph[data-tone="amber"] {
+  color: var(--rw-warning);
+}
+
+.rw-status-glyph[data-tone="danger"] {
+  color: var(--rw-danger, var(--rw-warning));
+}
+
+.rw-dot {
+  display: inline-block;
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--rw-text-secondary);
+}
+
+.rw-dot[data-series="a"] {
+  background: var(--rw-series-a);
+}
+
+.rw-dot[data-series="b"] {
+  background: var(--rw-series-b);
+}
+
+/* ---- run table ----------------------------------------------------------- */
+
+.rw-runtable {
+  flex: none;
+  border: var(--rw-hairline) solid var(--rw-line);
+  border-radius: var(--rw-radius-sm);
+}
+
+.rw-runtable table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+}
+
+.rw-runtable th {
+  height: 40px;
+  padding: 0 12px;
+  border-bottom: var(--rw-hairline) solid var(--rw-line);
+  font-weight: var(--rw-font-weight-regular);
+  text-align: left;
+}
+
+.rw-runtable th + th:not(.rw-runtable__dot):not(:nth-child(3)),
+.rw-runtable td + td:not(.rw-runtable__dot):not(:nth-child(3)) {
+  border-left: var(--rw-hairline) solid var(--rw-line);
+}
+
+.rw-runtable__sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-weight: var(--rw-font-weight-strong);
+}
+
+.rw-runtable__sort .rw-icon {
+  color: var(--rw-text-secondary);
+}
+
+.rw-runtable__sort .rw-runtable__sort-on {
+  color: var(--rw-accent);
+}
+
+.rw-runtable td {
+  height: 38px;
+  padding: 0 12px;
+  border-top: var(--rw-hairline) solid transparent;
+  border-bottom: var(--rw-hairline) solid var(--rw-line);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rw-runtable tbody tr:last-child td {
+  border-bottom-color: transparent;
+}
+
+.rw-runtable tbody tr {
+  cursor: pointer;
+}
+
+.rw-runtable tbody tr:hover {
+  background: var(--rw-panel);
+}
+
+.rw-runtable__check {
+  width: 44px;
+}
+
+.rw-runtable__check input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--rw-accent);
+  cursor: pointer;
+}
+
+.rw-runtable__dot {
+  width: 30px;
+  padding: 0 !important;
+}
+
+.rw-runtable th:nth-child(3) {
+  width: 22%;
+}
+
+.rw-runtable td.rw-runtable__menu {
+  width: 56px;
+  overflow: visible;
+  text-align: center;
+}
+
+.rw-runtable th.rw-runtable__menu {
+  width: 56px;
+}
+
+.rw-runtable__menu .rw-menu-button {
+  display: inline-block;
+}
+
+.rw-runtable__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.rw-runtable tr[data-series="a"] {
+  background: var(--rw-selection-row);
+}
+
+.rw-runtable tr[data-series="b"] {
+  background: var(--rw-series-b-row);
+}
+
+.rw-runtable tr[data-series="a"] td {
+  border-top-color: var(--rw-series-a);
+  border-bottom-color: var(--rw-series-a);
+}
+
+.rw-runtable tr[data-series="b"] td {
+  border-top-color: var(--rw-series-b);
+  border-bottom-color: var(--rw-series-b);
+}
+
+.rw-runtable tr[data-series="a"] td:first-child {
+  box-shadow: inset 1px 0 0 var(--rw-series-a);
+}
+
+.rw-runtable tr[data-series="a"] td:last-child {
+  box-shadow: inset -1px 0 0 var(--rw-series-a);
+}
+
+.rw-runtable tr[data-series="b"] td:first-child {
+  box-shadow: inset 1px 0 0 var(--rw-series-b);
+}
+
+.rw-runtable tr[data-series="b"] td:last-child {
+  box-shadow: inset -1px 0 0 var(--rw-series-b);
+}
+
+.rw-runtable tr[data-status="not_run"] td:not(.rw-runtable__menu),
+.rw-runtable tr[data-status="outdated"] td[data-numeric] {
+  color: var(--rw-text-secondary);
+}
+
+.rw-results__error {
+  margin: 8px 0 0;
+  color: var(--rw-warning);
+}
+
+/* ---- outdated banner ------------------------------------------------------ */
+
+.rw-banner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex: none;
+  height: 48px;
+  margin-top: 12px;
+  padding: 0 6px 0 14px;
+  border: var(--rw-hairline) solid var(--rw-line);
+  border-radius: var(--rw-radius-sm);
+  background: var(--rw-panel);
+}
+
+.rw-banner__text {
+  flex: 1;
+}
+
+.rw-banner .rw-button {
+  height: 34px;
+}
+
+/* ---- plot card ------------------------------------------------------------ */
+
+.rw-results__card {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  margin-top: 12px;
+  border: var(--rw-hairline) solid var(--rw-line);
+  border-radius: var(--rw-radius-sm);
+}
+
+.rw-results__plot {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.rw-plot-tabs {
+  display: flex;
+  flex: none;
+  height: 32px;
+  padding-left: 2px;
+  border-bottom: var(--rw-hairline) solid var(--rw-line);
+}
+
+.rw-plot-tab {
+  padding: 0 14px;
+  font-size: var(--rw-font-size-body);
+}
+
+.rw-results__chart {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  padding: 10px 10px 4px 6px;
+}
+
+.rw-results__empty {
+  margin: 0;
+  padding: 24px;
+  color: var(--rw-text-secondary);
+}
+
+.rw-timeplot {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) 22px;
+  width: 100%;
+  height: 100%;
+}
+
+.rw-timeplot__ytitle {
+  grid-column: 1;
+  grid-row: 1;
+  align-self: center;
+  justify-self: center;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  color: var(--rw-text-primary);
+  font-size: var(--rw-font-size-secondary);
+  white-space: nowrap;
+}
+
+.rw-timeplot__canvas {
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.rw-timeplot__xtitle {
+  grid-column: 2;
+  grid-row: 2;
+  align-self: end;
+  justify-self: center;
+  color: var(--rw-text-primary);
+  font-size: var(--rw-font-size-secondary);
+}
+
+.rw-legend {
+  position: absolute;
+  top: 6px;
+  right: 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: var(--rw-font-size-secondary);
+}
+
+.rw-legend li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.rw-legend__swatch {
+  width: 22px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--rw-series-a);
+}
+
+.rw-legend__swatch[data-series="b"] {
+  background: var(--rw-series-b);
+}
+
+/* The event lines' key: a dashed rule in the run's colour (set inline), as the lines are drawn. */
+.rw-legend__swatch--events {
+  height: 0;
+  border-radius: 0;
+  border-top: 1.5px dashed;
+  background: none;
+}
+
+.rw-legend li[data-testid="plot.events-key"] {
+  color: var(--rw-text-secondary);
+}
+
+/* ---- run details footer --------------------------------------------------- */
+
+.rw-details {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: none;
+  min-width: 0;
+  height: 56px;
+  padding: 0 8px 0 12px;
+  border-top: var(--rw-hairline) solid var(--rw-line);
+  font-size: var(--rw-font-size-secondary);
+}
+
+.rw-details__field {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  padding: 0 9px;
+  white-space: nowrap;
+}
+
+/* The footer stays inside the plot column (the trajectory inset sits beside
+   it). The environment text is compact enough to fit at 1536 px; in a
+   narrower window it gives way first and ends in an ellipsis. */
+.rw-details__field[data-field="environment"] {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.rw-details__text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rw-details__field:first-child {
+  padding-left: 4px;
+}
+
+.rw-details__field + .rw-details__field {
+  border-left: var(--rw-hairline) solid var(--rw-line);
+}
+
+.rw-details__field .rw-icon {
+  color: var(--rw-text-secondary);
+}
+
+.rw-details__field .rw-status-glyph[data-tone="amber"] .rw-icon {
+  color: var(--rw-warning);
+}
+
+.rw-link {
+  height: 32px;
+  border-top: 0;
+  border-right: 0;
+  border-bottom: 0;
+  background: none;
+  color: var(--rw-accent);
+  font-size: var(--rw-font-size-secondary);
+}
+
+.rw-assumptions {
+  position: absolute;
+  right: 8px;
+  bottom: calc(100% + 6px);
+  z-index: 10;
+  width: 420px;
+  padding: 12px 16px;
+  border: var(--rw-hairline) solid var(--rw-line);
+  border-radius: var(--rw-radius);
+  background: var(--rw-panel);
+}
+
+.rw-assumptions h3 {
+  margin: 0 0 8px;
+  font-size: var(--rw-font-size-body);
+  font-weight: var(--rw-font-weight-strong);
+}
+
+.rw-assumptions ul {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--rw-text-secondary);
+  line-height: 1.6;
+}
+
+/* ---- trajectory inset ----------------------------------------------------- */
+
+.rw-results__inset {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  width: 229px;
+  margin-top: 32px;
+  padding: 8px 8px 8px 8px;
+  border-left: var(--rw-hairline) solid var(--rw-line);
+}
+
+.rw-results__inset-title {
+  flex: none;
+  margin: 4px 4px 10px;
+  font-size: var(--rw-font-size-body);
+  font-weight: var(--rw-font-weight-strong);
+}
+
+.rw-traj {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  border: var(--rw-hairline) solid var(--rw-line);
+  border-radius: var(--rw-radius-sm);
+  background: var(--rw-bg-viewport-bottom);
+}
+
+/* The studio vignette over the inset (the legend and gizmo sit above it). */
+.rw-traj::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse 80% 75% at 50% 50%, transparent 62%, rgba(0, 0, 0, 0.22));
+}
+
+.rw-traj__gizmo,
+.rw-traj__legend {
+  z-index: 1;
+}
+
+.rw-traj__canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+  touch-action: none;
+}
+
+.rw-traj__gizmo {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  pointer-events: none;
+}
+
+.rw-traj__axis line {
+  stroke-width: 1.5;
+}
+
+.rw-traj__axis text {
+  font-size: 11px;
+}
+
+.rw-traj__axis--x line {
+  stroke: var(--rw-material-parachute);
+}
+
+.rw-traj__axis--x text {
+  fill: var(--rw-material-parachute);
+}
+
+.rw-traj__axis--y line {
+  stroke: var(--rw-warning);
+}
+
+.rw-traj__axis--y text {
+  fill: var(--rw-warning);
+}
+
+.rw-traj__axis--z line {
+  stroke: var(--rw-accent);
+}
+
+.rw-traj__axis--z text {
+  fill: var(--rw-accent);
+}
+
+.rw-traj__legend {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: var(--rw-font-size-secondary);
+  pointer-events: none;
+}
+
+.rw-traj__legend li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rw-traj__swatch {
+  width: 18px;
+  height: 3px;
+  border-radius: 2px;
+}
+
+/* ---- Runs rail ------------------------------------------------------------ */
+
+.rw-run-row {
+  gap: 12px;
+}
+
+.rw-run-row__eye {
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--rw-text-primary);
+}
+
+.rw-run-row[data-hidden="true"] .rw-run-row__eye,
+.rw-run-row[data-hidden="true"] .rw-run-row__name {
+  color: var(--rw-text-secondary);
+}
+
+.rw-run-row__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--rw-text-primary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rw-run-row__status {
+  color: var(--rw-text-secondary);
+  font-size: var(--rw-font-size-secondary);
+}
+
+.rw-run-row__status[data-tone="teal"] {
+  color: var(--rw-success);
+}
+
+.rw-run-row[data-series="b"] .rw-status-glyph[data-tone="teal"],
+.rw-run-row__status[data-tone="teal"][data-series="b"] {
+  color: var(--rw-series-b);
+}
+
+.rw-runs-rail__search {
+  width: calc(100% - 16px);
+  height: 32px;
+  margin: 0 8px 8px;
+  padding: 0 10px;
+  border: var(--rw-hairline) solid var(--rw-line);
+  border-radius: var(--rw-radius-sm);
+  background: var(--rw-panel);
+}
+
+/* ---- run snapshot row ----------------------------------------------------- */
+
+.rw-snaps {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  height: 116px;
+  padding: 0 18px;
+  border-top: var(--rw-hairline) solid var(--rw-line);
+}
+
+.rw-snaps__empty {
+  margin: 0;
+  color: var(--rw-text-secondary);
+}
+
+.rw-snap {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  height: 84px;
+  padding: 0 24px 0 0;
+  border: 0;
+  background: none;
+  text-align: left;
+}
+
+.rw-snap + .rw-snap {
+  padding-left: 18px;
+  border-left: var(--rw-hairline) solid var(--rw-line);
+}
+
+.rw-snap__thumb {
+  width: 102px;
+  height: 62px;
+  border: var(--rw-hairline) solid var(--rw-line);
+  border-radius: var(--rw-radius-sm);
+  background: var(--rw-bg-viewport-top);
+}
+
+.rw-snap__thumb--render {
+  display: block;
+  flex: none;
+  overflow: hidden;
+  background: radial-gradient(closest-side, #2b3135, var(--rw-bg-viewport-bottom));
+}
+
+.rw-snap__thumb--render img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.rw-snap__body {
+  fill: var(--rw-text-primary);
+}
+
+.rw-snap__band {
+  fill: var(--rw-text-secondary);
+}
+
+.rw-snap__fin {
+  fill: var(--rw-text-secondary);
+}
+
+.rw-snap__motor {
+  fill: var(--rw-line);
+}
+
+.rw-snap__text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: var(--rw-font-size-secondary);
+}
+
+.rw-snap__title {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: var(--rw-font-size-body);
+}
+
+.rw-snap__meta {
+  padding-left: 20px;
+  color: var(--rw-text-secondary);
+}

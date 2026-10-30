@@ -1,0 +1,9 @@
+# e2e fixture (REV2-web): a small two-stage rocket with an 18 mm mount per
+# stage, for page 03's per-stage motor assignment and stage separation.
+format = 1
+name = "Two stage"
+default_config = "a8_c6"
+
+[display_units]
+length = "mm"
+mass = "g"

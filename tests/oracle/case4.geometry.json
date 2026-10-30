@@ -1,0 +1,244 @@
+{
+  "kind": "geometry",
+  "schema": "rw/1",
+  "case": 4,
+  "name": "Tube fin rocket",
+  "components": [
+    {
+      "name": "Nose cone",
+      "type": "nose_cone",
+      "parent": null,
+      "x_fore_m": 0.0,
+      "length_m": 0.119888,
+      "fields": {
+        "axial_offset_m": 0.0,
+        "clipped": 0.0,
+        "component_mass_kg": 0.007103566628689194,
+        "density_kgm3": 1050.0,
+        "filled": 0.0,
+        "flipped": 0.0,
+        "instances": 1.0,
+        "od_m": 0.024790399999999997,
+        "roughness_m": 6e-05,
+        "shape_parameter": 1.0,
+        "shoulder_capped": 0.0,
+        "shoulder_length_m": 0.0127,
+        "shoulder_od_m": 0.02413,
+        "shoulder_thickness_m": 0.0,
+        "stage": 0.0,
+        "thickness_m": 0.00116078,
+        "volume_m3": 6.765301551132565e-06,
+        "wet_area_m2": 0.006264417988431879
+      },
+      "material": "Polystyrene, cast, bulk",
+      "shape": "ogive",
+      "mass_override_kg": null,
+      "cg_override_m": null
+    },
+    {
+      "name": "Body tube",
+      "type": "body_tube",
+      "parent": null,
+      "x_fore_m": 0.119888,
+      "length_m": 0.4572,
+      "fields": {
+        "axial_offset_m": 0.0,
+        "component_mass_kg": 0.01037588041248341,
+        "density_kgm3": 894.4,
+        "filled": 0.0,
+        "instances": 1.0,
+        "motor_average_thrust_n": 10.73270291615946,
+        "motor_burn_time_s": 1.5663360501218175,
+        "motor_burnout_mass_kg": 0.021332999999999998,
+        "motor_count": 1.0,
+        "motor_diameter_m": 0.024,
+        "motor_ejection_delay_s": 7.0,
+        "motor_ignition_delay_s": 0.0,
+        "motor_ignition_event_automatic": 1.0,
+        "motor_launch_mass_kg": 0.042798,
+        "motor_length_m": 0.07,
+        "motor_mount": 1.0,
+        "motor_overhang_m": 0.00635,
+        "motor_total_impulse_ns": 16.840303000000002,
+        "od_m": 0.024790399999999997,
+        "roughness_m": 6e-05,
+        "stage": 0.0,
+        "thickness_m": 0.00033019999999999924,
+        "volume_m3": 1.160093963828646e-05,
+        "wet_area_m2": 0.035607347971139354
+      },
+      "material": "Paper, spiral kraft glassine, Estes avg, bulk",
+      "shape": null,
+      "mass_override_kg": null,
+      "cg_override_m": null
+    },
+    {
+      "name": "Shock Cord",
+      "type": "shock_cord",
+      "parent": "Body tube",
+      "x_fore_m": 0.135763,
+      "length_m": 0.025,
+      "fields": {
+        "axial_offset_m": 0.015875,
+        "component_mass_kg": 0.0021945599999999995,
+        "cord_length_m": 1.2191999999999998,
+        "instances": 1.0,
+        "line_density_kgm": 0.0018,
+        "packed_length_m": 0.025,
+        "packed_radius_m": 0.0117475,
+        "radial_direction_rad": 0.0,
+        "radial_position_m": 0.0,
+        "stage": 0.0
+      },
+      "material": "Elastic cord (round 2 mm, 1/16 in)",
+      "shape": null,
+      "mass_override_kg": null,
+      "cg_override_m": null
+    },
+    {
+      "name": "Parachute kit, plastic, 12 in., PN 85564",
+      "type": "parachute",
+      "parent": "Body tube",
+      "x_fore_m": 0.161163,
+      "length_m": 0.05606978823036396,
+      "fields": {
+        "axial_offset_m": 0.041275,
+        "cd": 0.8,
+        "cd_automatic": 1.0,
+        "component_mass_kg": 0.002318202109265932,
+        "deploy_altitude_m": 200.0,
+        "deploy_delay_s": 0.0,
+        "deploy_event_ejection": 1.0,
+        "diameter_m": 0.30479999999999996,
+        "instances": 1.0,
+        "line_count": 6.0,
+        "line_length_m": 0.30479999999999996,
+        "line_line_density_kgm": 0.00033,
+        "packed_length_m": 0.05606978823036396,
+        "packed_radius_m": 0.012065,
+        "radial_direction_rad": 0.0,
+        "radial_position_m": 0.0,
+        "stage": 0.0,
+        "surface_density_kgm2": 0.0235
+      },
+      "material": "Polyethylene film, HDPE, 1.0 mil, bare",
+      "shape": null,
+      "mass_override_kg": null,
+      "cg_override_m": null
+    },
+    {
+      "name": "Engine Block",
+      "type": "engine_block",
+      "parent": "Body tube",
+      "x_fore_m": 0.507238,
+      "length_m": 0.00635,
+      "fields": {
+        "axial_offset_m": -0.0635,
+        "component_mass_kg": 0.0012804302699891443,
+        "density_kgm3": 1121.2924380000002,
+        "id_m": 0.018796,
+        "instances": 1.0,
+        "od_m": 0.02413,
+        "radial_direction_rad": 0.0,
+        "radial_position_m": 0.0,
+        "stage": 0.0,
+        "thickness_m": 0.0026669999999999992
+      },
+      "material": "Paper",
+      "shape": null,
+      "mass_override_kg": null,
+      "cg_override_m": null
+    },
+    {
+      "name": "Tube fin set",
+      "type": "tube_fin_set",
+      "parent": "Body tube",
+      "x_fore_m": 0.500888,
+      "length_m": 0.07619999999999999,
+      "fields": {
+        "axial_offset_m": 0.0,
+        "base_rotation_rad": 0.5235987755982988,
+        "body_radius_m": 0.012395199999999999,
+        "component_mass_kg": 0.010375880412483373,
+        "count": 6.0,
+        "density_kgm3": 894.4,
+        "id_m": 0.02413,
+        "instances": 6.0,
+        "od_m": 0.024790399999999994,
+        "roughness_m": 6e-05,
+        "stage": 0.0,
+        "thickness_m": 0.0003301999999999975,
+        "tube_separation_m": 0.0
+      },
+      "material": "Paper, spiral kraft glassine, Estes avg, bulk",
+      "shape": null,
+      "mass_override_kg": null,
+      "cg_override_m": null
+    },
+    {
+      "name": "Launch Lug",
+      "type": "launch_lug",
+      "parent": "Body tube",
+      "x_fore_m": 0.41992549999999995,
+      "length_m": 0.060325,
+      "fields": {
+        "angle_offset_rad": 3.141592653589793,
+        "axial_offset_m": 0.10159999999999998,
+        "component_mass_kg": 0.00015290836869532993,
+        "density_kgm3": 894.4,
+        "instance_separation_m": 0.0,
+        "instances": 1.0,
+        "od_m": 0.004394199999999999,
+        "roughness_m": 6e-05,
+        "stage": 0.0,
+        "thickness_m": 0.00021589999999999977
+      },
+      "material": "Paper, spiral kraft glassine, Estes avg, bulk",
+      "shape": null,
+      "mass_override_kg": null,
+      "cg_override_m": null
+    }
+  ],
+  "configurations": [
+    {
+      "id": "f58f38e4-0cb4-45b3-9899-8b5e561d1b73",
+      "name": "[RW_D10G-7]",
+      "motors": [
+        {
+          "mount": "Body tube",
+          "designation": "RW_D10G",
+          "digest": "d34ff7ac951eb0ac1a7a277f5cbf5e69a1dd8aa4ad12b4103c1c71cc844eb3e4",
+          "delay_s": 7.0
+        }
+      ]
+    }
+  ],
+  "sims": [
+    {
+      "name": "Simulation 1",
+      "config_id": "f58f38e4-0cb4-45b3-9899-8b5e561d1b73",
+      "conditions": {
+        "rail_length_m": 1.0,
+        "rod_angle_deg": 0.0,
+        "rod_direction_deg": 90.0,
+        "site_altitude_m": 0.0,
+        "latitude_deg": 45.0,
+        "longitude_deg": 0.0,
+        "base_temperature_k": 288.15,
+        "base_pressure_pa": 101325.0,
+        "atmosphere": "ussa1976",
+        "geodetic": "flat",
+        "wind_speed_ms": 0.0,
+        "wind_direction_deg": 90.0,
+        "wind_turbulence": 0.0,
+        "time_step_s": 0.05,
+        "integrator": "rk4",
+        "gravity": {
+          "model": "wgs84"
+        },
+        "launch_into_wind": true
+      },
+      "conditions_hash": "sha256:3deb085651939a41cace89b33874137dd2b03d76bb0d82bb2bd6282bd08262de"
+    }
+  ]
+}

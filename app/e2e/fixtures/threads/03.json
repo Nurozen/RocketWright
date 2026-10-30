@@ -1,0 +1,220 @@
+{
+  "description": "Page 03 canned chat (concept 03, Design > Configurations). Seeded through app_seed_thread in this order on the seeded research vehicle; the last thread (Motor comparison) is the one the capture opens. The rail shows the concept's threads bound to the page (Assembly review, Fin revision, Flight comparison) plus Motor comparison. Its motor search lists the three generic 18 mm motors the seeded configurations fly (fixtures/research-vehicle/configs). Illustrative chat text, not engineering output.",
+  "threads": [
+    {
+      "thread": "Flight comparison",
+      "binding": {
+        "page": "configurations"
+      },
+      "ageMs": 8100000,
+      "messages": [
+        {
+          "role": "user",
+          "text": "What changed between these flights?",
+          "mentions": [
+            {
+              "ref": "rw:sim/baseline",
+              "label": "Baseline"
+            },
+            {
+              "ref": "rw:sim/higher_altitude",
+              "label": "Higher altitude"
+            }
+          ]
+        },
+        {
+          "role": "assistant",
+          "text": "The second configuration reaches a higher apogee in this example. Review launch and recovery conditions before comparing.",
+          "steps": [
+            {
+              "tool": "run_list",
+              "input": {},
+              "output": {},
+              "summary": "4 runs"
+            },
+            {
+              "tool": "run_diff",
+              "input": {
+                "a": "baseline",
+                "b": "higher_altitude"
+              },
+              "output": {},
+              "summary": "2 runs"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "thread": "Fin revision",
+      "binding": {
+        "page": "configurations"
+      },
+      "ageMs": 3900000,
+      "messages": [
+        {
+          "role": "user",
+          "text": "Try a little more fin span with less sweep, and compare it with the previous fins.",
+          "mentions": [
+            {
+              "ref": "rw:c/fins",
+              "label": "Fins"
+            }
+          ]
+        },
+        {
+          "role": "assistant",
+          "text": "The proposed fin set is shown in teal. The previous outline stays visible in amber for comparison.",
+          "steps": [
+            {
+              "tool": "model_patch",
+              "input": {
+                "ops": [
+                  {
+                    "op": "replace",
+                    "path": "/params/fin_span/value",
+                    "value": "100 mm"
+                  }
+                ]
+              },
+              "output": {
+                "step": "step:3"
+              },
+              "summary": "1 field changed"
+            },
+            {
+              "tool": "model_patch",
+              "input": {
+                "ops": [
+                  {
+                    "op": "replace",
+                    "path": "/params/fin_sweep/value",
+                    "value": "40 mm"
+                  }
+                ]
+              },
+              "output": {
+                "step": "step:3"
+              },
+              "summary": "1 field changed"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "thread": "Assembly review",
+      "binding": {
+        "page": "configurations"
+      },
+      "ageMs": 220000,
+      "messages": [
+        {
+          "role": "user",
+          "text": "Show how the recovery bay fits.",
+          "mentions": [
+            {
+              "ref": "rw:c/recovery_bay",
+              "label": "Recovery bay"
+            }
+          ]
+        },
+        {
+          "role": "assistant",
+          "text": "Exploded view ready. The recovery bay is selected in the model.",
+          "steps": [
+            {
+              "tool": "viewport_select",
+              "input": {
+                "refs": [
+                  "rw:c/recovery_bay"
+                ]
+              },
+              "output": {
+                "selected": [
+                  "rw:c/recovery_bay"
+                ]
+              },
+              "summary": "1 selected"
+            },
+            {
+              "tool": "viewport_set_camera",
+              "input": {
+                "view": "iso",
+                "explode": 0.6
+              },
+              "output": {},
+              "summary": "Iso view · exploded 60%"
+            },
+            {
+              "tool": "viewport_render",
+              "input": {
+                "view": "iso"
+              },
+              "output": {
+                "width": 1536,
+                "height": 1024,
+                "backend": "webgpu",
+                "adapter": "capture"
+              },
+              "summary": "Iso view"
+            }
+          ],
+          "cards": [
+            {
+              "kind": "step",
+              "ref": "rw:step/2",
+              "title": "Assembly layout",
+              "summary": "3 fields changed"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "thread": "Motor comparison",
+      "binding": {
+        "page": "configurations"
+      },
+      "ageMs": 120000,
+      "messages": [
+        {
+          "role": "user",
+          "text": "Compare these motors in the same airframe.",
+          "mentions": [
+            {
+              "ref": "rw:cfg/baseline",
+              "label": "Baseline"
+            }
+          ]
+        },
+        {
+          "role": "assistant",
+          "text": "The candidates share the selected 18 mm mount. Run each configuration to compare flight results.",
+          "steps": [
+            {
+              "tool": "motor_search",
+              "input": {
+                "diameter": "18 mm"
+              },
+              "output": {
+                "motors": [
+                  {
+                    "id": "generic:RW_A8G"
+                  },
+                  {
+                    "id": "generic:RW_B4G"
+                  },
+                  {
+                    "id": "generic:RW_C6G"
+                  }
+                ]
+              },
+              "summary": "3 candidates"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

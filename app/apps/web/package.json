@@ -1,0 +1,44 @@
+{
+  "name": "@rw/web",
+  "version": "0.1.0",
+  "private": true,
+  "license": "AGPL-3.0-or-later",
+  "type": "module",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "typecheck": "tsc -p tsconfig.json",
+    "lint": "oxlint -c ../../.oxlintrc.json --deny-warnings .",
+    "test": "vitest run --fsModuleCachePath node_modules/.vitest-cache",
+    "spike:recovery-bay": "vite build && node spikes/recovery-bay/capture.ts"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@types/three": "0.186.0",
+    "@vitejs/plugin-react": "6.1.2",
+    "@webgpu/types": "0.1.74",
+    "typescript": "6.0.3",
+    "vite": "8.3.4",
+    "vitest": "5.0.5"
+  },
+  "dependencies": {
+    "@rw/contracts": "workspace:*",
+    "@rw/rw-wasm": "workspace:*",
+    "manifold-3d": "3.5.4",
+    "oidn-web": "0.5.0",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "three": "0.186.1",
+    "three-gpu-pathtracer": "0.0.27",
+    "three-mesh-bvh": "0.9.16",
+    "uplot": "1.6.32",
+    "xatlas-web": "0.1.0",
+    "zustand": "5.0.15"
+  }
+}

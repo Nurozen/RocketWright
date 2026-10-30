@@ -1,0 +1,6 @@
+# Baseline flight configuration.
+name = "Baseline"
+
+[motors.mount]
+motor = "generic:RW_C6G"
+delay = "5 s"   # ejection delay

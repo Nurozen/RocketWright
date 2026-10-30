@@ -1,0 +1,30 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "provenance": {
+      "type": "string",
+      "description": "Always `contract-fixture`.",
+      "const": "contract-fixture"
+    },
+    "type": {
+      "type": "string",
+      "description": "Registry name of the payload type (`evaluated-model`, `tools/model_patch.input`)."
+    },
+    "note": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "payload": true
+  },
+  "required": [
+    "provenance",
+    "type",
+    "payload"
+  ],
+  "title": "ContractFixture",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rocketwright.dev/schema/1/contract-fixture.json"
+}

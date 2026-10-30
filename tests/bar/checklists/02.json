@@ -1,0 +1,621 @@
+{
+  "page": "02",
+  "title": "Design > Components",
+  "exemplar": "02-component-design.png",
+  "captureState": "Seeded fixture; Design > Components; Fin set selected after the seeded fin-span edit (proposal shown against the previous revision); thread 'Fin revision' with its canned exchange.",
+  "source": "concepts.md §3, §4.2; spec B1; plan D10 (U8, U10); BC0 critic (M1.15b)",
+  "items": [
+    {
+      "id": "02.shell.header",
+      "kind": "region",
+      "testid": "header",
+      "milestone": "M1",
+      "source": "C§3 Header; C§2 Spacing",
+      "text": "Header bar across the top, about 56 px tall, flat, with a 1 px hairline below.",
+      "level": "required"
+    },
+    {
+      "id": "02.header.brand",
+      "kind": "field",
+      "testid": "header.wordmark",
+      "milestone": "M1",
+      "source": "C§3 Header; C§intro product name",
+      "text": "Rocket mark and the wordmark 'RocketWright' (the product name, not the art's name).",
+      "level": "required"
+    },
+    {
+      "id": "02.header.project-switcher",
+      "kind": "control",
+      "testid": "header.project-switcher",
+      "milestone": "M1",
+      "source": "C§3 Header",
+      "text": "Project switcher showing the loaded project name ('Research vehicle') with a ▾ menu.",
+      "level": "required"
+    },
+    {
+      "id": "02.header.save-state",
+      "kind": "field",
+      "testid": "header.save-state",
+      "milestone": "M1",
+      "source": "C§3 Header",
+      "text": "Save state with a cloud icon and a relative time computed from the real last save ('Saved … ago').",
+      "level": "required"
+    },
+    {
+      "id": "02.header.tabs",
+      "kind": "control",
+      "testid": "header.tab",
+      "milestone": "M1",
+      "source": "C§3 Header",
+      "text": "Centred tabs Design | Propulsion | Simulate | Results.",
+      "level": "required"
+    },
+    {
+      "id": "02.header.active-tab",
+      "kind": "state",
+      "testid": "header.tab",
+      "milestone": "M2",
+      "source": "C§3 Header; C§2 accent/teal",
+      "text": "Design is the active tab, marked by a 2 px teal underline.",
+      "level": "required"
+    },
+    {
+      "id": "02.header.check-model",
+      "kind": "control",
+      "testid": "header.check-model",
+      "milestone": "M1",
+      "source": "C§3 Header; C§2 accent/teal-fill",
+      "text": "'✓ Check model' primary button: deep teal fill, 1 px teal border, white text; its state reflects the real model check result (status, issue count).",
+      "level": "required"
+    },
+    {
+      "id": "02.header.settings",
+      "kind": "control",
+      "testid": "header.settings",
+      "milestone": "M1",
+      "source": "C§3 Header; U17",
+      "text": "Settings gear button opening minimal settings.",
+      "level": "minimal"
+    },
+    {
+      "id": "02.header.help",
+      "kind": "control",
+      "testid": "header.help",
+      "milestone": "M1",
+      "source": "C§3 Header; U17",
+      "text": "Help '?' button.",
+      "level": "minimal"
+    },
+    {
+      "id": "02.shell.left-rail",
+      "kind": "region",
+      "testid": "left-rail",
+      "milestone": "M1",
+      "source": "C§2 Layout; C§3 Left rail",
+      "text": "Left rail, about 17% of the width, threads group above the page navigation section, hairline divider on its right.",
+      "level": "required"
+    },
+    {
+      "id": "02.rail.threads",
+      "kind": "field",
+      "testid": "rail.thread-row",
+      "milestone": "M2",
+      "source": "C§3 Left rail, threads group; S:169 seeded threads",
+      "text": "Thread rows with icon, name, and relative age: Assembly review, Fin revision, Flight comparison (seeded).",
+      "level": "required"
+    },
+    {
+      "id": "02.rail.thread-selected",
+      "kind": "state",
+      "testid": "rail.thread-row",
+      "milestone": "M1",
+      "source": "C§3 Left rail, threads group",
+      "text": "The selected thread row is highlighted.",
+      "level": "required"
+    },
+    {
+      "id": "02.rail.new-thread",
+      "kind": "control",
+      "testid": "rail.new-thread",
+      "milestone": "M1",
+      "source": "C§3 Left rail, threads group",
+      "text": "'+ New thread' row below the threads.",
+      "level": "required"
+    },
+    {
+      "id": "02.rail.nav-section",
+      "kind": "control",
+      "testid": "rail.nav-title",
+      "milestone": "M2",
+      "source": "C§3 Left rail, page navigation",
+      "text": "Titled navigation section 'Components' with a search icon and '+'.",
+      "level": "required"
+    },
+    {
+      "id": "02.shell.workspace",
+      "kind": "region",
+      "testid": "workspace",
+      "milestone": "M1",
+      "source": "C§2 Layout",
+      "text": "Workspace column, about 58% of the width, between the rail and the agent pane.",
+      "level": "required"
+    },
+    {
+      "id": "02.shell.agent-pane",
+      "kind": "region",
+      "testid": "agent-pane",
+      "milestone": "M1",
+      "source": "C§2 Layout; C§3 Agent pane",
+      "text": "Docked agent pane, about 25% of the width, full height below the header, hairline divider on its left (not a floating dock).",
+      "level": "required"
+    },
+    {
+      "id": "02.agent.header",
+      "kind": "field",
+      "testid": "agent.title",
+      "milestone": "M2",
+      "source": "C§3 Agent pane; D10; D31",
+      "text": "Pane head rendered by RocketWright above the embedded chat: thread icon and the open thread's title 'Fin revision', the same thread the left rail highlights.",
+      "level": "required"
+    },
+    {
+      "id": "02.agent.model-picker",
+      "kind": "control",
+      "testid": "agent.model-picker",
+      "milestone": "M1",
+      "source": "C§3 Agent pane; S:169 allowed deviation; U17; D10; D31",
+      "text": "'Agent' settings button in the pane head that opens the agent's provider and model settings (the S:169 'Agent ▾' mapping).",
+      "level": "minimal"
+    },
+    {
+      "id": "02.agent.user-message",
+      "kind": "field",
+      "testid": "chat-user-message-bubble",
+      "milestone": "M1",
+      "source": "C§3 Agent pane; C§2 bubble/user; D31",
+      "text": "The user's message in a teal-tinted bubble, radius about 6 px, with the round user avatar beside it.",
+      "level": "required"
+    },
+    {
+      "id": "02.agent.context-chip",
+      "kind": "control",
+      "testid": "app-ref-chip",
+      "milestone": "M1",
+      "source": "C§3 Agent pane; C§5.1; D31",
+      "text": "An `rw:` app reference in the thread renders as a chip naming the entity, not as raw text; it resolves to a stable entity id and opens that entity in RocketWright.",
+      "level": "required"
+    },
+    {
+      "id": "02.agent.activity-row",
+      "kind": "control",
+      "testid": "app-tool-row",
+      "milestone": "M1",
+      "source": "C§3 Agent pane; C§5.5; D31",
+      "text": "App tool rows for the turn's tool calls: a leading chevron that expands the call, a tool icon, the tool's label in sans, and a teal success check.",
+      "level": "required"
+    },
+    {
+      "id": "02.agent.reply",
+      "kind": "field",
+      "testid": "message-role.assistant",
+      "milestone": "M1",
+      "source": "C§3 Agent pane; D31",
+      "text": "Agent reply after the turn's tool rows and cards, written as plain prose with no bubble, under the agent's name.",
+      "level": "required"
+    },
+    {
+      "id": "02.shell.composer",
+      "kind": "region",
+      "testid": "composer",
+      "milestone": "M1",
+      "source": "C§3 Agent pane",
+      "text": "Composer pinned to the bottom of the agent pane.",
+      "level": "required"
+    },
+    {
+      "id": "02.composer.placeholder",
+      "kind": "field",
+      "testid": "composer.input",
+      "milestone": "M2",
+      "source": "C§3 Agent pane",
+      "text": "Composer placeholder 'Ask about this design…'.",
+      "level": "required"
+    },
+    {
+      "id": "02.composer.attach",
+      "kind": "control",
+      "testid": "composer.attach",
+      "milestone": "M1",
+      "source": "C§3 Agent pane; U18",
+      "text": "Paperclip attach button.",
+      "level": "minimal"
+    },
+    {
+      "id": "02.composer.send",
+      "kind": "control",
+      "testid": "composer.send",
+      "milestone": "M1",
+      "source": "C§3 Agent pane",
+      "text": "Send button.",
+      "level": "required"
+    },
+    {
+      "id": "02.agent.provenance-footer",
+      "kind": "field",
+      "testid": "agent.provenance-footer",
+      "milestone": "M1",
+      "source": "C§2 Layout; U20",
+      "text": "Bottom-right footer of the agent pane states the provenance of the data shown (it replaces the art's placeholder footer).",
+      "level": "minimal"
+    },
+    {
+      "id": "02.shell.history-strip",
+      "kind": "region",
+      "testid": "history-strip",
+      "milestone": "M1",
+      "source": "C§3 Design history strip",
+      "text": "Design history strip along the bottom of the rail and workspace.",
+      "level": "required"
+    },
+    {
+      "id": "02.history.steps",
+      "kind": "field",
+      "testid": "history.step",
+      "milestone": "M1",
+      "source": "C§3 Design history strip; C§6 (02); D10",
+      "text": "Label 'Design history', then numbered step circles joined by hairlines, each with a name and date; numbers are sequential and unique, from the seeded history.",
+      "level": "required"
+    },
+    {
+      "id": "02.history.current",
+      "kind": "state",
+      "testid": "history.step",
+      "milestone": "M1",
+      "source": "C§3 Design history strip",
+      "text": "The current step has a teal ring.",
+      "level": "required"
+    },
+    {
+      "id": "02.history.compare",
+      "kind": "control",
+      "testid": "history.compare",
+      "milestone": "M1",
+      "source": "C§3 Design history strip; U13",
+      "text": "'Compare' button at the end of the strip.",
+      "level": "required"
+    },
+    {
+      "id": "02.history.menu",
+      "kind": "control",
+      "testid": "history.menu",
+      "milestone": "M1",
+      "source": "C§3 Design history strip",
+      "text": "'⋯' menu after Compare.",
+      "level": "required"
+    },
+    {
+      "id": "02.shell.local-tabs",
+      "kind": "region",
+      "testid": "local-tabs",
+      "milestone": "M2",
+      "source": "C§3 Local tabs (Design)",
+      "text": "Design local tabs Assembly | Components | Configurations, with Components active.",
+      "level": "required"
+    },
+    {
+      "id": "02.tree.rows",
+      "kind": "field",
+      "testid": "rail.nav-row",
+      "milestone": "M2",
+      "source": "C§4.2; C§6 (01 vs 02)",
+      "text": "Components tree rows from the fixture, with a single 'Fin set' row for the whole fin set.",
+      "level": "required"
+    },
+    {
+      "id": "02.tree.selected",
+      "kind": "state",
+      "testid": "rail.nav-row",
+      "milestone": "M2",
+      "source": "C§2 selection row",
+      "text": "Fin set row selected with the teal tint and edge.",
+      "level": "required"
+    },
+    {
+      "id": "02.tree.eye",
+      "kind": "control",
+      "testid": "tree.eye",
+      "milestone": "M2",
+      "source": "C§3 Left rail, page navigation",
+      "text": "Eye toggle on each tree row.",
+      "level": "required"
+    },
+    {
+      "id": "02.tree.thumbnails",
+      "kind": "render",
+      "testid": "tree.thumbnail",
+      "milestone": "M3",
+      "source": "U14",
+      "text": "Rendered part thumbnail on each tree row.",
+      "level": "required"
+    },
+    {
+      "id": "02.rail.footer",
+      "kind": "region",
+      "testid": "rail-footer",
+      "milestone": "M2",
+      "source": "C§4.2 Viewport",
+      "text": "Left rail footer holding the view chips.",
+      "level": "required"
+    },
+    {
+      "id": "02.rail.view-chips",
+      "kind": "control",
+      "testid": "rail.view-chip",
+      "milestone": "M2",
+      "source": "C§4.2 Viewport",
+      "text": "View chips Side | Top | Front | Rear in the left rail footer, Side active.",
+      "level": "required"
+    },
+    {
+      "id": "02.vp.region",
+      "kind": "region",
+      "testid": "viewport",
+      "milestone": "M2",
+      "source": "C§4.2 Viewport",
+      "text": "2D view in the upper ~60% of the workspace.",
+      "level": "required"
+    },
+    {
+      "id": "02.vp.side-view",
+      "kind": "render",
+      "testid": "viewport",
+      "milestone": "M2",
+      "source": "C§4.2 Viewport; U9",
+      "text": "Side orthographic view (X-Z), nose to the left: dark nose, satin airframe with joint lines, metal tail.",
+      "level": "required"
+    },
+    {
+      "id": "02.vp.cg-marker",
+      "kind": "field",
+      "testid": "vp.cg",
+      "milestone": "M2",
+      "source": "C§4.2 Viewport",
+      "text": "CG marker: teal-ringed dot labelled 'CG' with its station in mm, computed from the model.",
+      "level": "required"
+    },
+    {
+      "id": "02.vp.cp-marker",
+      "kind": "field",
+      "testid": "vp.cp",
+      "milestone": "M2",
+      "source": "C§4.2 Viewport",
+      "text": "CP marker: crosshair circle labelled 'CP' with its station in mm, computed from the model.",
+      "level": "required"
+    },
+    {
+      "id": "02.vp.cg-forward",
+      "kind": "state",
+      "testid": "vp.cg",
+      "milestone": "M2",
+      "source": "C§4.2 Viewport",
+      "text": "For the stable fixture, CG sits forward of (left of) CP.",
+      "level": "required"
+    },
+    {
+      "id": "02.vp.dimensions",
+      "kind": "field",
+      "testid": "vp.dimension",
+      "milestone": "M2",
+      "source": "C§4.2 Viewport",
+      "text": "Dimension lines nose-to-CG, CG-to-CP, and overall length, with mm values from the model.",
+      "level": "required"
+    },
+    {
+      "id": "02.vp.proposal",
+      "kind": "render",
+      "testid": "vp.proposal",
+      "milestone": "M2",
+      "source": "C§4.2 Viewport; C§5.4; C§6 (02)",
+      "text": "Proposed fin set drawn in teal fill with a teal label 'New fin (span …)'; the fill marks every fin of the set alike, and the drawn fin count matches Fin count.",
+      "level": "required"
+    },
+    {
+      "id": "02.vp.ghost",
+      "kind": "render",
+      "testid": "vp.ghost",
+      "milestone": "M2",
+      "source": "C§4.2 Viewport; C§5.4; D10 U8",
+      "text": "Previous fin geometry as a dashed amber outline labelled 'Previous fin (span …)'.",
+      "level": "required"
+    },
+    {
+      "id": "02.vp.view-labels",
+      "kind": "field",
+      "testid": "vp.view-label",
+      "milestone": "M2",
+      "source": "C§4.2 Viewport; U9",
+      "text": "Bottom labels 'Side view (X-Z)' and 'Scale: 1:N'.",
+      "level": "required"
+    },
+    {
+      "id": "02.vp.orientation-cube",
+      "kind": "control",
+      "testid": "vp.axis-gizmo",
+      "milestone": "M2",
+      "source": "C§4.2 Viewport; U15",
+      "text": "Orientation thumbnail cube with axis labels.",
+      "level": "required"
+    },
+    {
+      "id": "02.editor.region",
+      "kind": "region",
+      "testid": "editor",
+      "milestone": "M2",
+      "source": "C§4.2 Editor",
+      "text": "'Fin set' editor in the lower ~40% of the workspace, collapsible (chevron).",
+      "level": "required"
+    },
+    {
+      "id": "02.editor.tabs",
+      "kind": "control",
+      "testid": "editor.tab",
+      "milestone": "M2",
+      "source": "C§4.2 Editor",
+      "text": "Editor tabs Geometry | Material | Appearance | Mass override, Geometry active.",
+      "level": "required"
+    },
+    {
+      "id": "02.editor.fields",
+      "kind": "control",
+      "testid": "editor.field",
+      "milestone": "M2",
+      "source": "C§4.2 Editor; C§5.7",
+      "text": "Two columns of spinner fields with units: Root chord, Tip chord, Span, Sweep, Thickness, Fin count; values from the model.",
+      "level": "required"
+    },
+    {
+      "id": "02.editor.profile",
+      "kind": "render",
+      "testid": "editor.profile",
+      "milestone": "M2",
+      "source": "C§4.2 Editor",
+      "text": "Live 'Fin profile (side view)' preview dimensioned with tip chord, root chord, and span from the fields.",
+      "level": "required"
+    },
+    {
+      "id": "02.editor.status",
+      "kind": "state",
+      "testid": "editor.status",
+      "milestone": "M2",
+      "source": "C§4.2 Editor; C§5.2",
+      "text": "Amber status '● Modified · Simulation needs rerun'.",
+      "level": "required"
+    },
+    {
+      "id": "02.editor.parts-library",
+      "kind": "control",
+      "testid": "editor.parts-library",
+      "milestone": "M2",
+      "source": "C§4.2 Editor; S:169 allowed deviation",
+      "text": "'Parts library' button (presets from the Apache openrocket-database only).",
+      "level": "required"
+    },
+    {
+      "id": "02.editor.revert",
+      "kind": "control",
+      "testid": "editor.revert",
+      "milestone": "M2",
+      "source": "C§4.2 Editor; D10 U10",
+      "text": "'Revert change' button that steps back to the previous revision.",
+      "level": "required"
+    },
+    {
+      "id": "02.agent.changed-fields",
+      "kind": "field",
+      "testid": "agent.changed-fields",
+      "milestone": "M2",
+      "source": "C§4.2 Agent pane; C§5.4; D10 U8; D31",
+      "text": "'Changed fields' card in the strip between the pane head and the embedded chat, listing each edited parameter as old → new with units, from the revision diff or the unsaved edit.",
+      "level": "required"
+    },
+    {
+      "id": "02.agent.compare-revisions",
+      "kind": "control",
+      "testid": "agent.compare-revisions",
+      "milestone": "M2",
+      "source": "C§4.2 Agent pane; U13; D8; D31",
+      "text": "'Compare revisions ›' action on the Changed fields card (a step card's Compare action in the thread opens the same comparison).",
+      "level": "required"
+    },
+    {
+      "id": "02.agent.thread-history",
+      "kind": "field",
+      "testid": "rail.thread-row",
+      "milestone": "M2",
+      "source": "C§4.2 Agent pane; C§6 (05) one owner; D10 U8; D31",
+      "text": "Thread history: the left rail lists the project's threads with their ages, the open thread highlighted; this thread's own revisions, with name and time and the current one on a teal ring, sit in the strip between the pane head and the embedded chat and link to their history steps.",
+      "level": "required"
+    },
+    {
+      "id": "02.vp.grid",
+      "kind": "render",
+      "testid": "vp.grid",
+      "milestone": "M2",
+      "source": "C§2 bg/viewport; C§4.2; BC0 critic",
+      "text": "Faint background grid behind the 2D side view, over the viewport's vertical vignette (the grid is suppressed only on the Assembly page).",
+      "level": "required"
+    },
+    {
+      "id": "02.vp.fin-set-uniform",
+      "kind": "render",
+      "testid": "vp.fin",
+      "milestone": "M2",
+      "source": "C§6 (02); BC0 critic",
+      "text": "Every fin of a set renders with identical geometry and size, and the selection fill covers the whole set.",
+      "level": "required"
+    },
+    {
+      "id": "02.editor.live-update",
+      "kind": "state",
+      "testid": "editor.field",
+      "milestone": "M2",
+      "source": "C§4.2 Interactions; BC0 critic",
+      "text": "Editing a geometry field updates the 2D view, the ghost outline, the fin profile preview, and CG/CP live.",
+      "level": "required"
+    },
+    {
+      "id": "02.editor.mass-override",
+      "kind": "field",
+      "testid": "editor.mass-override",
+      "milestone": "M2",
+      "source": "C§4.2 Editor; BC0 critic",
+      "text": "Mass override tab exposes mass and CG-override fields that replace the derived values when set.",
+      "level": "required"
+    },
+    {
+      "id": "02.editor.field-limits",
+      "kind": "state",
+      "testid": "editor.field",
+      "milestone": "M2",
+      "source": "C§4.2 Editor; BC0 critic",
+      "text": "Spinner fields take units, limits, and defaults from the component-type parameter schema and reject out-of-range values.",
+      "level": "required"
+    },
+    {
+      "id": "02.editor.remembered-tabs",
+      "kind": "state",
+      "testid": "editor.tab",
+      "milestone": "M2",
+      "source": "C§4.2 Notes; BC0 critic",
+      "text": "The editor's active tab is remembered and restored when a component is reselected.",
+      "level": "required"
+    },
+    {
+      "id": "02.editor.multi-select",
+      "kind": "state",
+      "testid": "editor.tab",
+      "milestone": "M2",
+      "source": "C§4.2 Notes; C§6 missing everywhere; BC0 critic",
+      "text": "Multi-select of components edits shared parameters; a mixed-type selection shows only the Appearance tab.",
+      "level": "required"
+    },
+    {
+      "id": "02.vp.stability-margin",
+      "kind": "field",
+      "testid": "vp.stability",
+      "milestone": "M2",
+      "source": "C§4.2 Viewport; BC0 critic",
+      "text": "Stability margin in calibers derived from CG/CP, shown with the markers and recomputed on each edit.",
+      "level": "required"
+    },
+    {
+      "id": "02.shell.undo-redo",
+      "kind": "control",
+      "testid": "header.undo-redo",
+      "milestone": "M2",
+      "source": "C§6 missing everywhere; BC0 critic",
+      "text": "Undo/redo for design edits, so an edit can be undone as well as reverted.",
+      "level": "required"
+    }
+  ]
+}

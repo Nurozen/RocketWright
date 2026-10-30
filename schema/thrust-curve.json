@@ -1,0 +1,234 @@
+{
+  "type": "object",
+  "properties": {
+    "designation": {
+      "type": "string",
+      "description": "Designation, e.g. `C6`."
+    },
+    "manufacturer": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "class": {
+      "type": "string",
+      "description": "Impulse class letter (`A`..`O`).",
+      "pattern": "^[1-9]?/?[0-9]*[A-O]$"
+    },
+    "diameter": {
+      "type": "number",
+      "format": "double",
+      "x-unit-dimension": "length"
+    },
+    "length": {
+      "type": "number",
+      "format": "double",
+      "x-unit-dimension": "length"
+    },
+    "delays": {
+      "type": "array",
+      "items": {
+        "type": "number",
+        "format": "double"
+      },
+      "description": "Available ejection delays; empty = plugged only.",
+      "x-unit-dimension": "time"
+    },
+    "prop_mass": {
+      "type": "number",
+      "format": "double",
+      "x-unit-dimension": "mass"
+    },
+    "total_mass": {
+      "type": "number",
+      "format": "double",
+      "description": "Total loaded mass at ignition.",
+      "x-unit-dimension": "mass"
+    },
+    "total_impulse": {
+      "type": "number",
+      "format": "double",
+      "x-unit-dimension": "impulse"
+    },
+    "burn_time": {
+      "type": "number",
+      "format": "double",
+      "x-unit-dimension": "time"
+    },
+    "average_thrust": {
+      "type": "number",
+      "format": "double",
+      "x-unit-dimension": "force"
+    },
+    "max_thrust": {
+      "type": "number",
+      "format": "double",
+      "x-unit-dimension": "force"
+    },
+    "points": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ThrustPoint"
+      },
+      "description": "Samples, `t` ascending, starting at `t = 0`."
+    },
+    "sha256": {
+      "type": "string",
+      "description": "sha256 hex of the source file bytes (the motor digest).",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "source": {
+      "$ref": "#/$defs/MotorSource"
+    }
+  },
+  "required": [
+    "designation",
+    "class",
+    "diameter",
+    "length",
+    "delays",
+    "prop_mass",
+    "total_mass",
+    "total_impulse",
+    "burn_time",
+    "average_thrust",
+    "max_thrust",
+    "points",
+    "sha256",
+    "source"
+  ],
+  "description": "A solid motor's thrust curve plus its header data.",
+  "title": "ThrustCurve",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rocketwright.dev/schema/1/thrust-curve.json",
+  "$defs": {
+    "ThrustPoint": {
+      "type": "object",
+      "properties": {
+        "t": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "time"
+        },
+        "thrust": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "force"
+        },
+        "mass": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "description": "Total motor mass at `t` (`.rse` only).",
+          "x-unit-dimension": "mass"
+        },
+        "cg": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "description": "CG from the motor's fore end (`.rse` only).",
+          "x-unit-dimension": "length"
+        }
+      },
+      "required": [
+        "t",
+        "thrust"
+      ]
+    },
+    "MotorSource": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "generic"
+            },
+            "id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "id"
+          ],
+          "description": "Built-in RocketWright generic curve (`lib/motors/generic/`), e.g. `RW_C6G`."
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "library"
+            },
+            "path": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "path"
+          ],
+          "description": "A project `lib/motors/` file with its recorded sha256."
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "embedded"
+            },
+            "origin": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "origin"
+          ],
+          "description": "Embedded in an imported file (e.g. an `.rse` inside an `.ork`)."
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "thrustcurve"
+            },
+            "motor_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "motor_id"
+          ],
+          "description": "ThrustCurve.org download in the gitignored cache (parity only)."
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "liquid"
+            },
+            "engine": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "engine"
+          ],
+          "description": "Generated by a liquid engine design (`engines/<id>.rw.toml`)."
+        }
+      ],
+      "description": "Where a curve came from (motor provenance; never OR-DB curves, S:31)."
+    }
+  }
+}

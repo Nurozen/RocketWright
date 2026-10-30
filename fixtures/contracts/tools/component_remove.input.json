@@ -1,0 +1,8 @@
+{
+  "provenance": "contract-fixture",
+  "type": "tools/component_remove.input",
+  "payload": {
+    "id": "lug",
+    "recursive": false
+  }
+}

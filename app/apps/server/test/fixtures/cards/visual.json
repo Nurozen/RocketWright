@@ -1,0 +1,52 @@
+{
+  "note": "Captured with `rocketwright call` on the seeded research vehicle (fixtures/research-vehicle/seed.sh), CPW1R3A.",
+  "tool": "simulate",
+  "input": {
+    "sim": "study_01"
+  },
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"sim\":\"study_01\",\"run_id\":\"52e24fa55e08\",\"status\":\"complete\",\"cached\":true}"
+      }
+    ],
+    "structuredContent": {
+      "sim": "study_01",
+      "run_id": "52e24fa55e08",
+      "status": "complete",
+      "cached": true
+    }
+  },
+  "calls": {
+    "run_list": {
+      "input": {
+        "sim": "study_01"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"model_hash\":\"1db1a8ef2f1084627df8349b614e67935ece66ef68ca6d220a706eb371b804bc\",\"runs\":[{\"sim\":\"study_01\",\"sim_name\":\"Study 01\",\"config\":\"baseline\",\"kind\":\"visual_flow\",\"status\":\"complete\",\"run_id\":\"52e24fa55e08\",\"model_hash\":\"1db1a8ef2f1084627df8349b614e67935ece66ef68ca6d220a706eb371b804bc\",\"provenance\":\"visual\",\"conditions_hash\":\"sha256:b134a82602cf525d36620cf3a19d65a7cd46acc924077f74edc6dfba68bf9dcb\"}]}"
+          }
+        ],
+        "structuredContent": {
+          "model_hash": "1db1a8ef2f1084627df8349b614e67935ece66ef68ca6d220a706eb371b804bc",
+          "runs": [
+            {
+              "sim": "study_01",
+              "sim_name": "Study 01",
+              "config": "baseline",
+              "kind": "visual_flow",
+              "status": "complete",
+              "run_id": "52e24fa55e08",
+              "model_hash": "1db1a8ef2f1084627df8349b614e67935ece66ef68ca6d220a706eb371b804bc",
+              "provenance": "visual",
+              "conditions_hash": "sha256:b134a82602cf525d36620cf3a19d65a7cd46acc924077f74edc6dfba68bf9dcb"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

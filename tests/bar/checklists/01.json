@@ -1,0 +1,684 @@
+{
+  "page": "01",
+  "title": "Design > Assembly",
+  "exemplar": "01-assembly.png",
+  "captureState": "fixtures/research-vehicle seeded; Design > Assembly; Recovery bay selected; explode 0.6; thread 'Assembly review' with its canned exchange (S:169).",
+  "source": "concepts.md §3, §4.1; spec B1 (S:160-170); plan D10, D23; BC0 critic (M1.15b)",
+  "items": [
+    {
+      "id": "01.shell.header",
+      "kind": "region",
+      "testid": "header",
+      "milestone": "M1",
+      "source": "C§3 Header; C§2 Spacing",
+      "text": "Header bar across the top, about 56 px tall, flat, with a 1 px hairline below.",
+      "level": "required"
+    },
+    {
+      "id": "01.header.brand",
+      "kind": "field",
+      "testid": "header.wordmark",
+      "milestone": "M1",
+      "source": "C§3 Header; C§intro product name",
+      "text": "Rocket mark and the wordmark 'RocketWright' (the product name, not the art's name).",
+      "level": "required"
+    },
+    {
+      "id": "01.header.project-switcher",
+      "kind": "control",
+      "testid": "header.project-switcher",
+      "milestone": "M1",
+      "source": "C§3 Header",
+      "text": "Project switcher showing the loaded project name ('Research vehicle') with a ▾ menu.",
+      "level": "required"
+    },
+    {
+      "id": "01.header.save-state",
+      "kind": "field",
+      "testid": "header.save-state",
+      "milestone": "M1",
+      "source": "C§3 Header",
+      "text": "Save state with a cloud icon and a relative time computed from the real last save ('Saved … ago').",
+      "level": "required"
+    },
+    {
+      "id": "01.header.tabs",
+      "kind": "control",
+      "testid": "header.tab",
+      "milestone": "M1",
+      "source": "C§3 Header",
+      "text": "Centred tabs Design | Propulsion | Simulate | Results.",
+      "level": "required"
+    },
+    {
+      "id": "01.header.active-tab",
+      "kind": "state",
+      "testid": "header.tab",
+      "milestone": "M1",
+      "source": "C§3 Header; C§2 accent/teal",
+      "text": "Design is the active tab, marked by a 2 px teal underline.",
+      "level": "required"
+    },
+    {
+      "id": "01.header.check-model",
+      "kind": "control",
+      "testid": "header.check-model",
+      "milestone": "M1",
+      "source": "C§3 Header; C§2 accent/teal-fill",
+      "text": "'✓ Check model' primary button: deep teal fill, 1 px teal border, white text; its state reflects the real model check result (status, issue count).",
+      "level": "required"
+    },
+    {
+      "id": "01.header.settings",
+      "kind": "control",
+      "testid": "header.settings",
+      "milestone": "M1",
+      "source": "C§3 Header; U17",
+      "text": "Settings gear button opening minimal settings.",
+      "level": "minimal"
+    },
+    {
+      "id": "01.header.help",
+      "kind": "control",
+      "testid": "header.help",
+      "milestone": "M1",
+      "source": "C§3 Header; U17",
+      "text": "Help '?' button.",
+      "level": "minimal"
+    },
+    {
+      "id": "01.shell.left-rail",
+      "kind": "region",
+      "testid": "left-rail",
+      "milestone": "M1",
+      "source": "C§2 Layout; C§3 Left rail",
+      "text": "Left rail, about 17% of the width, threads group above the page navigation section, hairline divider on its right.",
+      "level": "required"
+    },
+    {
+      "id": "01.rail.threads",
+      "kind": "field",
+      "testid": "rail.thread-row",
+      "milestone": "M1",
+      "source": "C§3 Left rail, threads group; S:169 seeded threads",
+      "text": "Thread rows with icon, name, and relative age: Assembly review, Fin revision, Flight comparison (seeded).",
+      "level": "required"
+    },
+    {
+      "id": "01.rail.thread-selected",
+      "kind": "state",
+      "testid": "rail.thread-row",
+      "milestone": "M1",
+      "source": "C§3 Left rail, threads group",
+      "text": "The selected thread row is highlighted.",
+      "level": "required"
+    },
+    {
+      "id": "01.rail.new-thread",
+      "kind": "control",
+      "testid": "rail.new-thread",
+      "milestone": "M1",
+      "source": "C§3 Left rail, threads group",
+      "text": "'+ New thread' row below the threads.",
+      "level": "required"
+    },
+    {
+      "id": "01.rail.nav-section",
+      "kind": "control",
+      "testid": "rail.nav-title",
+      "milestone": "M1",
+      "source": "C§3 Left rail, page navigation",
+      "text": "Titled navigation section 'Components' with a search icon and '+'.",
+      "level": "required"
+    },
+    {
+      "id": "01.shell.workspace",
+      "kind": "region",
+      "testid": "workspace",
+      "milestone": "M1",
+      "source": "C§2 Layout",
+      "text": "Workspace column, about 58% of the width, between the rail and the agent pane.",
+      "level": "required"
+    },
+    {
+      "id": "01.shell.agent-pane",
+      "kind": "region",
+      "testid": "agent-pane",
+      "milestone": "M1",
+      "source": "C§2 Layout; C§3 Agent pane",
+      "text": "Docked agent pane, about 25% of the width, full height below the header, hairline divider on its left (not a floating dock).",
+      "level": "required"
+    },
+    {
+      "id": "01.agent.header",
+      "kind": "field",
+      "testid": "agent.title",
+      "milestone": "M1",
+      "source": "C§3 Agent pane; D10; D31",
+      "text": "Pane head rendered by RocketWright above the embedded chat: thread icon and the open thread's title 'Assembly review', the same thread the left rail highlights.",
+      "level": "required"
+    },
+    {
+      "id": "01.agent.model-picker",
+      "kind": "control",
+      "testid": "agent.model-picker",
+      "milestone": "M1",
+      "source": "C§3 Agent pane; S:169 allowed deviation; U17; D10; D31",
+      "text": "'Agent' settings button in the pane head that opens the agent's provider and model settings (the S:169 'Agent ▾' mapping).",
+      "level": "minimal"
+    },
+    {
+      "id": "01.agent.user-message",
+      "kind": "field",
+      "testid": "chat-user-message-bubble",
+      "milestone": "M1",
+      "source": "C§3 Agent pane; C§2 bubble/user; D31",
+      "text": "The user's message in a teal-tinted bubble, radius about 6 px, with the round user avatar beside it.",
+      "level": "required"
+    },
+    {
+      "id": "01.agent.context-chip",
+      "kind": "control",
+      "testid": "app-ref-chip",
+      "milestone": "M1",
+      "source": "C§3 Agent pane; C§5.1; D31",
+      "text": "An `rw:` app reference in the thread renders as a chip naming the entity, not as raw text; it resolves to a stable entity id and opens that entity in RocketWright.",
+      "level": "required"
+    },
+    {
+      "id": "01.agent.activity-row",
+      "kind": "control",
+      "testid": "app-tool-row",
+      "milestone": "M1",
+      "source": "C§3 Agent pane; C§5.5; D31",
+      "text": "App tool rows for the turn's tool calls: a leading chevron that expands the call, a tool icon, the tool's label in sans, and a teal success check.",
+      "level": "required"
+    },
+    {
+      "id": "01.agent.reply",
+      "kind": "field",
+      "testid": "message-role.assistant",
+      "milestone": "M1",
+      "source": "C§3 Agent pane; D31",
+      "text": "Agent reply after the turn's tool rows and cards, written as plain prose with no bubble, under the agent's name.",
+      "level": "required"
+    },
+    {
+      "id": "01.agent.no-pane-switcher",
+      "kind": "state",
+      "testid": "embed-thread-switcher",
+      "milestone": "M1",
+      "source": "D22; D31; decision 3",
+      "text": "The embedded chat renders no thread switcher of its own; the thread list lives in the left rail.",
+      "level": "required"
+    },
+    {
+      "id": "01.agent.user-avatar",
+      "kind": "field",
+      "testid": "embed-user-avatar",
+      "milestone": "M1",
+      "source": "D31; mockup rocketwright-embedded-chat (A26)",
+      "text": "Round user avatar beside the user's message bubble.",
+      "level": "required"
+    },
+    {
+      "id": "01.agent.tool-rows",
+      "kind": "control",
+      "testid": "app-tool-row",
+      "milestone": "M1",
+      "source": "D31; mockup rocketwright-embedded-chat (A27a)",
+      "text": "At least two app tool rows in the live turn, each with a leading chevron, a tool icon, a label and a trailing teal success check.",
+      "level": "required"
+    },
+    {
+      "id": "01.agent.run-card",
+      "kind": "render",
+      "testid": "mcp-app-card",
+      "milestone": "M1",
+      "source": "D7; D31; mockup rocketwright-embedded-chat (A21)",
+      "text": "MCP Apps run card in the timeline in its narrow form: title row with a 'Saved' chip, three stats as label and value rows, and a line chart of the flight drawn in the teal accent.",
+      "level": "required"
+    },
+    {
+      "id": "01.agent.approval-card",
+      "kind": "control",
+      "testid": "app-approval-card",
+      "milestone": "M1",
+      "source": "D14; D31; mockup rocketwright-embedded-chat (A20)",
+      "text": "Approval card attached above the composer: shield icon, an 'Approve <tool>' title, a monospace reason line, Decline and Approve buttons, and a ⋯ menu.",
+      "level": "required"
+    },
+    {
+      "id": "01.agent.chip-strip",
+      "kind": "control",
+      "testid": "app-ref-chip-strip",
+      "milestone": "M1",
+      "source": "D31; mockup rocketwright-embedded-chat (A25)",
+      "text": "Chip strip above the composer input holding the `rw:c/fins` reference chip with a × remove button.",
+      "level": "required"
+    },
+    {
+      "id": "01.agent.composer-footer",
+      "kind": "control",
+      "testid": "embed-composer-footer-row",
+      "milestone": "M1",
+      "source": "D31; mockup rocketwright-embedded-chat (A26)",
+      "text": "Two-row composer footer: model, effort and access controls on the first row, the context setting on the second.",
+      "level": "required"
+    },
+    {
+      "id": "01.agent.supervised",
+      "kind": "state",
+      "testid": "embed-composer-footer",
+      "milestone": "M1",
+      "source": "D14; D31; mockup rocketwright-embedded-chat (A26)",
+      "text": "The footer's access control reads Supervised, with a lock icon.",
+      "level": "required"
+    },
+    {
+      "id": "01.shell.composer",
+      "kind": "region",
+      "testid": "composer",
+      "milestone": "M1",
+      "source": "C§3 Agent pane",
+      "text": "Composer pinned to the bottom of the agent pane.",
+      "level": "required"
+    },
+    {
+      "id": "01.composer.placeholder",
+      "kind": "field",
+      "testid": "composer.input",
+      "milestone": "M1",
+      "source": "C§3 Agent pane",
+      "text": "Composer placeholder 'Ask about this design…'.",
+      "level": "required"
+    },
+    {
+      "id": "01.composer.attach",
+      "kind": "control",
+      "testid": "composer.attach",
+      "milestone": "M1",
+      "source": "C§3 Agent pane; U18",
+      "text": "Paperclip attach button.",
+      "level": "minimal"
+    },
+    {
+      "id": "01.composer.send",
+      "kind": "control",
+      "testid": "composer.send",
+      "milestone": "M1",
+      "source": "C§3 Agent pane",
+      "text": "Send button.",
+      "level": "required"
+    },
+    {
+      "id": "01.agent.provenance-footer",
+      "kind": "field",
+      "testid": "agent.provenance-footer",
+      "milestone": "M1",
+      "source": "C§2 Layout; U20",
+      "text": "Bottom-right footer of the agent pane states the provenance of the data shown (it replaces the art's placeholder footer).",
+      "level": "minimal"
+    },
+    {
+      "id": "01.shell.history-strip",
+      "kind": "region",
+      "testid": "history-strip",
+      "milestone": "M1",
+      "source": "C§3 Design history strip",
+      "text": "Design history strip along the bottom of the rail and workspace.",
+      "level": "required"
+    },
+    {
+      "id": "01.history.steps",
+      "kind": "field",
+      "testid": "history.step",
+      "milestone": "M1",
+      "source": "C§3 Design history strip; C§6 (02); D10",
+      "text": "Label 'Design history', then numbered step circles joined by hairlines, each with a name and date; numbers are sequential and unique, from the seeded history.",
+      "level": "required"
+    },
+    {
+      "id": "01.history.current",
+      "kind": "state",
+      "testid": "history.step",
+      "milestone": "M1",
+      "source": "C§3 Design history strip",
+      "text": "The current step has a teal ring.",
+      "level": "required"
+    },
+    {
+      "id": "01.history.compare",
+      "kind": "control",
+      "testid": "history.compare",
+      "milestone": "M1",
+      "source": "C§3 Design history strip; U13",
+      "text": "'Compare' button at the end of the strip.",
+      "level": "required"
+    },
+    {
+      "id": "01.history.menu",
+      "kind": "control",
+      "testid": "history.menu",
+      "milestone": "M1",
+      "source": "C§3 Design history strip",
+      "text": "'⋯' menu after Compare.",
+      "level": "required"
+    },
+    {
+      "id": "01.shell.local-tabs",
+      "kind": "region",
+      "testid": "local-tabs",
+      "milestone": "M1",
+      "source": "C§3 Local tabs (Design)",
+      "text": "Design local tabs Assembly | Components | Configurations, with Assembly active.",
+      "level": "required"
+    },
+    {
+      "id": "01.shell.viewport-toolbar",
+      "kind": "region",
+      "testid": "viewport-toolbar",
+      "milestone": "M1",
+      "source": "C§3 Viewport toolbar; C§2 Spacing",
+      "text": "Viewport toolbar row, about 64 px, above the history strip.",
+      "level": "required"
+    },
+    {
+      "id": "01.toolbar.view-chips",
+      "kind": "control",
+      "testid": "toolbar.view-chip",
+      "milestone": "M1",
+      "source": "C§3 Viewport toolbar; C§5.6",
+      "text": "'View' chips Iso | Top | Side | Front | Rear, active chip teal.",
+      "level": "required"
+    },
+    {
+      "id": "01.toolbar.units",
+      "kind": "control",
+      "testid": "toolbar.units",
+      "milestone": "M1",
+      "source": "C§3 Viewport toolbar; C§5.7",
+      "text": "'Units' dropdown (mm ▾) that switches the displayed units.",
+      "level": "required"
+    },
+    {
+      "id": "01.tree.rows",
+      "kind": "field",
+      "testid": "rail.nav-row",
+      "milestone": "M1",
+      "source": "C§4.1 Regions; C§6 (01 vs 02)",
+      "text": "Components tree rows named from the fixture's component tree: Nosecone, Recovery bay, Airframe tube, centering rings, Bulkhead, Parachute (stowed), Electronics bay, a single fin set row whose fin count matches the model, Motor casing, Launch lug.",
+      "level": "required"
+    },
+    {
+      "id": "01.tree.eye",
+      "kind": "control",
+      "testid": "tree.eye",
+      "milestone": "M1",
+      "source": "C§3 Left rail, page navigation; C§4.1 Interactions",
+      "text": "Each tree row has an eye toggle that hides and shows the part.",
+      "level": "required"
+    },
+    {
+      "id": "01.tree.hidden",
+      "kind": "state",
+      "testid": "rail.nav-row",
+      "milestone": "M1",
+      "source": "C§3 Left rail, page navigation",
+      "text": "A hidden row (Launch lug) is dimmed with a crossed eye.",
+      "level": "required"
+    },
+    {
+      "id": "01.tree.thumbnails",
+      "kind": "render",
+      "testid": "tree.thumbnail",
+      "milestone": "M3",
+      "source": "C§3 Left rail, page navigation; U14",
+      "text": "Each tree row shows a rendered part thumbnail.",
+      "level": "required"
+    },
+    {
+      "id": "01.tree.selected",
+      "kind": "state",
+      "testid": "rail.nav-row",
+      "milestone": "M1",
+      "source": "C§4.1 Interactions; C§2 selection row",
+      "text": "Recovery bay row selected: teal-tinted background with a teal edge; the selection is shared with viewport and inspector.",
+      "level": "required"
+    },
+    {
+      "id": "01.vp.region",
+      "kind": "region",
+      "testid": "viewport",
+      "milestone": "M1",
+      "source": "C§4.1 Regions",
+      "text": "Viewport takes about 70% of the workspace.",
+      "level": "required"
+    },
+    {
+      "id": "01.vp.exploded",
+      "kind": "render",
+      "testid": "viewport",
+      "milestone": "M1",
+      "source": "C§4.1 Viewport; C§5.6",
+      "text": "Exploded assembly on a diagonal from upper left to lower right, every part separated along a shared axis.",
+      "level": "required"
+    },
+    {
+      "id": "01.vp.axis-line",
+      "kind": "render",
+      "testid": "viewport",
+      "milestone": "M3",
+      "source": "C§4.1 Viewport; U15",
+      "text": "Dotted shared axis through the exploded parts.",
+      "level": "required"
+    },
+    {
+      "id": "01.vp.leader-labels",
+      "kind": "render",
+      "testid": "vp.leader-label",
+      "milestone": "M1",
+      "source": "C§4.1 Viewport; C§2 Selection in 3D",
+      "text": "Leader labels for each part: 1 px grey leader lines with elbows and short labels.",
+      "level": "required"
+    },
+    {
+      "id": "01.vp.selection-outline",
+      "kind": "render",
+      "testid": "viewport",
+      "milestone": "M3",
+      "source": "C§4.1 Viewport; C§2 Selection in 3D; S:170",
+      "text": "Selected Recovery bay outlined with a thin teal edge (about 2 px) and its leader label in teal.",
+      "level": "required"
+    },
+    {
+      "id": "01.vp.axis-gizmo",
+      "kind": "control",
+      "testid": "vp.axis-gizmo",
+      "milestone": "M1",
+      "source": "C§4.1 Viewport; U15",
+      "text": "Axis gizmo (X red, Y green, Z blue) at the top right of the viewport.",
+      "level": "required"
+    },
+    {
+      "id": "01.vp.background",
+      "kind": "render",
+      "testid": "viewport",
+      "milestone": "M1",
+      "source": "C§2 bg/viewport",
+      "text": "Soft vertical vignette behind the model, no grid.",
+      "level": "required"
+    },
+    {
+      "id": "01.vp.materials",
+      "kind": "render",
+      "testid": "viewport",
+      "milestone": "M3",
+      "source": "C§2 Materials; S:160; S:170",
+      "text": "PBR materials: satin white composite tubes, machined aluminium rings and motor casing, clear polymer recovery bay with an orange parachute inside, PCB-green electronics bay, swept fins.",
+      "level": "required"
+    },
+    {
+      "id": "01.vp.contact-shadow",
+      "kind": "render",
+      "testid": "viewport",
+      "milestone": "M3",
+      "source": "C§2 Materials; S:170",
+      "text": "Soft studio lighting with a contact shadow on the canvas and no bloom.",
+      "level": "required"
+    },
+    {
+      "id": "01.insp.region",
+      "kind": "region",
+      "testid": "inspector",
+      "milestone": "M1",
+      "source": "C§4.1 Regions",
+      "text": "Collapsible inspector strip at the right edge of the workspace, about 225 px wide.",
+      "level": "required"
+    },
+    {
+      "id": "01.insp.title",
+      "kind": "field",
+      "testid": "insp.title",
+      "milestone": "M1",
+      "source": "C§4.1 Inspector",
+      "text": "Inspector title 'Recovery bay ›' for the selected part.",
+      "level": "required"
+    },
+    {
+      "id": "01.insp.thumbnail",
+      "kind": "render",
+      "testid": "insp.thumbnail",
+      "milestone": "M3",
+      "source": "C§4.1 Inspector; U14",
+      "text": "Rendered thumbnail of the selected part.",
+      "level": "required"
+    },
+    {
+      "id": "01.insp.attachment",
+      "kind": "field",
+      "testid": "insp.attachment",
+      "milestone": "M1",
+      "source": "C§4.1 Inspector; C§5.6",
+      "text": "'Attachment ›' card with Upper, Lower, and Locking rows naming the real joints from the attach graph.",
+      "level": "required"
+    },
+    {
+      "id": "01.insp.mass",
+      "kind": "field",
+      "testid": "insp.mass",
+      "milestone": "M1",
+      "source": "C§4.1 Inspector; C§5.6",
+      "text": "'Mass ›' card with Mass, Length, and Outer dia., each with units, computed from the model.",
+      "level": "required"
+    },
+    {
+      "id": "01.insp.clearance",
+      "kind": "field",
+      "testid": "insp.clearance",
+      "milestone": "M1",
+      "source": "C§4.1 Inspector; C§5.6",
+      "text": "'Clearance ›' card with Fits inside (ID), Required, and Total length, from the clearance check.",
+      "level": "required"
+    },
+    {
+      "id": "01.toolbar.explode",
+      "kind": "control",
+      "testid": "toolbar.explode",
+      "milestone": "M1",
+      "source": "C§4.1 Toolbar",
+      "text": "'Exploded view' slider labelled Assembled to Exploded.",
+      "level": "required"
+    },
+    {
+      "id": "01.toolbar.explode-motion",
+      "kind": "render",
+      "testid": "viewport",
+      "milestone": "M3",
+      "source": "C§4.1 Interactions",
+      "text": "Dragging the explode slider animates the explosion.",
+      "level": "required"
+    },
+    {
+      "id": "01.toolbar.section",
+      "kind": "control",
+      "testid": "toolbar.section",
+      "milestone": "M1",
+      "source": "C§4.1 Toolbar",
+      "text": "'Section' toggle switch.",
+      "level": "required"
+    },
+    {
+      "id": "01.toolbar.section-cut",
+      "kind": "render",
+      "testid": "viewport",
+      "milestone": "M3",
+      "source": "C§4.1 Interactions",
+      "text": "The section toggle cuts the model.",
+      "level": "required"
+    },
+    {
+      "id": "01.toolbar.show-internals",
+      "kind": "control",
+      "testid": "toolbar.show-internals",
+      "milestone": "M1",
+      "source": "C§4.1 Toolbar",
+      "text": "'Show internals' checkbox.",
+      "level": "required"
+    },
+    {
+      "id": "01.toolbar.shadows",
+      "kind": "control",
+      "testid": "toolbar.shadows",
+      "milestone": "M1",
+      "source": "C§4.1 Toolbar",
+      "text": "'Shadows' checkbox, checked.",
+      "level": "required"
+    },
+    {
+      "id": "01.agent.prompt",
+      "kind": "field",
+      "testid": "chat-user-message-bubble",
+      "milestone": "M1",
+      "source": "S:160; C§3 Agent pane; D31",
+      "text": "The thread's user requests (the earlier exchange and the live turn) appear as user bubbles; a part reference in them renders as a chip.",
+      "level": "required"
+    },
+    {
+      "id": "01.agent.step-card",
+      "kind": "control",
+      "testid": "mcp-app-card",
+      "milestone": "M1",
+      "source": "C§3 Agent pane; C§5.5; U16; D7; D8; D31",
+      "text": "Step card (an MCP Apps card in the timeline) naming the referenced design-history step from the seeded history, with an action that opens that step in RocketWright.",
+      "level": "required"
+    },
+    {
+      "id": "01.vp.pick",
+      "kind": "control",
+      "testid": "vp.part",
+      "milestone": "M1",
+      "source": "C§4.1 Interactions; BC0 critic",
+      "text": "Clicking a part in the viewport selects it and syncs the tree row and the inspector.",
+      "level": "required"
+    },
+    {
+      "id": "01.vp.send-to-chat",
+      "kind": "control",
+      "testid": "vp.send-to-chat",
+      "milestone": "M1",
+      "source": "C§4.1 Interactions; BC0 critic",
+      "text": "An '@' action on the selected part sends it to the composer as a context chip.",
+      "level": "required"
+    },
+    {
+      "id": "01.vp.internals",
+      "kind": "render",
+      "testid": "viewport",
+      "milestone": "M3",
+      "source": "C§4.1 Viewport toolbar; BC0 critic",
+      "text": "Enabling 'Show internals' reveals internal parts (parachute, electronics) through the airframe.",
+      "level": "required"
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+name = "Recovery test"
+description = "Low class A hop; the flight computer deploys the streamer at apogee"
+
+[motors.motor_casing]
+motor = "generic:RW_A8G"
+delay = "3 s"
+
+[deploy.chute]
+event = "never"
+
+[deploy.streamer]
+event = "apogee"

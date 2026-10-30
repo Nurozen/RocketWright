@@ -1,0 +1,89 @@
+{
+  "type": "object",
+  "properties": {
+    "query": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "class": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Impulse class letter."
+    },
+    "diameter": {
+      "anyOf": [
+        {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+            },
+            {
+              "const": 0
+            }
+          ],
+          "x-unit-dimension": "length",
+          "x-expr": true
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "min_impulse": {
+      "anyOf": [
+        {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+            },
+            {
+              "const": 0
+            }
+          ],
+          "x-unit-dimension": "impulse",
+          "x-expr": true
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "max_impulse": {
+      "anyOf": [
+        {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+            },
+            {
+              "const": 0
+            }
+          ],
+          "x-unit-dimension": "impulse",
+          "x-expr": true
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "limit": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "uint32",
+      "minimum": 0
+    }
+  },
+  "title": "MotorSearchIn",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rocketwright.dev/schema/1/tools/motor_search.input.json"
+}

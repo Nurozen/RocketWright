@@ -1,0 +1,12 @@
+{
+  "provenance": "contract-fixture",
+  "type": "job-info",
+  "payload": {
+    "job_id": "job-0007",
+    "kind": "simulate",
+    "state": "running",
+    "progress": 0.42,
+    "sim": "baseline",
+    "run_id": "f8eb21388e28"
+  }
+}

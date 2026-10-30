@@ -1,0 +1,16 @@
+{
+  "kind": "provenance",
+  "schema": "rw/1",
+  "case": 2,
+  "source_example": "3D printable nose cone and fins.ork",
+  "openrocket_version": "26.xx-SNAPSHOT+591c5e5f7b73",
+  "harness_commit": "f7274c1f27676a3e4226b0278a473545c9184d27",
+  "generic_motor": "RW_C6G",
+  "files": {
+    "case2-generic.json": "b8b7032e472b936598253d202a84d5122f02387086691a7513cad6997ad0cbfd",
+    "case2-generic.series.json": "865efba81c8c61c9aa0b13d22c24e3b0807f5f16ff8423516c9693299dbec322",
+    "case2-original.json": "02704249e16885b0928e35c2bb921b3b120d591c386ceb636a74736a8bb102ea",
+    "case2.aero_sweep.json": "9809aceedbd8a9810da8d91527f632d73c4550c38bc1ed666af676bbeadd51dd",
+    "case2.geometry.json": "b43024eabd29d3f50af7d31ecd22f27624a4c94a92f7c4f61630c8d002a156cd"
+  }
+}

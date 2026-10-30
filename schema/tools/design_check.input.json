@@ -1,0 +1,50 @@
+{
+  "type": "object",
+  "properties": {
+    "config": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "variant": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "set": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "description": "`--set path=value` overrides (not written)."
+    },
+    "strict": {
+      "type": "boolean",
+      "description": "Warnings fail (D18).",
+      "default": false
+    },
+    "sim": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CheckSimMode"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "title": "DesignCheckIn",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rocketwright.dev/schema/1/tools/design_check.input.json",
+  "$defs": {
+    "CheckSimMode": {
+      "type": "string",
+      "enum": [
+        "quick"
+      ]
+    }
+  }
+}
