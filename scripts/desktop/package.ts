@@ -140,7 +140,7 @@ writeFileSync(
       version,
       description: "Agent-driven rocket design and simulation",
       homepage: "https://github.com/Nurozen/RocketWright",
-      author: { name: "RocketWright contributors" },
+      author: { name: "Cloud Gatherer Labs LLC" },
       license: "AGPL-3.0-or-later",
       private: true,
       type: "module",
@@ -235,7 +235,7 @@ const icon = join(ROOT, "app/apps/desktop/assets/app-icon-1024.png");
 const config: Record<string, unknown> = {
   appId: APP_ID,
   productName: PRODUCT,
-  copyright: "Copyright (C) 2026 The RocketWright Authors. AGPL-3.0-or-later.",
+  copyright: "Copyright (C) 2026 Cloud Gatherer Labs LLC. AGPL-3.0-or-later.",
   artifactName: `${PRODUCT}-\${version}-\${os}-\${arch}.\${ext}`,
   directories: { output: out, buildResources: join(stage, "build-resources") },
   electronDist,
