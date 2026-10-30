@@ -338,6 +338,17 @@ the Baseline and Higher altitude runs; Recovery test Not run) and checks the
 result against `seed.expected.json` (`scripts/fixtures/seed.ts`: titles,
 origins, times, revision, run statuses, hash relationships; no physics numbers).
 
+## Network (the ThrustCurve client)
+
+RocketWright makes no network calls except the ThrustCurve search and
+download a user asks for (`crates/rw-cli/src/thrustcurve.rs`: ureq with
+rustls, ring, and the OS certificate verifier; 10 s connect and 30 s request
+timeouts). `RW_THRUSTCURVE_URL` points it at another endpoint (the Rust tests
+run a local mock of the API; `crates/rw-cli/tests/thrustcurve.rs`).
+`RW_OFFLINE=1`, which the test harnesses and docs-check set, refuses every
+endpoint but a loopback one, so no gate reaches thrustcurve.org. Never commit
+a downloaded file (`docs/dev/clean-room.md`, Data).
+
 ## Purity (invariant I5)
 
 The root `clippy.toml` disallows filesystem, clock, thread, and RNG calls.

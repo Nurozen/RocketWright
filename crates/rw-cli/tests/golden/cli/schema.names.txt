@@ -86,3 +86,7 @@ tools/engine_simulate.input
 tools/engine_simulate.output
 tools/cfd_import.input
 tools/cfd_import.output
+tools/thrustcurve_search.input
+tools/thrustcurve_search.output
+tools/thrustcurve_fetch.input
+tools/thrustcurve_fetch.output

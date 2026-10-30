@@ -1,0 +1,10 @@
+{
+  "provenance": "contract-fixture",
+  "type": "tools/thrustcurve_search.input",
+  "payload": {
+    "query": "C6",
+    "diameter": "18 mm",
+    "impulse_class": "C",
+    "limit": 20
+  }
+}

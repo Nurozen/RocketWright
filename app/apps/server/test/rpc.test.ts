@@ -131,6 +131,11 @@ describe("app server RPC (M1.45)", () => {
     expect(Array.isArray((await c.call("library.search", { projectId: pid, kind: "preset" })).items)).toBe(true);
     expect(await c.request("library.search", { projectId: pid, kind: "bogus" as never })).toMatchObject({ ok: false, error: { code: "invalid_params" } });
     expect(await c.request("library.search", { projectId: pid, limit: 0 })).toMatchObject({ ok: false, error: { code: "invalid_params" } });
+    // ThrustCurve params are checked before any sidecar (network) call.
+    expect(await c.request("motor.thrustcurveSearch", { projectId: pid, limit: 0 })).toMatchObject({ ok: false, error: { code: "invalid_params" } });
+    expect(await c.request("motor.thrustcurveSearch", { projectId: pid, query: 7 as never })).toMatchObject({ ok: false, error: { code: "invalid_params" } });
+    expect(await c.request("motor.thrustcurveFetch", { projectId: pid, motor: "" })).toMatchObject({ ok: false, error: { code: "invalid_params" } });
+    expect(await c.request("motor.thrustcurveFetch", { projectId: pid, motor: "C6", format: "zip" as never })).toMatchObject({ ok: false, error: { code: "invalid_params" } });
   });
 
   it("sim.run tracks the job via job_status to a terminal state, then refreshes runs", async () => {

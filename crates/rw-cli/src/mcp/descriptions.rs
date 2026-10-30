@@ -148,6 +148,18 @@ fn when(name: &str) -> &'static str {
              scalar columns; one file per step <prefix>_t<s>.csv, or a directory of them) into \
              runs/cfd.<id>/ with provenance cfd, for page 06 Imported CFD. Display only. Needs approval."
         }
+        "thrustcurve_search" => {
+            "Search thrustcurve.org for motors by designation or common name (C6, Estes C6), \
+             manufacturer, diameter, and impulse class. Network: use only when the user asks for \
+             ThrustCurve or for a motor the built-in library lacks. Read only; returns motor ids for \
+             the thrustcurve_fetch tool."
+        }
+        "thrustcurve_fetch" => {
+            "Download one motor's data file (.eng or .rse) from thrustcurve.org into lib/motors/, \
+             recording its sha256 and source under rocketwright.toml [lib]; returns lib: motor refs to \
+             assign. Network; needs the user's approval. Pass a motor id from the thrustcurve_search \
+             tool, or a designation that matches one motor."
+        }
         _ => "",
     }
 }

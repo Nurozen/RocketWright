@@ -15,7 +15,9 @@ the model's arithmetic.
   margin, clearance and recovery rules, stable diagnostic codes.
 - **Flight simulation**: rail, 3DOF, and 6DOF rigid-body flight with variable
   mass, recovery events, wind, a built-in generic motor library that works
-  offline, and run caching with provenance.
+  offline, optional search and download of real motors from
+  [ThrustCurve](https://www.thrustcurve.org) when you ask for it, and run
+  caching with provenance.
 - **Liquid engines**: chamber, nozzle, and injector sizing, feed budget and
   tank blowdown from shipped NASA CEA tables, or native CEA for any CEA
   species (for example `"N2O(L)"`/`"IPA(L)"`).
@@ -49,7 +51,9 @@ rail-button drag model rests on an assumed boundary-layer profile
 ([`docs/dev/parity-log.md`](docs/dev/parity-log.md)); release builds of the desktop app are unsigned until the
 signing secrets are configured ([`docs/dev/releasing.md`](docs/dev/releasing.md));
 and there is no Monte Carlo (a non-goal: every simulation is one deterministic
-flight).
+flight). RocketWright works offline; the only network access is a ThrustCurve
+motor search or download that you start (`rw motor thrustcurve`, or Search
+ThrustCurve in the motor picker).
 
 ## Prerequisites
 

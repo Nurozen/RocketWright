@@ -105,6 +105,10 @@ tokio = { version = "1.53.3", features = ["macros", "rt-multi-thread", "io-std",
 anyhow = "1.0.104"
 base64 = "0.23.1" # MCP image content (render PNGs)
 libc = "0.2.190" # flock-free pid liveness probe for `.rw/lock` (rw-project)
+# The opt-in ThrustCurve search/download (rw-cli only; the one network client).
+# rustls with ring and the platform verifier: no bundled root store.
+ureq = { version = "3.4.2", default-features = false, features = ["rustls-no-provider", "platform-verifier"] }
+rustls = { version = "0.23.45", default-features = false, features = ["ring", "std", "tls12", "logging"] }
 
 # dev / oracle only (never in pure crates' normal deps)
 ode_solvers = "0.6.2" # integrator cross-check (pulls nalgebra 0.34)

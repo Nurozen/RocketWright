@@ -96,6 +96,10 @@ pub const PURE_FORBIDDEN_DEPS: &[&str] = &[
     "notify",
     "gix",
     "rmcp",
+    // network: the opt-in ThrustCurve client lives in rw-cli only
+    "ureq",
+    "rustls",
+    "ring",
 ];
 
 /// Always-on denylist entries (package roots), built so this file does not

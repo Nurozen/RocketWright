@@ -11,7 +11,7 @@
 use std::path::Path;
 
 use rw_api::{ApiError, ApiErrorCode, CallCtx, FileChange, FileStatus, ImportOut};
-use rw_model::PatchOp;
+use rw_model::{LibSource, PatchOp};
 
 use super::{Session, err, io_err, lib_hash_map, with_hint};
 use crate::fsutil;
@@ -36,7 +36,23 @@ impl Session {
             .file_name()
             .map(|n| n.to_string_lossy().into_owned())
             .unwrap_or_default();
-        let plan = plan_motor_import(&file_name, &bytes).map_err(|d| {
+        self.import_motor_bytes(&file_name, bytes, None, dry_run, ctx)
+            .map(|(out, _)| out)
+    }
+
+    /// Imports one motor file's bytes as `file_name` (sanitized), recording
+    /// `source` under `[lib.source]` when given (a download the front end
+    /// made: the session itself never touches the network). Returns the
+    /// outcome and the saved project-relative path.
+    pub fn import_motor_bytes(
+        &mut self,
+        file_name: &str,
+        bytes: Vec<u8>,
+        source: Option<LibSource>,
+        dry_run: bool,
+        ctx: &CallCtx,
+    ) -> Result<(ImportOut, String), ApiError> {
+        let plan = plan_motor_import(file_name, &bytes).map_err(|d| {
             let mut e = err(ApiErrorCode::InvalidInput, d.message.clone());
             e.hint = d.hint.clone();
             e.diagnostics = vec![*d];
@@ -66,6 +82,9 @@ impl Session {
             .cloned()
             .unwrap_or_default();
         lib.sha256.insert(plan.path.clone(), plan.sha256.clone());
+        if let Some(src) = source {
+            lib.source.insert(plan.path.clone(), src);
+        }
         let value =
             serde_json::to_value(&lib).map_err(|e| err(ApiErrorCode::Internal, e.to_string()))?;
         let ops = [PatchOp::Add {
@@ -115,10 +134,13 @@ impl Session {
         if let Some(f) = added {
             mutation.files.insert(0, f);
         }
-        Ok(ImportOut {
-            mutation,
-            imported: plan.refs(),
-            diagnostics: Vec::new(),
-        })
+        Ok((
+            ImportOut {
+                mutation,
+                imported: plan.refs(),
+                diagnostics: Vec::new(),
+            },
+            plan.path,
+        ))
     }
 }

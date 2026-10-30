@@ -4,11 +4,12 @@
 
 Every finding of `rw check` carries a stable code, a JSON-pointer `path`
 into the model, a message, and usually a `hint` saying what to change.
-Code ranges: E000-049 parse, units, expressions; E050-099 anchors,
-containment, and component values; E100-149 aero and stability; E150-199
-clearance and fit; W001-099 model warnings; W100-149 motor; W150-199
-clearance advisories. `rw check` exits 1 on any error or failed
-`[[assert]]`, and with `--strict` also on any warning.
+Code ranges: E000-049 parse, units, expressions, and files (E015-019
+are the errors of a ThrustCurve search or download you asked for);
+E050-099 anchors, containment, and component values; E100-149 aero and
+stability; E150-199 clearance and fit; W001-099 model warnings; W100-149
+motor; W150-199 clearance advisories. `rw check` exits 1 on any error or
+failed `[[assert]]`, and with `--strict` also on any warning.
 
 | Code | Slug | Severity | Meaning |
 |---|---|---|---|
@@ -25,6 +26,9 @@ clearance advisories. `rw check` exits 1 on any error or failed
 | `RW-E012` | `param-not-a-choice` | error | A param value is not one of its `choices`. |
 | `RW-E013` | `param-dimension` | error | A param's `min`, `max`, `step`, or `choices` differ in dimension from its value. |
 | `RW-E014` | `unknown-variant` | error | The selected variant is not defined under `[variants]`. |
+| `RW-E015` | `thrustcurve-unreachable` | error | A ThrustCurve search or download the user asked for could not reach thrustcurve.org (offline, timed out, or the server answered with an error); nothing was written. |
+| `RW-E016` | `thrustcurve-not-found` | error | ThrustCurve has no motor matching the request, or the motor has no data file in the requested format. |
+| `RW-E017` | `thrustcurve-ambiguous` | error | A designation matches several ThrustCurve motors; pass the motor id or a manufacturer. |
 | `RW-E020` | `quantity-syntax` | error | A quantity cannot be parsed. |
 | `RW-E021` | `unit-missing` | error | A bare number on a dimensional field (only `0` may omit the unit). |
 | `RW-E022` | `unknown-unit` | error | The unit symbol is not in the unit table. |

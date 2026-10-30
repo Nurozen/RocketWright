@@ -38,6 +38,7 @@ import {
   renameOps,
   uniqueId,
 } from "./model.ts";
+import { criteriaFromFilters, hasCriteria, mergeCurves, thrustcurveRow } from "./thrustcurve.ts";
 
 const repo = new URL("../../../../../../", import.meta.url);
 const fixture = <T,>(name: string): T => (JSON.parse(readFileSync(new URL(`fixtures/contracts/${name}.json`, repo), "utf8")) as { payload: T }).payload;
@@ -116,6 +117,31 @@ describe("motors", () => {
     expect(filterMotors(MOTORS, { ...f, diameter: "18 mm" }).map((m) => m.designation)).toEqual(["RW_A8G", "RW_B4G"]);
     expect(filterMotors(MOTORS, { ...f, query: "b4" }).map((m) => m.designation)).toEqual(["RW_B4G"]);
     expect(filterMotors(MOTORS, { ...f, impulseClass: "D" }).map(motorRef)).toEqual(["generic:RW_D10G"]);
+  });
+
+  it("refs a downloaded library curve as lib:<path>#<designation>", () => {
+    const lib = { ...curve("C6", "C", 0.018, 8.8), manufacturer: "Estes", source: { kind: "library", path: "lib/motors/Estes_C6.eng" } } as schema.ThrustCurve;
+    expect(motorRef(lib)).toBe("lib:motors/Estes_C6.eng#C6");
+    expect(filterOptions([...MOTORS, lib]).manufacturer).toEqual([ALL, "Estes", "Generic"]);
+  });
+
+  it("Search ThrustCurve starts from the picker's search text and filters, never sending All or Generic", () => {
+    const f = { query: "", diameter: ALL, manufacturer: ALL, impulseClass: ALL };
+    expect(criteriaFromFilters(f)).toEqual({});
+    expect(hasCriteria(criteriaFromFilters(f))).toBe(false);
+    expect(criteriaFromFilters({ query: " c6 ", diameter: "18 mm", manufacturer: "Generic", impulseClass: "C" })).toEqual({ query: "c6", diameter: "18 mm", impulse_class: "C" });
+    expect(criteriaFromFilters({ ...f, manufacturer: "Estes" })).toEqual({ manufacturer: "Estes" });
+    expect(hasCriteria({ diameter: "18 mm" })).toBe(true);
+  });
+
+  it("formats ThrustCurve rows and merges downloaded curves into the library list", () => {
+    const m = { motor_id: "a", manufacturer: "Estes", designation: "C6", impulse_class: "C", diameter: 0.018, total_impulse: 8.82, burn_time: 1.86, data_files: 2 };
+    expect(thrustcurveRow(m)).toEqual({ title: "Estes C6", detail: "18 mm · C · 8.82 N·s · 1.86 s burn" });
+    expect(thrustcurveRow({ motor_id: "b", manufacturer: "X", designation: "Y", data_files: 0 }).detail).toBe("— · — · — · — burn");
+    const lib = { ...curve("C6", "C", 0.018, 8.8), source: { kind: "library", path: "lib/motors/Estes_C6.eng" } } as schema.ThrustCurve;
+    const merged = mergeCurves(MOTORS, [lib]);
+    expect(merged.map(motorRef)).toEqual(["generic:RW_A8G", "generic:RW_B4G", "generic:RW_D10G", "lib:motors/Estes_C6.eng#C6"]);
+    expect(mergeCurves(merged, [{ ...lib, total_impulse: 9 }]).filter((c) => motorRef(c) === "lib:motors/Estes_C6.eng#C6").map((c) => c.total_impulse)).toEqual([9]);
   });
 
   it("picks round axis ticks", () => {

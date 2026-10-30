@@ -73,7 +73,12 @@ Put rustup's cargo first (`export PATH="$HOME/.cargo/bin:$PATH"`); Homebrew's
 - **Deterministic output.** Reports and run records are byte-stable: sorted
   keys and fixed precision.
 - **Offline.** No network at runtime; motor library and thermo tables ship
-  with the binary. Network access is opt-in test tooling only.
+  with the binary. The one exception is the ThrustCurve search and download
+  the user explicitly asks for (`rw motor thrustcurve`, the
+  `thrustcurve_search`/`thrustcurve_fetch` tools, Search ThrustCurve in the
+  motor picker); its client lives in `rw-cli` (`src/thrustcurve.rs`), never in
+  the session or a pure crate. Downloaded files are the user's, never
+  bundled or committed. Other network access is opt-in test tooling only.
 - **Stable diagnostics.** Diagnostic codes keep their meaning; new ones go in
   their documented range.
 - **Never the user's repo.** History lives in `.rw/`, never in the user's git

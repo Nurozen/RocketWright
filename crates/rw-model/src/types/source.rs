@@ -61,6 +61,28 @@ pub struct LibManifest {
     /// Project-relative path → sha256 hex.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub sha256: BTreeMap<String, String>,
+    /// Project-relative path → where a downloaded file came from
+    /// (`rw motor thrustcurve fetch`). Files copied from disk have none.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub source: BTreeMap<String, LibSource>,
+}
+
+/// `[lib.source."<path>"]`: the provenance of a library file the user
+/// downloaded on request (never bundled with RocketWright).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+pub struct LibSource {
+    /// Where it came from: `thrustcurve` (thrustcurve.org).
+    pub origin: String,
+    /// ThrustCurve motor id (24 hex digits).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub motor_id: Option<String>,
+    /// ThrustCurve data file (simfile) id.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub simfile_id: Option<String>,
+    /// The data file's page at the source.
+    pub url: String,
+    /// When it was downloaded (RFC 3339 UTC).
+    pub downloaded: String,
 }
 
 /// `rocket.rw.toml` (also `parts/*.rw.toml`): params, components, materials,

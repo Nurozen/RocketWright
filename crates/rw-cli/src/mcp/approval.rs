@@ -12,7 +12,8 @@
 //! `policy.ts` (`requiresApproval`, `reason`, `largeJobOrNetworkReason`),
 //! which B17 removed with the old chat engine; this is now the only copy.
 //! They are keyed off [`CommandDef::approval`]:
-//! - `always` tools ask (`import_file`, `export_file`, `cfd_import`);
+//! - `always` tools ask (`import_file`, `export_file`, `cfd_import`,
+//!   `thrustcurve_fetch`, whose reason names the motor and the network host);
 //! - `conditional` tools ask for a network URL anywhere in the arguments
 //!   (any `scheme://` string except `rw://`), or for an `engine_simulate`
 //!   duration that is missing (the engine's default, `DesignOptions::
@@ -137,6 +138,9 @@ fn always_reason(tool: &str, args: &Value) -> String {
     if let Some(url) = network_target(args) {
         return network_reason(url);
     }
+    if tool == "thrustcurve_fetch" {
+        return thrustcurve_reason(args);
+    }
     let what = action(tool);
     let path = args.get("path").and_then(Value::as_str);
     match path {
@@ -148,13 +152,40 @@ fn always_reason(tool: &str, args: &Value) -> String {
     }
 }
 
+/// `Download Estes C6 from www.thrustcurve.org`: the motor and the host the
+/// call will reach (the configured ThrustCurve endpoint).
+fn thrustcurve_reason(args: &Value) -> String {
+    let motor = args
+        .get("motor")
+        .and_then(Value::as_str)
+        .unwrap_or("")
+        .trim();
+    let maker = args
+        .get("manufacturer")
+        .and_then(Value::as_str)
+        .unwrap_or("")
+        .trim();
+    let mut what = if maker.is_empty() {
+        motor.to_owned()
+    } else {
+        format!("{maker} {motor}")
+    };
+    if what.chars().count() > 26 {
+        what = what.chars().take(25).collect::<String>() + "\u{2026}";
+    }
+    if what.is_empty() {
+        what = "a motor".into();
+    }
+    format!("Download {what} from {}", crate::thrustcurve::host())
+}
+
 fn network_reason(url: &str) -> String {
     format!("Network access to {}", url_host(url))
 }
 
 /// The URL's host (authority without user info); the URL itself when it
 /// has none (`file:///x`).
-fn url_host(url: &str) -> &str {
+pub(crate) fn url_host(url: &str) -> &str {
     let rest = url.split_once("://").map_or(url, |(_, r)| r);
     let authority = rest.split(['/', '?', '#']).next().unwrap_or_default();
     let host = authority.rsplit_once('@').map_or(authority, |(_, h)| h);

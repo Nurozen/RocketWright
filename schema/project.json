@@ -71,9 +71,53 @@
             "type": "string"
           },
           "description": "Project-relative path → sha256 hex."
+        },
+        "source": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/LibSource"
+          },
+          "description": "Project-relative path → where a downloaded file came from\n(`rw motor thrustcurve fetch`). Files copied from disk have none."
         }
       },
       "description": "`[lib]`: project library paths and the sha256 of every file under `lib/`."
+    },
+    "LibSource": {
+      "type": "object",
+      "properties": {
+        "origin": {
+          "type": "string",
+          "description": "Where it came from: `thrustcurve` (thrustcurve.org)."
+        },
+        "motor_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "ThrustCurve motor id (24 hex digits)."
+        },
+        "simfile_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "ThrustCurve data file (simfile) id."
+        },
+        "url": {
+          "type": "string",
+          "description": "The data file's page at the source."
+        },
+        "downloaded": {
+          "type": "string",
+          "description": "When it was downloaded (RFC 3339 UTC)."
+        }
+      },
+      "required": [
+        "origin",
+        "url",
+        "downloaded"
+      ],
+      "description": "`[lib.source.\"<path>\"]`: the provenance of a library file the user\ndownloaded on request (never bundled with RocketWright)."
     }
   }
 }

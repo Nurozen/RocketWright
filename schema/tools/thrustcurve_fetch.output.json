@@ -1,0 +1,596 @@
+{
+  "type": "object",
+  "properties": {
+    "step": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Recorded step (`None` for dry runs and edits that change nothing, D3)."
+    },
+    "model_hash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "dry_run": {
+      "type": "boolean"
+    },
+    "files": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/FileChange"
+      }
+    },
+    "delta": {
+      "$ref": "#/$defs/CheckDelta"
+    },
+    "imported": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Motor refs of the saved file (`lib:motors/Estes_C6.eng#C6`)."
+    },
+    "path": {
+      "type": "string",
+      "description": "The saved file, project-relative (`lib/motors/Estes_C6.eng`)."
+    },
+    "motor": {
+      "$ref": "#/$defs/ThrustcurveMotor"
+    },
+    "source": {
+      "$ref": "#/$defs/LibSource",
+      "description": "What `rocketwright.toml [lib.source]` records for the file."
+    },
+    "curves": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ThrustCurve"
+      },
+      "description": "The file's thrust curves, as the library reads them."
+    }
+  },
+  "required": [
+    "model_hash",
+    "dry_run",
+    "files",
+    "delta",
+    "imported",
+    "path",
+    "motor",
+    "source",
+    "curves"
+  ],
+  "description": "Output of every mutating tool (S:86).",
+  "title": "ThrustcurveFetchOut",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rocketwright.dev/schema/1/tools/thrustcurve_fetch.output.json",
+  "$defs": {
+    "FileChange": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/FileStatus"
+        }
+      },
+      "required": [
+        "path",
+        "status"
+      ]
+    },
+    "FileStatus": {
+      "type": "string",
+      "enum": [
+        "A",
+        "M",
+        "D"
+      ]
+    },
+    "CheckDelta": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "$ref": "#/$defs/CheckStatus"
+        },
+        "model_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "step": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The history step this mutation recorded; `None` for dry runs and no-op edits."
+        },
+        "changed": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "description": "Metric path → `[before, after]` (SI); `null` when absent on one side."
+        },
+        "new_diagnostics": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Diagnostic"
+          }
+        },
+        "resolved_diagnostics": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "`<code>@<path>` keys of diagnostics that went away."
+        }
+      },
+      "required": [
+        "status",
+        "model_hash",
+        "changed",
+        "new_diagnostics",
+        "resolved_diagnostics"
+      ],
+      "description": "The post-edit check delta every mutating tool returns (S:86, I6; DA:118-123):\n\n```json\n{\"status\":\"warnings\",\"model_hash\":\"…\",\"step\":\"s0004\",\n \"changed\":{\"stability.liftoff\":[1.42,1.18],\"mass.liftoff\":[0.512,0.498]},\n \"new_diagnostics\":[{\"code\":\"RW-E101\",\"severity\":\"error\",\"path\":\"/c/fins/span\",\"message\":\"…\",\"hint\":\"…\"}],\n \"resolved_diagnostics\":[\"RW-W012@/c/body\"]}\n```"
+    },
+    "CheckStatus": {
+      "type": "string",
+      "enum": [
+        "errors",
+        "warnings",
+        "clean"
+      ],
+      "description": "Overall status: `errors` if any error diagnostic or failed error-severity\nassertion, else `warnings` if any warning, else `clean`."
+    },
+    "Diagnostic": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string",
+          "description": "Stable code, e.g. `RW-E021`.",
+          "pattern": "^RW-[EWI][0-9]{3}$"
+        },
+        "severity": {
+          "$ref": "#/$defs/Severity"
+        },
+        "path": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "JSON pointer into the source model, e.g. `/c/fins/span`."
+        },
+        "file": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Project-relative file."
+        },
+        "line": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "minimum": 0
+        },
+        "col": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "minimum": 0
+        },
+        "message": {
+          "type": "string"
+        },
+        "hint": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Next action for an agent."
+        }
+      },
+      "required": [
+        "code",
+        "severity",
+        "message"
+      ],
+      "description": "One finding, phrased for an agent (`hint` says what to do next)."
+    },
+    "Severity": {
+      "type": "string",
+      "enum": [
+        "error",
+        "warning",
+        "info"
+      ]
+    },
+    "ThrustcurveMotor": {
+      "type": "object",
+      "properties": {
+        "motor_id": {
+          "type": "string",
+          "description": "ThrustCurve motor id (24 hex digits); `thrustcurve_fetch` takes it."
+        },
+        "manufacturer": {
+          "type": "string",
+          "description": "Manufacturer abbreviation (`Estes`)."
+        },
+        "designation": {
+          "type": "string",
+          "description": "Designation (`C6`)."
+        },
+        "common_name": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Common name (`C6`)."
+        },
+        "impulse_class": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Impulse class letter."
+        },
+        "diameter": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "length": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "total_impulse": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "x-unit-dimension": "impulse"
+        },
+        "average_thrust": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "x-unit-dimension": "force"
+        },
+        "burn_time": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "x-unit-dimension": "time"
+        },
+        "motor_type": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "`SU`, `reload`, or `hybrid`."
+        },
+        "delays": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Delays as ThrustCurve lists them (`0,3,5,7`)."
+        },
+        "availability": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "`regular`, `occasional`, or `OOP` (out of production)."
+        },
+        "data_files": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0,
+          "description": "Number of data files ThrustCurve holds for the motor."
+        }
+      },
+      "required": [
+        "motor_id",
+        "manufacturer",
+        "designation",
+        "data_files"
+      ],
+      "description": "One ThrustCurve motor (SI units)."
+    },
+    "LibSource": {
+      "type": "object",
+      "properties": {
+        "origin": {
+          "type": "string",
+          "description": "Where it came from: `thrustcurve` (thrustcurve.org)."
+        },
+        "motor_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "ThrustCurve motor id (24 hex digits)."
+        },
+        "simfile_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "ThrustCurve data file (simfile) id."
+        },
+        "url": {
+          "type": "string",
+          "description": "The data file's page at the source."
+        },
+        "downloaded": {
+          "type": "string",
+          "description": "When it was downloaded (RFC 3339 UTC)."
+        }
+      },
+      "required": [
+        "origin",
+        "url",
+        "downloaded"
+      ],
+      "description": "`[lib.source.\"<path>\"]`: the provenance of a library file the user\ndownloaded on request (never bundled with RocketWright)."
+    },
+    "ThrustCurve": {
+      "type": "object",
+      "properties": {
+        "designation": {
+          "type": "string",
+          "description": "Designation, e.g. `C6`."
+        },
+        "manufacturer": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "class": {
+          "type": "string",
+          "description": "Impulse class letter (`A`..`O`).",
+          "pattern": "^[1-9]?/?[0-9]*[A-O]$"
+        },
+        "diameter": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "length": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "delays": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "description": "Available ejection delays; empty = plugged only.",
+          "x-unit-dimension": "time"
+        },
+        "prop_mass": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "mass"
+        },
+        "total_mass": {
+          "type": "number",
+          "format": "double",
+          "description": "Total loaded mass at ignition.",
+          "x-unit-dimension": "mass"
+        },
+        "total_impulse": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "impulse"
+        },
+        "burn_time": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "time"
+        },
+        "average_thrust": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "force"
+        },
+        "max_thrust": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "force"
+        },
+        "points": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ThrustPoint"
+          },
+          "description": "Samples, `t` ascending, starting at `t = 0`."
+        },
+        "sha256": {
+          "type": "string",
+          "description": "sha256 hex of the source file bytes (the motor digest).",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "source": {
+          "$ref": "#/$defs/MotorSource"
+        }
+      },
+      "required": [
+        "designation",
+        "class",
+        "diameter",
+        "length",
+        "delays",
+        "prop_mass",
+        "total_mass",
+        "total_impulse",
+        "burn_time",
+        "average_thrust",
+        "max_thrust",
+        "points",
+        "sha256",
+        "source"
+      ],
+      "description": "A solid motor's thrust curve plus its header data."
+    },
+    "ThrustPoint": {
+      "type": "object",
+      "properties": {
+        "t": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "time"
+        },
+        "thrust": {
+          "type": "number",
+          "format": "double",
+          "x-unit-dimension": "force"
+        },
+        "mass": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "description": "Total motor mass at `t` (`.rse` only).",
+          "x-unit-dimension": "mass"
+        },
+        "cg": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "description": "CG from the motor's fore end (`.rse` only).",
+          "x-unit-dimension": "length"
+        }
+      },
+      "required": [
+        "t",
+        "thrust"
+      ]
+    },
+    "MotorSource": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "generic"
+            },
+            "id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "id"
+          ],
+          "description": "Built-in RocketWright generic curve (`lib/motors/generic/`), e.g. `RW_C6G`."
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "library"
+            },
+            "path": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "path"
+          ],
+          "description": "A project `lib/motors/` file with its recorded sha256."
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "embedded"
+            },
+            "origin": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "origin"
+          ],
+          "description": "Embedded in an imported file (e.g. an `.rse` inside an `.ork`)."
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "thrustcurve"
+            },
+            "motor_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "motor_id"
+          ],
+          "description": "ThrustCurve.org download in the gitignored cache (parity only)."
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "liquid"
+            },
+            "engine": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "engine"
+          ],
+          "description": "Generated by a liquid engine design (`engines/<id>.rw.toml`)."
+        }
+      ],
+      "description": "Where a curve came from (motor provenance; never OR-DB curves, S:31)."
+    }
+  }
+}

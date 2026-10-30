@@ -52,6 +52,7 @@ export const RW_LECTURN_INSTRUCTIONS = [
   "- rw: refs (rw:c/fins, rw:run/<id>) name components, configs, sims, runs, and steps. Mentioned refs arrive as chips in the user's message; read their current values with rw_model_get before relying on them.",
   "- rw_simulate returns a job_id; poll rw_job_status until it is complete or failed. rw_engine_simulate returns the finished run.",
   "- Imports, exports, network fetches, and large jobs may need the user's approval. If a call is refused or not approved, do not retry it unless the user asks.",
+  "- The motor library is built in and works offline. Only when the user asks for ThrustCurve, or for a real motor the library lacks, search thrustcurve.org with rw_thrustcurve_search, then download one motor file into lib/motors with rw_thrustcurve_fetch (it needs the user's approval). Assign its lib: ref and check. Never reach the network otherwise.",
 ].join("\n");
 
 /** `data:image/png;base64,…` of `path`; throws unless it is a PNG of at most 64 KB. */

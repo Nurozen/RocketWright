@@ -87,6 +87,11 @@ pub fn execute_session(
         return Err(ApiError::not_implemented(name));
     }
     match cmd {
+        Command::ThrustcurveSearch(i) => to_json(crate::thrustcurve::search(i)?),
+        Command::ThrustcurveFetch(i) => {
+            let dl = crate::thrustcurve::download(i)?;
+            to_json(crate::thrustcurve::save(s, i, dl, ctx)?)
+        }
         Command::Render(i) => {
             let out = crate::render::render(s, i)?;
             serde_json::to_value(out).map_err(|e| ApiError {
@@ -125,6 +130,16 @@ pub fn execute_session(
     }
 }
 
+fn to_json<T: serde::Serialize>(v: T) -> Result<Value, ApiError> {
+    serde_json::to_value(v).map_err(|e| ApiError {
+        outcome: None,
+        code: ApiErrorCode::Internal,
+        message: e.to_string(),
+        hint: None,
+        diagnostics: Vec::new(),
+    })
+}
+
 /// The answer of a tool that needs a project on a sidecar without one.
 pub fn no_project(name: &str) -> ApiError {
     ApiError {
@@ -158,11 +173,24 @@ pub fn execute(
         return Err(ApiError::not_implemented(name));
     }
     if let Some(s) = session {
-        return execute_session(&mut lock(s), cmd, ctx);
+        // ThrustCurve: the network round trip runs outside the session lock,
+        // so the window and other calls are not held up while it waits.
+        return match cmd {
+            Command::ThrustcurveSearch(i) => to_json(crate::thrustcurve::search(i)?),
+            Command::ThrustcurveFetch(i) => {
+                let dl = crate::thrustcurve::download(i)?;
+                to_json(crate::thrustcurve::save(&mut lock(s), i, dl, ctx)?)
+            }
+            _ => execute_session(&mut lock(s), cmd, ctx),
+        };
     }
     #[cfg(feature = "doubles")]
     if let Some(v) = super::doubles::payload(&format!("tools/{name}.output")) {
         return Ok(v);
+    }
+    // A search needs no project (a fetch saves into one).
+    if let Command::ThrustcurveSearch(i) = cmd {
+        return to_json(crate::thrustcurve::search(i)?);
     }
     if let Command::SchemaGet(i) = cmd {
         return serde_json::to_value(rw_project::session::schema_get(i.name.as_deref())?)

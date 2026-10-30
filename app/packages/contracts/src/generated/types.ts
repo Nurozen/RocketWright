@@ -633,6 +633,14 @@ export type Command =
   | {
       command: "cfd_import";
       input: CfdImportIn;
+    }
+  | {
+      command: "thrustcurve_search";
+      input: ThrustcurveSearchIn;
+    }
+  | {
+      command: "thrustcurve_fetch";
+      input: ThrustcurveFetchIn;
     };
 
 export interface CompareOut {
@@ -2615,6 +2623,40 @@ export interface LibManifest {
   sha256?: {
     [k: string]: string | undefined;
   };
+  /**
+   * Project-relative path → where a downloaded file came from
+   * (`rw motor thrustcurve fetch`). Files copied from disk have none.
+   */
+  source?: {
+    [k: string]: LibSource | undefined;
+  };
+}
+
+/**
+ * `[lib.source."<path>"]`: the provenance of a library file the user
+ * downloaded on request (never bundled with RocketWright).
+ */
+export interface LibSource {
+  /**
+   * Where it came from: `thrustcurve` (thrustcurve.org).
+   */
+  origin: string;
+  /**
+   * ThrustCurve motor id (24 hex digits).
+   */
+  motor_id?: string | null;
+  /**
+   * ThrustCurve data file (simfile) id.
+   */
+  simfile_id?: string | null;
+  /**
+   * The data file's page at the source.
+   */
+  url: string;
+  /**
+   * When it was downloaded (RFC 3339 UTC).
+   */
+  downloaded: string;
 }
 
 export interface LibrarySearchIn {
@@ -3699,6 +3741,14 @@ export type Response =
   | {
       command: "cfd_import";
       output: CfdImportOut;
+    }
+  | {
+      command: "thrustcurve_search";
+      output: ThrustcurveSearchOut;
+    }
+  | {
+      command: "thrustcurve_fetch";
+      output: ThrustcurveFetchOut;
     };
 
 /**
@@ -4276,6 +4326,148 @@ export interface ThrustPoint {
   cg?: number | null;
 }
 
+/**
+ * Download one motor's data file from thrustcurve.org into `lib/motors/`
+ * (as `import_file` does with a local file), recording its sha256 and its
+ * source under `rocketwright.toml [lib]`.
+ */
+export interface ThrustcurveFetchIn {
+  /**
+   * A ThrustCurve motor id (from `thrustcurve_search`), or a designation
+   * (`C6`, `Estes C6-5`) that matches exactly one motor.
+   */
+  motor: string;
+  /**
+   * Manufacturer, to narrow a designation.
+   */
+  manufacturer?: string | null;
+  format?: ThrustcurveFormat;
+  dry_run?: boolean;
+}
+
+/**
+ * Output of every mutating tool (S:86).
+ */
+export interface ThrustcurveFetchOut {
+  /**
+   * Recorded step (`None` for dry runs and edits that change nothing, D3).
+   */
+  step?: string | null;
+  model_hash: string;
+  dry_run: boolean;
+  files: FileChange[];
+  delta: CheckDelta;
+  /**
+   * Motor refs of the saved file (`lib:motors/Estes_C6.eng#C6`).
+   */
+  imported: string[];
+  /**
+   * The saved file, project-relative (`lib/motors/Estes_C6.eng`).
+   */
+  path: string;
+  motor: ThrustcurveMotor;
+  /**
+   * What `rocketwright.toml [lib.source]` records for the file.
+   */
+  source: LibSource;
+  /**
+   * The file's thrust curves, as the library reads them.
+   */
+  curves: ThrustCurve[];
+}
+
+/**
+ * Simulator file format at ThrustCurve.
+ */
+export type ThrustcurveFormat = "eng" | "rse";
+
+/**
+ * One ThrustCurve motor (SI units).
+ */
+export interface ThrustcurveMotor {
+  /**
+   * ThrustCurve motor id (24 hex digits); `thrustcurve_fetch` takes it.
+   */
+  motor_id: string;
+  /**
+   * Manufacturer abbreviation (`Estes`).
+   */
+  manufacturer: string;
+  /**
+   * Designation (`C6`).
+   */
+  designation: string;
+  /**
+   * Common name (`C6`).
+   */
+  common_name?: string | null;
+  /**
+   * Impulse class letter.
+   */
+  impulse_class?: string | null;
+  diameter?: number | null;
+  length?: number | null;
+  total_impulse?: number | null;
+  average_thrust?: number | null;
+  burn_time?: number | null;
+  /**
+   * `SU`, `reload`, or `hybrid`.
+   */
+  motor_type?: string | null;
+  /**
+   * Delays as ThrustCurve lists them (`0,3,5,7`).
+   */
+  delays?: string | null;
+  /**
+   * `regular`, `occasional`, or `OOP` (out of production).
+   */
+  availability?: string | null;
+  /**
+   * Number of data files ThrustCurve holds for the motor.
+   */
+  data_files: number;
+}
+
+/**
+ * Search thrustcurve.org's motor database. The only network access in
+ * RocketWright, and only when the user asks for it.
+ */
+export interface ThrustcurveSearchIn {
+  /**
+   * Designation or common name (`C6`, `H128W`); a leading word may name
+   * the manufacturer (`Estes C6`). A delay suffix (`C6-5`) is ignored.
+   */
+  query?: string | null;
+  /**
+   * Manufacturer name or abbreviation (`Estes`, `AeroTech`).
+   */
+  manufacturer?: string | null;
+  /**
+   * Motor diameter, e.g. `"18 mm"`.
+   */
+  diameter?: (string | 0) | null;
+  /**
+   * Impulse class letter (`C`).
+   */
+  impulse_class?: string | null;
+  /**
+   * Most motors to return (default 20, at most 100).
+   */
+  limit?: number | null;
+}
+
+export interface ThrustcurveSearchOut {
+  motors: ThrustcurveMotor[];
+  /**
+   * Motors matching every criterion (may exceed `motors.len()`).
+   */
+  matches: number;
+  /**
+   * The host that answered (`www.thrustcurve.org`).
+   */
+  host: string;
+}
+
 export interface Transition {
   shape: NoseShape;
   shape_param?: (number | string) | null;
@@ -4579,4 +4771,8 @@ export type RwContract =
   | EngineDesignOut
   | EngineSimulateIn
   | CfdImportIn
-  | CfdImportOut;
+  | CfdImportOut
+  | ThrustcurveSearchIn
+  | ThrustcurveSearchOut
+  | ThrustcurveFetchIn
+  | ThrustcurveFetchOut;

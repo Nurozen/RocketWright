@@ -599,6 +599,128 @@ pub struct ExportOut {
     pub sha256: String,
 }
 
+// ---- ThrustCurve (opt-in network) -------------------------------------------
+
+/// Search thrustcurve.org's motor database. The only network access in
+/// RocketWright, and only when the user asks for it.
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize, JsonSchema)]
+pub struct ThrustcurveSearchIn {
+    /// Designation or common name (`C6`, `H128W`); a leading word may name
+    /// the manufacturer (`Estes C6`). A delay suffix (`C6-5`) is ignored.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub query: Option<String>,
+    /// Manufacturer name or abbreviation (`Estes`, `AeroTech`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub manufacturer: Option<String>,
+    /// Motor diameter, e.g. `"18 mm"`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub diameter: Option<QLength>,
+    /// Impulse class letter (`C`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(extend("pattern" = "^(1/8A|1/4A|1/2A|[A-Oa-o])$"))]
+    pub impulse_class: Option<String>,
+    /// Most motors to return (default 20, at most 100).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(range(min = 1, max = 100))]
+    pub limit: Option<u32>,
+}
+
+/// One ThrustCurve motor (SI units).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
+pub struct ThrustcurveMotor {
+    /// ThrustCurve motor id (24 hex digits); `thrustcurve_fetch` takes it.
+    pub motor_id: String,
+    /// Manufacturer abbreviation (`Estes`).
+    pub manufacturer: String,
+    /// Designation (`C6`).
+    pub designation: String,
+    /// Common name (`C6`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub common_name: Option<String>,
+    /// Impulse class letter.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub impulse_class: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(extend("x-unit-dimension" = "length"))]
+    pub diameter: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(extend("x-unit-dimension" = "length"))]
+    pub length: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(extend("x-unit-dimension" = "impulse"))]
+    pub total_impulse: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(extend("x-unit-dimension" = "force"))]
+    pub average_thrust: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(extend("x-unit-dimension" = "time"))]
+    pub burn_time: Option<f64>,
+    /// `SU`, `reload`, or `hybrid`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub motor_type: Option<String>,
+    /// Delays as ThrustCurve lists them (`0,3,5,7`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub delays: Option<String>,
+    /// `regular`, `occasional`, or `OOP` (out of production).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub availability: Option<String>,
+    /// Number of data files ThrustCurve holds for the motor.
+    pub data_files: u32,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
+pub struct ThrustcurveSearchOut {
+    pub motors: Vec<ThrustcurveMotor>,
+    /// Motors matching every criterion (may exceed `motors.len()`).
+    pub matches: u32,
+    /// The host that answered (`www.thrustcurve.org`).
+    pub host: String,
+}
+
+/// Simulator file format at ThrustCurve.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum ThrustcurveFormat {
+    /// RASP `.eng`.
+    #[default]
+    Eng,
+    /// RockSim `.rse` (carries mass and CG per sample).
+    Rse,
+}
+
+/// Download one motor's data file from thrustcurve.org into `lib/motors/`
+/// (as `import_file` does with a local file), recording its sha256 and its
+/// source under `rocketwright.toml [lib]`.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
+pub struct ThrustcurveFetchIn {
+    /// A ThrustCurve motor id (from `thrustcurve_search`), or a designation
+    /// (`C6`, `Estes C6-5`) that matches exactly one motor.
+    #[schemars(length(min = 1))]
+    pub motor: String,
+    /// Manufacturer, to narrow a designation.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub manufacturer: Option<String>,
+    #[serde(default)]
+    pub format: ThrustcurveFormat,
+    #[serde(default)]
+    pub dry_run: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
+pub struct ThrustcurveFetchOut {
+    #[serde(flatten)]
+    pub mutation: MutationOut,
+    /// Motor refs of the saved file (`lib:motors/Estes_C6.eng#C6`).
+    pub imported: Vec<String>,
+    /// The saved file, project-relative (`lib/motors/Estes_C6.eng`).
+    pub path: String,
+    pub motor: ThrustcurveMotor,
+    /// What `rocketwright.toml [lib.source]` records for the file.
+    pub source: rw_model::LibSource,
+    /// The file's thrust curves, as the library reads them.
+    pub curves: Vec<ThrustCurve>,
+}
+
 // ---- schema ----------------------------------------------------------------
 
 #[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize, JsonSchema)]
