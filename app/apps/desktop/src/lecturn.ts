@@ -256,6 +256,9 @@ function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
 }
 
 const errText = (e: unknown): string => (e instanceof Error ? e.message : String(e));
+/** With the underlying failure, which the helper's capture-failed error keeps as its cause. */
+const errWithCause = (e: unknown): string =>
+  e instanceof Error && e.cause !== undefined ? `${e.message} (${errText(e.cause)})` : errText(e);
 
 interface MountState {
   projectId: string;
@@ -623,7 +626,7 @@ export function createPaneController(opts: PaneControllerOptions): PaneControlle
         const reason = (e as BridgeErrorLike | null)?.reason;
         if (reason === "stale-capture") return { ok: false, reason: "stale" };
         if (reason === "guest-gone") return { ok: false, reason: "gone" };
-        return changed() ?? { ok: false, reason: "failed", error: errText(e) };
+        return changed() ?? { ok: false, reason: "failed", error: errWithCause(e) };
       }
     };
     const next = captureQueue.then(run, run);
