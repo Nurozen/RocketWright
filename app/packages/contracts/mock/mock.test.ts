@@ -104,6 +104,8 @@ describe("mock RPC: every method", () => {
     expect((await call("engine.simulate", { ...P, engine: "demo" })).run_id).toMatch(/^[0-9a-f]{12}$/);
     expect((await call("cfd.import", { ...P, path: "fixtures/cfd/tank_t0.5.csv", study: "tank_flow", dry_run: true })).dataset.provenance).toBe("cfd");
     expect((await call("cfd.list", P)).datasets.map((d) => d.id)).toEqual(["tank_flow"]);
+    expect((await call("motor.thrustcurveSearch", { ...P, query: "C6" })).motors[0]?.designation).toBe("C6");
+    expect((await call("motor.thrustcurveFetch", { ...P, motor: "5f0000000000000000000001", dry_run: true })).imported).toEqual(["lib:motors/Acme_C6.eng#C6"]);
     await host.call("broker.hostRegister", { ...P, hostId: "window-1", capabilities: { ops: [...AGENT_OPS, ...TEST_HOOK_OPS], backend: "webgpu" } });
     ok.add("broker.hostRegister");
     const hooked = c.call("test.call", { ...P, op: "app_navigate", args: { page: "results" } });

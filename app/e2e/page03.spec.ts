@@ -13,6 +13,8 @@
  */
 import { expect, test, type Page } from "@playwright/test";
 import { existsSync, readFileSync } from "node:fs";
+import { createServer, type Server } from "node:http";
+import type { AddressInfo } from "node:net";
 import { join } from "node:path";
 import { auxProject, REPO, type AuxProject } from "./aux-project.ts";
 
@@ -35,9 +37,10 @@ test.beforeAll(() => {
 
 /** Specs on their own project (aux-project.ts) open it themselves. */
 const MULTI = "multi-stage editing (two-stage fixture)";
+const TC = "Search ThrustCurve (local mock of thrustcurve.org)";
 
 test.beforeEach(async ({ page }, info) => {
-  if (info.titlePath.includes(MULTI)) return;
+  if (info.titlePath.includes(MULTI) || info.titlePath.includes(TC)) return;
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(String(e)));
   await page.goto(`${WEB}?rpc=${encodeURIComponent(RPC)}&http=${encodeURIComponent(HTTP)}&page=03`);
@@ -356,5 +359,74 @@ test.describe(MULTI, () => {
     await delay.press("Enter");
     await expect.poll(() => readFileSync(file(), "utf8")).toMatch(/\[stages\.booster\][^[]*separation_delay = "0\.5 s"/);
     await expect(delay).toHaveValue("0.5");
+  });
+});
+
+/** A synthetic 18 mm C motor (RASP) for the mock: ThrustCurve data is never committed. */
+const ACME_ENG = "; synthetic test curve\nC6 18 70 0-3-5 0.0110 0.0240 Acme\n   0.050 6.000\n   0.200 12.000\n   0.400 6.000\n   1.500 4.500\n   1.800 0.000\n";
+const ACME_ID = "aaaaaaaaaaaaaaaaaaaa0001";
+
+test.describe(TC, () => {
+  let aux: AuxProject;
+  let mock: Server;
+  const seen: { path: string; body: Record<string, unknown> }[] = [];
+
+  test.beforeAll(async () => {
+    mock = createServer((req, res) => {
+      let raw = "";
+      req.on("data", (c: Buffer) => (raw += c.toString()));
+      req.on("end", () => {
+        const body = (raw === "" ? {} : JSON.parse(raw)) as Record<string, unknown>;
+        seen.push({ path: req.url ?? "", body });
+        const motor = { motorId: ACME_ID, manufacturerAbbrev: "Acme", designation: "C6", commonName: "C6", impulseClass: "C", diameter: 18, length: 70, totImpulseNs: 8.8, avgThrustN: 4.9, burnTimeS: 1.8, dataFiles: 1, availability: "regular" };
+        const out =
+          req.url === "/api/v1/search.json"
+            ? { criteria: [], matches: 1, results: [motor] }
+            : { results: [{ motorId: ACME_ID, simfileId: "bbbbbbbbbbbbbbbbbbbb0001", format: "RASP", source: "cert", data: Buffer.from(ACME_ENG).toString("base64"), infoUrl: "/simfiles/bbbbbbbbbbbbbbbbbbbb0001/" }] };
+        res.writeHead(200, { "content-type": "application/json" }).end(JSON.stringify(out));
+      });
+    });
+    await new Promise<void>((r) => mock.listen(0, "127.0.0.1", r));
+    const url = `http://127.0.0.1:${(mock.address() as AddressInfo).port}`;
+    aux = await auxProject(join(REPO, "fixtures/simple"), "Simple", { RW_THRUSTCURVE_URL: url });
+  });
+  test.afterAll(async () => {
+    await aux?.stop();
+    await new Promise<void>((r) => (mock ? mock.close(() => r()) : r()));
+  });
+
+  test("searches only when asked, imports the picked motor, and assigns it", async ({ page }) => {
+    const errors: string[] = [];
+    page.on("pageerror", (e) => errors.push(String(e)));
+    await page.goto(`${WEB}?rpc=${encodeURIComponent(aux.rpc)}&http=${encodeURIComponent(aux.http)}&page=03`);
+    await page.waitForFunction(() => (window as { __rwShell?: { status: string } }).__rwShell?.status === "ready");
+    await expect(page.getByTestId("configs.row")).toHaveCount(2, { timeout: 30_000 });
+    await expect(page.getByTestId("motors.list")).toHaveAttribute("data-state", "ready", { timeout: 30_000 });
+
+    await page.getByTestId("motors.thrustcurve").click();
+    const panel = page.getByTestId("thrustcurve.panel");
+    await expect(panel).toContainText("nothing is sent until you search");
+    expect(seen, "opening the panel sends nothing").toEqual([]);
+    await page.getByTestId("thrustcurve.query").fill("C6");
+    await page.getByTestId("thrustcurve.search").click();
+    const result = page.getByTestId("thrustcurve.row");
+    await expect(result).toHaveCount(1);
+    await expect(result).toContainText("Acme C6");
+    await expect(result).toContainText("18 mm · C · 8.80 N·s · 1.80 s burn");
+    expect(seen.map((r) => r.path)).toEqual(["/api/v1/search.json"]);
+    expect(seen[0]?.body).toMatchObject({ commonName: "C6" });
+
+    await page.getByTestId("thrustcurve.import").click();
+    await expect(page.getByTestId("thrustcurve.saved")).toContainText("lib/motors/Acme_C6.eng");
+    const ref = "lib:motors/Acme_C6.eng#C6";
+    await expect(page.getByTestId("motor.detail")).toHaveAttribute("data-motor", ref);
+    expect(readFileSync(join(aux.dir, "lib/motors/Acme_C6.eng"), "utf8")).toBe(ACME_ENG);
+    expect(readFileSync(join(aux.dir, "rocketwright.toml"), "utf8")).toMatch(/\[lib\.source\][^[]*origin = "thrustcurve"/);
+
+    await page.getByTestId("motor.assign").click();
+    await expect(page.getByTestId("motor.assign")).toHaveAttribute("data-state", "assigned");
+    const cfgs = ["b4", "c6"].map((id) => readFileSync(join(aux.dir, "configs", `${id}.rw.toml`), "utf8")).join("\n");
+    expect(cfgs).toContain(`motor = "${ref}"`);
+    expect(errors).toEqual([]);
   });
 });

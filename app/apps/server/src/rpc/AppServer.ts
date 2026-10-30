@@ -70,7 +70,7 @@ import { ThumbCacheError } from "../project/ThumbCache.ts";
 import { sidecarBinary, sidecarEnv } from "../sidecar/SidecarClient.ts";
 import type { BackoffOptions, SidecarConnection } from "../sidecar/SidecarSupervisor.ts";
 import { RpcFail, toRpcError } from "./errors.ts";
-import { isObject, libraryQuery, optBool, optStr, patchOps, str } from "./params.ts";
+import { isObject, libraryQuery, optBool, optStr, patchOps, str, thrustcurveFetchQuery, thrustcurveSearchQuery } from "./params.ts";
 
 /** Lecturn `apps.updateHostContext` caps the text at 4 KB. */
 const HOST_CONTEXT_MAX_BYTES = 4096;
@@ -582,6 +582,10 @@ export class AppServer {
     },
 
     "cfd.list": (_c, params) => this.hostOf(params).cfdList(),
+
+    "motor.thrustcurveSearch": (_c, params) => this.hostOf(params).thrustcurveSearch(thrustcurveSearchQuery(params)),
+
+    "motor.thrustcurveFetch": (_c, params) => this.hostOf(params).thrustcurveFetch(thrustcurveFetchQuery(params)),
 
     "broker.hostRegister": (conn, params) => {
       const p = this.hostOf(params);

@@ -23,7 +23,7 @@ import type {
   RwRef,
   SimulateOut,
 } from "./types.ts";
-import type { CfdDataset, CfdImportOut, EngineDesignOut, LibKind, LibrarySearchOut } from "./generated/types.ts";
+import type { CfdDataset, CfdImportOut, EngineDesignOut, LibKind, LibrarySearchOut, ThrustcurveFetchOut, ThrustcurveSearchOut } from "./generated/types.ts";
 import type { BrokerArgs, BrokerCapabilities, BrokerRequest, BrokerResponse, PageId, TestHookOp } from "./broker.ts";
 
 export const RPC_VERSION = "rw-rpc/1" as const;
@@ -198,6 +198,18 @@ export interface RpcMethods {
   "cfd.import": { params: P & { path: string; study?: string; dry_run?: boolean }; result: CfdImportOut };
   /** Imported CFD datasets on disk (`runs/cfd.<id>/<run>/dataset.json`, newest run per dataset), by id. */
   "cfd.list": { params: P; result: { datasets: CfdDataset[] } };
+  /**
+   * The sidecar's `thrustcurve_search`: searches thrustcurve.org over the
+   * network (RocketWright's only network access), only when the user asks
+   * (Configurations > Motors > Search ThrustCurve). Writes nothing.
+   */
+  "motor.thrustcurveSearch": { params: P & { query?: string; manufacturer?: string; diameter?: string; impulse_class?: string; limit?: number }; result: ThrustcurveSearchOut };
+  /**
+   * The sidecar's `thrustcurve_fetch`: downloads one motor's data file from
+   * thrustcurve.org into `lib/motors/` (sha256 and `[lib.source]` recorded, one
+   * history step). A user action in the window: not approval-gated.
+   */
+  "motor.thrustcurveFetch": { params: P & { motor: string; manufacturer?: string; format?: "eng" | "rse"; dry_run?: boolean }; result: ThrustcurveFetchOut };
   /** The web window registers as the viewport host for broker ops (IF11). */
   "broker.hostRegister": { params: P & { hostId: string; capabilities: BrokerCapabilities }; result: Record<string, never> };
   "broker.respond": { params: BrokerResponse; result: Record<string, never> };
@@ -254,6 +266,8 @@ export const RPC_METHODS = [
   "engine.simulate",
   "cfd.import",
   "cfd.list",
+  "motor.thrustcurveSearch",
+  "motor.thrustcurveFetch",
   "broker.hostRegister",
   "broker.respond",
   "embed.target",

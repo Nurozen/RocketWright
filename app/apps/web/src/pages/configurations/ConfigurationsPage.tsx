@@ -3,7 +3,8 @@
  * table (radio select, Configuration, Motor, Recovery, Simulation status
  * derived from real runs), actions New / Duplicate / Rename / Delete, and
  * sub-tabs Motors (picker over the built-in generic library with its thrust
- * curve, casing, mount silhouette, delay, Assign), Recovery (deployment per
+ * curve, casing, mount silhouette, delay, Assign; Search ThrustCurve, the
+ * one network action, imports a downloaded motor into it), Recovery (deployment per
  * device), and Stage separation. The selected configuration is the store
  * selection (`rw:cfg/<id>`), so it persists across sub-tabs and pages.
  * Every change is a `model.patch` (I1, I2); `▶ Run configurations` runs the
@@ -22,6 +23,8 @@ import { UNITS, formatLength } from "../assembly/inspector-model.ts";
 import { ComponentTreeSlot } from "../assembly/AssemblyPage.tsx";
 import { CasingThumb, MountSilhouette, ThrustPlot } from "./MotorGraphics.tsx";
 import { CasingView } from "./CasingView.tsx";
+import { ThrustcurvePanel } from "./ThrustcurvePanel.tsx";
+import { criteriaFromFilters, mergeCurves } from "./thrustcurve.ts";
 import { thumbKey } from "../../render/thumbnails.ts";
 import {
   ALL,
@@ -307,7 +310,7 @@ function ConfigurationsWorkspace({ store, client, ui }: { store: AppStore; clien
           </button>
         ))}
       </nav>
-      {selected !== null && model !== null && subtab === "Motors" && <MotorPanel store={store} ui={ui} config={selected} patch={patch} />}
+      {selected !== null && model !== null && subtab === "Motors" && <MotorPanel store={store} ui={ui} config={selected} patch={patch} client={client} projectId={projectId} />}
       {selected !== null && model !== null && subtab === "Recovery" && <RecoveryPanel store={store} config={selected} patch={patch} />}
       {selected !== null && model !== null && subtab === "Stage separation" && <StagePanel store={store} config={selected} patch={patch} />}
       {error !== null && (
@@ -360,7 +363,21 @@ function Select({ label, value, options, onChange, testid }: { label: string; va
   );
 }
 
-function MotorPanel({ store, ui, config, patch }: { store: AppStore; ui: ConfigurationsStore; config: ConfigRow; patch: (ops: PatchOp[], label: string) => Promise<boolean> }) {
+function MotorPanel({
+  store,
+  ui,
+  config,
+  patch,
+  client,
+  projectId,
+}: {
+  store: AppStore;
+  ui: ConfigurationsStore;
+  config: ConfigRow;
+  patch: (ops: PatchOp[], label: string) => Promise<boolean>;
+  client: RpcLike | null;
+  projectId: string | null;
+}) {
   const model = useAppState(store, (s) => s.project.snapshot?.evaluated ?? null)!;
   const units = useAppState(store, (s) => s.ui.units);
   const view = useAppState(store, (s) => s.ui.view);
@@ -371,6 +388,7 @@ function MotorPanel({ store, ui, config, patch }: { store: AppStore; ui: Configu
   const showRocket = useStore(ui, (s) => s.showRocket);
   const showGrid = useStore(ui, (s) => s.showGrid);
   const [info, setInfo] = useState<string | null>(null);
+  const [tcOpen, setTcOpen] = useState(false);
   const cfg = model.configs[config.id];
   const mounts = motorMounts(model);
   // The mount being edited: the one picked for this configuration, else the first (top-down) with a motor, else the first.
@@ -414,6 +432,30 @@ function MotorPanel({ store, ui, config, patch }: { store: AppStore; ui: Configu
           <Select label="Manufacturer" testid="motors.filter" value={filters.manufacturer} options={opts.manufacturer} onChange={(v) => setFilter("manufacturer", v)} />
           <Select label="Impulse class" testid="motors.filter" value={filters.impulseClass} options={opts.impulseClass} onChange={(v) => setFilter("impulseClass", v)} />
         </div>
+        {tcOpen ? (
+          <ThrustcurvePanel
+            client={client}
+            projectId={projectId}
+            initial={criteriaFromFilters(filters)}
+            onClose={() => setTcOpen(false)}
+            onImported={(curves) => {
+              ui.setState((s) => ({ library: { ...s.library, motors: mergeCurves(s.library.motors, curves) } }));
+              const first = curves[0];
+              if (first !== undefined) ui.setState({ pick: { key: pickKey, base: assignedRef, motor: motorRef(first) } });
+            }}
+          />
+        ) : (
+          <button
+            type="button"
+            className="rw-button rw-button--quiet rw-motors__tc"
+            data-testid="motors.thrustcurve"
+            disabled={client === null || projectId === null}
+            title="Search thrustcurve.org for more motors (uses the network)"
+            onClick={() => setTcOpen(true)}
+          >
+            <Icon name="cloud" size={16} /> Search ThrustCurve
+          </button>
+        )}
         <ul className="rw-motors__rows" role="listbox" aria-label="Motors" data-testid="motors.list" data-state={lib.state}>
           {lib.state === "loading" && <li className="rw-motors__empty">Loading the motor library…</li>}
           {lib.state === "error" && <li className="rw-motors__empty">{lib.error}</li>}

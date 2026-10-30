@@ -260,6 +260,16 @@ export class ProjectHost {
     return this.tool<schema.CfdImportOut>("cfd_import", q, "Import CFD dataset");
   }
 
+  /** `thrustcurve_search`: thrustcurve.org over the network, only when the user asks (Configurations > Motors). Writes nothing. */
+  thrustcurveSearch(q: { query?: string; manufacturer?: string; diameter?: string; impulse_class?: string; limit?: number }): Promise<schema.ThrustcurveSearchOut> {
+    return this.tool<schema.ThrustcurveSearchOut>("thrustcurve_search", q);
+  }
+
+  /** `thrustcurve_fetch`: downloads a motor's data file into `lib/motors/` (one history step). A user action: not gated. */
+  thrustcurveFetch(q: { motor: string; manufacturer?: string; format?: "eng" | "rse"; dry_run?: boolean }): Promise<schema.ThrustcurveFetchOut> {
+    return this.tool<schema.ThrustcurveFetchOut>("thrustcurve_fetch", q);
+  }
+
   /** The imported CFD datasets on disk (read only). */
   cfdList(): { datasets: schema.CfdDataset[] } {
     return { datasets: listCfdDatasets(this.info.dir) };

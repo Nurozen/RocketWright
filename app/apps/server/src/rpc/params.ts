@@ -52,3 +52,32 @@ export function libraryQuery(p: JsonObject): { query?: string; kind?: (typeof LI
   }
   return out;
 }
+
+/** `motor.thrustcurveSearch` params: optional strings and a limit (1..100). */
+export function thrustcurveSearchQuery(p: JsonObject): { query?: string; manufacturer?: string; diameter?: string; impulse_class?: string; limit?: number } {
+  const out: { query?: string; manufacturer?: string; diameter?: string; impulse_class?: string; limit?: number } = {};
+  for (const k of ["query", "manufacturer", "diameter", "impulse_class"] as const) {
+    const v = p[k];
+    if (v === undefined || v === null) continue;
+    if (typeof v !== "string") throw new RpcFail("invalid_params", `${k}: expected a string`);
+    if (v.trim() !== "") out[k] = v.trim();
+  }
+  if (p.limit !== undefined && p.limit !== null) {
+    if (typeof p.limit !== "number" || !Number.isInteger(p.limit) || p.limit < 1 || p.limit > 100) throw new RpcFail("invalid_params", "limit: expected an integer 1..100");
+    out.limit = p.limit;
+  }
+  return out;
+}
+
+/** `motor.thrustcurveFetch` params: a motor id or designation, optional manufacturer, format eng|rse, dry_run. */
+export function thrustcurveFetchQuery(p: JsonObject): { motor: string; manufacturer?: string; format?: "eng" | "rse"; dry_run?: boolean } {
+  const out: { motor: string; manufacturer?: string; format?: "eng" | "rse"; dry_run?: boolean } = { motor: str(p, "motor") };
+  const manufacturer = optStr(p, "manufacturer");
+  if (manufacturer !== undefined) out.manufacturer = manufacturer;
+  if (p.format !== undefined && p.format !== null) {
+    if (p.format !== "eng" && p.format !== "rse") throw new RpcFail("invalid_params", "format: expected eng|rse");
+    out.format = p.format;
+  }
+  if (optBool(p, "dry_run") === true) out.dry_run = true;
+  return out;
+}

@@ -175,9 +175,12 @@ export function filterMotors(motors: readonly Curve[], f: MotorFilters): Curve[]
   );
 }
 
-/** Motor ref of a curve as a config writes it. */
+/** Motor ref of a curve as a config writes it: `generic:<id>`, `lib:motors/<file>#<designation>` for a project library file, else the designation. */
 export function motorRef(m: Curve): string {
-  return m.source.kind === "generic" ? `generic:${(m.source as { id: string }).id}` : m.designation;
+  const src = m.source as DeepReadonly<schema.MotorSource>;
+  if (src.kind === "generic") return `generic:${src.id}`;
+  if (src.kind === "library") return `lib:${src.path.replace(/^lib\//, "")}#${m.designation}`;
+  return m.designation;
 }
 
 /**

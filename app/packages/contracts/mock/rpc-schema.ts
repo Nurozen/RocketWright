@@ -118,6 +118,8 @@ export const RESULT_SCHEMAS: { [M in RpcMethod]: S } = {
   "engine.simulate": reg("tools/engine_simulate.output"),
   "cfd.import": reg("tools/cfd_import.output"),
   "cfd.list": obj({ datasets: { type: "array", items: jsonObject } }),
+  "motor.thrustcurveSearch": reg("tools/thrustcurve_search.output"),
+  "motor.thrustcurveFetch": reg("tools/thrustcurve_fetch.output"),
   "broker.hostRegister": empty,
   "broker.respond": empty,
   "embed.target": def("EmbedTarget"),

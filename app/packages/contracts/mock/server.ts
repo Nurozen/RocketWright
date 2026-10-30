@@ -62,7 +62,7 @@ import type {
   RunListOut,
   SimulateOut,
 } from "../src/types.ts";
-import type { CfdImportOut, EngineDesignOut, LibrarySearchOut, Origin } from "../src/generated/types.ts";
+import type { CfdImportOut, EngineDesignOut, LibrarySearchOut, Origin, ThrustcurveFetchOut, ThrustcurveSearchOut } from "../src/generated/types.ts";
 import { clone, DEFAULT_FIXTURES_DIR, type FixtureSet, loadFixtures } from "./fixtures.ts";
 import { acceptUpgrade } from "./ws.ts";
 
@@ -580,6 +580,17 @@ export class MockRpc {
     "cfd.list": (_c, params) => {
       this.project(str(params, "projectId")!);
       return { datasets: [this.fixtures.payload<CfdImportOut>("tools/cfd_import.output").dataset] };
+    },
+
+    "motor.thrustcurveSearch": (_c, params) => {
+      this.project(str(params, "projectId")!);
+      return this.fixtures.payload<ThrustcurveSearchOut>("tools/thrustcurve_search.output");
+    },
+
+    "motor.thrustcurveFetch": (_c, params) => {
+      this.project(str(params, "projectId")!);
+      str(params, "motor");
+      return this.fixtures.payload<ThrustcurveFetchOut>("tools/thrustcurve_fetch.output");
     },
 
     "broker.hostRegister": (conn, params) => {

@@ -176,6 +176,18 @@
       "title": "Run simulation",
       "input": "sha256:354cd5e319ceedd918dfc66a9fa2b56fc2741373dfea524f5cdd3874946a6857",
       "output": "sha256:b322334086b0c948d70748bfd49e3924493a901819708ea9f9181eb77663eff4"
+    },
+    {
+      "name": "thrustcurve_fetch",
+      "title": "Download motor",
+      "input": "sha256:c487cc0ba41dd52baf8c4f2f690ce6f434cde4ee64186412605b65da009111dc",
+      "output": "sha256:d287a2192053c937e673f19043efd3be79d850fcd0b1a05e76291ae5312fc9ba"
+    },
+    {
+      "name": "thrustcurve_search",
+      "title": "Search ThrustCurve",
+      "input": "sha256:1161974793912b3533c3b0f1fa7096198143396c8f320972b654afcd61b2b1f5",
+      "output": "sha256:40c68b38acb6d54f44b7eecdb656e6786085d1d4aa7a4bc3cdc7535ff1a213e7"
     }
   ]
 }
