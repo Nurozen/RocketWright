@@ -50,10 +50,15 @@ ops -> `TomlStore::preview` -> eval (+library) -> `Checker` -> dry run returns
   subscriptions. Calls lost with the owner: read-only ones (catalogue
   `read_only`, read-only MCP methods) are resent once; mutations get
   `unavailable` with `outcome: "unknown"` (they commit before replying, so
-  check `history_list` before retrying). The relay then sends
-  `resources/updated` for each subscription and
+  check `history_list` before retrying). Once the new upstream answers, the
+  relay sends `resources/updated` for each subscription and
   `notifications/rw/upstream-changed`, on which `ProjectHost` resyncs its
-  mirror. Test hooks (`RW_TEST_HOOKS=1`): `RW_TEST_EXIT_BEFORE=<tool>` /
+  mirror. An upstream that closes without answering processed nothing, so
+  its calls are resent without using up the retry. This happens on Linux:
+  the kernel releases a dead owner's files newest first, so its relay
+  connections close while its listener still accepts and its flock is
+  still held, and a relay that re-elects in that window reaches the dead
+  listener's backlog. Test hooks (`RW_TEST_HOOKS=1`): `RW_TEST_EXIT_BEFORE=<tool>` /
   `RW_TEST_EXIT_AFTER=<tool>` make the owner exit around a call. An owner whose stdio client leaves drains: it serves while
   relays are attached or jobs run, then exits. A `--no-socket` owner makes
   later instances exit 2 (`RW-E007`). `--list-tools` prints `tools/list` and
@@ -91,8 +96,19 @@ ops -> `TomlStore::preview` -> eval (+library) -> `Checker` -> dry run returns
 ## Watcher (`watch.rs`)
 
 - `notify` + `notify-debouncer-full` at 200 ms. Event kinds are not trusted;
-  any batch touching a source or library path calls `Session::sync_from_disk`,
-  which compares content (own-write set, last-good texts) and re-reads.
+  any batch touching a source or library path, or a directory that can hold
+  them, calls `Session::sync_settled`, which compares content (own-write
+  set, last-good texts) and re-reads. Directory events count because inotify
+  watches a new directory only after it has seen it appear (files created in
+  it before then send nothing), and a directory moved in or out reports only
+  itself. Access events do not count, except a close after writing: inotify
+  reports every `open`, including the sync's own reads, which would wake the
+  watcher again.
+- Nothing is applied while a changed source was modified less than 200 ms
+  ago: a batch for another path (or an older event; the debouncer drops data
+  events right after a create or rename-into-place) can fire in the middle
+  of an in-place save, whose truncated, empty file parses. The watcher syncs
+  again once the file has been quiet for 200 ms.
 - A file that does not parse keeps the last good model and reports
   `RW-E001`/`RW-E002` in the check report until fixed. No step meanwhile.
 - External steps carry `origin = watcher`. A forwarded CLI write and its
