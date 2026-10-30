@@ -101,7 +101,9 @@ ops -> `TomlStore::preview` -> eval (+library) -> `Checker` -> dry run returns
   set, last-good texts) and re-reads. Directory events count because inotify
   watches a new directory only after it has seen it appear (files created in
   it before then send nothing), and a directory moved in or out reports only
-  itself.
+  itself. Access events do not count, except a close after writing: inotify
+  reports every `open`, including the sync's own reads, which would wake the
+  watcher again.
 - A file that does not parse keeps the last good model and reports
   `RW-E001`/`RW-E002` in the check report until fixed. No step meanwhile.
 - External steps carry `origin = watcher`. A forwarded CLI write and its

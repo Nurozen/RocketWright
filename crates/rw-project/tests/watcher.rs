@@ -108,6 +108,13 @@ fn atomic_save_is_one_step() {
     let ev = rig.events.lock().unwrap();
     assert_eq!(ev.iter().filter(|e| e.step.is_some()).count(), 1, "{ev:?}");
     assert!(ev.iter().any(|e| e.uris.contains(&"rw://project/model")));
+    drop(ev);
+    // Then the project is idle and wakes nothing: a sync reads the tree, and
+    // those reads (inotify reports every open) must not trigger another.
+    let syncs = rig.outcomes.lock().unwrap().len();
+    rig.settle();
+    let after = rig.outcomes.lock().unwrap().len();
+    assert_eq!(after, syncs, "idle syncs");
 }
 
 #[test]

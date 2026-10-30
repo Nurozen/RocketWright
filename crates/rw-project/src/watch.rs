@@ -7,6 +7,8 @@
 //!   touches a relevant path triggers [`Session::sync_from_disk`], which
 //!   re-reads and blake3-compares content. Replays, touches, and the
 //!   session's own writes (the own-write set) change nothing.
+//! - Access events do not count, except a close after writing: inotify
+//!   reports every `open`, including the session's own reads of the tree.
 //! - A directory event counts too (created, moved in, moved out, removed),
 //!   when the directory can hold sources or library files: it may stand for
 //!   files whose own events never arrive. inotify (Linux) watches a new
@@ -23,7 +25,8 @@ use std::path::Path;
 use std::sync::mpsc;
 use std::time::Duration;
 
-use notify_debouncer_full::notify::{RecommendedWatcher, RecursiveMode};
+use notify_debouncer_full::notify::event::{AccessKind, AccessMode};
+use notify_debouncer_full::notify::{EventKind, RecommendedWatcher, RecursiveMode};
 use notify_debouncer_full::{DebounceEventResult, Debouncer, RecommendedCache, new_debouncer};
 use rw_api::Origin;
 
@@ -45,13 +48,25 @@ impl std::fmt::Debug for Watcher {
     }
 }
 
+/// False for access events that change nothing: inotify reports every
+/// `open` (including the session's own reads and directory walks, so each
+/// sync would wake the watcher again 200 ms later). A close after writing
+/// is kept: it is the one event left for a file rewritten right after it
+/// was created or renamed into place (module docs).
+fn changes(kind: &EventKind) -> bool {
+    match kind {
+        EventKind::Access(a) => *a == AccessKind::Close(AccessMode::Write),
+        _ => true,
+    }
+}
+
 /// True when a debounced batch touches something the session reads.
 fn relevant(root: &Path, events: &DebounceEventResult) -> bool {
     let Ok(events) = events else {
         // Errors (dropped events, rescans): re-read to be safe.
         return true;
     };
-    events.iter().any(|e| {
+    events.iter().filter(|e| changes(&e.kind)).any(|e| {
         e.paths.iter().any(|p| {
             let p = p.canonicalize().unwrap_or_else(|_| p.clone());
             match layout::rel_path(root, &p) {
