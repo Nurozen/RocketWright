@@ -295,6 +295,13 @@ building. The Makefile therefore:
   until it answers, and when Electron rejects the first navigation
   (`ERR_FAILED (-2) loading 'about:blank'`) it destroys the window and tries
   a fresh one (4 attempts, within `--timeout-ms`).
+- fails a hidden run whose agent-pane capture was dropped, and the probe's
+  `lecturnError` says why. `stale` means the guest navigated or switched
+  threads during the capture: selecting a run or component opens its agent
+  thread, and the guest takes longer to create and open it on a slow machine
+  than the capture takes to start. A `--measure` or `--drive` module whose
+  last step changes the selection waits until the pane shows that thread
+  (`page04.drive.ts`).
 - tolerates two load-only timing effects in tests: the `render3d`
   absent-renderer test retries an exec that the OS SIGKILLed (a real crash
   still fails), and the server `model.patch` RPC test accepts the sidecar's
