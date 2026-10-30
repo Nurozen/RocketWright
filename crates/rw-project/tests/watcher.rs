@@ -155,28 +155,27 @@ fn half_written_toml_reports_rw_e001() {
     let rig = Rig::new("w-e001");
     let p = rig.path("parts/fin_can.rw.toml");
     std::fs::write(&p, "[c.fins\ntype = ").unwrap();
+    // `on_sync` hears the outcome after the session is unlocked, so wait for
+    // the outcome itself, not just the report it updated.
     assert!(
         wait_until(5000, || rig
-            .session
+            .outcomes
+            .lock()
+            .unwrap()
+            .iter()
+            .any(|o| matches!(o, SyncOutcome::ParseError(_)))),
+        "{:?}",
+        rig.outcomes.lock().unwrap()
+    );
+    assert!(
+        rig.session
             .lock()
             .unwrap()
             .report()
             .diagnostics
             .iter()
-            .any(
-                |d| d.code == "RW-E001" && d.file.as_deref() == Some("parts/fin_can.rw.toml")
-            )),
-        "{:?}",
-        rig.outcomes.lock().unwrap()
+            .any(|d| d.code == "RW-E001" && d.file.as_deref() == Some("parts/fin_can.rw.toml"))
     );
-    let parse_errors = rig
-        .outcomes
-        .lock()
-        .unwrap()
-        .iter()
-        .filter(|o| matches!(o, SyncOutcome::ParseError(_)))
-        .count();
-    assert!(parse_errors >= 1);
 }
 
 #[test]
