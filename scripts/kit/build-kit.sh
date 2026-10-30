@@ -35,7 +35,7 @@ set -euo pipefail
 
 root=$(cd "$(dirname "$0")/../.." && pwd -P)
 out=${RW_KIT_OUT:-$root/dist/kit}
-cargo=${CARGO:-$HOME/.cargo/bin/cargo}
+cargo=${CARGO:-$(command -v "$HOME/.cargo/bin/cargo" || command -v cargo)}
 target=${CARGO_TARGET_DIR:-$root/target}
 app_name="RocketWright Render"
 

@@ -11,7 +11,9 @@ export CARGO_PROFILE_TEST_DEBUG ?= 0
 SHELL := /bin/bash
 # macOS make 3.81 resolves simple recipe commands with its *startup* PATH (the
 # export above only reaches child processes), so call rustup's cargo by path.
-CARGO := $(HOME)/.cargo/bin/cargo
+# Where rustup lives elsewhere (GitHub's macOS runners), use the cargo on PATH.
+CARGO := $(or $(wildcard $(HOME)/.cargo/bin/cargo),$(shell command -v cargo))
+export CARGO
 
 PNPM := pnpm --dir app
 
