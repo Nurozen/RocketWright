@@ -69,9 +69,9 @@ jobs:
         uses: voidzero-dev/setup-vp@v1
         with:
           working-directory: lecturn
-          node-version-file: lecturn/package.json
+          # Relative to working-directory; the lockfile is auto-detected there.
+          node-version-file: package.json
           cache: true
-          cache-dependency-path: lecturn/pnpm-lock.yaml
           run-install: false
 
       # The smoke runs RocketWright's Electron as node and from an app.asar;
