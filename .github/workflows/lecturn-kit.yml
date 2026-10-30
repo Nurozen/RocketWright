@@ -58,6 +58,13 @@ jobs:
           ref: ${{ steps.pin.outputs.sha }}
           path: lecturn
           persist-credentials: false
+          # Lecturn's CI skips the same paths: .repos/ holds reference gitlinks
+          # without URLs, which a full checkout fails on.
+          sparse-checkout: |
+            /*
+            !/.repos/
+            !/apps/mobile/modules/lecturn-terminal/Vendor/**/*.a
+          sparse-checkout-cone-mode: false
 
       # Lecturn's CI installs Vite+ the same way (.github/actions/setup-ci-deps).
       - name: Setup Vite+
