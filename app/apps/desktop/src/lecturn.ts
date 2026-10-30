@@ -234,6 +234,17 @@ export async function captureComposite(pane: PaneController, captureHost: () => 
   return { ok: true, png: compositeAt(host, guest.png, guest.bounds), bounds: guest.bounds };
 }
 
+/** Why a composite was dropped, for the probe's `lecturnError`: a stale one names what moved the guest, so a race in a drive explains itself. */
+export function droppedCapture(dropped: { reason: string; error?: string }): string {
+  const why =
+    dropped.reason === "stale"
+      ? "the guest navigated, reloaded or switched threads during the capture (a drive that returns before the pane settles races the capture)"
+      : dropped.reason === "gone"
+        ? "the guest closed or crashed"
+        : (dropped.error ?? "the capture failed");
+  return `the agent pane's capture was dropped (${dropped.reason}): ${why}`;
+}
+
 const SNAPSHOT_TIMEOUT_MS = 2_000;
 const LABEL_TIMEOUT_MS = 2_000;
 

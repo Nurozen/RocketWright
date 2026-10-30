@@ -102,6 +102,24 @@ function runElectron(query: string): Promise<{ code: number | null; err: string 
   });
 }
 
+/**
+ * Why the hidden run failed: every reason its probe gives (`apps/desktop/src/main.ts`; a measured page can still
+ * fail on the agent pane's capture), then the page console and the tail of stderr.
+ */
+function failure(code: number | null, probe: Report | null, err: string): string {
+  const reasons =
+    probe === null
+      ? ["no probe JSON (render failed before writing it; see stderr)"]
+      : [
+          probe.page?.status === "ready" ? undefined : `page: ${JSON.stringify(probe.page ?? null)}`,
+          probe.driveError,
+          probe.lecturnError === undefined ? undefined : `agent pane: ${String(probe.lecturnError)}`,
+          probe.measureError,
+          probe.measure === undefined ? "no measure report" : undefined,
+        ].filter((r): r is string => typeof r === "string" && r !== "");
+  return [`electron exit ${String(code)}`, ...reasons, `console: ${JSON.stringify(probe?.console ?? [])}`, `stderr:\n${err.slice(-3000)}`].join("\n");
+}
+
 beforeAll(async () => {
   if (process.env.RW_E2E_SKIP_BUILD !== "1" || !existsSync(join(APP, "apps/web/dist/index.html"))) {
     const b = spawnSync("pnpm", ["--filter", "@rw/web", "build"], { cwd: APP, stdio: "pipe", encoding: "utf8" });
@@ -111,11 +129,10 @@ beforeAll(async () => {
   bin = sidecarBinary();
   project = seededCopy(bin, "rw-page04-");
   readRuns();
+  rmSync(join(OUT, "probe.json"), { force: true });
   const res = await runElectron("page=04");
   const probe = existsSync(join(OUT, "probe.json")) ? (JSON.parse(readFileSync(join(OUT, "probe.json"), "utf8")) as Report) : null;
-  if (res.code !== 0 || !probe?.measure) {
-    throw new Error(`electron exit ${String(res.code)}: ${probe?.measureError ?? ""}\n${JSON.stringify(probe?.console ?? [])}\n${res.err.slice(-3000)}`);
-  }
+  if (res.code !== 0 || !probe?.measure) throw new Error(failure(res.code, probe, res.err));
   report = probe.measure as Report;
 }, 300_000);
 

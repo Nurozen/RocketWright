@@ -67,7 +67,7 @@ import { pathToFileURL } from "node:url";
 import { parseArgs } from "node:util";
 import { capturePageDpr1, countForeground, debuggerSessions, emulateDpr1, installFreezeClock, pngSize } from "./capture.ts";
 import { waitGuestSized } from "./guestSize.ts";
-import { captureComposite, createPaneController, isGuestUrl, type EmbedBridgeLike, type MountArgs, type PaneController } from "./lecturn.ts";
+import { captureComposite, createPaneController, droppedCapture, isGuestUrl, type EmbedBridgeLike, type MountArgs, type PaneController } from "./lecturn.ts";
 import { connectMainRpc, type MainRpc } from "./mainRpc.ts";
 import { buildPreload, desktopArg, lecturnBaseDirFor, parseDesktopArgs, REPO_ROOT, resolveDevProject, startBackend, userDataOverride, waitForHttp, type Backend, type DevProject } from "./backend.ts";
 import { packagedLayout, packagedServerOptions, userArgv } from "./packaged.ts";
@@ -435,7 +435,10 @@ async function renderHidden(backend: Backend, preload: string | undefined, out: 
       const composite = await captureComposite(pane, () => capturePageDpr1(win.webContents, width, height));
       result.lecturn = composite.ok ? { bounds: composite.bounds, generation: pane.mounted?.bridge.generation ?? null } : { dropped: composite };
       if (composite.ok) png = Buffer.from(composite.png);
-      else code = 1;
+      else {
+        result.lecturnError = droppedCapture(composite);
+        code = 1;
+      }
     }
     await writeOut(out, png);
     const bitmap = nativeImage.createFromBuffer(png).toBitmap();

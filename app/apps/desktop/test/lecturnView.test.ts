@@ -26,7 +26,7 @@ import {
   type PaneMainMessage,
 } from "@rw/contracts";
 import { decodePng, encodePng, fillRect, solidImage } from "../../../e2e/bar/png.ts";
-import { captureComposite, compositeAt, createPaneController, intersects, isGuestUrl, normalizeRect, type EmbedBridgeLike, type MountArgs, type PaneController, type Rect } from "../src/lecturn.ts";
+import { captureComposite, compositeAt, createPaneController, droppedCapture, intersects, isGuestUrl, normalizeRect, type EmbedBridgeLike, type MountArgs, type PaneController, type Rect } from "../src/lecturn.ts";
 
 const fx = vi.hoisted(() => {
   type Fn = (...args: never[]) => unknown;
@@ -727,6 +727,12 @@ describe("composite capture", () => {
       return hostPng;
     });
     expect(stale).toEqual({ ok: false, reason: "stale" });
+  });
+
+  it("explains a dropped composite for the probe", () => {
+    expect(droppedCapture({ reason: "stale" })).toMatch(/^the agent pane's capture was dropped \(stale\): the guest navigated, reloaded or switched threads/);
+    expect(droppedCapture({ reason: "gone" })).toBe("the agent pane's capture was dropped (gone): the guest closed or crashed");
+    expect(droppedCapture({ reason: "failed", error: "the pane rect is empty" })).toBe("the agent pane's capture was dropped (failed): the pane rect is empty");
   });
 });
 
