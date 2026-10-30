@@ -7,6 +7,12 @@
 //!   touches a relevant path triggers [`Session::sync_from_disk`], which
 //!   re-reads and blake3-compares content. Replays, touches, and the
 //!   session's own writes (the own-write set) change nothing.
+//! - A directory event counts too (created, moved in, moved out, removed),
+//!   when the directory can hold sources or library files: it may stand for
+//!   files whose own events never arrive. inotify (Linux) watches a new
+//!   directory only after it has seen it appear, so files created in it
+//!   before then are silent, and a directory moved in or out reports only
+//!   itself on every platform.
 //! - A half-written or invalid file keeps the last good model and reports
 //!   `RW-E001` until it parses.
 //! - External steps carry `origin = watcher`. A forwarded CLI write and the
@@ -49,7 +55,10 @@ fn relevant(root: &Path, events: &DebounceEventResult) -> bool {
         e.paths.iter().any(|p| {
             let p = p.canonicalize().unwrap_or_else(|_| p.clone());
             match layout::rel_path(root, &p) {
-                Some(rel) => layout::is_relevant(&rel),
+                // Not a file (any more): a directory, or one moved away.
+                Some(rel) => {
+                    layout::is_relevant(&rel) || (!p.is_file() && layout::may_hold_relevant(&rel))
+                }
                 // The root itself (replayed Create, rescans).
                 None => p == root,
             }

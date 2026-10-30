@@ -3,7 +3,8 @@
 //! Real FSEvents/inotify through `notify` + the 200 ms debouncer: an atomic
 //! save is one step, a half-write keeps the last good model with `RW-E001`,
 //! the watched root's replayed events and the session's own writes add no
-//! step, and a write the session made (a forwarded CLI call) is one step.
+//! step, a write the session made (a forwarded CLI call) is one step, and a
+//! directory moved in or out is read although only the directory reports.
 #![allow(clippy::disallowed_methods, clippy::disallowed_types)]
 
 use std::sync::{Arc, Mutex};
@@ -245,4 +246,39 @@ fn lib_and_ignored_paths() {
             .any(|d| d.code == "RW-W003")
     );
     assert_eq!(rig.steps().len(), 1);
+}
+
+fn has_birch(rig: &Rig) -> bool {
+    rig.session
+        .lock()
+        .unwrap()
+        .model()
+        .materials
+        .contains_key("birch")
+}
+
+#[test]
+fn a_directory_moved_in_or_out_is_read() {
+    let rig = Rig::new("w-mvdir");
+    // Only the directory reports the move, never the file inside it.
+    let staging = TempDir::new("w-mvdir-src");
+    std::fs::create_dir_all(staging.path().join("lib/materials")).unwrap();
+    std::fs::write(
+        staging.path().join("lib/materials/woods.rw.toml"),
+        "[materials.birch]\ndensity = \"670 kg/m^3\"\n",
+    )
+    .unwrap();
+    std::fs::rename(staging.path().join("lib"), rig.path("lib")).unwrap();
+    assert!(
+        wait_until(5000, || has_birch(&rig)),
+        "{:?}",
+        rig.outcomes.lock().unwrap()
+    );
+    std::fs::rename(rig.path("lib"), staging.path().join("lib")).unwrap();
+    assert!(
+        wait_until(5000, || !has_birch(&rig)),
+        "{:?}",
+        rig.outcomes.lock().unwrap()
+    );
+    assert_eq!(rig.steps().len(), 1, "library changes are not steps");
 }

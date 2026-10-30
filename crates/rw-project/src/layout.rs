@@ -150,6 +150,20 @@ pub fn is_relevant(rel: &str) -> bool {
     is_source(rel) || is_lib_file(rel)
 }
 
+/// True when a directory at this project-relative path can hold sources or
+/// library files the walk reads (watcher filter for directory events).
+pub fn may_hold_relevant(rel: &str) -> bool {
+    let segs: Vec<&str> = rel.split('/').collect();
+    // A directory at depth MAX_DEPTH holds files below the walk.
+    if segs.len() >= MAX_DEPTH || segs.iter().any(|s| s.is_empty() || hidden_or_temp(s)) {
+        return false;
+    }
+    match segs[0] {
+        "lib" => segs.len() == 1 || matches!(segs[1], "components" | "materials" | "motors"),
+        top => !OUTPUT_DIRS.contains(&top),
+    }
+}
+
 /// Lower-case sha256 hex of `bytes`.
 pub fn sha256_hex(bytes: &[u8]) -> String {
     let d = sha2::Sha256::digest(bytes);
@@ -252,6 +266,26 @@ mod tests {
             "lib/other/x.rw.toml",
         ] {
             assert!(!is_relevant(p), "{p}");
+        }
+        for d in [
+            "parts",
+            "parts/sub",
+            "lib",
+            "lib/materials",
+            "lib/motors/vendor",
+        ] {
+            assert!(may_hold_relevant(d), "{d}");
+        }
+        for d in [
+            ".rw",
+            ".rw/history",
+            "runs",
+            "runs/baseline",
+            "renders",
+            "lib/other",
+            "a/b/c/d",
+        ] {
+            assert!(!may_hold_relevant(d), "{d}");
         }
     }
 
