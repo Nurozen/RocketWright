@@ -8,9 +8,10 @@
 # integrity in app/pnpm-lock.yaml) and cached on the PIN and the inputs that
 # shape the kit, so most runs only restore it.
 #
-# macOS arm64: the lockfile integrity was recorded from kits built there, and
-# the build is only known to be byte-reproducible on that platform (gzip
-# output can differ across zlib builds and CPU architectures).
+# The rebuilt tarballs hold the same files as the committed kit but can gzip
+# to other bytes (another Node/zlib), so RW_VENDOR_REHASH=1 lets the build
+# through and setup-app re-records the two integrity values before a frozen
+# install. macOS arm64 keeps the natives the kit smoke checks.
 name: Lecturn kit
 
 on:
@@ -101,6 +102,8 @@ jobs:
       - name: Build the kit
         if: steps.cache.outputs.cache-hit != 'true'
         working-directory: rocketwright
+        env:
+          RW_VENDOR_REHASH: "1"
         run: make vendor-lecturn LECTURN_REPO="$GITHUB_WORKSPACE/lecturn" LECTURN_INSTALL=none
 
       - name: Save the kit

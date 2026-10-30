@@ -24,7 +24,7 @@ runs:
         cache: true
         cache_dependency_path: app/pnpm-lock.yaml
 
-    # Built and verified against app/pnpm-lock.yaml by .github/workflows/lecturn-kit.yml.
+    # Built and smoke-tested by .github/workflows/lecturn-kit.yml.
     - name: Download the Lecturn kit
       uses: actions/download-artifact@v8
       with:
@@ -38,6 +38,16 @@ runs:
       run: |
         ls -l vendor/lecturn vendor/lecturn/patches
         grep -v '^[[:space:]]*#' vendor/lecturn/PIN | tr -d '[:space:]' > vendor/lecturn/.stamp
+
+    # The kit job's rebuild packs the same files as the committed kit, but its
+    # gzip bytes can differ, so the two tarballs' integrity is re-recorded.
+    # Any other lockfile change fails here, and the install stays frozen.
+    - name: Re-record the Lecturn kit's integrity
+      shell: bash
+      run: |
+        node scripts/vendor/lecturn-kit.ts relock app/pnpm-lock.yaml vendor/lecturn
+        other=$(git diff -U0 -- app/pnpm-lock.yaml | grep -E '^[-+][^-+]' | grep -v 'resolution: {integrity: sha512-' || true)
+        if [ -n "$other" ]; then echo "relock changed more than the kit's integrity:" >&2; echo "$other" >&2; exit 1; fi
 
     - name: Install app dependencies
       shell: bash

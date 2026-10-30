@@ -9,9 +9,12 @@
  *   node scripts/vendor/lecturn-kit.ts lock <pnpm-lock.yaml> <vendor dir>
  *     Prints each vendored tarball whose sha512 differs from its lockfile
  *     integrity (nothing when they match or the lockfile has no entry).
+ *   node scripts/vendor/lecturn-kit.ts relock <pnpm-lock.yaml> <vendor dir>
+ *     Rewrites only those two integrity values to the tarballs' sha512 (CI:
+ *     its rebuilt kit packs the same files with different gzip bytes).
  */
 import { createHash } from "node:crypto";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 interface KitPnpm {
@@ -62,19 +65,32 @@ const TARBALLS = [
   ["@lecturn/embed", "lecturn-embed.tgz"],
 ] as const;
 
+/** Each vendored tarball's lockfile resolution line, recorded integrity, and actual sha512. */
+function tarballIntegrities(lines: string[], read: (file: string) => Buffer) {
+  return TARBALLS.flatMap(([name, file]) => {
+    const key = `${name}@file:../vendor/lecturn/${file}`;
+    const at = lines.findIndex((l) => unquote(l.trim().replace(/:$/, "")) === key);
+    const recorded = at < 0 ? undefined : /integrity: ([^,}\s]+)/.exec(lines[at + 1] ?? "")?.[1];
+    if (recorded === undefined) return [];
+    const actual = `sha512-${createHash("sha512").update(read(file)).digest("base64")}`;
+    return [{ file, line: at + 1, recorded, actual }];
+  });
+}
+
 /** Tarballs whose bytes no longer match the integrity the lockfile recorded. */
 export function lockDrift(lockYaml: string, read: (file: string) => Buffer): string[] {
-  const drift: string[] = [];
-  for (const [name, file] of TARBALLS) {
-    const key = `${name}@file:../vendor/lecturn/${file}`;
-    const lines = lockYaml.split("\n");
-    const at = lines.findIndex((l) => unquote(l.trim().replace(/:$/, "")) === key);
-    const integrity = at < 0 ? undefined : /integrity: ([^,}\s]+)/.exec(lines[at + 1] ?? "")?.[1];
-    if (integrity === undefined) continue;
-    const actual = `sha512-${createHash("sha512").update(read(file)).digest("base64")}`;
-    if (actual !== integrity) drift.push(file);
+  return tarballIntegrities(lockYaml.split("\n"), read)
+    .filter((t) => t.actual !== t.recorded)
+    .map((t) => t.file);
+}
+
+/** The lockfile with only the vendored tarballs' integrity values replaced. */
+export function relock(lockYaml: string, read: (file: string) => Buffer): string {
+  const lines = lockYaml.split("\n");
+  for (const t of tarballIntegrities(lines, read)) {
+    lines[t.line] = lines[t.line].replace(t.recorded, t.actual);
   }
-  return drift;
+  return lines.join("\n");
 }
 
 function main(argv: string[]): number {
@@ -94,7 +110,16 @@ function main(argv: string[]): number {
     if (drift.length > 0) console.log(drift.join(" "));
     return 0;
   }
-  console.error("usage: lecturn-kit.ts settings <lecturn-pack.json> <pnpm-workspace.yaml> | lock <pnpm-lock.yaml> <vendor dir>");
+  if (command === "relock" && first !== undefined && second !== undefined) {
+    const lock = readFileSync(first, "utf8");
+    const drift = lockDrift(lock, (file) => readFileSync(join(second, file)));
+    writeFileSync(first, relock(lock, (file) => readFileSync(join(second, file))));
+    if (drift.length > 0) console.log(`relocked ${drift.join(" ")}`);
+    return 0;
+  }
+  console.error(
+    "usage: lecturn-kit.ts settings <lecturn-pack.json> <pnpm-workspace.yaml> | lock|relock <pnpm-lock.yaml> <vendor dir>",
+  );
   return 2;
 }
 

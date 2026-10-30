@@ -279,7 +279,14 @@ committed_pin=$(git show "HEAD:$VENDOR/PIN" 2>/dev/null | grep -v '^[[:space:]]*
 drift=$(node scripts/vendor/lecturn-kit.ts lock app/pnpm-lock.yaml "$VENDOR")
 if [ -n "$drift" ]; then
   if [ "$(read_pin)" = "$sha" ] && [ "$committed_pin" = "$sha" ]; then
-    die "rebuilt $drift at the same pin differs from its integrity in app/pnpm-lock.yaml: the Lecturn build is not reproducible (diff two builds' dist/ and normalize the cause above)"
+    # CI rebuilds with another Node/zlib, so the same files can gzip to other
+    # bytes; it re-records the integrity of these two tarballs only
+    # (.github/actions/setup-app). Locally a mismatch is a real bug.
+    if [ "${RW_VENDOR_REHASH:-}" = 1 ]; then
+      echo "vendor-lecturn: rebuilt $drift differs from app/pnpm-lock.yaml's integrity; RW_VENDOR_REHASH=1, so installs re-record it"
+    else
+      die "rebuilt $drift at the same pin differs from its integrity in app/pnpm-lock.yaml: the Lecturn build is not reproducible (diff two builds' dist/ and normalize the cause above)"
+    fi
   fi
   echo "vendor-lecturn: re-pinned: run pnpm -C app update lecturn @lecturn/embed, then commit PIN, lecturn-pack.json and app/pnpm-lock.yaml together"
 fi
