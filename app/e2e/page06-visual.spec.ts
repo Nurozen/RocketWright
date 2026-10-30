@@ -152,11 +152,17 @@ test("the trace cursor is the transport time: scrub, play, speed", async ({ page
 });
 
 test("capture: the live page beside exemplar 06 and a 5 s motion clip", async ({ page }) => {
+  // The exemplars are maintainer-only bar material, absent from a plain checkout and CI.
+  let exemplars: string | undefined;
+  try {
+    exemplars = exemplarDir();
+  } catch {}
+  test.skip(exemplars === undefined, "exemplar PNGs not available (RW_BAR_EXEMPLARS)");
   await openVisual(page);
   await page.waitForTimeout(1500);
   const shot = await page.screenshot();
   saveArtifact("page06", "06-visual.png", shot.toString("base64"));
-  const ex = decodePng(readFileSync(join(exemplarDir(), "06-liquid-simulator.png")));
+  const ex = decodePng(readFileSync(join(exemplars!, "06-liquid-simulator.png")));
   const ours = decodePng(shot);
   saveArtifact("page06", "06-side-by-side.png", Buffer.from(encodePng(grid([[resize(ex, 768, 512), resize(ours, 768, 512)]]))).toString("base64"));
   const vp = { x: 262, y: 107, w: 892, h: 570 };
