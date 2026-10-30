@@ -1,0 +1,27 @@
+{
+  "provenance": "contract-fixture",
+  "type": "tools/thrustcurve_search.output",
+  "note": "Illustrative motor; not ThrustCurve data",
+  "payload": {
+    "motors": [
+      {
+        "motor_id": "5f0000000000000000000001",
+        "manufacturer": "Acme",
+        "designation": "C6",
+        "common_name": "C6",
+        "impulse_class": "C",
+        "diameter": 0.018,
+        "length": 0.07,
+        "total_impulse": 8.8,
+        "average_thrust": 4.9,
+        "burn_time": 1.8,
+        "motor_type": "SU",
+        "delays": "0,3,5",
+        "availability": "regular",
+        "data_files": 2
+      }
+    ],
+    "matches": 1,
+    "host": "www.thrustcurve.org"
+  }
+}

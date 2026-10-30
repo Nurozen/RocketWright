@@ -1,0 +1,9 @@
+{
+  "provenance": "contract-fixture",
+  "type": "tools/thrustcurve_fetch.input",
+  "payload": {
+    "motor": "5f0000000000000000000001",
+    "format": "eng",
+    "dry_run": true
+  }
+}

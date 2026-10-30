@@ -1,0 +1,49 @@
+{
+  "type": "object",
+  "properties": {
+    "motor": {
+      "type": "string",
+      "description": "A ThrustCurve motor id (from `thrustcurve_search`), or a designation\n(`C6`, `Estes C6-5`) that matches exactly one motor.",
+      "minLength": 1
+    },
+    "manufacturer": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Manufacturer, to narrow a designation."
+    },
+    "format": {
+      "$ref": "#/$defs/ThrustcurveFormat",
+      "default": "eng"
+    },
+    "dry_run": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "motor"
+  ],
+  "description": "Download one motor's data file from thrustcurve.org into `lib/motors/`\n(as `import_file` does with a local file), recording its sha256 and its\nsource under `rocketwright.toml [lib]`.",
+  "title": "ThrustcurveFetchIn",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rocketwright.dev/schema/1/tools/thrustcurve_fetch.input.json",
+  "$defs": {
+    "ThrustcurveFormat": {
+      "oneOf": [
+        {
+          "type": "string",
+          "const": "eng",
+          "description": "RASP `.eng`."
+        },
+        {
+          "type": "string",
+          "const": "rse",
+          "description": "RockSim `.rse` (carries mass and CG per sample)."
+        }
+      ],
+      "description": "Simulator file format at ThrustCurve."
+    }
+  }
+}

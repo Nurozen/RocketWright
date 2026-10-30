@@ -526,6 +526,40 @@
         "input"
       ],
       "description": "Import a CFD point dataset (R6.15)."
+    },
+    {
+      "type": "object",
+      "properties": {
+        "command": {
+          "type": "string",
+          "const": "thrustcurve_search"
+        },
+        "input": {
+          "$ref": "#/$defs/ThrustcurveSearchIn"
+        }
+      },
+      "required": [
+        "command",
+        "input"
+      ],
+      "description": "Search thrustcurve.org for motors (network; only when the user asks)."
+    },
+    {
+      "type": "object",
+      "properties": {
+        "command": {
+          "type": "string",
+          "const": "thrustcurve_fetch"
+        },
+        "input": {
+          "$ref": "#/$defs/ThrustcurveFetchIn"
+        }
+      },
+      "required": [
+        "command",
+        "input"
+      ],
+      "description": "Download a motor file from thrustcurve.org into lib/motors/ (network)."
     }
   ],
   "description": "One operation on a project.",
@@ -4202,6 +4236,109 @@
       "required": [
         "path"
       ]
+    },
+    "ThrustcurveSearchIn": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Designation or common name (`C6`, `H128W`); a leading word may name\nthe manufacturer (`Estes C6`). A delay suffix (`C6-5`) is ignored."
+        },
+        "manufacturer": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Manufacturer name or abbreviation (`Estes`, `AeroTech`)."
+        },
+        "diameter": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\s*(=.+|[-+]?[0-9.][0-9.eE+/ -]*\\s*[^\\s0-9.].*)$"
+                },
+                {
+                  "const": 0
+                }
+              ],
+              "x-unit-dimension": "length",
+              "x-expr": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Motor diameter, e.g. `\"18 mm\"`."
+        },
+        "impulse_class": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Impulse class letter (`C`).",
+          "pattern": "^(1/8A|1/4A|1/2A|[A-Oa-o])$"
+        },
+        "limit": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "minimum": 1,
+          "description": "Most motors to return (default 20, at most 100).",
+          "maximum": 100
+        }
+      },
+      "description": "Search thrustcurve.org's motor database. The only network access in\nRocketWright, and only when the user asks for it."
+    },
+    "ThrustcurveFetchIn": {
+      "type": "object",
+      "properties": {
+        "motor": {
+          "type": "string",
+          "description": "A ThrustCurve motor id (from `thrustcurve_search`), or a designation\n(`C6`, `Estes C6-5`) that matches exactly one motor.",
+          "minLength": 1
+        },
+        "manufacturer": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Manufacturer, to narrow a designation."
+        },
+        "format": {
+          "$ref": "#/$defs/ThrustcurveFormat",
+          "default": "eng"
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "motor"
+      ],
+      "description": "Download one motor's data file from thrustcurve.org into `lib/motors/`\n(as `import_file` does with a local file), recording its sha256 and its\nsource under `rocketwright.toml [lib]`."
+    },
+    "ThrustcurveFormat": {
+      "oneOf": [
+        {
+          "type": "string",
+          "const": "eng",
+          "description": "RASP `.eng`."
+        },
+        {
+          "type": "string",
+          "const": "rse",
+          "description": "RockSim `.rse` (carries mass and CG per sample)."
+        }
+      ],
+      "description": "Simulator file format at ThrustCurve."
     }
   }
 }

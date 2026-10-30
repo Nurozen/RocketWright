@@ -13,6 +13,7 @@ pub mod mcp;
 pub mod render;
 pub mod render2d;
 pub mod render3d;
+pub mod thrustcurve;
 
 /// Build provenance: the features this binary was compiled with, as one
 /// literal per feature set (`concat!` takes literals only).

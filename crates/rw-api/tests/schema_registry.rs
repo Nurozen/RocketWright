@@ -76,6 +76,8 @@ const MCP_TOOLS: &[&str] = &[
     "engine_design",
     "engine_simulate",
     "cfd_import",
+    "thrustcurve_search",
+    "thrustcurve_fetch",
 ];
 
 #[test]

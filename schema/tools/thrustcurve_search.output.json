@@ -1,0 +1,136 @@
+{
+  "type": "object",
+  "properties": {
+    "motors": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ThrustcurveMotor"
+      }
+    },
+    "matches": {
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0,
+      "description": "Motors matching every criterion (may exceed `motors.len()`)."
+    },
+    "host": {
+      "type": "string",
+      "description": "The host that answered (`www.thrustcurve.org`)."
+    }
+  },
+  "required": [
+    "motors",
+    "matches",
+    "host"
+  ],
+  "title": "ThrustcurveSearchOut",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rocketwright.dev/schema/1/tools/thrustcurve_search.output.json",
+  "$defs": {
+    "ThrustcurveMotor": {
+      "type": "object",
+      "properties": {
+        "motor_id": {
+          "type": "string",
+          "description": "ThrustCurve motor id (24 hex digits); `thrustcurve_fetch` takes it."
+        },
+        "manufacturer": {
+          "type": "string",
+          "description": "Manufacturer abbreviation (`Estes`)."
+        },
+        "designation": {
+          "type": "string",
+          "description": "Designation (`C6`)."
+        },
+        "common_name": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Common name (`C6`)."
+        },
+        "impulse_class": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Impulse class letter."
+        },
+        "diameter": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "length": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "x-unit-dimension": "length"
+        },
+        "total_impulse": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "x-unit-dimension": "impulse"
+        },
+        "average_thrust": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "x-unit-dimension": "force"
+        },
+        "burn_time": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "x-unit-dimension": "time"
+        },
+        "motor_type": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "`SU`, `reload`, or `hybrid`."
+        },
+        "delays": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Delays as ThrustCurve lists them (`0,3,5,7`)."
+        },
+        "availability": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "`regular`, `occasional`, or `OOP` (out of production)."
+        },
+        "data_files": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0,
+          "description": "Number of data files ThrustCurve holds for the motor."
+        }
+      },
+      "required": [
+        "motor_id",
+        "manufacturer",
+        "designation",
+        "data_files"
+      ],
+      "description": "One ThrustCurve motor (SI units)."
+    }
+  }
+}

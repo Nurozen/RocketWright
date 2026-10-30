@@ -63,6 +63,22 @@ impl ToolHints {
         open_world: false,
         mutating: true,
     };
+    /// Reads from the network (thrustcurve.org search), writes nothing.
+    pub const NET_READ: Self = Self {
+        read_only: true,
+        destructive: false,
+        idempotent: true,
+        open_world: true,
+        mutating: false,
+    };
+    /// Downloads into the project as one mutation (thrustcurve.org fetch).
+    pub const NET_MUTATE: Self = Self {
+        read_only: false,
+        destructive: false,
+        idempotent: false,
+        open_world: true,
+        mutating: true,
+    };
     pub const DESTROY: Self = Self {
         read_only: false,
         destructive: true,
@@ -247,6 +263,10 @@ commands! {
         "Tank and feed simulation; returns a job (rw engine sim).";
     CfdImport = "cfd_import" (CfdImportIn) -> CfdImportOut, mcp: true, ToolHints::MUTATE, Approval::Always,
         "Import a CFD point dataset (R6.15).";
+    ThrustcurveSearch = "thrustcurve_search" (ThrustcurveSearchIn) -> ThrustcurveSearchOut, mcp: true, ToolHints::NET_READ, Approval::Never,
+        "Search thrustcurve.org for motors (network; only when the user asks).";
+    ThrustcurveFetch = "thrustcurve_fetch" (ThrustcurveFetchIn) -> ThrustcurveFetchOut, mcp: true, ToolHints::NET_MUTATE, Approval::Always,
+        "Download a motor file from thrustcurve.org into lib/motors/ (network).";
 }
 
 /// Looks up a catalogue entry by name.

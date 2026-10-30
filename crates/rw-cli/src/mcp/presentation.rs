@@ -44,6 +44,8 @@ pub const TITLES: &[(&str, &str)] = &[
     ("engine_design", "Size engine"),
     ("engine_simulate", "Simulate engine"),
     ("cfd_import", "Import CFD data"),
+    ("thrustcurve_search", "Search ThrustCurve"),
+    ("thrustcurve_fetch", "Download motor"),
     ("run_series", "Read run samples"),
     ("render_picture", "Load render"),
 ];
@@ -284,6 +286,14 @@ fn success(name: &str, args: &Value, out: &Value) -> String {
             mutation(out, format!("{items} imported"), &items)
         }
         "cfd_import" => mutation(out, "Dataset imported".into(), "dataset"),
+        "thrustcurve_fetch" => {
+            let what = text(out, "path")
+                .and_then(|p| p.rsplit('/').next())
+                .unwrap_or("motor file")
+                .to_string();
+            mutation(out, format!("Saved {what}"), &what)
+        }
+        "thrustcurve_search" => count(len(out, "motors"), "motor", "motors"),
         "design_check" => check_summary(out),
         "render" => text(out, "view").map_or_else(|| "Rendered".into(), view),
         "library_search" => count(len(out, "items"), "item", "items"),
@@ -493,6 +503,18 @@ mod tests {
                 none.clone(),
                 mutation_out(Some("step:2"), false, 0),
                 "Dataset imported",
+            ),
+            (
+                "thrustcurve_fetch",
+                none.clone(),
+                json!({"step": "step:2", "dry_run": false, "path": "lib/motors/Estes_C6.eng", "imported": [], "delta": {}}),
+                "Saved Estes_C6.eng",
+            ),
+            (
+                "thrustcurve_search",
+                none.clone(),
+                json!({"motors": [{}, {}], "matches": 2, "host": "www.thrustcurve.org"}),
+                "2 motors",
             ),
             (
                 "design_check",
@@ -766,9 +788,10 @@ mod tests {
             assert!(!t.contains('_'), "{name}: {t}");
             let first = t.chars().next().unwrap();
             assert!(first.is_uppercase(), "{name}: {t}");
-            // Sentence case: no capital after the first word, but for initialisms (CFD).
+            // Sentence case: no capital after the first word, but for initialisms (CFD)
+            // and proper names (ThrustCurve).
             for w in t.split(' ').skip(1) {
-                let all_caps = w.chars().all(|c| c.is_uppercase());
+                let all_caps = w.chars().all(|c| c.is_uppercase()) || w == "ThrustCurve";
                 assert!(
                     all_caps || w.chars().next().unwrap().is_lowercase(),
                     "{name}: {t}"

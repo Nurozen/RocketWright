@@ -1,5 +1,6 @@
 //! Diagnostics with stable codes (invariant I9). Code ranges per owner:
-//! E000-049 parse/units/expr, E050-099 anchors/containment, E100-149
+//! E000-049 parse/units/expr and files (E015-019: the opt-in ThrustCurve
+//! download), E050-099 anchors/containment, E100-149
 //! aero/stability, E150-199 clearance, W100-149 motor, W200-249 liquid missing
 //! inputs, W250-299 recovery deployment, E200-249 liquid rules (E200-219 here: feed graph and input ranges;
 //! E220-249 in `rw-liquid`: design rules), I900+ info. The code table lands with the
@@ -86,6 +87,9 @@ codes! {
     E_PARAM_CHOICE = "RW-E012", "param-not-a-choice", Error, "A param value is not one of its `choices`.";
     E_PARAM_DIM = "RW-E013", "param-dimension", Error, "A param's `min`, `max`, `step`, or `choices` differ in dimension from its value.";
     E_VARIANT = "RW-E014", "unknown-variant", Error, "The selected variant is not defined under `[variants]`.";
+    E_TC_UNREACHABLE = "RW-E015", "thrustcurve-unreachable", Error, "A ThrustCurve search or download the user asked for could not reach thrustcurve.org (offline, timed out, or the server answered with an error); nothing was written.";
+    E_TC_NOT_FOUND = "RW-E016", "thrustcurve-not-found", Error, "ThrustCurve has no motor matching the request, or the motor has no data file in the requested format.";
+    E_TC_AMBIGUOUS = "RW-E017", "thrustcurve-ambiguous", Error, "A designation matches several ThrustCurve motors; pass the motor id or a manufacturer.";
     E_UNIT_SYNTAX = "RW-E020", "quantity-syntax", Error, "A quantity cannot be parsed.";
     E_UNIT_MISSING = "RW-E021", "unit-missing", Error, "A bare number on a dimensional field (only `0` may omit the unit).";
     E_UNIT_UNKNOWN = "RW-E022", "unknown-unit", Error, "The unit symbol is not in the unit table.";

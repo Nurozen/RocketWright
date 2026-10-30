@@ -1,0 +1,126 @@
+{
+  "provenance": "contract-fixture",
+  "type": "tools/thrustcurve_fetch.output",
+  "note": "Illustrative motor; not ThrustCurve data",
+  "payload": {
+    "model_hash": "1ceb288e422bb33c662e66c9265157be29a006761136f05776dd3891e9ea8822",
+    "dry_run": true,
+    "files": [
+      {
+        "path": "lib/motors/Acme_C6.eng",
+        "status": "A"
+      }
+    ],
+    "delta": {
+      "status": "warnings",
+      "model_hash": "1ceb288e422bb33c662e66c9265157be29a006761136f05776dd3891e9ea8822",
+      "changed": {
+        "stability.liftoff": [
+          1.42,
+          1.71
+        ],
+        "mass.liftoff": [
+          0.6188,
+          0.6219
+        ],
+        "aero.cp": [
+          0.5552,
+          0.5774
+        ]
+      },
+      "new_diagnostics": [
+        {
+          "code": "RW-W151",
+          "severity": "warning",
+          "path": "/c/ring_lower",
+          "file": "rocket.rw.toml",
+          "line": 88,
+          "col": 1,
+          "message": "Centering ring (lower) sits 6 mm from the motor retainer",
+          "hint": "Move it fore with attach.offset = \"-10 mm\" if the retainer needs room."
+        }
+      ],
+      "resolved_diagnostics": [
+        "RW-E101@/c/fins/span"
+      ]
+    },
+    "imported": [
+      "lib:motors/Acme_C6.eng#C6"
+    ],
+    "path": "lib/motors/Acme_C6.eng",
+    "motor": {
+      "motor_id": "5f0000000000000000000001",
+      "manufacturer": "Acme",
+      "designation": "C6",
+      "common_name": "C6",
+      "impulse_class": "C",
+      "diameter": 0.018,
+      "length": 0.07,
+      "total_impulse": 8.8,
+      "average_thrust": 4.9,
+      "burn_time": 1.8,
+      "motor_type": "SU",
+      "delays": "0,3,5",
+      "availability": "regular",
+      "data_files": 2
+    },
+    "source": {
+      "origin": "thrustcurve",
+      "motor_id": "5f0000000000000000000001",
+      "simfile_id": "5f0000000000000000000101",
+      "url": "https://www.thrustcurve.org/simfiles/5f0000000000000000000101/",
+      "downloaded": "2026-10-30T12:00:00Z"
+    },
+    "curves": [
+      {
+        "designation": "C6",
+        "manufacturer": "Acme",
+        "class": "C",
+        "diameter": 0.018,
+        "length": 0.07,
+        "delays": [
+          0.0,
+          3.0,
+          5.0
+        ],
+        "prop_mass": 0.011,
+        "total_mass": 0.024,
+        "total_impulse": 8.8,
+        "burn_time": 1.8,
+        "average_thrust": 4.9,
+        "max_thrust": 12.0,
+        "points": [
+          {
+            "t": 0.0,
+            "thrust": 0.0
+          },
+          {
+            "t": 0.05,
+            "thrust": 6.0
+          },
+          {
+            "t": 0.2,
+            "thrust": 12.0
+          },
+          {
+            "t": 0.4,
+            "thrust": 6.0
+          },
+          {
+            "t": 1.5,
+            "thrust": 4.5
+          },
+          {
+            "t": 1.8,
+            "thrust": 0.0
+          }
+        ],
+        "sha256": "e8cf2af56dcc1b4c56e45032b7d9efb67f3d6c92f8716655d242b0b92d995761",
+        "source": {
+          "kind": "library",
+          "path": "lib/motors/Acme_C6.eng"
+        }
+      }
+    ]
+  }
+}

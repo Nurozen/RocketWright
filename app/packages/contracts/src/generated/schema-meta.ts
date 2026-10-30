@@ -1752,6 +1752,33 @@ export const SCHEMA_META: Readonly<Record<string, TypeMeta>> = {
       }
     }
   },
+  "ThrustcurveMotor": {
+    "fields": {
+      "diameter": {
+        "unitDimension": "length"
+      },
+      "length": {
+        "unitDimension": "length"
+      },
+      "total_impulse": {
+        "unitDimension": "impulse"
+      },
+      "average_thrust": {
+        "unitDimension": "force"
+      },
+      "burn_time": {
+        "unitDimension": "time"
+      }
+    }
+  },
+  "ThrustcurveSearchIn": {
+    "fields": {
+      "diameter": {
+        "unitDimension": "length",
+        "expr": true
+      }
+    }
+  },
   "Transition": {
     "uiGroup": "Geometry",
     "fields": {
@@ -2410,6 +2437,30 @@ export const SCHEMA_REGISTRY = [
     "file": "tools/cfd_import.output.json",
     "iface": "IF8",
     "tsName": "CfdImportOut"
+  },
+  {
+    "name": "tools/thrustcurve_search.input",
+    "file": "tools/thrustcurve_search.input.json",
+    "iface": "IF8",
+    "tsName": "ThrustcurveSearchIn"
+  },
+  {
+    "name": "tools/thrustcurve_search.output",
+    "file": "tools/thrustcurve_search.output.json",
+    "iface": "IF8",
+    "tsName": "ThrustcurveSearchOut"
+  },
+  {
+    "name": "tools/thrustcurve_fetch.input",
+    "file": "tools/thrustcurve_fetch.input.json",
+    "iface": "IF8",
+    "tsName": "ThrustcurveFetchIn"
+  },
+  {
+    "name": "tools/thrustcurve_fetch.output",
+    "file": "tools/thrustcurve_fetch.output.json",
+    "iface": "IF8",
+    "tsName": "ThrustcurveFetchOut"
   }
 ] as const;
 
@@ -2763,6 +2814,32 @@ export const MCP_TOOL_CATALOG = [
       "destructive": false,
       "idempotent": false,
       "open_world": false,
+      "mutating": true
+    }
+  },
+  {
+    "name": "thrustcurve_search",
+    "input": "tools/thrustcurve_search.input",
+    "output": "tools/thrustcurve_search.output",
+    "approval": "never",
+    "hints": {
+      "read_only": true,
+      "destructive": false,
+      "idempotent": true,
+      "open_world": true,
+      "mutating": false
+    }
+  },
+  {
+    "name": "thrustcurve_fetch",
+    "input": "tools/thrustcurve_fetch.input",
+    "output": "tools/thrustcurve_fetch.output",
+    "approval": "always",
+    "hints": {
+      "read_only": false,
+      "destructive": false,
+      "idempotent": false,
+      "open_world": true,
       "mutating": true
     }
   }

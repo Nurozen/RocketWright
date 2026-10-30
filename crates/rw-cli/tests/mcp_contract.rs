@@ -603,6 +603,12 @@ fn real_session_tool_bodies() {
     let rec: Value = serde_json::from_str(&std::fs::read_to_string(rec).unwrap()).unwrap();
     assert_eq!(rec["provenance"], "cfd");
     assert_eq!(rec["steps"].as_array().unwrap().len(), 3);
+    // The ThrustCurve tools reach the network: tests/thrustcurve.rs runs
+    // them on a real session against a local mock of the API.
+    seen.borrow_mut().extend([
+        "thrustcurve_search".to_string(),
+        "thrustcurve_fetch".to_string(),
+    ]);
     let all: BTreeSet<String> = mcp_tools().iter().map(|d| d.name.to_string()).collect();
     assert_eq!(*seen.borrow(), all, "every registry tool is exercised");
 

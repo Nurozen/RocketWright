@@ -347,6 +347,43 @@ enum MotorCmd {
         #[arg(long)]
         dry_run: bool,
     },
+    /// Search and download motors from thrustcurve.org (network, on request).
+    Thrustcurve {
+        #[command(subcommand)]
+        what: ThrustcurveCmd,
+    },
+}
+
+#[derive(Subcommand)]
+enum ThrustcurveCmd {
+    /// Search thrustcurve.org (needs no project; writes nothing).
+    Search {
+        /// Designation or common name: C6, H128W, "Estes C6".
+        query: Option<String>,
+        #[arg(long)]
+        manufacturer: Option<String>,
+        /// e.g. "18 mm".
+        #[arg(long)]
+        diameter: Option<String>,
+        /// Impulse class letter, e.g. C.
+        #[arg(long)]
+        impulse_class: Option<String>,
+        /// Most motors to list (default 20, at most 100).
+        #[arg(long)]
+        limit: Option<u32>,
+    },
+    /// Download a motor's data file into lib/motors/ (like `rw motor import`).
+    Fetch {
+        /// A ThrustCurve motor id, or a designation matching one motor ("Estes C6-5").
+        motor: String,
+        #[arg(long)]
+        manufacturer: Option<String>,
+        /// eng (RASP, default) or rse (RockSim).
+        #[arg(long, default_value = "eng")]
+        format: String,
+        #[arg(long)]
+        dry_run: bool,
+    },
 }
 
 #[derive(Subcommand)]
@@ -559,6 +596,28 @@ fn main() -> ExitCode {
             ),
             MotorCmd::Show { id } => cmd::library::motor_show(&opts, &id),
             MotorCmd::Import { file, dry_run } => cmd::motor::import(&opts, &file, dry_run),
+            MotorCmd::Thrustcurve { what } => match what {
+                ThrustcurveCmd::Search {
+                    query,
+                    manufacturer,
+                    diameter,
+                    impulse_class,
+                    limit,
+                } => cmd::motor::thrustcurve_search(
+                    &opts,
+                    query,
+                    manufacturer,
+                    diameter,
+                    impulse_class,
+                    limit,
+                ),
+                ThrustcurveCmd::Fetch {
+                    motor,
+                    manufacturer,
+                    format,
+                    dry_run,
+                } => cmd::motor::thrustcurve_fetch(&opts, &motor, manufacturer, &format, dry_run),
+            },
         },
         Cmd::Engine { what } => match what {
             EngineCmd::Design { id } => cmd::engine::design(&opts, &id),
