@@ -143,7 +143,8 @@ fn half_write_keeps_last_good_model() {
     std::fs::write(&p, text.replace("\"50 mm\"", "\"52 mm\"")).unwrap();
     assert!(wait_until(5000, || rig.steps().len() == 2));
     rig.settle();
-    assert_eq!(rig.steps().len(), 2);
+    let steps = rig.steps();
+    assert_eq!(steps.len(), 2, "{steps:#?}");
     assert_ne!(rig.model_hash(), good);
     let s = rig.session.lock().unwrap();
     assert!(s.report().diagnostics.iter().all(|d| d.code != "RW-E001"));

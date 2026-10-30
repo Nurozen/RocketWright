@@ -21,6 +21,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
 
 use rw_api::{
     ApiError, ApiErrorCode, CallCtx, Command, CompareOut, ComponentAddIn, ComponentMoveIn,
@@ -1029,10 +1030,34 @@ impl Session {
 
     // ---- external edits -----------------------------------------------------------
 
-    /// Re-reads the project and applies external edits (the watcher's body).
-    /// Unchanged content (own writes, replayed events, touches) is a no-op;
-    /// a file that does not parse keeps the last good model (`RW-E001`).
+    /// Re-reads the project and applies external edits (edits made while no
+    /// owner ran, tests). Unchanged content (own writes, replayed events,
+    /// touches) is a no-op; a file that does not parse keeps the last good
+    /// model (`RW-E001`).
     pub fn sync_from_disk(&mut self, origin: Origin) -> Result<SyncOutcome, ApiError> {
+        self.sync(origin, None).map(|(o, _)| o)
+    }
+
+    /// [`Session::sync_from_disk`] for the watcher. While a changed file was
+    /// modified less than `quiet` ago nothing is applied: it may be mid-write
+    /// (an in-place save truncates, then writes, and a read in between sees
+    /// an empty file that parses), and a debounced batch for another path or
+    /// an older event can read it at that moment. Returns, with the outcome,
+    /// how long until the youngest such file has been quiet for `quiet`
+    /// (`None`: nothing was held back), so the watcher can sync again then.
+    pub fn sync_settled(
+        &mut self,
+        origin: Origin,
+        quiet: Duration,
+    ) -> Result<(SyncOutcome, Option<Duration>), ApiError> {
+        self.sync(origin, Some(quiet))
+    }
+
+    fn sync(
+        &mut self,
+        origin: Origin,
+        quiet: Option<Duration>,
+    ) -> Result<(SyncOutcome, Option<Duration>), ApiError> {
         let disk =
             layout::read_project(&self.root).map_err(|e| io_err("reading the project", e))?;
         let lib_hashes = lib_hash_map(&disk.lib);
@@ -1057,6 +1082,31 @@ impl Session {
                 changed.push((p.clone(), None));
             }
         }
+        // While a changed source was modified within `quiet`, the tree may
+        // still be being written: apply nothing yet, and keep the own-write
+        // records for the next read. The mtime is read after the text and the
+        // clock after the mtime, so a text read mid-write has a recent mtime.
+        if let Some(quiet) = quiet {
+            let young = changed
+                .iter()
+                .filter_map(|(p, t)| {
+                    t.as_ref()?;
+                    let mtime = std::fs::metadata(self.root.join(p)).ok()?.modified().ok()?;
+                    let age = match std::time::SystemTime::now().duration_since(mtime) {
+                        Ok(age) => age,
+                        // Slightly ahead (a clock step) is recent; far ahead
+                        // (a skewed clock) would never settle, so it is not.
+                        Err(e) if e.duration() < quiet => Duration::ZERO,
+                        Err(_) => return None,
+                    };
+                    (age < quiet).then(|| quiet - age)
+                })
+                .max();
+            if young.is_some() {
+                self.own_writes = own_writes;
+                return Ok((SyncOutcome::Unchanged, young));
+            }
+        }
         // A broken file restored to its last good text (or deleted) clears.
         let mut cleared = false;
         let broken: Vec<String> = self.external.keys().cloned().collect();
@@ -1076,7 +1126,7 @@ impl Session {
                     step: None,
                 });
             }
-            return Ok(SyncOutcome::Unchanged);
+            return Ok((SyncOutcome::Unchanged, None));
         }
 
         let mut next = self.store.clone();
@@ -1110,7 +1160,7 @@ impl Session {
                     step: None,
                 });
             }
-            return Ok(SyncOutcome::ParseError(diags));
+            return Ok((SyncOutcome::ParseError(diags), None));
         }
         for (p, _) in &changed {
             self.external.remove(p);
@@ -1151,7 +1201,7 @@ impl Session {
             origin,
             step: step.clone(),
         });
-        Ok(SyncOutcome::Applied(step.map(Box::new)))
+        Ok((SyncOutcome::Applied(step.map(Box::new)), None))
     }
 
     /// Records the sha256 of every library file in `rocketwright.toml

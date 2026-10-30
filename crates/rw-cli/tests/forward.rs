@@ -241,7 +241,7 @@ fn cli_write_while_sidecar_live_is_forwarded_as_one_cli_step() {
     assert!(wait_until(5000, || steps(d.path()).len() == 4));
     std::thread::sleep(Duration::from_millis(800));
     let st = steps(d.path());
-    assert_eq!(st.len(), 4);
+    assert_eq!(st.len(), 4, "{st:#?}");
     assert_eq!(st[3].origin, rw_api::Origin::Watcher);
 
     // Validation happens before routing: a bad call never reaches the owner.

@@ -97,13 +97,18 @@ ops -> `TomlStore::preview` -> eval (+library) -> `Checker` -> dry run returns
 
 - `notify` + `notify-debouncer-full` at 200 ms. Event kinds are not trusted;
   any batch touching a source or library path, or a directory that can hold
-  them, calls `Session::sync_from_disk`, which compares content (own-write
+  them, calls `Session::sync_settled`, which compares content (own-write
   set, last-good texts) and re-reads. Directory events count because inotify
   watches a new directory only after it has seen it appear (files created in
   it before then send nothing), and a directory moved in or out reports only
   itself. Access events do not count, except a close after writing: inotify
   reports every `open`, including the sync's own reads, which would wake the
   watcher again.
+- Nothing is applied while a changed source was modified less than 200 ms
+  ago: a batch for another path (or an older event; the debouncer drops data
+  events right after a create or rename-into-place) can fire in the middle
+  of an in-place save, whose truncated, empty file parses. The watcher syncs
+  again once the file has been quiet for 200 ms.
 - A file that does not parse keeps the last good model and reports
   `RW-E001`/`RW-E002` in the check report until fixed. No step meanwhile.
 - External steps carry `origin = watcher`. A forwarded CLI write and its

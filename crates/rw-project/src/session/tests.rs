@@ -520,6 +520,43 @@ fn external_edits_parse_errors_and_own_writes() {
 }
 
 #[test]
+fn a_file_changed_within_the_quiet_window_is_left_for_later() {
+    let d = project("sess-quiet");
+    let mut s = Session::open(d.path(), SessionOptions::writer()).unwrap();
+    let good = s.model().model_hash.clone();
+    let quiet = Duration::from_secs(3600);
+    // An in-place save caught between its truncate and its write: the empty
+    // file parses, but it was modified just now, so it is not read yet.
+    let path = d.path().join("rocket.rw.toml");
+    let text = std::fs::read_to_string(&path).unwrap();
+    std::fs::write(&path, "").unwrap();
+    let (o, wait) = s.sync_settled(Origin::Watcher, quiet).unwrap();
+    assert_eq!(o, SyncOutcome::Unchanged);
+    assert!(
+        wait.is_some_and(|w| w > quiet - Duration::from_secs(60) && w <= quiet),
+        "{wait:?}"
+    );
+    assert_eq!(s.model().model_hash, good);
+    assert_eq!(s.steps().unwrap().len(), 1);
+    // The save completes; once the file has been quiet for the window, the
+    // next sync applies it as one step.
+    let edited = text.replace("\"50 mm\"", "\"57 mm\"");
+    std::fs::write(&path, &edited).unwrap();
+    let past = std::time::SystemTime::now() - 2 * quiet;
+    std::fs::File::options()
+        .write(true)
+        .open(&path)
+        .unwrap()
+        .set_modified(past)
+        .unwrap();
+    let (o, wait) = s.sync_settled(Origin::Watcher, quiet).unwrap();
+    assert!(matches!(o, SyncOutcome::Applied(Some(_))), "{o:?}");
+    assert_eq!(wait, None);
+    assert_ne!(s.model().model_hash, good);
+    assert_eq!(s.steps().unwrap().len(), 2);
+}
+
+#[test]
 fn validate_and_design_check() {
     let d = project("sess-validate");
     let mut s = Session::open(d.path(), SessionOptions::read_only()).unwrap();
