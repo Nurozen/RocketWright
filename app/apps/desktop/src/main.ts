@@ -296,6 +296,10 @@ function checkedTarget(t: EmbedTarget): HelperEmbedTarget {
   return t;
 }
 
+// The helper allows 1 s per guest capture attempt; a slow machine (a CI VM
+// failed all three) needs longer. Only a failing capture waits the full time.
+const GUEST_CAPTURE = { attempts: 4, attemptTimeoutMs: 5_000 } as const;
+
 /**
  * The window's agent pane (B10): `mountEmbedView` with the child's targets
  * over main's RPC, keyed by each project's workspace root. Null without an
@@ -327,7 +331,7 @@ function startPane(win: BrowserWindow, rpc: MainRpc | null): PaneController | nu
     mount,
     workspaceRootOf: (projectId) => rpc.projects().find((p) => p.projectId === projectId)?.dir ?? null,
     // The bridge handed back is the helper's own object (`mount` above).
-    capture: (b) => captureEmbedView(b as unknown as EmbedBridge),
+    capture: (b) => captureEmbedView(b as unknown as EmbedBridge, GUEST_CAPTURE),
     log: (line) => process.stderr.write(`${line}\n`),
   });
 }
