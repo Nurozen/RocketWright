@@ -1,5 +1,10 @@
 # RocketWright
 
+> [!WARNING]
+> **Alpha.** RocketWright is early software: expect rough edges, breaking changes to project files and commands, and results you should check against another tool before you fly. Desktop builds are unsigned.
+
+![The RocketWright desktop app: an exploded assembly view of a model rocket with the component tree, an inspector, and the embedded Lecturn agent pane](docs/images/design-assembly.png)
+
 Agent-driven rocket design and simulation for hobbyists. You describe a rocket
 in a chat (or in plain TOML files), and an agent edits the design, checks it,
 flies it, and renders it, with every number coming from the engine rather than
@@ -20,13 +25,28 @@ the model's arithmetic.
   and run comparison.
 - **OpenRocket interop**: `rw import ork` and `rw export ork`.
 
+## Screenshots
+
+Frames from the app, captured by its visual test harness on the bundled sample
+project. The agent pane in these five predates the embedded Lecturn pane shown
+above.
+
+| | |
+|---|---|
+| ![Fin editor with a proposed fin set over the previous outline, CG and CP marked, and the agent's change summary](docs/images/design-fins.png) | ![Flight configurations with a motor picker and the selected motor's thrust curve](docs/images/configurations.png) |
+| **Design.** Edit a part and compare it with the previous revision; CG, CP and stability update as you go. | **Configurations.** Pair the airframe with motors from the built-in offline library. |
+| ![Flight results comparing two runs on altitude over time, with a 3D trajectory view](docs/images/results.png) | ![Liquid propulsion system with tanks, feed lines and engine, and a connectivity diagram](docs/images/liquid-propulsion.png) |
+| **Results.** Overlay runs, inspect events, and see each trajectory in 3D. | **Liquid propulsion.** Lay out tanks, valves and the engine, and see which inputs an analysis still needs. |
+| ![Cutaway of a liquid tank and engine with an illustrative flow preview and flow traces](docs/images/propulsion-flow.png) | |
+| **Flow preview.** An illustrative cutaway of propellant moving through the tank and feed line (a visual model, not an engineering result). | |
+
 ## Status
 
-Pre-release, macOS-first (Apple Silicon). The core, CLI, MCP server, desktop
+Alpha, macOS-first (Apple Silicon). The core, CLI, MCP server, desktop
 app, and liquid-engine tools work end to end and are covered by `make check`.
-Known gaps: the visual-fidelity bar is not yet met on every app page; OpenRocket
-parity is outside tolerance for tube fins (case 4, about +7.5% apogee) and
-rail-button drag; release builds of the desktop app are unsigned until the
+Known gaps: OpenRocket parity holds on the seven reference cases, but the
+rail-button drag model rests on an assumed boundary-layer profile
+([`docs/dev/parity-log.md`](docs/dev/parity-log.md)); release builds of the desktop app are unsigned until the
 signing secrets are configured ([`docs/dev/releasing.md`](docs/dev/releasing.md));
 and there is no Monte Carlo (a non-goal: every simulation is one deterministic
 flight).
@@ -184,7 +204,8 @@ reuses or ships, with licenses. The vendored NASA CEA source under
 
 ## License
 
-RocketWright is licensed under the GNU Affero General Public License v3.0 or
-later (AGPL-3.0-or-later); see [`LICENSE`](LICENSE). Third-party code and data
+Copyright (C) 2026 Cloud Gatherer Labs LLC. RocketWright is licensed under the
+GNU Affero General Public License v3.0 or later (AGPL-3.0-or-later); see
+[`LICENSE`](LICENSE). Third-party code and data
 keep their own licenses, listed in [`NOTICE.md`](NOTICE.md). Report security
 issues as described in [`SECURITY.md`](SECURITY.md).
