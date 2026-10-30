@@ -299,8 +299,15 @@ export default async function drive(page: PageLike): Promise<Json> {
     tab?.click();
   }, null);
   await waitFor(page, "results page again", pageReady);
-  // Leave the capture on the concept state's selection (Baseline).
+  // Leave the capture on the concept state's selection (Baseline). Selecting a run opens its agent thread, made on
+  // the first visit: the guest creates it, then navigates to it. Return only once the pane shows it, or that
+  // navigation lands during the capture and the pane's composite is dropped as stale (exit 1 on a slow CI VM).
   await page.evaluate(click, '[data-testid="rail.nav-row"][data-sim="baseline"]');
+  await waitFor(
+    page,
+    "the agent pane on Baseline's thread",
+    () => document.querySelector('[data-testid="agent.embed"]') === null || document.querySelector('[data-testid="rail.thread"][data-artifact="rw:sim/baseline"][aria-selected="true"]') !== null,
+  );
 
   return { initial, plotRender, velocity, csv, sortAsc, sortDesc, sortOff, single, hidden, assumptions, railSelected, afterRun, afterOpenDesign };
 }
