@@ -40,7 +40,9 @@ printf 'make wasm: %s (%s bytes, %s gzip)\n' "$out/rw_wasm_bg.wasm" "$bytes" "$g
 # to 2.11 MB: CD overrides, tank propellant mass, and the apogee fallback took
 # it from 2.0992 MB to 2.1063 MB. REV2-web raised it to 2.12 MB: cutter nodes
 # for viewport cuts (`MeshOptions.cutters`, `mesh_model_glb`) took it to 2.1121 MB.
-max=${RW_WASM_MAX_BYTES:-2120000}
+# ThrustCurve raised it to 2.13 MB: the model's `[lib.source]` provenance table
+# (`LibSource`) and the RW-E015..017 code rows took it from 2.1140 MB to 2.1240 MB.
+max=${RW_WASM_MAX_BYTES:-2130000}
 if [ "$bytes" -gt "$max" ]; then
   echo "make wasm: rw_wasm_bg.wasm is $bytes bytes, over the $max-byte gate" >&2
   exit 1
