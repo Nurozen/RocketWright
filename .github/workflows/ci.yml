@@ -4,7 +4,7 @@
 #   Lecturn kit  macOS   the vendored Lecturn tarballs app/ installs (lecturn-kit.yml)
 #   Rust         Linux   make check-rust: fmt, clippy, tests, audit, docs-check
 #   TypeScript   Linux   make schema-check wasm check-ts
-#   E2E          macOS   make wasm e2e (Playwright + Electron); not required yet
+#   E2E          macOS   make wasm e2e (Playwright + Electron); not a required status, but CONTRIBUTING.md has a merge rule
 #   Check        Linux   the one required status: every required job passed
 name: CI
 
@@ -124,6 +124,7 @@ jobs:
           path: |
             .playwright/
             dist/e2e/
+            target/bar/e2e/
           if-no-files-found: ignore
           retention-days: 7
 
