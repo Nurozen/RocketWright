@@ -80,7 +80,7 @@ export function projectedRealpath(path: string): string {
   }
 }
 
-function refuseOverlong(target: string): void {
+export function refuseOverlong(target: string): void {
   const bytes = Buffer.byteLength(projectedRealpath(target));
   if (bytes > MAX_PROJECT_REALPATH) throw new RpcFail("invalid_params", `${target}: the path is ${bytes} bytes; a project's path can be at most ${MAX_PROJECT_REALPATH}`);
 }
