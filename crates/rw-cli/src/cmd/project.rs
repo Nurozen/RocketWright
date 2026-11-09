@@ -43,6 +43,9 @@ pub fn init(
         dry_run,
     };
     let ctx = crate::forward::cli_ctx(Some("rw init".into()));
+    // Before the route: a sidecar owning the link's destination would create
+    // the project at its own canonical path, where the link cannot be seen.
+    rw_project::create::refuse_symlink_target(&dir)?;
     // A live owner of `dir` (a sidecar started on an empty directory) creates
     // the project itself; otherwise create in-process, lock first (D4).
     let v = match crate::forward::route(&dir, "project_create")? {

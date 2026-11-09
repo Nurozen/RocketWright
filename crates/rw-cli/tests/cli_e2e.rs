@@ -665,6 +665,36 @@ fn init_under_an_unwritable_parent_fails_cleanly() {
     assert!(!dir.exists());
 }
 
+/// A link at the target is refused with `conflict`, which the app reports to
+/// the agent, and nothing lands where it points.
+#[cfg(unix)]
+#[test]
+fn init_refuses_a_symlink_target() {
+    let t = TempProject::new();
+    let real = t.0.join("real");
+    std::fs::create_dir_all(&real).unwrap();
+    let link = t.0.join("link");
+    std::os::unix::fs::symlink(&real, &link).unwrap();
+    let o = rw_bare(&t.0)
+        .arg("init")
+        .arg(&link)
+        .arg("--json")
+        .output()
+        .unwrap();
+    assert!(!o.status.success(), "{}", stdout(&o));
+    let stderr = String::from_utf8_lossy(&o.stderr);
+    let v: Value = serde_json::from_str(stderr.trim().lines().last().unwrap()).unwrap();
+    assert_eq!(v["error"]["code"], "conflict", "{v}");
+    assert!(
+        v["error"]["message"]
+            .as_str()
+            .unwrap()
+            .contains("symbolic link"),
+        "{v}"
+    );
+    assert_eq!(std::fs::read_dir(&real).unwrap().count(), 0);
+}
+
 /// `empty` fails the strict check by design. `rw init` still exits 0, because
 /// the project exists, and the check's status stays in `--json`.
 #[test]
