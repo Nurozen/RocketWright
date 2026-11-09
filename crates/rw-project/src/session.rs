@@ -861,39 +861,61 @@ impl Session {
         i: &ComponentRemoveIn,
         ctx: &CallCtx,
     ) -> Result<MutationOut, ApiError> {
-        if self
-            .model_value()
-            .pointer(&format!("/c/{}", i.id))
-            .is_none()
-        {
-            return Err(err(
-                ApiErrorCode::NotFound,
-                format!("no component `{}`", i.id),
-            ));
+        let mut roots: Vec<&str> = Vec::new();
+        for id in std::iter::once(&i.id).chain(&i.also) {
+            if !roots.contains(&id.as_str()) {
+                roots.push(id);
+            }
         }
-        let deps = self.dependents(&i.id);
-        if !deps.is_empty() && !i.recursive {
+        let mv = self.model_value();
+        if let Some(id) = roots
+            .iter()
+            .find(|id| mv.pointer(&format!("/c/{id}")).is_none())
+        {
+            return Err(err(ApiErrorCode::NotFound, format!("no component `{id}`")));
+        }
+        // Each root's dependents come before it (deepest first), so children
+        // always go before their parents; a root already removed with
+        // another root is skipped, not an error.
+        let mut removed: Vec<String> = Vec::new();
+        for root in &roots {
+            for id in self
+                .dependents(root)
+                .into_iter()
+                .chain(std::iter::once((*root).to_string()))
+            {
+                if !removed.contains(&id) {
+                    removed.push(id);
+                }
+            }
+        }
+        let attached: Vec<&str> = removed
+            .iter()
+            .map(String::as_str)
+            .filter(|id| !roots.contains(id))
+            .collect();
+        if !attached.is_empty() && !i.recursive {
+            let whose = match roots.as_slice() {
+                [id] => format!("`{id}` has"),
+                _ => format!("`{}` have", roots.join("`, `")),
+            };
             return Err(with_hint(
                 err(
                     ApiErrorCode::Conflict,
-                    format!("`{}` has attached components: {}", i.id, deps.join(", ")),
+                    format!("{whose} attached components: {}", attached.join(", ")),
                 ),
                 "pass recursive: true to remove them too, or re-attach them first",
             ));
         }
-        let removed: Vec<&str> = deps
-            .iter()
-            .chain(std::iter::once(&i.id))
-            .map(String::as_str)
-            .collect();
+        let removed: Vec<&str> = removed.iter().map(String::as_str).collect();
         let mut ops = self.config_entry_removals(&removed);
         ops.extend(removed.iter().map(|id| PatchOp::Remove {
             path: format!("/c/{id}"),
         }));
-        let title = ctx
-            .label
-            .clone()
-            .unwrap_or_else(|| format!("Remove {}", i.id));
+        let title = ctx.label.clone().unwrap_or_else(|| match roots.as_slice() {
+            [id] => format!("Remove {id}"),
+            _ => format!("Remove {} components", roots.len()),
+        });
         self.patch(&ops, i.dry_run, ctx, "component_remove", title)
     }
 

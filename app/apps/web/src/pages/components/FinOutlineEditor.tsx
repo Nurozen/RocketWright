@@ -15,7 +15,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { PatchOp, schema } from "@rw/contracts";
 import { Icon } from "../../shell/Icon.tsx";
 import { DiagnosticText, diagnosticPlainText } from "../../ui/DiagnosticText.tsx";
-import { useDirtyField } from "../../state/dirtyFields.ts";
+import { useDirtyField, windowLostFocus } from "../../state/dirtyFields.ts";
 import type { DeepReadonly, Units } from "../../state/index.ts";
 import { displayUnit, fromDisplay, toDisplay } from "../../ui/fields/index.ts";
 import { canRemove, fromPx, insertPoint, movePoint, outlineFrame, outlineProblem, outlineSource, removePoint, snapPoint, toPx, type OutlineFrame, type Pt } from "./outline.ts";
@@ -275,6 +275,7 @@ function CoordInput({ label, testid, value, disabled, onDone, onCancel }: { labe
         setEditing(true);
       }}
       onBlur={() => {
+        if (windowLostFocus()) return;
         setEditing(false);
         const n = Number(text.trim());
         if (text.trim() !== "" && Number.isFinite(n) && text.trim() !== value) onDone(n);

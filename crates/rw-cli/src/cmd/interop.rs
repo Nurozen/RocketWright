@@ -8,6 +8,7 @@ use std::path::{Path, PathBuf};
 
 use serde_json::{Value, json};
 
+use super::project::parse_display_units;
 use super::{CmdResult, Opts, Outcome, cli_path, diag_lines, mutation_outcome, usage};
 
 /// The lines `rw import` prints before the mutation summary.
@@ -24,8 +25,18 @@ fn import_head(v: &Value, created: Option<&Path>) -> String {
     h
 }
 
-/// `rw import ork <file> [dir] [--dry-run]`.
-pub fn import_ork(opts: &Opts, file: &str, dir: Option<PathBuf>, dry_run: bool) -> CmdResult {
+/// `rw import ork <file> [dir] [--display-units <key=unit,...>] [--dry-run]`.
+/// `--display-units` applies when the import creates the project; inside an
+/// existing project it is refused, because the project's manifest keeps its
+/// own units.
+pub fn import_ork(
+    opts: &Opts,
+    file: &str,
+    dir: Option<PathBuf>,
+    display_units: Vec<String>,
+    dry_run: bool,
+) -> CmdResult {
+    let display_units = parse_display_units(&display_units)?;
     let path = cli_path(file);
     let target = dir.or_else(|| opts.project.clone());
     // An explicit directory that is not a project, or a working directory
@@ -40,7 +51,7 @@ pub fn import_ork(opts: &Opts, file: &str, dir: Option<PathBuf>, dry_run: bool) 
     };
     if let Some(d) = create_in {
         let ctx = crate::forward::cli_ctx(Some("rw import ork".into()));
-        let out = rw_project::create::import_project(&d, &path, dry_run, &ctx)?;
+        let out = rw_project::create::import_project(&d, &path, &display_units, dry_run, &ctx)?;
         let v = serde_json::to_value(&out).map_err(|e| usage(e.to_string()))?;
         let head = import_head(&v, (!dry_run).then_some(d.as_path()));
         let created = Opts {
@@ -48,6 +59,11 @@ pub fn import_ork(opts: &Opts, file: &str, dir: Option<PathBuf>, dry_run: bool) 
             ..opts.clone()
         };
         return Ok(mutation_outcome(&created, v, &head, ""));
+    }
+    if !display_units.is_empty() {
+        return Err(usage(
+            "--display-units applies only when the import creates a project",
+        ));
     }
     let opts = Opts {
         project: target.or_else(|| opts.project.clone()),

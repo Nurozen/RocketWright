@@ -197,7 +197,7 @@ export function ProjectSurface({ client, projectId, initialPage, runSource, http
         : p === "configurations"
           ? configurations.content
           : p === "results"
-            ? <ResultsPage app={store} source={runSource} />
+            ? <ResultsPage app={store} source={runSource} saveCsv={host === undefined ? undefined : (request) => host.saveCsv(request)} />
             : p === "liquid"
               ? liquid.content
               : p === "propulsion-sim"

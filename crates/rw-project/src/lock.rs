@@ -29,6 +29,11 @@ pub struct LockInfo {
     /// RFC 3339 start time.
     #[serde(default)]
     pub started: String,
+    /// True when every client attached to this owner is an agent's tool
+    /// process (or none is left): the project is not open in another app or
+    /// terminal. Only the owner writes it; absent counts as false.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub agent_only: bool,
 }
 
 /// What [`probe`] found.
@@ -125,6 +130,7 @@ impl ProjectLock {
             pid: std::process::id(),
             socket: socket.map(Path::to_path_buf),
             started: crate::clock::now().1,
+            agent_only: false,
         };
         let text = serde_json::to_string(&info).unwrap_or_default();
         file.set_len(0)?;
@@ -148,6 +154,35 @@ impl Drop for ProjectLock {
         let _ = self.file.set_len(0);
         let _ = self.file.unlock();
     }
+}
+
+/// Rewrites this process's record in `.rw/lock` with `agent_only`. The caller
+/// holds the lock; a record that is not this process's is left alone. Opening
+/// the file again does not disturb the held `flock` (it is per open file
+/// description, and closing this one keeps the other's lock). The record only
+/// ever gets longer on disk (padded with spaces), in one write, so a reader
+/// sees either the old record or the new one.
+pub fn publish_agent_only(project: &Path, agent_only: bool) -> std::io::Result<()> {
+    let mut file = std::fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .open(lock_path(project))?;
+    let Some(mut info) = read_info(&mut file) else {
+        return Ok(());
+    };
+    if info.pid != std::process::id() || info.agent_only == agent_only {
+        return Ok(());
+    }
+    info.agent_only = agent_only;
+    let old_len = file.metadata()?.len() as usize;
+    let mut text = serde_json::to_string(&info).unwrap_or_default();
+    text.push('\n');
+    if text.len() < old_len {
+        text.insert_str(text.len() - 1, &" ".repeat(old_len - text.len()));
+    }
+    file.seek(SeekFrom::Start(0))?;
+    file.write_all(text.as_bytes())?;
+    file.sync_data()
 }
 
 /// The lock state of `project`, without taking the lock.
@@ -175,6 +210,7 @@ pub fn probe(project: &Path) -> std::io::Result<LockState> {
                 pid: 0,
                 socket: None,
                 started: String::new(),
+                agent_only: false,
             });
             Ok(LockState::Held(info))
         }
@@ -231,6 +267,49 @@ mod tests {
         drop(a);
         assert_eq!(probe(dir.path()).unwrap(), LockState::Free { stale: None });
         let _b = ProjectLock::acquire(dir.path(), None).unwrap();
+    }
+
+    #[test]
+    fn publish_agent_only_rewrites_this_owners_record_in_place() {
+        let dir = TempDir::new("lock-agent-only");
+        let lock = ProjectLock::acquire(dir.path(), None).unwrap();
+        let path = lock_path(dir.path());
+        let inode = |p: &Path| std::os::unix::fs::MetadataExt::ino(&std::fs::metadata(p).unwrap());
+        let before = inode(&path);
+
+        publish_agent_only(dir.path(), true).unwrap();
+        let info = read_info_path(&path).unwrap();
+        assert!(info.agent_only);
+        assert_eq!(inode(&path), before, "the flocked file must stay in place");
+
+        publish_agent_only(dir.path(), false).unwrap();
+        let info = read_info_path(&path).unwrap();
+        assert!(!info.agent_only, "back to false");
+        let text = std::fs::read_to_string(&path).unwrap();
+        assert!(
+            text.ends_with("}\n") || text.trim_end().ends_with('}'),
+            "{text:?}"
+        );
+        assert!(!text.contains("agent_only"), "absent when false: {text}");
+        // Still held: the second open and close did not release the flock.
+        assert!(matches!(
+            ProjectLock::acquire(dir.path(), None),
+            Err(LockError::Locked(_))
+        ));
+        drop(lock);
+    }
+
+    #[test]
+    fn publish_agent_only_leaves_another_owners_record_alone() {
+        let dir = TempDir::new("lock-agent-other");
+        std::fs::create_dir_all(dir.path().join(".rw")).unwrap();
+        let record = r#"{"pid":999999,"started":"2026-01-01T00:00:00Z"}"#;
+        std::fs::write(lock_path(dir.path()), record).unwrap();
+        publish_agent_only(dir.path(), true).unwrap();
+        assert_eq!(
+            std::fs::read_to_string(lock_path(dir.path())).unwrap(),
+            record
+        );
     }
 
     #[test]

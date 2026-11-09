@@ -131,18 +131,20 @@ async function canon(dir: string): Promise<string> {
   }
 }
 
-/** `{pid, socket?, started}` of `.rw/lock`, when the file holds one. */
+/** `{pid, socket?, started, agent_only?}` of `.rw/lock`, when the file holds one. */
 interface LockRecord {
   pid: number;
   socket: string | undefined;
   started: string | undefined;
+  /** Every client attached to the owner is an agent's tool process: no other app or terminal has the project open. */
+  agentOnly: boolean;
 }
 
 async function lockRecord(dir: string): Promise<LockRecord | null> {
   try {
-    const { pid, socket, started } = JSON.parse(await readFile(join(dir, LOCK_FILE), "utf8")) as { pid?: unknown; socket?: unknown; started?: unknown };
+    const { pid, socket, started, agent_only: agentOnly } = JSON.parse(await readFile(join(dir, LOCK_FILE), "utf8")) as { pid?: unknown; socket?: unknown; started?: unknown; agent_only?: unknown };
     if (typeof pid !== "number") return null;
-    return { pid, socket: typeof socket === "string" ? socket : undefined, started: typeof started === "string" ? started : undefined };
+    return { pid, socket: typeof socket === "string" ? socket : undefined, started: typeof started === "string" ? started : undefined, agentOnly: agentOnly === true };
   } catch {
     return null;
   }
@@ -179,9 +181,13 @@ function pidStartedAt(pid: number): Promise<Date | null> {
  * flock, so this asks what a real owner would still be doing: answering on its
  * socket, or, with no socket recorded, having started no later than the record.
  * What cannot be told reads as held, so a project in use never reads as free.
+ *
+ * An owner holding only for an agent's tool process has not got the project
+ * open in another app or terminal: a project this app just closed can still
+ * have one attached, and opening it from here relays to that owner.
  */
 async function reallyHeld(record: LockRecord, seams: Required<Pick<RecentsOptions, "pidAlive" | "socketAnswers" | "pidStartedAt">>): Promise<boolean> {
-  if (!seams.pidAlive(record.pid)) return false;
+  if (record.agentOnly || !seams.pidAlive(record.pid)) return false;
   if (record.socket !== undefined) return seams.socketAnswers(record.socket);
   const written = record.started === undefined ? Number.NaN : Date.parse(record.started);
   if (Number.isNaN(written)) return true;

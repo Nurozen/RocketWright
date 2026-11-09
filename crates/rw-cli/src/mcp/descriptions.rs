@@ -49,8 +49,9 @@ fn when(name: &str) -> &'static str {
              (attach.to = \"<id>.<anchor>\"). Use for new parts; edit existing ones with the model_patch tool."
         }
         "component_remove" => {
-            "Remove a component. Components attached to it must be removed too (recursive: true) or \
-             re-attached first."
+            "Remove a component; list more in `also` to remove them in the same step (one undo). \
+             Components attached to them must be removed too (recursive: true) or re-attached \
+             first."
         }
         "design_check" => {
             "The full check report: diagnostics with hints, dims (length in calibers and fineness \

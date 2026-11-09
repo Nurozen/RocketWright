@@ -6,7 +6,8 @@ import type { MutationOut, ProjectSnapshot } from "@rw/contracts";
 import { MockRpc } from "@rw/contracts/mock";
 import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
 import { createStore } from "zustand/vanilla";
-import { discardDirtyFields, flushProject, resetDirtyFields } from "../../state/dirtyFields.ts";
+import { anyDirtyField, discardDirtyFields, flushProject, resetDirtyFields } from "../../state/dirtyFields.ts";
+import { blurFromWindow } from "../../testing/windowFocus.ts";
 import { createAppStore, type AppStore } from "../../state/store.ts";
 import type { AppState } from "../../state/types.ts";
 import { resultsUiStore } from "./resultsUi.ts";
@@ -280,6 +281,32 @@ describe("a sim stored as JSON", () => {
     await click(button(sheet()!, "Save"));
     const ops = (mutate.mock.calls[0] as unknown[])[0] as { op: string; path: string }[];
     expect(ops.map((o) => [o.op, o.path])).toEqual([["replace", "/sims/baseline/wind/speed"]]);
+  });
+});
+
+describe("the window losing focus (a native dialog) with the sheet being typed in", () => {
+  it("keeps invalid text and the dirty state, and writes nothing", async () => {
+    const { app, mutate } = makeStore();
+    await mount(app, "baseline");
+    const rail = input(group("Launch"), "Rail length");
+    await act(async () => rail.focus());
+    await type(rail, "wide");
+    await blurFromWindow(rail);
+    expect(input(group("Launch"), "Rail length").value).toBe("wide");
+    expect(anyDirtyField()).toBe(true);
+    expect(mutate).not.toHaveBeenCalled();
+  });
+
+  it("keeps valid text and the dirty state", async () => {
+    const { app, mutate } = makeStore();
+    await mount(app, "baseline");
+    const rail = input(group("Launch"), "Rail length");
+    await act(async () => rail.focus());
+    await type(rail, "9.5");
+    await blurFromWindow(rail);
+    expect(input(group("Launch"), "Rail length").value).toBe("9.5");
+    expect(anyDirtyField()).toBe(true);
+    expect(mutate).not.toHaveBeenCalled();
   });
 });
 

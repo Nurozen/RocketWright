@@ -135,6 +135,10 @@ export function thrustcurveFetchQuery(p: JsonObject): { motor: string; manufactu
 /** `component.remove` params for the sidecar's `component_remove`. */
 export function componentRemoveArgs(p: JsonObject): schema.ComponentRemoveIn {
   const out: schema.ComponentRemoveIn = { id: str(p, "id") };
+  if (p.also !== undefined && p.also !== null) {
+    if (!Array.isArray(p.also) || !p.also.every((v) => typeof v === "string")) throw new RpcFail("invalid_params", "also: expected an array of part ids");
+    if (p.also.length > 0) out.also = p.also as string[];
+  }
   if (optBool(p, "recursive") === true) out.recursive = true;
   if (optBool(p, "dry_run") === true) out.dry_run = true;
   return out;

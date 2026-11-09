@@ -38,6 +38,13 @@
  *   mounted view (`bridge.retarget(projectId, mappedThreadId)`): the view is
  *   kept, only the guest reloads.
  * - Crashes: a dead guest renderer is reloaded in the same view (bounded).
+ * - File drops (R3.1): the guest's isolated-world `paneDropPreload.ts` sends
+ *   the paths of a drop the page imports on the guest's own `webContents.ipc`.
+ *   A sender that is not the mounted guest's top frame at its target's origin
+ *   is ignored, and `checkGuestDrop` validates the paths before the page hears.
+ * - Focus into the pane: the page reads it as the window losing focus and
+ *   keeps typed text, so the guest's `focus` calls `onGuestFocus` (main: the
+ *   page's flush, as Save and quit uses).
  * - Captures: `captureGuest` shoots the guest over the bridge's session
  *   (`capture` option, the helper's `captureEmbedView` in main) and
  *   `captureComposite` blits it into the window capture at the pane bounds
@@ -50,7 +57,9 @@
  */
 import {
   EMBED_PANE_RECT_CHANNEL,
+  PANE_DROP_NAME,
   PANE_EVENTS,
+  PANE_GUEST_DROP_CHANNEL,
   PANE_HOST_CHANNEL,
   PANE_MAIN_CHANNEL,
   isPaneRect,
@@ -62,6 +71,8 @@ import {
   type PaneMainMessage,
   type PaneRect,
 } from "@rw/contracts";
+import { statSync } from "node:fs";
+import { isAbsolute } from "node:path";
 import { decodePng, encodePng } from "../../../e2e/bar/png.ts";
 import { screenshot, type DebuggerSession } from "./capture.ts";
 
@@ -73,7 +84,19 @@ export interface GuestContentsLike {
   isCrashed(): boolean;
   isFocused(): boolean;
   focus(): void;
+  /** Electron's `focus`: the guest took the keyboard (a click into the pane, or `focus()`). */
+  on(event: "focus", listener: () => void): unknown;
+  removeListener(event: "focus", listener: () => void): unknown;
+  /** Hears only this guest's messages. */
+  readonly ipc: { on(channel: string, listener: GuestIpcListener): unknown; removeListener(channel: string, listener: GuestIpcListener): unknown };
 }
+
+/** The slice of `IpcMainEvent` a guest message is checked with. */
+export interface GuestIpcEvent {
+  readonly sender: unknown;
+  readonly senderFrame: { readonly parent: unknown; readonly url: string } | null;
+}
+export type GuestIpcListener = (event: GuestIpcEvent, message: unknown) => void;
 
 /** An `EmbedViewError` as the bridge's `error` event carries it. */
 export interface BridgeErrorLike {
@@ -131,6 +154,10 @@ export interface PaneControllerOptions {
   mount: (args: MountArgs) => EmbedBridgeLike;
   /** RocketWright project id → its workspace root (main: the project's realpath); null when unknown. */
   workspaceRootOf: (projectId: string) => string | null;
+  /** The origin of the guest's current target; a drop from any other page is ignored (null: none yet). */
+  guestOrigin: () => string | null;
+  /** Whether `path` is a regular file (default `statSync`); a test's seam. */
+  isFile?: (path: string) => boolean;
   /** DPR-1 PNG of the guest (main: `captureEmbedView`); rejects when the guest changed or died. */
   capture?: (bridge: EmbedBridgeLike) => Promise<Uint8Array>;
   /** D11 handling; `"hide"` is the fallback that blanks the pane under overlays. */
@@ -139,6 +166,13 @@ export interface PaneControllerOptions {
   maxReloads?: number;
   /** How long a ref-label ask waits for the page's answer (default 2000 ms). */
   labelTimeoutMs?: number;
+  /**
+   * The mounted guest took focus. The pane is a view of its own, so to the
+   * page this looks like the window losing focus, which leaves typed text
+   * alone (a native dialog must not commit it); main asks the page to save
+   * instead, as a focus move inside the page would.
+   */
+  onGuestFocus?: () => void;
   /** Schedules crash reloads and unmounts off the current event (default `setTimeout(fn, 0)`). */
   defer?: (fn: () => void) => void;
   log?: (line: string) => void;
@@ -186,8 +220,44 @@ export interface PaneController {
   destroy(): void;
 }
 
-/** The guest's preferences. Never our `preload`: the helper adds its own, and the agent's page must not get `rwDesktop`. */
+/** The guest's preferences. Never our `preload`: the helper adds its own, and the agent's page must not get `rwDesktop` (`paneDropPreload.ts` is a session preload that exposes nothing to the page). */
 export const GUEST_WEB_PREFERENCES = { backgroundThrottling: false } as const;
+
+/** At most this many paths are looked at in one drop: anything past it was never a person's drop. */
+const GUEST_DROP_MAX_PATHS = 32;
+const GUEST_DROP_MAX_PATH_LENGTH = 4096;
+
+const isRegularFile = (path: string): boolean => {
+  try {
+    return statSync(path).isFile();
+  } catch {
+    return false;
+  }
+};
+
+export type GuestDrop = { kind: "file"; path: string } | { kind: "many" };
+
+/**
+ * A guest's drop, checked as anything from across the host-guest boundary is:
+ * the guest may only name existing regular files the page's own import takes.
+ * Null for anything else.
+ */
+export function checkGuestDrop(message: unknown, isFile: (path: string) => boolean = isRegularFile): GuestDrop | null {
+  const paths = (message as { paths?: unknown } | null)?.paths;
+  if (!Array.isArray(paths) || paths.length === 0 || paths.length > GUEST_DROP_MAX_PATHS) return null;
+  for (const p of paths) {
+    if (typeof p !== "string" || p.length > GUEST_DROP_MAX_PATH_LENGTH || p.includes("\0") || !isAbsolute(p) || !PANE_DROP_NAME.test(p) || !isFile(p)) return null;
+  }
+  return paths.length === 1 ? { kind: "file", path: paths[0] as string } : { kind: "many" };
+}
+
+const originOf = (url: string): string | null => {
+  try {
+    return new URL(url).origin;
+  } catch {
+    return null;
+  }
+};
 
 const LOOPBACK_HOSTS = new Set(["127.0.0.1", "localhost", "[::1]"]);
 
@@ -425,6 +495,47 @@ export function createPaneController(opts: PaneControllerOptions): PaneControlle
     );
   }
 
+  /** A drop from the mounted guest's top frame at its target's origin, and nothing else, goes to the page. */
+  function wireGuestDrop(m: MountState): void {
+    const ipc = m.bridge.webContents.ipc;
+    const listener: GuestIpcListener = (event, message) => {
+      const frame = event.senderFrame;
+      if (mount !== m || event.sender !== m.bridge.webContents || frame === null || frame.parent !== null) return;
+      const origin = opts.guestOrigin();
+      if (origin === null || originOf(frame.url) !== origin) return;
+      const drop = checkGuestDrop(message, opts.isFile);
+      if (drop === null) {
+        log("lecturn pane: refused a file drop the guest named");
+        return;
+      }
+      // The import's dialogs open in the page, and keys must follow them there.
+      if (!win.isDestroyed() && !win.webContents.isDestroyed()) win.webContents.focus();
+      send(drop.kind === "file" ? { type: "file.drop", path: drop.path } : { type: "file.drop.many" });
+    };
+    ipc.on(PANE_GUEST_DROP_CHANNEL, listener);
+    m.offs.push(() => {
+      if (!m.bridge.webContents.isDestroyed()) ipc.removeListener(PANE_GUEST_DROP_CHANNEL, listener);
+    });
+  }
+
+  function wireGuestFocus(m: MountState): void {
+    const onGuestFocus = opts.onGuestFocus;
+    if (onGuestFocus === undefined) return;
+    const contents = m.bridge.webContents;
+    const listener = (): void => {
+      if (mount !== m || destroyed) return;
+      try {
+        onGuestFocus();
+      } catch (e) {
+        log(`lecturn pane: guest focus handler failed: ${errText(e)}`);
+      }
+    };
+    contents.on("focus", listener);
+    m.offs.push(() => {
+      if (!contents.isDestroyed()) contents.removeListener("focus", listener);
+    });
+  }
+
   function dispose(): void {
     const m = mount;
     if (m === null) return;
@@ -469,6 +580,8 @@ export function createPaneController(opts: PaneControllerOptions): PaneControlle
     mounted = m;
     mount = m;
     wire(m);
+    wireGuestDrop(m);
+    wireGuestFocus(m);
     send({ type: "state", projectId, state: "mounting" });
   }
 

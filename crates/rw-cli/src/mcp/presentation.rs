@@ -286,7 +286,17 @@ fn success(name: &str, args: &Value, out: &Value) -> String {
         }
         "component_remove" => {
             let id = text(args, "id").unwrap_or("component");
-            mutation(out, format!("Removed {id}"), &format!("remove {id}"))
+            match args
+                .get("also")
+                .and_then(Value::as_array)
+                .map_or(0, Vec::len)
+            {
+                0 => mutation(out, format!("Removed {id}"), &format!("remove {id}")),
+                n => {
+                    let parts = count(n + 1, "component", "components");
+                    mutation(out, format!("Removed {parts}"), &format!("remove {parts}"))
+                }
+            }
         }
         "history_restore" => {
             let v = text(args, "version").map_or_else(|| "version".into(), version);
@@ -510,6 +520,12 @@ mod tests {
                 json!({"id": "fins"}),
                 mutation_out(Some("step:2"), false, 0),
                 "Removed fins",
+            ),
+            (
+                "component_remove",
+                json!({"id": "fins", "also": ["nose"]}),
+                mutation_out(Some("step:2"), false, 0),
+                "Removed 2 components",
             ),
             (
                 "history_restore",

@@ -36,16 +36,3 @@ export function exportFileName(runs: readonly Pick<ExportRun, "sim">[]): string 
   const part = runs.map((r) => r.sim.replace(/[^A-Za-z0-9_-]+/g, "_")).join("-");
   return `results${part ? `-${part}` : ""}.csv`;
 }
-
-/** Saves `text` as a download (browser and Electron renderer). */
-export function downloadText(fileName: string, text: string, mime = "text/csv"): void {
-  const url = URL.createObjectURL(new Blob([text], { type: `${mime};charset=utf-8` }));
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = fileName;
-  a.style.display = "none";
-  document.body.append(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 0);
-}

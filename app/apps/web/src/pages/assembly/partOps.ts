@@ -35,6 +35,12 @@ export function removalSet(components: readonly Part[], id: string): string[] {
   return out;
 }
 
+/** The parts `ids` take with them: every id's `removalSet`, once each, in model order. */
+export function removalPartsOf(components: readonly Part[], ids: readonly string[]): Part[] {
+  const removed = new Set(ids.flatMap((id) => removalSet(components, id)));
+  return components.filter((c) => removed.has(c.id));
+}
+
 /** The parts deleted along with `id`, in model order. */
 export function attachedParts(components: readonly Part[], id: string): Part[] {
   const removed = new Set(removalSet(components, id));
@@ -96,12 +102,13 @@ function forgetParts(store: AppStore, removed: readonly string[]): void {
   for (const id of s.ui.hidden) if (gone.has(id)) s.ui.toggleHidden(id);
 }
 
-/** Deletes `id`, what is attached to it, and their motor and deploy entries, as one undoable step. */
-export async function deletePart(store: AppStore, id: string): Promise<void> {
+/** Deletes `id` (and `also` more parts), what is attached to them, and their motor and deploy entries, as one undoable step. */
+export async function deletePart(store: AppStore, id: string, also: readonly string[] = []): Promise<void> {
   const parts = partsOf(store.getState());
-  const removed = removalSet(parts, id);
-  const name = parts.find((c) => c.id === id)?.name ?? id;
-  await store.getState().draft.removeComponent(id, `Delete ${name}`);
+  const ids = [id, ...also.filter((other) => other !== id)];
+  const removed = removalPartsOf(parts, ids).map((c) => c.id);
+  const label = ids.length === 1 ? `Delete ${parts.find((c) => c.id === id)?.name ?? id}` : `Delete ${ids.length} parts`;
+  await store.getState().draft.removeComponent(id, label, also.filter((other) => other !== id));
   forgetParts(store, removed);
 }
 
@@ -139,11 +146,20 @@ export function overlayOpen(doc: Pick<Document, "querySelector">): boolean {
 const TREE_PAGES: ReadonlySet<string> = new Set(["assembly", "components", "configurations"]);
 
 /**
- * The part the Delete key deletes, or null. Only the first selected part, the
- * one the inspector shows: one delete is one undo step.
+ * The part the Delete key deletes, or null: the first selected part that still
+ * exists. `deleteAlso` gives the rest of the selection, deleted with it as one
+ * undo step.
  */
 export function deleteKeyTarget(s: State): string | null {
   if (!TREE_PAGES.has(s.ui.page) || s.ui.compare !== null || s.project.connection !== "open") return null;
-  const id = selectedComponentIds(s.selection.refs)[0];
-  return id !== undefined && partsOf(s).some((c) => c.id === id) ? id : null;
+  const parts = partsOf(s);
+  return selectedComponentIds(s.selection.refs).find((id) => parts.some((c) => c.id === id)) ?? null;
+}
+
+/** The other selected parts that go with `id`; none when `id` is not selected, so a row's own Delete acts on just that row. */
+export function deleteAlso(s: State, id: string): string[] {
+  const selected = selectedComponentIds(s.selection.refs);
+  if (!selected.includes(id)) return [];
+  const parts = partsOf(s);
+  return selected.filter((other) => other !== id && parts.some((c) => c.id === other));
 }

@@ -56,9 +56,17 @@ ops -> `TomlStore::preview` -> eval (+library) -> `Checker` -> dry run returns
 ## Lock and forwarding (D4; `lock.rs`, `forward.rs`)
 
 - `.rw/lock`: exclusive `flock` for the owner's lifetime, record
-  `{pid, socket, started}`. The kernel drops the flock on any exit (`kill -9`
+  `{pid, socket, started, agent_only?}`. The kernel drops the flock on any exit (`kill -9`
   included), so a stale record never blocks. The file is never unlinked
   (unlinking a flocked file lets two owners lock different inodes).
+  `agent_only` says every client still attached is a Lecturn agent's tool
+  process (or none is left); the owner rewrites it in place whenever a client
+  comes or goes. The desktop app's Recent list reads such a project as free,
+  because it is not open in another app or terminal. Closing a project the app's agent is
+  attached to leaves exactly that: the owner drains for the relay, is ended
+  two seconds later by the MCP SDK's close, and the agent's relay takes over
+  as owner. Reopening relays to that owner on the first attempt; it stays the
+  one writer throughout.
 - Second owner: `RW-E007 locked-by <pid>` (`ApiErrorCode::Locked`, exit 2).
 - The sidecar (`rocketwright mcp`, `mcp/relay.rs`): every instance is a relay
   front. The first takes the lock, binds the socket (a bind failure drops the
@@ -186,6 +194,9 @@ ops -> `TomlStore::preview` -> eval (+library) -> `Checker` -> dry run returns
   returned PNG (the tone-mapped sRGB canvas output) to
   `renders/<config>.<view>.png` plus the manifest. WebGL2 or a fallback
   adapter → exit 2 unless `RW_RENDER_ALLOW_SOFTWARE=1`. See `spikes.md` RL3.
+- `rw import ork` into a folder with no project writes `--display-units` like
+  `rw init` does, overlaying the import's default mm and g in the one
+  creating step; inside an existing project the flag is refused.
 - `rw init` writes an embedded template (`templates/`, via `build.rs`) and a
   `.gitignore` with `.rw/` and `artifacts/` (added to one already in the folder;
   an existing project's is never changed), then records the initial step. It and a

@@ -69,6 +69,7 @@ fn project_with_config_entries(tag: &str) -> TempDir {
 fn remove_component(s: &mut Session, id: &str, recursive: bool, dry_run: bool) -> MutationOut {
     let cmd = Command::ComponentRemove(ComponentRemoveIn {
         id: id.into(),
+        also: Vec::new(),
         recursive,
         dry_run,
     });
@@ -117,6 +118,115 @@ fn removing_a_part_removes_its_config_entries_in_one_step() {
     drop(s);
     let s = Session::open(d.path(), SessionOptions::writer()).unwrap();
     assert_eq!(config_errors(&s), Vec::<String>::new());
+}
+
+fn remove_many(
+    s: &mut Session,
+    ids: &[&str],
+    recursive: bool,
+    dry_run: bool,
+) -> Result<MutationOut, ApiError> {
+    let cmd = Command::ComponentRemove(ComponentRemoveIn {
+        id: ids[0].into(),
+        also: ids[1..].iter().map(|i| (*i).to_string()).collect(),
+        recursive,
+        dry_run,
+    });
+    match s.execute(&cmd, &ctx(Origin::Mcp))? {
+        Response::ComponentRemove(out) => Ok(out),
+        r => panic!("{r:?}"),
+    }
+}
+
+#[test]
+fn removing_several_parts_is_one_step_with_every_cascade() {
+    let d = project_with_config_entries("sess-rm-many");
+    let mut s = Session::open(d.path(), SessionOptions::writer()).unwrap();
+    let before = s.steps().unwrap().len();
+
+    // `chute` and `mount` are attached to `body`; `nose` is not.
+    let out = remove_many(&mut s, &["nose", "body"], true, false).unwrap();
+
+    assert_eq!(s.steps().unwrap().len(), before + 1, "one history step");
+    assert_eq!(
+        out.step.as_deref(),
+        Some(format!("step:{}", before + 1).as_str())
+    );
+    assert_eq!(config_errors(&s), Vec::<String>::new());
+    let rocket = read(&d, "rocket.rw.toml");
+    for gone in ["[c.nose]", "[c.body]", "[c.chute]", "[c.mount]"] {
+        assert!(!rocket.contains(gone), "{gone}: {rocket}");
+    }
+    for file in ["configs/baseline.rw.toml", "configs/alt~1.rw.toml"] {
+        let text = read(&d, file);
+        assert!(
+            !text.contains("motors.mount") && !text.contains("deploy.chute"),
+            "{file}: {text}"
+        );
+    }
+}
+
+#[test]
+fn removing_several_parts_tolerates_a_descendant_in_the_list() {
+    for ids in [["body", "chute"], ["chute", "body"]] {
+        let d = project_with_config_entries("sess-rm-desc");
+        let mut s = Session::open(d.path(), SessionOptions::writer()).unwrap();
+        let out = remove_many(&mut s, &ids, true, false).unwrap();
+        assert!(out.step.is_some(), "{ids:?}");
+        assert_eq!(config_errors(&s), Vec::<String>::new(), "{ids:?}");
+        assert!(!read(&d, "rocket.rw.toml").contains("[c.chute]"), "{ids:?}");
+    }
+}
+
+#[test]
+fn removing_several_parts_counts_listed_parts_as_not_left_behind() {
+    let d = project_with_config_entries("sess-rm-outside");
+    let mut s = Session::open(d.path(), SessionOptions::writer()).unwrap();
+    let before = tree_state(d.path());
+
+    // `body` holds `fins`, `lug`, `mount`, ...; listing only `chute` leaves them behind.
+    let e = remove_many(&mut s, &["body", "chute"], false, false).unwrap_err();
+    assert_eq!(e.code, ApiErrorCode::Conflict);
+    assert!(e.message.contains("fins"), "{}", e.message);
+    assert!(!e.message.contains("chute,"), "{}", e.message);
+    assert_eq!(tree_state(d.path()), before, "a refusal writes nothing");
+
+    // `chute` has nothing attached to it, so no flag is needed.
+    let out = remove_many(&mut s, &["fins", "chute"], false, false).unwrap();
+    assert!(out.step.is_some());
+}
+
+#[test]
+fn removing_several_parts_refuses_an_unknown_id_and_writes_nothing() {
+    let d = project_with_config_entries("sess-rm-unknown");
+    let mut s = Session::open(d.path(), SessionOptions::writer()).unwrap();
+    let before = tree_state(d.path());
+    let steps = s.steps().unwrap().len();
+
+    let e = remove_many(&mut s, &["chute", "no_such_part"], true, false).unwrap_err();
+
+    assert_eq!(e.code, ApiErrorCode::NotFound);
+    assert!(e.message.contains("no_such_part"), "{}", e.message);
+    assert_eq!(tree_state(d.path()), before);
+    assert_eq!(s.steps().unwrap().len(), steps);
+}
+
+#[test]
+fn removing_several_parts_dry_run_writes_nothing() {
+    let d = project_with_config_entries("sess-rm-many-dry");
+    let mut s = Session::open(d.path(), SessionOptions::writer()).unwrap();
+    let before = tree_state(d.path());
+    let steps = s.steps().unwrap().len();
+
+    let out = remove_many(&mut s, &["chute", "fins"], false, true).unwrap();
+
+    assert!(
+        out.files
+            .iter()
+            .any(|f| f.path == "configs/baseline.rw.toml")
+    );
+    assert_eq!(tree_state(d.path()), before);
+    assert_eq!(s.steps().unwrap().len(), steps);
 }
 
 #[test]
@@ -545,6 +655,7 @@ fn component_add_remove_move() {
     let rm = |recursive| {
         Command::ComponentRemove(ComponentRemoveIn {
             id: "body".into(),
+            also: Vec::new(),
             recursive,
             dry_run: false,
         })

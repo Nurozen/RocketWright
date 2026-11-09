@@ -8,7 +8,7 @@
  */
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Icon } from "../../shell/Icon.tsx";
-import { useDirtyField } from "../../state/dirtyFields.ts";
+import { useDirtyField, windowLostFocus } from "../../state/dirtyFields.ts";
 import { DiagnosticText, diagnosticPlainText } from "../DiagnosticText.tsx";
 import type { FieldSpec } from "./spec.ts";
 import "./fields.css";
@@ -222,6 +222,7 @@ export function TextField({
           onChange(e.currentTarget.value);
         }}
         onBlur={() => {
+          if (windowLostFocus()) return;
           setEditing(false);
           if (!error) onCommit();
         }}
@@ -312,6 +313,7 @@ export function SpinField({
             onChange(e.currentTarget.value);
           }}
           onBlur={() => {
+            if (windowLostFocus()) return;
             setEditing(false);
             if (!error) onCommit();
           }}

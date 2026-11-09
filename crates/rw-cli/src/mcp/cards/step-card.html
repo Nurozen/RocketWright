@@ -114,7 +114,7 @@
         return `Added ${a.id}${type}`;
       }
       case "component_remove":
-        return `Removed ${a.id}`;
+        return Array.isArray(a.also) && a.also.length > 0 ? `Removed ${a.also.length + 1} components` : `Removed ${a.id}`;
       case "history_restore":
         return `Restored ${a.version}`;
       case "history_show": {

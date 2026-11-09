@@ -11,7 +11,7 @@ import type { RpcLike } from "../../state/rpc.ts";
 import { createAppStore, type AppStore } from "../../state/store.ts";
 import { ComponentTreeSlot } from "./AssemblyPage.tsx";
 import { partMenuItems } from "./PartActions.tsx";
-import { attachedParts, deleteKeyTarget, deletePart, isPartDeleteKey, moveTargets, overlayOpen, removalSet, renameOps } from "./partOps.ts";
+import { attachedParts, deleteAlso, deleteKeyTarget, deletePart, isPartDeleteKey, moveTargets, overlayOpen, removalPartsOf, removalSet, renameOps } from "./partOps.ts";
 
 vi.mock("../../embed/EmbedPane.tsx", () => ({ EmbedPane: () => null }));
 
@@ -174,7 +174,7 @@ function setup(components: Part[] = ROCKET, respond: (c: Call) => Promise<unknow
     draft: {
       ...s.draft,
       mutate: (ops, label) => send("model.patch", { ops: [...ops], label }),
-      removeComponent: (id, label) => send("component.remove", { id, recursive: true, label }),
+      removeComponent: (id, label, also = []) => send("component.remove", { id, recursive: true, label, ...(also.length > 0 ? { also: [...also] } : {}) }),
     },
   }));
   return { store, client, calls };
@@ -195,6 +195,27 @@ describe("deletePart", () => {
     expect(calls).toEqual([{ method: "component.remove", params: { projectId: "p", id: "lower", recursive: true, label: "Delete LOWER" } }]);
     expect(store.getState().selection.refs).toEqual(["rw:c/nose"]);
     expect(store.getState().ui.hidden).toEqual(["nose"]);
+  });
+
+  it("deletes several parts as one call, each with what is attached to it", async () => {
+    const { store, calls } = setup();
+    select(store, "chute", "mount");
+    await act(() => deletePart(store, "chute", ["mount"]));
+    expect(calls).toEqual([{ method: "component.remove", params: { projectId: "p", id: "chute", also: ["mount"], recursive: true, label: "Delete 2 parts" } }]);
+    expect(store.getState().selection.refs).toEqual([]);
+  });
+
+  it("treats a selected descendant as part of its parent's delete", async () => {
+    const { store, calls } = setup();
+    select(store, "upper", "fins");
+    await act(() => deletePart(store, "upper", ["fins"]));
+    expect(calls).toHaveLength(1);
+    expect(store.getState().selection.refs).toEqual([]);
+  });
+
+  it("removes each part once from the list, in model order, with its attachments", () => {
+    expect(removalPartsOf(ROCKET, ["lower", "mount"]).map((c) => c.id)).toEqual(["lower", "fins", "mount", "ring"]);
+    expect(removalPartsOf(ROCKET, ["upper", "chute"]).map((c) => c.id)).toEqual(["upper", "lower", "fins", "mount", "ring", "chute"]);
   });
 
   it("keeps the selection when the delete fails", async () => {
@@ -307,6 +328,41 @@ describe("the dialogs and the Delete key, in the shell", () => {
     press("Delete", el);
     expect(dialog()).toBeNull();
     el.remove();
+  });
+
+  it("Delete on a multi-selection confirms everything and deletes it in one call", async () => {
+    const { store, calls } = shell();
+    select(store, "fins", "chute", "mount");
+    expect(deleteKeyTarget(store.getState())).toBe("fins");
+    expect(deleteAlso(store.getState(), "fins")).toEqual(["chute", "mount"]);
+    press("Delete");
+    expect(dialog()?.querySelector("h2")?.textContent).toBe("Delete 3 parts?");
+    // `ring` is attached to `mount`, so it goes too, and is listed.
+    expect([...dialog()!.querySelectorAll("li")].map((li) => li.textContent)).toEqual(["FINS", "MOUNT", "RING", "CHUTE"]);
+    await act(async () => button("Delete", dialog()!)!.click());
+    expect(calls).toEqual([{ method: "component.remove", params: { projectId: "p", id: "fins", also: ["chute", "mount"], recursive: true, label: "Delete 3 parts" } }]);
+    expect(dialog()).toBeNull();
+    expect(store.getState().selection.refs).toEqual([]);
+  });
+
+  it("a row's own Delete acts on that row when it is not in the multi-selection", () => {
+    const { store } = shell();
+    select(store, "fins", "chute");
+    expect(deleteAlso(store.getState(), "nose")).toEqual([]);
+    expect(deleteAlso(store.getState(), "fins")).toEqual(["chute"]);
+    const entries = partMenuItems(store, ROCKET as never, "nose").filter((e) => e.kind !== "divider" && e.kind !== "heading") as { id: string; onSelect?: () => void }[];
+    act(() => entries.find((e) => e.id === "delete")!.onSelect!());
+    expect(dialog()?.querySelector("h2")?.textContent).toBe("Delete NOSE?");
+  });
+
+  it("drops a part the agent removed while the dialog is open", async () => {
+    const { store, calls } = shell();
+    select(store, "fins", "chute");
+    press("Delete");
+    act(() => store.setState((s) => ({ ...s, project: { ...s.project, snapshot: { ...s.project.snapshot!, evaluated: { ...s.project.snapshot!.evaluated!, components: s.project.snapshot!.evaluated!.components.filter((c) => c.id !== "chute") } } as never } })));
+    expect(dialog()?.querySelector("h2")?.textContent).toBe("Delete FINS?");
+    await act(async () => button("Delete", dialog()!)!.click());
+    expect(calls).toEqual([{ method: "component.remove", params: { projectId: "p", id: "fins", recursive: true, label: "Delete FINS" } }]);
   });
 
   it("Backspace works too, and a part with nothing attached lists nothing", () => {

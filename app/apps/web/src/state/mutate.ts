@@ -49,15 +49,15 @@ export function createMutate(ctx: SliceCtx) {
 }
 
 /**
- * Deletes a part and everything attached to it. `component.remove`, not a
- * patch, because the sidecar also drops the motor and deploy entries of every
- * removed part, all in one history step.
+ * Deletes a part, `also` any more parts, and everything attached to them.
+ * `component.remove`, not a patch, because the sidecar also drops the motor
+ * and deploy entries of every removed part, all in one history step.
  */
 export function createRemoveComponent(ctx: SliceCtx) {
-  return async function removeComponent(id: string, label: string): Promise<MutationOut> {
+  return async function removeComponent(id: string, label: string, also: readonly string[] = []): Promise<MutationOut> {
     const { client, projectId } = ctx.conn();
     await settleDraft(ctx);
-    const out = await client.call("component.remove", { projectId, id, recursive: true, label });
+    const out = await client.call("component.remove", { projectId, id, recursive: true, label, ...(also.length > 0 ? { also: [...also] } : {}) });
     noteLanded(ctx, out.model_hash);
     return out;
   };

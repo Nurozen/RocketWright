@@ -13,7 +13,7 @@
  * `createConsentDialogs` is the native dialog behind the agent's project tools
  * (R1.3, D10, D11). The host channel brings it the request; no page is involved.
  */
-import { DESKTOP_INVOKE_CHANNELS, DIALOG_UNSAFE_NAME, DIALOG_UNSAFE_TEXT, EXPORT_FILE_TYPES, PROJECT_TOOL_REQUEST_MAX, PROJECT_TOOL_REQUEST_MAX_LINES, type DesktopBoot, type DesktopDirtyAnswer, type DesktopFlushResult, type DisplayUnits, type ExportFileRequest, type FileFilter, type HostDecline, type HostRequest, type schema } from "@rw/contracts";
+import { DESKTOP_INVOKE_CHANNELS, DIALOG_UNSAFE_NAME, DIALOG_UNSAFE_TEXT, EXPORT_FILE_TYPES, PROJECT_TOOL_REQUEST_MAX, PROJECT_TOOL_REQUEST_MAX_LINES, type DesktopBoot, type DesktopDirtyAnswer, type DesktopFlushResult, type DisplayUnits, type ExportFileRequest, type FileFilter, type HostDecline, type HostRequest, type SaveCsvRequest, type schema } from "@rw/contracts";
 import { basename, isAbsolute, join } from "node:path";
 import type { HostAnswer } from "./mainRpc.ts";
 import { prefsPatch, type Preferences } from "./preferences.ts";
@@ -61,8 +61,12 @@ export interface DesktopServices<W extends WindowLike> {
    * person chose in the save dialog. Absent without an app server.
    */
   exportFile?: (request: ExportFileRequest, path: string) => Promise<schema.ExportOut>;
+  /** Writes a Results CSV to the path the person chose. Outside the project, so never through the sidecar. */
+  writeText: (path: string, text: string) => Promise<void>;
   /** A hidden run: no dialog can be answered, so every picker reads as cancelled. */
   headless?: boolean;
+  /** `--hidden-save-dir`: a hidden run writes a Results CSV here under its default name, so an e2e can read the real file. */
+  hiddenSaveDir?: string;
   /** Starts a new instance of the app and ends this one (R3.3, D19). */
   relaunch: () => void;
   prefs: Pick<Preferences, "get" | "update">;
@@ -116,6 +120,12 @@ function exportRequest(v: unknown): ExportFileRequest {
   };
 }
 
+/** The page's CSV: what to write and a default name, never where. */
+function saveCsvRequest(v: unknown): SaveCsvRequest {
+  if (!isRecord(v) || typeof v.text !== "string" || typeof v.defaultName !== "string") throw new TypeError("saveCsv: expected { defaultName, text }");
+  return { defaultName: v.defaultName, text: v.text };
+}
+
 function activeProject(v: unknown): { dir: string; name: string } | null {
   if (v === null) return null;
   if (!isRecord(v) || typeof v.dir !== "string" || !isAbsolute(v.dir) || typeof v.name !== "string") throw new TypeError("setActiveProject: expected a project or null");
@@ -156,11 +166,6 @@ export function registerDesktopServices<W extends WindowLike>(deps: DesktopServi
   handle(c.boot, () => deps.boot());
   handle(c.pickFolder, (win, options) => pickOne(win, options, ["openDirectory", "createDirectory"]));
   handle(c.pickFile, (win, options) => pickOne(win, options, ["openFile"]));
-  handle(c.saveAs, async (win, options) => {
-    if (headless) return null;
-    const r = await dialog.showSaveDialog(win, dialogOptions(options, documents));
-    return r.canceled ? null : text(r.filePath) ?? null;
-  });
   handle(c.exportFile, async (win, raw) => {
     const request = exportRequest(raw);
     if (headless) return { canceled: true };
@@ -173,6 +178,23 @@ export function registerDesktopServices<W extends WindowLike>(deps: DesktopServi
     const path = r.canceled ? undefined : text(r.filePath);
     if (path === undefined) return { canceled: true };
     return { canceled: false, out: await deps.exportFile(request, path) };
+  });
+  handle(c.saveCsv, async (win, raw) => {
+    const request = saveCsvRequest(raw);
+    // A bare name, so the dialog opens in Documents whatever the page sent.
+    const name = basename(request.defaultName) || "results.csv";
+    if (headless) {
+      if (deps.hiddenSaveDir === undefined) return { canceled: true };
+      const path = join(deps.hiddenSaveDir, name);
+      await deps.writeText(path, request.text);
+      return { canceled: false, path };
+    }
+    const type = EXPORT_FILE_TYPES.csv;
+    const r = await dialog.showSaveDialog(win, dialogOptions({ title: `Export ${type.label}`, defaultPath: name, filters: [{ name: type.label, extensions: [type.extension] }] }, documents));
+    const path = r.canceled ? undefined : text(r.filePath);
+    if (path === undefined) return { canceled: true };
+    await deps.writeText(path, request.text);
+    return { canceled: false, path };
   });
   handle(c.recents, () => recents.list());
   handle(c.removeRecent, (_win, dir) => {

@@ -7,6 +7,8 @@ import { createStore } from "zustand/vanilla";
 import type { PatchOp } from "@rw/contracts";
 import { createAppStore, type AppStore } from "../../state/store.ts";
 import type { AppState } from "../../state/types.ts";
+import { anyDirtyField, resetDirtyFields } from "../../state/dirtyFields.ts";
+import { blurFromWindow } from "../../testing/windowFocus.ts";
 import { engineSource } from "./engineOps.ts";
 import type { RowContext } from "./EngineFields.tsx";
 import { FeedGraphEditor } from "./FeedGraphEditor.tsx";
@@ -19,6 +21,7 @@ afterEach(async () => {
   await act(async () => root?.unmount());
   root = null;
   document.body.replaceChildren();
+  resetDirtyFields();
 });
 
 const engine: EvalEngine = {
@@ -53,6 +56,38 @@ async function mount(store = makeStore()) {
 const byTestId = (id: string) => [...document.querySelectorAll<HTMLElement>(`[data-testid="${id}"]`)];
 const groupNamed = (name: string) => [...document.querySelectorAll<HTMLElement>('[role="group"]')].find((g) => document.getElementById(g.getAttribute("aria-labelledby") ?? "")?.textContent === name)!;
 const click = (el: HTMLElement) => act(async () => el.click());
+
+const typeInto = (input: HTMLInputElement, value: string) =>
+  act(async () => {
+    input.focus();
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(input, value);
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+
+describe("the window losing focus (a native dialog) with an engine field being typed", () => {
+  const diameter = () => groupNamed("Connection 1: Tank A to Engine").querySelector<HTMLInputElement>('input[aria-label="Diameter"]')!;
+
+  it("does not write valid text, and writes it when focus then really moves on", async () => {
+    const { write } = await mount();
+    await typeInto(diameter(), "12");
+    await blurFromWindow(diameter());
+    expect(diameter().value).toBe("12");
+    expect(anyDirtyField()).toBe(true);
+    expect(write).not.toHaveBeenCalled();
+    await act(async () => diameter().focus());
+    await act(async () => diameter().blur());
+    expect(write).toHaveBeenCalledOnce();
+  });
+
+  it("keeps text that fails its check", async () => {
+    const { write } = await mount();
+    await typeInto(diameter(), "wide");
+    await blurFromWindow(diameter());
+    expect(diameter().value).toBe("wide");
+    expect(anyDirtyField()).toBe(true);
+    expect(write).not.toHaveBeenCalled();
+  });
+});
 
 describe("the feed graph card", () => {
   it("shows a row per node and connection, named by what it is", async () => {
