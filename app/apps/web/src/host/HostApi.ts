@@ -29,6 +29,8 @@ export interface HostApi {
   setActiveProject(project: ProjectInfo | null): Promise<void>;
   /** Whether typed work would be lost by leaving, so main can ask before a quit (R3.7). A browser has no quit to guard. */
   setDirty(dirty: boolean): Promise<void>;
+  /** Save and quit: main asks, `flush` saves as Close does, and main is told what could not be saved. A browser has no quit. Returns the unsubscribe. */
+  onFlush(flush: () => Promise<string[]>): () => void;
   /** Native menu commands; a browser has none. Returns the unsubscribe. */
   onCommand(listener: (command: DesktopCommand) => void): () => void;
   /** A dropped file's path; null when it has none (always, in a browser: D18). */

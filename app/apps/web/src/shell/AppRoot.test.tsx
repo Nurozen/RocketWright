@@ -92,6 +92,7 @@ function fakeHost(over: Partial<HostApi> = {}) {
     recents: () => Promise.resolve([]),
     removeRecent: () => Promise.resolve(),
     setDirty: () => Promise.resolve(),
+    onFlush: () => () => undefined,
     setActiveProject: (p) => {
       active.push(p);
       return Promise.resolve();
@@ -446,6 +447,32 @@ describe("closing and commands", () => {
     await act(async () => root?.unmount());
     root = null;
     expect(setDirty.mock.lastCall).toEqual([false]);
+  });
+
+  it("Save and quit runs the same flush as Close, reports what failed, and stops listening with the window", async () => {
+    const t = fakeClient(["a"]);
+    let flush: (() => Promise<string[]>) | undefined;
+    const off = vi.fn<() => void>();
+    await mount(
+      t,
+      fakeHost({
+        onFlush: (f) => {
+          flush = f;
+          return off;
+        },
+      }),
+    );
+    let dirty = true;
+    const commit = vi.fn<() => string | null>(() => "Delay: needs a number");
+    registerDirtyField({ dirty: () => dirty, commit });
+    await expect(flush!()).resolves.toEqual(["Delay: needs a number"]);
+    expect(commit).toHaveBeenCalledOnce();
+    dirty = false;
+    await expect(flush!()).resolves.toEqual([]);
+    expect(commit).toHaveBeenCalledOnce();
+    await act(async () => root?.unmount());
+    root = null;
+    expect(off).toHaveBeenCalledOnce();
   });
 
   it("a native close asks the server to close the shown project", async () => {

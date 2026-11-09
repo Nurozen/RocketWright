@@ -13,7 +13,7 @@
  * `createConsentDialogs` is the native dialog behind the agent's project tools
  * (R1.3, D10, D11). The host channel brings it the request; no page is involved.
  */
-import { DESKTOP_INVOKE_CHANNELS, DIALOG_UNSAFE_NAME, DIALOG_UNSAFE_TEXT, EXPORT_FILE_TYPES, PROJECT_TOOL_REQUEST_MAX, PROJECT_TOOL_REQUEST_MAX_LINES, type DesktopBoot, type DisplayUnits, type ExportFileRequest, type FileFilter, type HostDecline, type HostRequest, type schema } from "@rw/contracts";
+import { DESKTOP_INVOKE_CHANNELS, DIALOG_UNSAFE_NAME, DIALOG_UNSAFE_TEXT, EXPORT_FILE_TYPES, PROJECT_TOOL_REQUEST_MAX, PROJECT_TOOL_REQUEST_MAX_LINES, type DesktopBoot, type DesktopFlushResult, type DisplayUnits, type ExportFileRequest, type FileFilter, type HostDecline, type HostRequest, type schema } from "@rw/contracts";
 import { basename, isAbsolute, join } from "node:path";
 import type { HostAnswer } from "./mainRpc.ts";
 import { prefsPatch, type Preferences } from "./preferences.ts";
@@ -70,6 +70,8 @@ export interface DesktopServices<W extends WindowLike> {
   openProviders: () => void;
   /** The page says whether it holds typed work the model does not have (R3.7). */
   setDirty?: (dirty: boolean) => void;
+  /** The page's answer to main's request to save (Save and quit). */
+  flushDone?: (result: DesktopFlushResult) => void;
 }
 
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null;
@@ -116,6 +118,12 @@ function activeProject(v: unknown): { dir: string; name: string } | null {
   if (v === null) return null;
   if (!isRecord(v) || typeof v.dir !== "string" || !isAbsolute(v.dir) || typeof v.name !== "string") throw new TypeError("setActiveProject: expected a project or null");
   return { dir: v.dir, name: v.name };
+}
+
+function flushResult(raw: unknown): DesktopFlushResult {
+  const v = raw as Partial<DesktopFlushResult> | null;
+  if (typeof v !== "object" || v === null || typeof v.id !== "number" || !Array.isArray(v.problems) || !v.problems.every((p) => typeof p === "string")) throw new TypeError("flushDone: expected { id, problems }");
+  return { id: v.id, problems: v.problems };
 }
 
 /** Registers the handlers on `ipc`; the returned function removes them. */
@@ -168,6 +176,7 @@ export function registerDesktopServices<W extends WindowLike>(deps: DesktopServi
     if (typeof dirty !== "boolean") throw new TypeError("setDirty: expected a boolean");
     deps.setDirty?.(dirty);
   });
+  handle(c.flushDone, (_win, raw) => deps.flushDone?.(flushResult(raw)));
   handle(c.relaunch, () => deps.relaunch());
   handle(c.prefs, () => deps.prefs.get());
   handle(c.setPrefs, (_win, patch) => deps.prefs.update(prefsPatch(patch)));

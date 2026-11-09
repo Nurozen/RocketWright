@@ -15,6 +15,7 @@ function fakeBridge(overrides: Partial<DesktopBridge> = {}) {
     calls.push([name, ...args]);
     return Promise.resolve(result);
   };
+  const flushListeners = new Set<(id: number) => void>();
   const bridge: DesktopBridge = {
     boot: record("boot", { activeProjectId: "p1", notice: "n" }),
     pickFolder: record("pickFolder", "/picked/folder"),
@@ -25,6 +26,11 @@ function fakeBridge(overrides: Partial<DesktopBridge> = {}) {
     removeRecent: record("removeRecent", undefined),
     setActiveProject: record("setActiveProject", undefined),
     setDirty: record("setDirty", undefined),
+    flushDone: record("flushDone", undefined),
+    onFlush: (listener) => {
+      flushListeners.add(listener);
+      return () => void flushListeners.delete(listener);
+    },
     prefs: record("prefs", { window: null, view: {}, lastTab: null, defaultDisplayUnits: null }),
     setPrefs: record("setPrefs", undefined),
     openProviders: record("openProviders", undefined),
@@ -36,7 +42,7 @@ function fakeBridge(overrides: Partial<DesktopBridge> = {}) {
     pathForFile: () => "/dropped/rocket.ork",
     ...overrides,
   };
-  return { bridge, calls, listeners };
+  return { bridge, calls, listeners, flushListeners };
 }
 
 describe("electron host", () => {
@@ -78,6 +84,22 @@ describe("electron host", () => {
     expect(seen).toEqual([{ id: "project.new" }]);
     off();
     expect(listeners.size).toBe(0);
+  });
+
+  it("answers a request to save with what the flush reports", async () => {
+    const { bridge, calls, flushListeners } = fakeBridge();
+    const off = createElectronHost(bridge).onFlush(() => Promise.resolve(["Delay: needs a number"]));
+    for (const l of flushListeners) l(7);
+    await vi.waitFor(() => expect(calls).toEqual([["flushDone", { id: 7, problems: ["Delay: needs a number"] }]]));
+    off();
+    expect(flushListeners.size).toBe(0);
+  });
+
+  it("reports a flush that throws as a failure, never as saved", async () => {
+    const { bridge, calls, flushListeners } = fakeBridge();
+    createElectronHost(bridge).onFlush(() => Promise.reject(new Error("socket closed")));
+    for (const l of flushListeners) l(8);
+    await vi.waitFor(() => expect(calls).toEqual([["flushDone", { id: 8, problems: ["socket closed"] }]]));
   });
 
   it("reports a dropped file's path, and null for one not on disk", () => {

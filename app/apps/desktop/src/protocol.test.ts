@@ -157,6 +157,53 @@ describe("openFromLink", () => {
     expect(t.failures).toEqual([expect.stringMatching(/invisible characters/)]);
   });
 
+  it("refuses a folder that resolves somewhere else once the person has answered", async () => {
+    const answers = ["/real/rv", "/elsewhere/evil"];
+    const t = deps({ known: async () => false, realpath: async () => answers.shift()! });
+    await expect(openFromLink({ workspace: "/link/rv", thread: "lt-3" }, t.deps)).resolves.toBeNull();
+    expect(t.calls).toEqual(["confirm /real/rv"]);
+    expect(t.failures).toEqual([expect.stringMatching(/\/real\/rv.*changed/)]);
+    expect(t.failures[0]).not.toContain("/elsewhere/evil");
+  });
+
+  it("refuses a folder that disappears while the person is being asked", async () => {
+    let asked = false;
+    const t = deps({
+      known: async () => false,
+      confirm: async (dir) => {
+        asked = true;
+        t.calls.push(`confirm ${dir}`);
+        return { accepted: true };
+      },
+      realpath: async (dir) => {
+        if (asked) throw new Error("ENOENT");
+        return dir;
+      },
+    });
+    await expect(openFromLink({ workspace: "/tmp/rv" }, t.deps)).resolves.toBeNull();
+    expect(t.calls).toEqual(["confirm /tmp/rv"]);
+    expect(t.failures).toEqual([expect.stringMatching(/\/tmp\/rv.*could not be opened/)]);
+  });
+
+  it("opens the folder when it still resolves the same after the answer", async () => {
+    const t = deps({ known: async (dir) => dir !== "/real/rv" });
+    await expect(openFromLink({ workspace: "/link/rv" }, t.deps)).resolves.toEqual(PROJECT);
+    expect(t.calls).toEqual(["confirm /real/rv", "project.open /real/rv", "activate research-vehicle -"]);
+  });
+
+  it("does not resolve again for a folder that needed no question", async () => {
+    let calls = 0;
+    const t = deps({
+      known: async () => true,
+      realpath: async (dir) => {
+        calls++;
+        return dir;
+      },
+    });
+    await openFromLink({ workspace: "/tmp/rv" }, t.deps);
+    expect(calls).toBe(1);
+  });
+
   it("shows why when the folder cannot be resolved", async () => {
     const t = deps({
       realpath: async () => {

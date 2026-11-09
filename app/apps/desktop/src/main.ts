@@ -70,7 +70,7 @@
  * build never opens a `/tmp` copy.
  */
 import { mountEmbedView, captureEmbedView, type EmbedBridge, type EmbedTarget as HelperEmbedTarget } from "@lecturn/embed/electron";
-import { DESKTOP_COMMAND_CHANNEL, embedThemeInput, PANE_MAIN_CHANNEL, type DesktopBoot, type EmbedTarget, type ExportFileRequest, type LecturnHostThemeJson, type LecturnThemeJson, type PaneMainMessage } from "@rw/contracts";
+import { DESKTOP_COMMAND_CHANNEL, DESKTOP_FLUSH_CHANNEL, embedThemeInput, PANE_MAIN_CHANNEL, type DesktopBoot, type EmbedTarget, type ExportFileRequest, type LecturnHostThemeJson, type LecturnThemeJson, type PaneMainMessage } from "@rw/contracts";
 import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, screen, shell, systemPreferences, webContents } from "electron";
 import { mkdirSync, readFileSync, rmSync } from "node:fs";
 import { mkdir, mkdtemp, realpath, writeFile } from "node:fs/promises";
@@ -89,7 +89,7 @@ import { createConsentDialogs, registerDesktopServices } from "./nativeDialogs.t
 import { packagedLayout, packagedServerOptions, userArgv } from "./packaged.ts";
 import { createPreferences, restorableBounds } from "./preferences.ts";
 import { installProtocol, linkInArgv, linkQueue, openFromLink, parseOpenUrl, projectActivator } from "./protocol.ts";
-import { guardQuit, once, QUIT_DISCARD_BUTTON, QUIT_PROMPT } from "./quit.ts";
+import { createPageFlush, guardQuit, once, QUIT_PROMPT, quitChoice, quitSaveFailedPrompt, SAVE_FAILED_DISCARD_BUTTON } from "./quit.ts";
 import { createRecents, type Recents } from "./recents.ts";
 import { reopenLast } from "./reopen.ts";
 import { classifyPane, PANE_DOM_VIEW_SCRIPT, SNAPSHOT_SHOWN_SCRIPT, waitOverlaySnapshot, type PaneDomView } from "./surfacePane.ts";
@@ -654,6 +654,13 @@ async function main(): Promise<void> {
       await menu?.refresh();
     },
   };
+  const pageFlush = createPageFlush({
+    send: (id) => {
+      if (appWindow === null || appWindow.isDestroyed()) return false;
+      appWindow.webContents.send(DESKTOP_FLUSH_CHANNEL, id);
+      return true;
+    },
+  });
   registerDesktopServices<BrowserWindow>({
     ipc: ipcMain,
     dialog,
@@ -673,6 +680,7 @@ async function main(): Promise<void> {
     setDirty: (dirty) => {
       pageDirty = dirty;
     },
+    flushDone: (result) => pageFlush.done(result),
     ...(mainRpc === null
       ? {}
       : {
@@ -762,9 +770,14 @@ async function main(): Promise<void> {
   // app.quit() (Cmd+Q, Playwright's close) emits no window-all-closed: without this the exit hook SIGKILLs the server and orphans its sidecars (quit.ts).
   const quit = guardQuit(app, {
     isDirty: () => pageDirty,
-    confirmDiscard: async () => {
+    ask: async () => {
       focusWindow?.();
-      return (await dialog.showMessageBox(win, { ...QUIT_PROMPT, buttons: [...QUIT_PROMPT.buttons] })).response === QUIT_DISCARD_BUTTON;
+      return quitChoice((await dialog.showMessageBox(win, { ...QUIT_PROMPT, buttons: [...QUIT_PROMPT.buttons] })).response);
+    },
+    flush: () => pageFlush.flush(),
+    confirmSaveFailed: async (problems) => {
+      focusWindow?.();
+      return (await dialog.showMessageBox(win, quitSaveFailedPrompt(problems))).response === SAVE_FAILED_DISCARD_BUTTON;
     },
     shutdown,
     log: (line) => process.stderr.write(`${line}\n`),
@@ -773,6 +786,7 @@ async function main(): Promise<void> {
   // A page that went away took its typed work with it, and a new one says for itself.
   const pageGone = (): void => {
     pageDirty = false;
+    pageFlush.pageGone();
   };
   win.webContents.on("render-process-gone", pageGone);
   win.webContents.on("did-navigate", pageGone);

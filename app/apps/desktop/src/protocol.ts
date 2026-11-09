@@ -12,9 +12,10 @@
  *   in packaged builds or with `RW_REGISTER_PROTOCOL=1`, so a dev or test
  *   run never rewrites the user's handler or blocks a parallel window.
  * - `openFromLink` resolves the link's real folder, asks the person first when
- *   that folder is neither open here nor in Recents, then maps it to
- *   `project.open` on the app server (main's RPC) and activates the project
- *   (`projectActivator`). A link the app could not act on is shown, not just logged.
+ *   that folder is neither open here nor in Recents, resolves it again after
+ *   the answer and refuses if it moved, then maps it to `project.open` on the
+ *   app server (main's RPC) and activates the project (`projectActivator`). A
+ *   link the app could not act on is shown, not just logged.
  * - `projectActivator` is the one way main brings a project forward (links and
  *   `host.show`): it raises the window, has the pane open the thread once the
  *   project's view is mounted (`PaneController.openThread`), and asks the page
@@ -184,6 +185,14 @@ export async function openFromLink(link: OpenLink, deps: OpenDeps): Promise<Proj
       deps.log?.(`protocol: not opening ${dir}: ${answer.declined ?? "cancelled"}`);
       return null;
     }
+    // The sheet can stay up for a while, and what the person agreed to was this folder, not this name.
+    let now: string;
+    try {
+      now = await deps.realpath(link.workspace);
+    } catch (e) {
+      return fail(`The link's folder ${dir} could not be opened: ${e instanceof Error ? e.message : String(e)}`);
+    }
+    if (now !== dir) return fail(`The link's folder ${dir} changed while you were being asked, so it was not opened. Open the link again if you still want it.`);
   }
   let project: ProjectInfo;
   try {
