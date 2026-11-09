@@ -53,6 +53,7 @@ export function createProjectSlice(ctx: SliceCtx): ProjectSlice {
         applySnapshot(ctx, sub.snapshot);
       } catch (e) {
         if (ctx.client === client) ctx.patch("project", { connection: "error", error: message(e) });
+        // The caller decides what a project that will not open means: `ProjectSurface` falls back to Welcome.
         throw e;
       }
       const handle = await wasm;

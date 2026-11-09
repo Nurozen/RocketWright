@@ -972,3 +972,9 @@ button:disabled {
   height: auto;
   margin-bottom: 16px;
 }
+
+/* The window with no project to show: Welcome until it lands, and startup failures. */
+.rw-lifecycle {
+  padding: 24px;
+  color: var(--rw-text-secondary);
+}

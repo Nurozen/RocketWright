@@ -21,7 +21,7 @@ import type { PageId, RwRef } from "@rw/contracts";
 import { ensurePageThread, navigatePage, newPageThread, openArtifactThread, openProviders, openThread } from "../embed/rail.ts";
 import { setPane } from "../embed/threads.ts";
 import { wirePane } from "../embed/wiring.ts";
-import { desktopPaneGlobals, onOpenProject, type PaneBridge } from "../embed/bridge.ts";
+import type { PaneBridge } from "../embed/bridge.ts";
 import { EmbedPane } from "../embed/EmbedPane.tsx";
 import { defaultCompare, versionLabel } from "../pages/compare/model.ts";
 import type { RpcLike } from "../state/rpc.ts";
@@ -55,6 +55,8 @@ export interface ConnectedShellProps {
   now?: () => number;
   /** Also gets the embedded pane's bridge (the shell itself drives mentions, threads and providers through it, B12). */
   onPaneBridge?: (bridge: PaneBridge | null) => void;
+  /** Show another open project; `AppRoot` owns which one is on screen. */
+  onSwitchProject?: (projectId: string) => void;
 }
 
 /** Shell slots a page may own; absent ones keep the shell defaults. */
@@ -99,9 +101,8 @@ const chipOf = (v: ViewId): ViewChip => (v[0]!.toUpperCase() + v.slice(1)) as Vi
 
 const message = (e: unknown): string => (e instanceof Error ? e.message : String(e));
 
-export function ConnectedShell({ store, client = null, renderPage, renderCompare, toolbarControls, pageSlots, now = Date.now, onPaneBridge }: ConnectedShellProps) {
+export function ConnectedShell({ store, client = null, renderPage, renderCompare, toolbarControls, pageSlots, now = Date.now, onPaneBridge, onSwitchProject }: ConnectedShellProps) {
   const s = useAppState(store, (x) => x);
-  const desktop = useMemo(() => desktopPaneGlobals(), []);
   const [clock, setClock] = useState(now());
   const [checking, setChecking] = useState(false);
   const [projects, setProjects] = useState<ShellProject[] | null>(null);
@@ -190,11 +191,7 @@ export function ConnectedShell({ store, client = null, renderPage, renderCompare
     onOpenProjects: () => {
       if (client !== null) run(client.call("project.list", {}).then((r) => setProjects(r.projects.map((p) => ({ id: p.projectId, name: p.name })))));
     },
-    onSwitchProject: (id) => {
-      if (client === null) return;
-      store.getState().ui.setCompare(null);
-      run(s.project.connect(client, id));
-    },
+    onSwitchProject: (id) => onSwitchProject?.(id),
     onSelectThread: (id) => run(openThread(store, id)),
     onNewThread: () => newPageThread(store),
     onSelectNav: (row: ShellNavRow) => {
@@ -256,19 +253,6 @@ export function ConnectedShell({ store, client = null, renderPage, renderCompare
 
   const snap = s.project.snapshot;
   const compareOpen = s.ui.compare !== null && renderCompare !== undefined;
-
-  // `rocketwright://open` (desktop): main opened a project and asks the page to show it.
-  useEffect(() => {
-    if (desktop === null || client === null) return;
-    return onOpenProject(desktop, (id) => {
-      if (store.getState().project.projectId === id) return;
-      store.getState().ui.setCompare(null);
-      store
-        .getState()
-        .project.connect(client, id)
-        .catch((e: unknown) => setError(message(e)));
-    });
-  }, [desktop, client, store]);
 
   const embed = embedded ? <EmbedPane key={projectId} projectId={projectId} client={client} onBridge={onBridge} /> : undefined;
   // Without an embed (no project yet): the page's hint, or what went wrong.
