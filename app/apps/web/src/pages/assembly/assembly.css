@@ -802,3 +802,23 @@
   flex: none;
   gap: 6px;
 }
+
+.rw-inspector__actions {
+  padding: 8px 12px 0;
+}
+
+.rw-inspector__actions .rw-menu-button,
+.rw-inspector__actions .rw-button {
+  width: 100%;
+}
+
+.rw-part-dialog__list {
+  max-height: 160px;
+  overflow: auto;
+  margin: 0;
+  padding-left: 18px;
+}
+
+.rw-part-dialog p {
+  margin: 0;
+}

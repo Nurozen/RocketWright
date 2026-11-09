@@ -39,6 +39,33 @@ async function setup(): Promise<{ store: AppStore; client: RpcClient; calls: { o
   return { store, client, calls };
 }
 
+describe("draft.removeComponent", () => {
+  const removals = (client: RpcClient) => vi.mocked(client.call).mock.calls.filter(([m]) => m === "component.remove").map(([, p]) => p);
+
+  it("asks for the recursive delete, with the label, in one call", async () => {
+    const { store, client } = await setup();
+    await store.getState().draft.removeComponent("lug", "Delete Lug");
+    expect(removals(client)).toEqual([{ projectId: P, id: "lug", recursive: true, label: "Delete Lug" }]);
+  });
+
+  it("saves an open draft first", async () => {
+    const { store, client, calls } = await setup();
+    await store.getState().draft.edit([span], "Span");
+    await store.getState().draft.removeComponent("lug", "Delete Lug");
+    expect(calls.map((c) => c.ops)).toEqual([[span]]);
+    expect(store.getState().draft.ops).toEqual([]);
+    expect(removals(client)).toHaveLength(1);
+  });
+
+  it("refuses over a stale draft", async () => {
+    const { store, client } = await setup();
+    await store.getState().draft.edit([span], "Span");
+    store.setState((s) => ({ ...s, draft: { ...s.draft, stale: true } }));
+    await expect(store.getState().draft.removeComponent("lug", "Delete Lug")).rejects.toThrow(/Save or discard/);
+    expect(removals(client)).toEqual([]);
+  });
+});
+
 describe("draft.mutate", () => {
   it("commits directly with its label when no draft is open", async () => {
     const { store, calls } = await setup();

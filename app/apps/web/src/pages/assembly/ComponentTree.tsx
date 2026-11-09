@@ -147,9 +147,11 @@ export interface ComponentTreeProps {
   onToggleHidden(id: string): void;
   /** Expands or collapses a row with children. */
   onToggleCollapsed?(id: string): void;
+  /** A right-click on a row, at that window position. */
+  onContextMenu?(id: string, at: { x: number; y: number }): void;
 }
 
-export function ComponentTree({ rows, onSelect, onToggleHidden, onToggleCollapsed }: ComponentTreeProps) {
+export function ComponentTree({ rows, onSelect, onToggleHidden, onToggleCollapsed, onContextMenu }: ComponentTreeProps) {
   return (
     <ul className="rw-list rw-asm-tree" role="tree" aria-label="Components" data-testid="tree" data-count={rows.length}>
       {rows.map((r) => (
@@ -165,6 +167,11 @@ export function ComponentTree({ rows, onSelect, onToggleHidden, onToggleCollapse
           aria-selected={r.selected}
           {...(r.hasChildren ? { "aria-expanded": !r.collapsed } : {})}
           onClick={(e) => onSelect(r.id, e.metaKey || e.ctrlKey || e.shiftKey)}
+          onContextMenu={(e) => {
+            if (onContextMenu === undefined) return;
+            e.preventDefault();
+            onContextMenu(r.id, { x: e.clientX, y: e.clientY });
+          }}
         >
           <button
             type="button"

@@ -67,6 +67,8 @@ export interface DraftSlice {
   commit(): Promise<MutationOut>;
   /** Commits one direct edit after settling any open draft; rejects with a user-facing message. */
   mutate(ops: readonly PatchOp[], label?: string): Promise<MutationOut | null>;
+  /** Deletes a part, what is attached to it, and their motor and deploy entries, as one step; settles any open draft first. */
+  removeComponent(id: string, label: string): Promise<MutationOut>;
 }
 
 export type SelectionSource = "tree" | "viewport" | "inspector" | "chat" | "table" | "diagram" | "history" | "agent" | "check";
@@ -108,6 +110,8 @@ export interface UiSlice {
    * card, and thread agree (BC5).
    */
   focusStep: number | null;
+  /** The open part dialog (rename, delete confirmation, or a failed part operation), or null. */
+  partDialog: PartDialog | null;
   navigate(page: PageId, tab?: string): void;
   /** `animate` eases the explode change (M3.2) instead of jumping. */
   setView(v: { view?: ViewId; explode?: number; animate?: boolean; section?: boolean; showInternals?: boolean; shadows?: boolean }): void;
@@ -116,7 +120,11 @@ export interface UiSlice {
   /** Opens (or retargets) the Compare view; null closes it. */
   setCompare(sel: CompareSelection | null): void;
   setFocusStep(seq: number | null): void;
+  setPartDialog(dialog: PartDialog | null): void;
 }
+
+/** Held in the store because the tree, the inspector and the Delete key all open the same dialogs. */
+export type PartDialog = { kind: "rename"; id: string } | { kind: "delete"; id: string } | { kind: "error"; title: string; message: string };
 
 /** Old and New of the Compare view. */
 export interface CompareSelection {

@@ -6,6 +6,7 @@
  * as added (`parts.test.ts` applies each through WASM).
  */
 import { type EvaluatedModel, type PatchOp, SCHEMA_META, type schema } from "@rw/contracts";
+import type { DeepReadonly } from "../types.ts";
 import { uniqueId } from "./ids.ts";
 
 type Component = schema.Component;
@@ -103,7 +104,12 @@ export function addPartOps({ kind, taken, attach, name }: NewPart): { id: string
   return { id, ops: [{ op: "add", path: `/c/${id}`, value: value as never }] };
 }
 
-type Part = EvaluatedModel["components"][number];
+type Part = DeepReadonly<EvaluatedModel["components"][number]>;
+
+/** Why `source` cannot be copied, in the user's words, or null when it can. */
+export function duplicateRefusal(source: Part): string | null {
+  return source.attach == null && source.shape.type === "nose_cone" ? "A nose cone leads the rocket, so a copy would have nowhere to attach." : null;
+}
 
 const targetOf = (p: Part): string | null => p.attach?.to.split(".")[0] ?? null;
 
@@ -119,9 +125,8 @@ const targetOf = (p: Part): string | null => p.attach?.to.split(".")[0] ?? null;
 export function duplicatePartOps(components: readonly Part[], sourceId: string): { id: string; ids: Map<string, string>; ops: PatchOp[] } {
   const source = components.find((c) => c.id === sourceId);
   if (source === undefined) throw new Error(`No part with the id ${sourceId}.`);
-  if (source.attach == null && source.shape.type === "nose_cone") {
-    throw new Error("A nose cone leads the rocket, so a copy would have nowhere to attach.");
-  }
+  const refusal = duplicateRefusal(source);
+  if (refusal !== null) throw new Error(refusal);
 
   const subtree = [source];
   for (const part of subtree) {

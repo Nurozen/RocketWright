@@ -18,6 +18,7 @@ export function createUiSlice(ctx: SliceCtx): UiSlice {
     hidden: [],
     compare: null,
     focusStep: null,
+    partDialog: null,
     navigate(page: PageId, tab?: string): void {
       ctx.patch("ui", { page, tab: tab ?? null });
     },
@@ -41,6 +42,9 @@ export function createUiSlice(ctx: SliceCtx): UiSlice {
     },
     setFocusStep(seq: number | null): void {
       ctx.patch("ui", (u) => (u.focusStep === seq ? {} : { focusStep: seq }));
+    },
+    setPartDialog(partDialog): void {
+      ctx.patch("ui", { partDialog });
     },
     toggleHidden(id: string): void {
       ctx.patch("ui", (u) => ({ hidden: u.hidden.includes(id) ? u.hidden.filter((x) => x !== id) : [...u.hidden, id] }));

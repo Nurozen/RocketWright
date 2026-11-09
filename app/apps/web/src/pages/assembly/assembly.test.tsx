@@ -198,12 +198,14 @@ describe("page slots on a live store (mock RPC)", () => {
     expect(html).toContain('data-testid="vp.axis-gizmo"');
     expect(html).toContain("Nothing selected");
     expect(html.match(/data-testid="rail\.nav-row"/g)).toHaveLength(evaluated.components.length);
+    expect(html).not.toContain('data-testid="insp.actions"');
 
     store.getState().selection.select([componentRef("recovery_bay")], "tree");
     store.getState().ui.toggleHidden("lug");
     store.getState().ui.setView({ explode: 0.6, view: "side" });
     html = render();
     expect(html).toMatch(/data-testid="insp\.title"[^>]*>Recovery bay</);
+    expect(html).toMatch(/data-testid="insp\.actions"[^>]*aria-label="Part actions"[^>]*>Part actions</);
     expect(html).toMatch(/data-part="recovery_bay"[^>]*aria-selected="true"/);
     expect(html).toMatch(/data-part="lug"[^>]*data-hidden="true"/);
     expect(html).toContain('data-selected="recovery_bay"');

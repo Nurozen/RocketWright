@@ -4,7 +4,7 @@
  * with the CheckDelta. Only `commit()` writes, through `model.patch` (I1, I2).
  */
 import type { MutationOut, PatchOp } from "@rw/contracts";
-import { createMutate } from "../mutate.ts";
+import { createMutate, createRemoveComponent } from "../mutate.ts";
 import type { DraftSlice, SliceCtx } from "../types.ts";
 
 /**
@@ -107,6 +107,7 @@ export function createDraftSlice(ctx: SliceCtx): DraftSlice {
     },
 
     mutate: createMutate(ctx),
+    removeComponent: createRemoveComponent(ctx),
   };
 }
 
