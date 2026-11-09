@@ -21,6 +21,7 @@ import { useResultsRows } from "./parts.tsx";
 import { ResultsIcon } from "./ResultsIcon.tsx";
 import { resultsUiStore, useResultsUi } from "./resultsUi.ts";
 import { RunTable } from "./RunTable.tsx";
+import { SimConditionsSheet } from "./SimConditionsSheet.tsx";
 import { runKey, useRunData, type RunData, type RunDataSource } from "./source.ts";
 import { launchRailOf, padModelOf, trajectoryPoints } from "./trajectory.ts";
 import { TrajectoryView, type TrajectoryPad, type TrajectoryPath } from "./TrajectoryView.tsx";
@@ -42,6 +43,7 @@ export function ResultsPage({ app, source }: ResultsPageProps) {
   const runError = useAppState(app, (s) => s.runs.error);
   const tabId = useResultsUi(app, (u) => u.plotTab);
   const showEvents = useResultsUi(app, (u) => u.showEvents);
+  const notice = useResultsUi(app, (u) => u.notice);
   const ui = resultsUiStore(app);
 
   // First visit with runs: plot the first two Complete runs and select series A.
@@ -184,9 +186,9 @@ export function ResultsPage({ app, source }: ResultsPageProps) {
       </header>
 
       <RunTable app={app} />
-      {runError && (
+      {(runError ?? notice) && (
         <p className="rw-results__error" role="alert">
-          {runError}
+          {runError ?? notice}
         </p>
       )}
 
@@ -333,6 +335,7 @@ export function ResultsPage({ app, source }: ResultsPageProps) {
           {paths.length > 0 ? <TrajectoryView paths={paths} pad={pad} /> : <p className="rw-results__empty">No trajectory to show.</p>}
         </aside>
       </div>
+      <SimConditionsSheet app={app} />
     </section>
   );
 }

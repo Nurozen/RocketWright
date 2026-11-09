@@ -15,6 +15,10 @@ export interface ResultsUi {
   /** Run rows (`rowKey`) hidden with the rail eye toggle (dropped from the table and plots). */
   hidden: string[];
   showEvents: boolean;
+  /** The sim whose conditions sheet is open. */
+  conditions: string | null;
+  /** Why a simulation could not be created, duplicated or deleted. */
+  notice: string | null;
   set(p: Partial<Omit<ResultsUi, "set" | "toggleHidden">>): void;
   toggleHidden(sim: string): void;
 }
@@ -29,6 +33,8 @@ export function resultsUiStore(app: AppStore): StoreApi<ResultsUi> {
       plotTab: "altitude",
       hidden: [],
       showEvents: true,
+      conditions: null,
+      notice: null,
       set: (p) => set(p),
       toggleHidden: (sim) => set((u) => ({ hidden: u.hidden.includes(sim) ? u.hidden.filter((x) => x !== sim) : [...u.hidden, sim] })),
     }));

@@ -36,7 +36,7 @@ export const STAGE_NEEDS: Readonly<Record<StageId, readonly StageId[]>> = {
 };
 
 /** The enabled stages: the steps that make a stage reachable add it. */
-export const B1_STAGES: ReadonlySet<StageId> = new Set<StageId>(["launch", "welcome", "choose", "new", "materials", "nose", "body", "others", "block", "quit", "reopen", "compare"]);
+export const B1_STAGES: ReadonlySet<StageId> = new Set<StageId>(["launch", "welcome", "choose", "new", "materials", "nose", "body", "others", "block", "sim", "quit", "reopen", "compare"]);
 
 /** One message per stage enabled without a stage it needs. */
 export function validateStages(enabled: ReadonlySet<StageId>): string[] {
@@ -267,13 +267,27 @@ const STAGE_BODIES: Readonly<Record<StageId, StageBody>> = {
   motor: onlyRows("motor"),
   deploy: onlyRows("deploy"),
   async sim(ctx, rows) {
-    const { page } = ctx;
+    const { page, expect } = ctx;
     await page.getByRole("tab", exactly("Results")).click();
     await page.getByRole("button", exactly("New simulation")).click();
-    await driveRows(ctx, "sim", rows);
+    const sheet = page.getByRole("dialog", { name: "Simulation conditions" });
+    const field = (group: string, label: string) => sheet.getByRole("group", exactly(group)).getByLabel(label, { exact: true });
     // Exact: "Save and run" contains "Save", and this stage must fly nothing (D23).
-    await page.getByRole("dialog", { name: "Simulation conditions" }).getByRole("button", exactly("Save")).click();
-    await ctx.expect(notRunRow(page)).toBeVisible({ timeout: ctx.timeouts.row });
+    const save = async () => {
+      await sheet.getByRole("button", exactly("Save")).click();
+      await expect(sheet).toBeHidden({ timeout: ctx.timeouts.row });
+      await expect(notRunRow(page)).toBeVisible({ timeout: ctx.timeouts.row });
+    };
+    // Off the defaults first, then read back through the row: a Save that never reached the model fails here (D23).
+    await field("Launch", "Rail length").fill("2.5");
+    await field("Wind", "Speed").fill("4");
+    await save();
+    await notRunRow(page).getByRole("button", { name: /actions$/ }).click();
+    await page.getByRole("menuitem", exactly("Simulation conditions")).click();
+    await expect(field("Launch", "Rail length")).toHaveValue("2.5", { timeout: ctx.timeouts.row });
+    await expect(field("Wind", "Speed")).toHaveValue("4", { timeout: ctx.timeouts.row });
+    await driveRows(ctx, "sim", rows);
+    await save();
   },
   async run(ctx) {
     const { page } = ctx;

@@ -1,12 +1,12 @@
 /**
  * Run table (C §4.4): checkbox (plot overlay, at most two: A teal, B sand),
  * colour dot, Run, Status, Apogee (m), Max speed (m/s), Flight time (s), and a
- * row menu. Sortable columns; status is computed (I7). Outdated and unrun
- * rows show dashes: only a Complete run's numbers are current. A sim that has
- * never run has no row here (it stays in the Runs rail, where it can be
- * selected and run).
+ * row menu. Sortable columns; status is computed (I7). Outdated rows show
+ * dashes: only a Complete run's numbers are current. A sim that has never run
+ * reads Not run, offers Run in place of its numbers, and opens its conditions
+ * from the row (R2.7).
  */
-import type { AppStore } from "../../state/store.ts";
+import { useAppState, type AppStore } from "../../state/store.ts";
 import { fmtNum } from "../../plots/quantities.ts";
 import { nextSort, rowRef, type ResultsRow, type SortKey } from "./model.ts";
 import { MenuButton } from "../../ui/Menu.tsx";
@@ -24,14 +24,14 @@ const COLUMNS: { key: SortKey; label: string; numeric?: boolean }[] = [
 
 export const canOverlay = (r: ResultsRow): boolean => r.entry.run_id != null && r.status.kind !== "running" && r.status.kind !== "queued" && r.status.kind !== "not_run";
 
-/** Rows the table lists: runs that exist or are under way (never-run sims stay in the rail only). */
-export const hasRun = (r: ResultsRow): boolean => r.status.kind !== "not_run" || r.entry.run_id != null;
-
 export function RunTable({ app }: { app: AppStore }) {
-  const rows = useResultsRows(app).filter(hasRun);
+  const rows = useResultsRows(app);
   const sort = useResultsUi(app, (u) => u.sort);
   const ui = resultsUiStore(app);
   const st = app.getState();
+  const inModel = useAppState(app, (s) => s.project.snapshot?.evaluated?.sims ?? null);
+  const hasConditions = (r: ResultsRow) => inModel?.[r.sim] != null;
+  const openConditions = (sim: string) => ui.getState().set({ conditions: sim });
   return (
     <div className="rw-runtable" data-rw-region="run-table" data-testid="run-table">
       <table>
@@ -69,7 +69,10 @@ export function RunTable({ app }: { app: AppStore }) {
               data-series={r.series ?? undefined}
               aria-selected={r.selected}
               data-row-key={r.key}
-              onClick={() => st.selection.select([rowRef(r)], "table")}
+              onClick={() => {
+                st.selection.select([rowRef(r)], "table");
+                if (r.status.kind === "not_run" && hasConditions(r)) openConditions(r.sim);
+              }}
             >
               <td className="rw-runtable__check">
                 <input
@@ -92,15 +95,37 @@ export function RunTable({ app }: { app: AppStore }) {
                   {r.status.label}
                 </span>
               </td>
-              <td data-numeric="true" data-testid="runs.apogee">
-                {fmtNum(r.metrics?.apogee_m)}
-              </td>
-              <td data-numeric="true" data-testid="runs.max-speed">
-                {fmtNum(r.metrics?.max_velocity_ms)}
-              </td>
-              <td data-numeric="true" data-testid="runs.flight-time">
-                {fmtNum(r.metrics?.flight_time_s)}
-              </td>
+              {r.status.kind === "not_run" ? (
+                <>
+                  <td data-testid="runs.apogee">
+                    <button
+                      type="button"
+                      className="rw-button rw-runtable__run"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        void app.getState().runs.run(r.sim).catch(() => undefined);
+                      }}
+                    >
+                      <ResultsIcon name="run" size={16} />
+                      Run
+                    </button>
+                  </td>
+                  <td data-testid="runs.max-speed" />
+                  <td data-testid="runs.flight-time" />
+                </>
+              ) : (
+                <>
+                  <td data-numeric="true" data-testid="runs.apogee">
+                    {fmtNum(r.metrics?.apogee_m)}
+                  </td>
+                  <td data-numeric="true" data-testid="runs.max-speed">
+                    {fmtNum(r.metrics?.max_velocity_ms)}
+                  </td>
+                  <td data-numeric="true" data-testid="runs.flight-time">
+                    {fmtNum(r.metrics?.flight_time_s)}
+                  </td>
+                </>
+              )}
               <td className="rw-runtable__menu" onClick={(e) => e.stopPropagation()}>
                 <MenuButton
                   testId="runs.row-menu"
@@ -108,6 +133,7 @@ export function RunTable({ app }: { app: AppStore }) {
                   className="rw-icon-button"
                   align="right"
                   items={[
+                    { id: "conditions", label: "Simulation conditions", disabled: !hasConditions(r), onSelect: () => openConditions(r.sim) },
                     { id: "edit", label: "Edit configuration", onSelect: () => app.getState().ui.navigate("configurations") },
                     { id: "duplicate", label: "Duplicate", disabled: true },
                     { id: "delete", label: "Delete", disabled: true },

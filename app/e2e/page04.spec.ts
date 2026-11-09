@@ -171,12 +171,14 @@ describe("page 04 Results (live, seeded)", () => {
     expect(r.runSelectedBg).toEqual([0x13, 0x4b, 0x4b]);
   });
 
-  it("lists the sims that have runs with computed status and the summary numbers of Complete runs only", () => {
+  it("lists every flight sim with computed status and the summary numbers of Complete runs only", () => {
     const r = report.initial;
     expect(r.columns.slice(2, 7)).toEqual(["Run", "Status", "Apogee (m)", "Max speed (m/s)", "Flight time (s)"]);
     const bySim = Object.fromEntries(r.rows.map((x: Report) => [x.sim, x]));
-    // Never-run Recovery test stays in the Runs rail only (concept 04).
-    expect(Object.keys(bySim).sort()).toEqual(["baseline", "fin_revision", "higher_altitude"]);
+    // Never-run Recovery test reads Not run and offers Run (R2.7).
+    expect(Object.keys(bySim).sort()).toEqual(["baseline", "fin_revision", "higher_altitude", "recovery_test"]);
+    expect(bySim.recovery_test.status).toBe("not_run");
+    expect(bySim.recovery_test.cells.slice(2, 7)).toEqual(["Recovery test", "Not run", "Run", "", ""]);
     expect(bySim.baseline.status).toBe("complete");
     expect(bySim.higher_altitude.status).toBe("complete");
     expect(bySim.fin_revision.status).toBe("outdated");
@@ -335,7 +337,7 @@ describe("page 04 Results (live, seeded)", () => {
   });
 
   it("sorts by a column and toggles the overlay", () => {
-    expect(report.sortAsc).toEqual(["fin_revision", "baseline", "higher_altitude"]);
+    expect(report.sortAsc).toEqual(["fin_revision", "recovery_test", "baseline", "higher_altitude"]);
     expect(report.sortDesc.slice(0, 2)).toEqual(["higher_altitude", "baseline"]);
     expect(report.sortOff).toEqual(report.initial.rows.map((x: Report) => x.sim));
     expect(report.single.legend.map((l: Report) => l.sim)).toEqual(["baseline"]);

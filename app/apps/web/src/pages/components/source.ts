@@ -241,6 +241,27 @@ export function tableScalars(files: SourceFilesLike, path: readonly string[]): R
   return out;
 }
 
+/**
+ * Scalar keys of the table at `path` in one file, or null when the file has no
+ * such table. For files whose top level is their entity (`sims/<id>.rw.toml`),
+ * which the merged tree cannot tell apart.
+ */
+export function fileTable(text: string, path: readonly string[]): Record<string, SourceScalar> | null {
+  const tree: SourceTable = {};
+  parseFile(text, tree);
+  let cur: SourceValue | undefined = tree;
+  for (const k of path) {
+    if (!isTable(cur)) return null;
+    cur = cur[k];
+  }
+  if (!isTable(cur)) return null;
+  const out: Record<string, SourceScalar> = {};
+  for (const [k, v] of Object.entries(cur)) {
+    if (typeof v === "string" || typeof v === "number" || typeof v === "boolean") out[k] = v;
+  }
+  return out;
+}
+
 /** Ids of the materials the project's own sources write (materials merged from its library are not among them). */
 export function sourceMaterialIds(files: SourceFilesLike): string[] {
   return Object.entries(tableAt(files, ["materials"]) ?? {})

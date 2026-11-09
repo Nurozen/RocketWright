@@ -65,6 +65,8 @@ export interface DraftSlice {
   edit(ops: PatchOp[], label?: string): Promise<void>;
   discard(): void;
   commit(): Promise<MutationOut>;
+  /** What `ops` would do, written nowhere; leaves the open draft alone. */
+  dryRun(ops: readonly PatchOp[]): Promise<MutationOut>;
   /** Commits one direct edit after settling any open draft; rejects with a user-facing message. */
   mutate(ops: readonly PatchOp[], label?: string): Promise<MutationOut | null>;
 }
