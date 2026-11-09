@@ -78,10 +78,16 @@ describe("contract batch (U13)", () => {
     expect(await c.request("render", { projectId, view: "nope" as never })).toMatchObject({ ok: false, error: { code: "invalid_params" } });
   }, 60_000);
 
+  it("motor.show returns a motor and its curve", async () => {
+    const { info, curve } = await c.call("motor.show", { projectId, id: "generic:RW_C6G" });
+    expect(info.id).toBe("generic:RW_C6G");
+    expect(curve.points.length).toBeGreaterThan(2);
+    expect(await c.request("motor.show", { projectId, id: "generic:NOPE" })).toMatchObject({ ok: false, error: { code: "api_error" } });
+  });
+
   it("the unimplemented methods answer internal until their steps land", async () => {
     const stubs: [RpcMethod, Record<string, unknown>][] = [
       ["project.restartSidecar", { projectId }],
-      ["motor.show", { projectId, id: "generic:RW_C6G" }],
       ["run.delete", { projectId, run: "baseline/abc" }],
       ["host.register", { token: "x" }],
       ["host.respond", { requestId: "r", accepted: true }],

@@ -357,6 +357,19 @@
   color: var(--rw-text-secondary);
 }
 
+/* A configuration's motor the library no longer has: named, never replaced by another. */
+.rw-motor__missing {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+}
+
+.rw-motor__missing strong {
+  color: var(--rw-text-primary);
+}
+
 .rw-motor__add-mount {
   color: var(--rw-text-primary);
   white-space: nowrap;
@@ -650,6 +663,11 @@
 
 .rw-cfg-num__error {
   color: var(--rw-danger);
+  font-size: 11px;
+}
+
+.rw-cfg-num__note {
+  color: var(--rw-text-secondary);
   font-size: 11px;
 }
 
