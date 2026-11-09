@@ -135,6 +135,13 @@ export function stripCurrentStep(s: AppState): number | null {
   return cursor.shown ?? steps.at(-1)!.seq;
 }
 
+/** The moment the design last reached disk: its head step. Connecting, resyncing and job progress are not saves. */
+function lastSavedAt(head: { ts: string } | undefined): number | null {
+  if (head === undefined) return null;
+  const ms = Date.parse(head.ts);
+  return Number.isNaN(ms) ? null : ms;
+}
+
 export interface ShellExtras {
   /** `check.run` in flight. */
   checking?: boolean;
@@ -180,7 +187,7 @@ export function shellModelFrom(s: AppState, now: number, extras: ShellExtras = {
     projectName: snap?.project.name ?? (s.project.connection === "connecting" ? "Opening…" : "No project"),
     projectId: s.project.projectId,
     projects: extras.projects ?? (snap ? [{ id: snap.project.projectId, name: snap.project.name }] : []),
-    saveState: modified ? "Modified · not saved" : savedAgo(s.project.updatedAt, now),
+    saveState: modified ? "Modified · not saved" : savedAgo(lastSavedAt(head), now),
     saveTone: modified ? "amber" : "muted",
     check: checkOf(s, extras.checking === true),
     threads: railThreads(s).map((t) => ({

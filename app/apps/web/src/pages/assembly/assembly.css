@@ -181,6 +181,24 @@
   color: var(--rw-text-secondary);
 }
 
+/* A plain row in the card's heading type: the chevron is the only hint it opens something. */
+.rw-insp-card__open {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+.rw-insp-card__open:hover .rw-icon {
+  color: var(--rw-text-primary);
+}
+
 /* One label column per card, sized to its longest label (capped), and the
    values in a column to its right on a single line each (concept 01). */
 .rw-insp-card__rows {

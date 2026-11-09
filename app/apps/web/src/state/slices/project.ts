@@ -24,7 +24,6 @@ export function createProjectSlice(ctx: SliceCtx): ProjectSlice {
     hello: null,
     snapshot: null,
     subscriptionId: null,
-    updatedAt: null,
     error: null,
 
     async connect(client: RpcLike, projectId: string): Promise<void> {
@@ -84,7 +83,7 @@ export function createProjectSlice(ctx: SliceCtx): ProjectSlice {
       ctx.client = null;
       ctx.projectId = null;
       if (ctx.get().project.connection !== "idle") {
-        ctx.patch("project", { projectId: null, connection: "idle", hello: null, snapshot: null, subscriptionId: null, updatedAt: null, error: null });
+        ctx.patch("project", { projectId: null, connection: "idle", hello: null, snapshot: null, subscriptionId: null, error: null });
       }
     },
   };
@@ -142,7 +141,7 @@ export function applySnapshot(ctx: SliceCtx, snap: ProjectSnapshot): void {
     }
     snapshot = same ? prev : (Object.freeze(next) as unknown as DeepReadonly<ProjectSnapshot>);
   }
-  ctx.patch("project", { snapshot, updatedAt: ctx.now() });
+  ctx.patch("project", { snapshot });
   afterMirrorChange(ctx, prev);
 }
 
@@ -162,7 +161,7 @@ export function applyPatch(ctx: SliceCtx, patch: ProjectPatch): void {
     if (k === "projectId" || v === undefined) continue;
     next[k as SnapshotKey] = share(next[k], v);
   }
-  ctx.patch("project", { snapshot: Object.freeze(next) as unknown as DeepReadonly<ProjectSnapshot>, updatedAt: ctx.now() });
+  ctx.patch("project", { snapshot: Object.freeze(next) as unknown as DeepReadonly<ProjectSnapshot> });
   afterMirrorChange(ctx, prev);
 }
 

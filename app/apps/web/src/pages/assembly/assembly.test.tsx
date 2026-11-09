@@ -15,6 +15,7 @@ import { componentRef, createAppStore, RpcClient, type AppStore } from "../../st
 import { AssemblyToolbar } from "./AssemblyToolbar.tsx";
 import { assemblySlots } from "./AssemblyPage.tsx";
 import { ComponentTree, iconFor, treeLabel, treeRows } from "./ComponentTree.tsx";
+import { matchingTreeRows, type TreeRow } from "./ComponentTree.tsx";
 import { Inspector } from "./Inspector.tsx";
 import { formatLength, formatMass, formatPair, formatVolume, inspectorView, jointLabel } from "./inspector-model.ts";
 
@@ -90,6 +91,12 @@ describe("inspector cards", () => {
     expect(diag).toMatchObject({ severity: "warning", pass: false });
     expect(inspectorView("nope", evaluated, check, "mm")).toBeNull();
     expect(inspectorView("nose", null, check, "mm")).toBeNull();
+  });
+
+  it("wires a card's chevron to Components, and drops it with nowhere to go", () => {
+    const view = inspectorView("recovery_bay", evaluated, check, "mm");
+    expect(renderToStaticMarkup(<Inspector view={view} onOpenCard={() => undefined} />)).toContain("rw-insp-card__open");
+    expect(renderToStaticMarkup(<Inspector view={view} />)).not.toContain("rw-insp-card__open");
   });
 
   it("renders the cards with their test ids", () => {
@@ -214,5 +221,16 @@ describe("page slots on a live store (mock RPC)", () => {
     expect(html).toContain('data-selected="recovery_bay"');
     expect(html).toContain('data-explode="0.60"');
     expect(html).toContain('data-view="side"');
+  });
+});
+
+describe("rail search over the tree", () => {
+  const row = (id: string, depth: number): TreeRow => ({ id, label: id, icon: "body-tube", hidden: false, selected: false, depth, hasChildren: false, collapsed: false });
+  const rows = [row("Airframe", 0), row("Bay", 1), row("Parachute", 2), row("Nose", 0)];
+
+  it("keeps matches and their ancestors, and everything for an empty query", () => {
+    expect(matchingTreeRows(rows, "para").map((r) => r.id)).toEqual(["Airframe", "Bay", "Parachute"]);
+    expect(matchingTreeRows(rows, "nose").map((r) => r.id)).toEqual(["Nose"]);
+    expect(matchingTreeRows(rows, "").map((r) => r.id)).toEqual(["Airframe", "Bay", "Parachute", "Nose"]);
   });
 });

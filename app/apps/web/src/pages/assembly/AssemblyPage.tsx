@@ -9,6 +9,7 @@ import { useCallback, useMemo, useRef, useState, type ReactNode } from "react";
 import type { ViewId } from "@rw/contracts";
 import { MENTION_EVENT } from "../../embed/mention.ts";
 import { ADD_FIRST_PART, FIRST_PART_HINT, componentRef, useAppState, type AppStore, type Units } from "../../state/index.ts";
+import { NO_RAIL_MATCHES, useRailSearch } from "../../shell/railSearch.ts";
 import { selectedComponentIds } from "../../state/slices/selection.ts";
 import { Menu, MenuButton } from "../../ui/Menu.tsx";
 import { AssemblyViewport } from "../../viewport/AssemblyViewport.tsx";
@@ -19,7 +20,7 @@ import { AddPartButton } from "./AddPartPopover.tsx";
 import { AssemblyToolbar } from "./AssemblyToolbar.tsx";
 import { DrawingDialog } from "./DrawingDialog.tsx";
 import { thumbKey } from "../../render/thumbnails.ts";
-import { ComponentTree, iconFor, treeRows } from "./ComponentTree.tsx";
+import { ComponentTree, iconFor, matchingTreeRows, treeRows } from "./ComponentTree.tsx";
 import { INSPECTOR_WIDTH, Inspector } from "./Inspector.tsx";
 import { inspectorView } from "./inspector-model.ts";
 import { partMenuItems } from "./PartActions.tsx";
@@ -115,6 +116,7 @@ export function AssemblyWorkspace({ store, glbDeps }: { store: AppStore; glbDeps
         view={view}
         thumb={thumb}
         noParts={noParts}
+        onOpenCard={() => store.getState().ui.navigate("components")}
         actions={
           actionItems === null ? undefined : (
             <MenuButton testId="insp.actions" label="Part actions" items={actionItems}>
@@ -161,13 +163,15 @@ export function ComponentTreeSlot({ store }: { store: AppStore }) {
   const [collapsed, setCollapsed] = useState<readonly string[]>([]);
   const [menu, setMenu] = useState<{ id: string; at: { x: number; y: number; band: { top: number; bottom: number } } } | null>(null);
   const thumbs = useAppState(store, (s) => s.thumbs.urls);
-  const rows = useMemo(
-    () => treeRows(components ?? [], hidden, selectedComponentIds(refs), collapsed).map((r) => {
-        const url = thumbs[thumbKey(r.id)];
-        return url === undefined ? r : { ...r, thumb: url };
-      }),
-    [components, hidden, refs, collapsed, thumbs],
-  );
+  const query = useRailSearch();
+  const rows = useMemo(() => {
+    // A search looks inside collapsed parts too.
+    const all = treeRows(components ?? [], hidden, selectedComponentIds(refs), query === "" ? collapsed : []).map((r) => {
+      const url = thumbs[thumbKey(r.id)];
+      return url === undefined ? r : { ...r, thumb: url };
+    });
+    return matchingTreeRows(all, query);
+  }, [components, hidden, refs, collapsed, thumbs, query]);
   // The rail hides its own empty text for a page-owned tree (LeftRail `navBody`).
   if (components?.length === 0) {
     return (
@@ -176,6 +180,7 @@ export function ComponentTreeSlot({ store }: { store: AppStore }) {
       </p>
     );
   }
+  if (rows.length === 0 && query !== "") return <p className="rw-rail__empty" data-testid="tree.no-match">{NO_RAIL_MATCHES}</p>;
   return (
     <>
       <ComponentTree

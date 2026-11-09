@@ -41,7 +41,7 @@ export function RunsRail({ app, onOpenRun }: RunsRailProps) {
         </button>
       </div>
       {query !== null && (
-        <input className="rw-runs-rail__search" type="search" placeholder="Filter runs" aria-label="Filter runs" value={query} autoFocus onChange={(e) => setQuery(e.target.value)} />
+        <input className="rw-rail__search" type="search" placeholder="Filter runs" aria-label="Filter runs" value={query} autoFocus onChange={(e) => setQuery(e.target.value)} />
       )}
       <ul className="rw-list" role="listbox" aria-label="Runs">
         {shown.map((r) => (

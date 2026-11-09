@@ -39,10 +39,9 @@ export function AgentPane({ title, children, embed, extras, provenance = null, o
         <h2 className="rw-agent__title" data-testid="agent.title">
           {title}
         </h2>
-        <button type="button" className="rw-button rw-button--quiet" data-testid="agent.model-picker" aria-haspopup="listbox" onClick={onOpenSettings}>
+        <button type="button" className="rw-button rw-button--quiet" data-testid="agent.model-picker" onClick={onOpenSettings}>
           <Icon name="settings" size={18} />
           Agent
-          <Icon name="chevron-down" size={16} />
         </button>
       </div>
       {embedded ? (

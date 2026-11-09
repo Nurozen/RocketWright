@@ -13,7 +13,7 @@ import { useStore } from "zustand";
 import { createStore, type StoreApi } from "zustand/vanilla";
 import { TimePlot } from "../../plots/TimePlot.tsx";
 import type { RpcLike } from "../../state/rpc.ts";
-import { NO_LIQUID_ENGINE, useAppState, type AppStore } from "../../state/index.ts";
+import { NO_LIQUID_ENGINE_ELSEWHERE, useAppState, type AppStore } from "../../state/index.ts";
 import { ResultsIcon } from "../results/ResultsIcon.tsx";
 import { engineRunUrl, engineeringPlots, parseEngineRun, provenanceLabel, runSummary, type EngineRunRecord, type EngineeringPlot } from "./model.ts";
 
@@ -129,7 +129,7 @@ export function EngineeringTab({ store, client, ui, httpBase, fetchText = (u) =>
       </header>
       {engine === null ? (
         <p className="rw-eng__empty" data-testid="engineering.empty">
-          {NO_LIQUID_ENGINE}
+          {NO_LIQUID_ENGINE_ELSEWHERE}
         </p>
       ) : state === "error" ? (
         <p className="rw-eng__empty" data-testid="engineering.error">

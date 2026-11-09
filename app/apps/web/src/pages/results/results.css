@@ -344,17 +344,31 @@
   min-width: 0;
 }
 
-/* Nine tabs wrap to a second row in a narrow window rather than hide behind a scroll. */
+/* Nine tabs stay on one row (the mockup's strip): they tighten as the page narrows, and past
+   that the strip scrolls. The two shadows show which end still has tabs past it. */
 .rw-plot-tabs {
+  position: relative;
   display: flex;
   flex: none;
-  flex-wrap: wrap;
   min-height: 32px;
   padding-left: 2px;
   border-bottom: var(--rw-hairline) solid var(--rw-line);
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  background:
+    linear-gradient(to right, var(--rw-bg-canvas) 40%, transparent) left / 28px 100% no-repeat local,
+    linear-gradient(to left, var(--rw-bg-canvas) 40%, transparent) right / 28px 100% no-repeat local,
+    radial-gradient(farthest-side at left, var(--rw-line), transparent) left / 10px 100% no-repeat scroll,
+    radial-gradient(farthest-side at right, var(--rw-line), transparent) right / 10px 100% no-repeat scroll;
+}
+
+.rw-plot-tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .rw-plot-tab {
+  flex: none;
   height: 32px;
   padding: 0 14px;
   font-size: var(--rw-font-size-body);
@@ -704,16 +718,6 @@
   color: var(--rw-run-series);
 }
 
-.rw-runs-rail__search {
-  width: calc(100% - 16px);
-  height: 32px;
-  margin: 0 8px 8px;
-  padding: 0 10px;
-  border: var(--rw-hairline) solid var(--rw-line);
-  border-radius: var(--rw-radius-sm);
-  background: var(--rw-panel);
-}
-
 /* ---- run snapshot row ----------------------------------------------------- */
 
 .rw-snaps {
@@ -897,10 +901,18 @@
   .rw-details__key {
     display: none;
   }
+
+  .rw-plot-tab {
+    padding: 0 9px;
+  }
 }
 
 /* Under this the toolbar no longer fits beside the title, nor the columns in the width. */
 @container rw-results (max-width: 640px) {
+  .rw-plot-tab {
+    padding: 0 6px;
+  }
+
   .rw-results__head {
     flex-wrap: wrap;
     row-gap: 8px;

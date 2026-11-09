@@ -155,9 +155,9 @@ export function ProjectSurface({ client, projectId, initialPage, runSource, http
           : p === "results"
             ? results
             : p === "liquid"
-              ? { nav: liquid.nav, agentExtra: liquid.agentExtra }
+              ? { nav: liquid.nav, navAdd: liquid.navAdd, agentExtra: liquid.agentExtra }
               : p === "propulsion-sim"
-                ? { nav: propsim.nav }
+                ? { nav: propsim.nav, navAdd: propsim.navAdd }
                 : null;
   const renderPage = (p: PageId) =>
     p === "assembly"

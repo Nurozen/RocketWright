@@ -32,6 +32,7 @@ import {
   sortRows,
 } from "./model.ts";
 import { followRerun, rowKey } from "../../state/selectors.ts";
+import { revealTab } from "./model.ts";
 import { ResultsPage } from "./ResultsPage.tsx";
 import { RunSnapshots } from "./RunSnapshots.tsx";
 import { RunTable } from "./RunTable.tsx";
@@ -92,6 +93,18 @@ function withRuns(s: AppState, opts: { overlay?: string[]; refs?: string[]; snap
 }
 
 const state = (opts?: Parameters<typeof withRuns>[1]) => staticStore((s) => withRuns(s, opts)).getState();
+
+describe("plot tab strip (one row, scrolls)", () => {
+  it("scrolls the least needed to show the active tab", () => {
+    const strip = { scrollLeft: 0, clientWidth: 300 };
+    revealTab(strip, { offsetLeft: 400, offsetWidth: 80 });
+    expect(strip.scrollLeft).toBe(180);
+    revealTab(strip, { offsetLeft: 200, offsetWidth: 80 });
+    expect(strip.scrollLeft).toBe(180);
+    revealTab(strip, { offsetLeft: 50, offsetWidth: 80 });
+    expect(strip.scrollLeft).toBe(50);
+  });
+});
 
 describe("the plot's next step (R2.7)", () => {
   const prompt = (edit: (runs: Entry[]) => Entry[], noParts = false) => {
