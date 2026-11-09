@@ -11,12 +11,13 @@
  * now: no project loaded yet, no run source, a series that would not load;
  * retrying later may help). The message names the runs it knows.
  */
-import type { RwRef } from "@rw/contracts";
+import { PLOT_IDS, type PlotId, type RwRef } from "@rw/contracts";
 import { SERIES_COLORS } from "../state/types.ts";
 import type { AppStore } from "../state/store.ts";
 import { plotEventMarkers, type RunSummary } from "../plots/events.ts";
-import { isPlotTab, legendFigure, plotTab, type PlotTabId } from "../plots/quantities.ts";
+import { legendFigure, plotAxis, plotTab, plotValues, type PlotTabId } from "../plots/quantities.ts";
 import { seriesColumn } from "../plots/series.ts";
+import { unitSystemOf, type UnitSystem } from "../state/displayUnits.ts";
 import type { PlotLine } from "../plots/TimePlot.tsx";
 import type { PlotImage, PlotImageSpec, PlotLegendEntry } from "../plots/plotImage.ts";
 import { defaultOverlay, resultsRows, type ResultsRow } from "../pages/results/model.ts";
@@ -31,8 +32,8 @@ export class PlotRenderError extends Error {
   }
 }
 
-/** The Results plot overlays two runs (series A teal, B sand). */
-export const MAX_PLOT_RUNS = SERIES_COLORS.length;
+/** The agent's limit, not the Results page's (D20): a `plot_render` overlays two runs (A teal, B sand), whatever the page shows. */
+export const MAX_PLOT_RUNS = 2;
 export const DEFAULT_PLOT_SIZE = { width: 1200, height: 800 } as const;
 /** How long a run the agent just simulated may take to reach the window's run table. */
 export const RUN_WAIT_MS = 5_000;
@@ -60,7 +61,9 @@ export interface PlottedRun {
   name: string;
 }
 
-export type PlotRenderResult = PlotImage & { plot: PlotTabId; runs: PlottedRun[] };
+export type PlotRenderResult = PlotImage & { plot: PlotId; runs: PlottedRun[] };
+
+const isPlotId = (v: unknown): v is PlotId => (PLOT_IDS as readonly unknown[]).includes(v);
 
 const runLabel = (r: ResultsRow): string => `${r.sim}/${r.entry.run_id ?? "(not run)"}`;
 
@@ -100,11 +103,11 @@ function size(v: unknown, name: string, fallback: number): number {
 }
 
 /** Checks the call's shape (before any waiting): the plot id, the run refs, the size. */
-export function plotArgs(a: PlotRenderArgs): { plot: PlotTabId; refs: string[]; width: number; height: number } {
-  if (!isPlotTab(a.plot)) throw new PlotRenderError("invalid_args", `plot: expected altitude, velocity, acceleration, or stability (got ${JSON.stringify(a.plot ?? null)})`);
+export function plotArgs(a: PlotRenderArgs): { plot: PlotId; refs: string[]; width: number; height: number } {
+  if (!isPlotId(a.plot)) throw new PlotRenderError("invalid_args", `plot: expected altitude, velocity, acceleration, or stability (got ${JSON.stringify(a.plot ?? null)})`);
   const refs = a.runs === undefined ? [] : a.runs;
   if (!Array.isArray(refs) || !refs.every((r) => typeof r === "string" && r.trim() !== "")) throw new PlotRenderError("invalid_args", "runs: expected run ids or rw:run/<id> refs");
-  if (refs.length > MAX_PLOT_RUNS) throw new PlotRenderError("invalid_args", `runs: at most ${MAX_PLOT_RUNS} runs per plot (the Results plot overlays two); call plot_render again for the others`);
+  if (refs.length > MAX_PLOT_RUNS) throw new PlotRenderError("invalid_args", `runs: at most ${MAX_PLOT_RUNS} runs per plot; call plot_render again for the others`);
   return { plot: a.plot, refs: [...new Set(refs as string[])], width: size(a.width, "width", DEFAULT_PLOT_SIZE.width), height: size(a.height, "height", DEFAULT_PLOT_SIZE.height) };
 }
 
@@ -142,7 +145,7 @@ export async function resolvePlotRuns(store: AppStore, refs: readonly string[], 
 }
 
 /** Builds the plot exactly as the Results page would show these runs (lines, legend, event lines of the first run). */
-export async function plotSpec(projectId: string, rows: readonly ResultsRow[], plot: PlotTabId, source: RunDataSource, size: { width: number; height: number }): Promise<PlotImageSpec> {
+export async function plotSpec(projectId: string, rows: readonly ResultsRow[], plot: PlotTabId, source: RunDataSource, size: { width: number; height: number }, system: UnitSystem = "metric"): Promise<PlotImageSpec> {
   const tab = plotTab(plot);
   const runs = rows.map((r, i) => {
     if (r.entry.run_id == null) throw new PlotRenderError("invalid_args", `run ${r.sim} (${r.name}) has not been run yet (${r.status.kind}); run rw_simulate first`);
@@ -158,7 +161,7 @@ export async function plotSpec(projectId: string, rows: readonly ResultsRow[], p
   );
   const lines: PlotLine[] = runs.map(({ row, runId, color }, i) => {
     const t = seriesColumn(data[i]!.series, "t");
-    const y = seriesColumn(data[i]!.series, tab.column);
+    const y = plotValues(data[i]!.series, tab, system);
     if (t === null || y === null) throw new PlotRenderError("invalid_args", `run ${row.sim}/${runId} (${row.name}) has no ${tab.column} series (an engine run plots thrust on its own card, not here)`);
     return { id: row.key, label: row.name, color, t, y };
   });
@@ -168,11 +171,11 @@ export async function plotSpec(projectId: string, rows: readonly ResultsRow[], p
     lines[0]?.id,
   );
   const legend: PlotLegendEntry[] = runs.map(({ row, color }) => {
-    const fig = legendFigure(plot, row.metrics ?? ((row.entry.summary ?? null) as RunSummary | null));
+    const fig = legendFigure(plot, row.metrics ?? ((row.entry.summary ?? null) as RunSummary | null), system);
     return { label: fig ? `${row.name} (${fig})` : row.name, color };
   });
   if (eventRun !== null && markers.length > 0) legend.push({ label: `Events: ${eventRun.name}`, color: eventRun.color, events: true });
-  return { title: tab.label, yLabel: tab.axis, xLabel: "Time (s)", lines, events: markers, legend, width: size.width, height: size.height };
+  return { title: tab.label, yLabel: plotAxis(tab, system), xLabel: "Time (s)", lines, events: markers, legend, width: size.width, height: size.height };
 }
 
 const sleepMs = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
@@ -184,7 +187,7 @@ export async function renderPlot(store: AppStore, args: PlotRenderArgs, deps: Pl
   const rows = await resolvePlotRuns(store, a.refs, { waitMs: deps.runWaitMs ?? RUN_WAIT_MS, sleep: deps.sleep ?? sleepMs });
   const projectId = store.getState().project.projectId;
   if (projectId === null) throw new PlotRenderError("failed", "no project is open in this window");
-  const spec = await plotSpec(projectId, rows, a.plot, deps.runSource, a);
+  const spec = await plotSpec(projectId, rows, a.plot, deps.runSource, a, unitSystemOf(store.getState()));
   const image = await deps.render(spec).catch((e: unknown) => {
     throw new PlotRenderError("failed", `the window could not draw the plot: ${e instanceof Error ? e.message : String(e)}`);
   });

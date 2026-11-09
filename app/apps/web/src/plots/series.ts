@@ -67,6 +67,18 @@ export function seriesColumn(series: Series, name: string): number[] | null {
   return series.rows.map((r) => r[i] ?? Number.NaN);
 }
 
+/**
+ * A column to plot. `lateral` (D21) is display math over two engine columns,
+ * the distance from the pad, `hypot(x, y)`; it is not a run column, so it never
+ * reaches a run file or the CSV export.
+ */
+export function plotColumn(series: Series, name: string): number[] | null {
+  if (name !== "lateral") return seriesColumn(series, name);
+  const x = seriesColumn(series, "x");
+  const y = seriesColumn(series, "y");
+  return x === null || y === null ? null : x.map((v, i) => Math.hypot(v, y[i]!));
+}
+
 /** Serializes a series back to CSV (inverse of `parseSeriesCsv` for finite values). */
 export function seriesToCsv(series: Series): string {
   const head = series.columns.map((c) => c.name).join(",");

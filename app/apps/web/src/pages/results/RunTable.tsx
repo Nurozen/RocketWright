@@ -1,7 +1,9 @@
 /**
- * Run table (C §4.4): checkbox (plot overlay, at most two: A teal, B sand),
- * colour dot, Run, Status, Apogee (m), Max speed (m/s), Flight time (s), and a
- * row menu. Sortable columns; status is computed (I7). Outdated rows show
+ * Run table (C §4.4): checkbox (plot overlay, at most six), colour dot, Run,
+ * Status, Apogee, Max speed, Flight time, and a row menu. The numeric headers
+ * name the unit their cells are in, `Apogee (m)` or `Apogee (ft)`: B1's scoring
+ * reads each cell by the unit its header shows, so the two must always agree.
+ * Sortable columns; status is computed (I7). Outdated rows show
  * dashes: only a Complete run's numbers are current. A sim that has never run
  * reads Not run, offers Run in place of its numbers, and opens its conditions
  * from the row (R2.7). A flying row offers Cancel; a cancelled one offers Run
@@ -10,6 +12,7 @@
  */
 import { useState } from "react";
 import { useAppState, type AppStore } from "../../state/store.ts";
+import { flightUnit, toFlight, unitSystemOf, type UnitSystem } from "../../state/displayUnits.ts";
 import { fmtNum } from "../../plots/quantities.ts";
 import { nextSort, rowRef, type ResultsRow, type SortKey } from "./model.ts";
 import { MenuButton } from "../../ui/Menu.tsx";
@@ -19,13 +22,16 @@ import { ResultsIcon } from "./ResultsIcon.tsx";
 import { resultsUiStore, useResultsUi } from "./resultsUi.ts";
 import { duplicateSimulation } from "./SimConditionsSheet.tsx";
 
-const COLUMNS: { key: SortKey; label: string; numeric?: boolean }[] = [
-  { key: "name", label: "Run" },
-  { key: "status", label: "Status" },
-  { key: "apogee", label: "Apogee (m)", numeric: true },
-  { key: "maxSpeed", label: "Max speed (m/s)", numeric: true },
-  { key: "flightTime", label: "Flight time (s)", numeric: true },
-];
+/** Headers in the system's units. Sort keys stay on SI summary values, so a sort never changes with the display. */
+export function runColumns(system: UnitSystem): { key: SortKey; label: string; numeric?: boolean }[] {
+  return [
+    { key: "name", label: "Run" },
+    { key: "status", label: "Status" },
+    { key: "apogee", label: `Apogee (${flightUnit("length", system).unit})`, numeric: true },
+    { key: "maxSpeed", label: `Max speed (${flightUnit("velocity", system).unit})`, numeric: true },
+    { key: "flightTime", label: "Flight time (s)", numeric: true },
+  ];
+}
 
 export const canOverlay = (r: ResultsRow): boolean => r.entry.run_id != null && r.status.kind !== "running" && r.status.kind !== "queued" && r.status.kind !== "not_run";
 
@@ -38,6 +44,7 @@ const jobIdOf = (r: ResultsRow): string | null => r.job?.job_id ?? r.entry.job_i
 export function RunTable({ app }: { app: AppStore }) {
   const rows = useResultsRows(app);
   const sort = useResultsUi(app, (u) => u.sort);
+  const system = useAppState(app, unitSystemOf);
   const ui = resultsUiStore(app);
   const st = app.getState();
   const inModel = useAppState(app, (s) => s.project.snapshot?.evaluated?.sims ?? null);
@@ -58,7 +65,7 @@ export function RunTable({ app }: { app: AppStore }) {
             <th className="rw-runtable__dot" scope="col">
               <span className="rw-sr">Colour</span>
             </th>
-            {COLUMNS.map((c) => {
+            {runColumns(system).map((c) => {
               const active = sort?.key === c.key;
               return (
                 <th key={c.key} scope="col" aria-sort={active ? (sort.dir === 1 ? "ascending" : "descending") : "none"} data-numeric={c.numeric ? "true" : undefined}>
@@ -149,10 +156,10 @@ export function RunTable({ app }: { app: AppStore }) {
               ) : (
                 <>
                   <td data-numeric="true" data-testid="runs.apogee">
-                    {fmtNum(r.metrics?.apogee_m)}
+                    {fmtNum(toFlight(r.metrics?.apogee_m, "length", system))}
                   </td>
                   <td data-numeric="true" data-testid="runs.max-speed">
-                    {fmtNum(r.metrics?.max_velocity_ms)}
+                    {fmtNum(toFlight(r.metrics?.max_velocity_ms, "velocity", system))}
                   </td>
                   <td data-numeric="true" data-testid="runs.flight-time">
                     {fmtNum(r.metrics?.flight_time_s)}

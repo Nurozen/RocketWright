@@ -172,11 +172,23 @@ export interface LecturnThreads {
   threadStart: ThreadStart;
 }
 
-/** Series colours for the overlay: A teal, B sand (C §2). */
-export const SERIES_COLORS = ["#61b5ad", "#f1ae6e"] as const;
+/**
+ * Series colours for the Results overlay, in slot order: A teal, B sand (C §2),
+ * then four more for R3.5's six runs. Every pair stays at least 8.5 OKLab dE
+ * apart under protan, deutan and tritan simulation, each new colour at 3:1 or
+ * better on the page background; the plot's legend names each run, so identity
+ * never rests on colour alone.
+ * Mirrors `--rw-series-*` in tokens.css.
+ */
+export const SERIES_COLORS = ["#61b5ad", "#f1ae6e", "#3a6bb8", "#9f75e1", "#b83d6d", "#38a017"] as const;
+
+/** The overlay's slots, one per colour, in order (`data-series` on rows, dots and legend swatches). */
+export const SERIES_SLOTS = ["a", "b", "c", "d", "e", "f"] as const;
+
+export type SeriesSlot = (typeof SERIES_SLOTS)[number];
 
 export interface RunsSlice {
-  /** Sims overlaid on the plots, at most two (series A, B). */
+  /** Row keys overlaid on the plots, at most six (`SERIES_SLOTS`), oldest pick first. */
   overlay: string[];
   /** Last `sim.run` answer per sim. */
   started: Record<string, SimulateOut>;

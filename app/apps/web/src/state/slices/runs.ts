@@ -16,7 +16,7 @@ export interface RunRow {
   entry: RunListEntry;
   job: JobInfo | null;
   status: StatusView;
-  /** Series colour when overlaid (A teal, B sand). */
+  /** Series colour when overlaid (`SERIES_COLORS`, by overlay slot). */
   color: string | null;
 }
 
@@ -65,7 +65,7 @@ export function createRunsSlice(ctx: SliceCtx): RunsSlice {
     toggleOverlay(key) {
       ctx.patch("runs", (r) => {
         if (r.overlay.includes(key)) return { overlay: r.overlay.filter((x) => x !== key) };
-        // At most two series: the oldest pick drops out.
+        // At most six series: the oldest pick drops out.
         return { overlay: [...r.overlay, key].slice(-SERIES_COLORS.length) };
       });
     },
@@ -82,7 +82,9 @@ export function rowKey(entry: { sim: string; run_id?: string | null; superseded_
 
 /**
  * After a rerun: when an overlaid sim's latest run replaced an earlier one
- * (a new `superseded_by` entry), plot the two as before/after. Returns the new
+ * (a new `superseded_by` entry), plot the two as before/after beside whatever
+ * else is plotted. The earlier run joins at the end so no plotted run changes
+ * colour; at the six-run cap the oldest other pick makes room. Returns the new
  * overlay, or null when nothing changed.
  */
 export function followRerun(
@@ -95,7 +97,9 @@ export function followRerun(
     if (e.superseded_by == null) continue;
     const key = rowKey(e);
     if (before.has(key) || overlay.includes(key) || !overlay.includes(e.sim)) continue;
-    return [e.sim, key];
+    const out = [...overlay, key];
+    while (out.length > SERIES_COLORS.length) out.splice(out.findIndex((k) => k !== e.sim && k !== key), 1);
+    return out;
   }
   return null;
 }

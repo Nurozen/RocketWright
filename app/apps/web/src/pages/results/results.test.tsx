@@ -20,6 +20,7 @@ import {
   environmentLabel,
   environmentShort,
   fmtWhen,
+  legendRows,
   modelRevision,
   nextSort,
   outdatedBanner,
@@ -33,6 +34,7 @@ import {
 import { followRerun, rowKey } from "../../state/selectors.ts";
 import { ResultsPage } from "./ResultsPage.tsx";
 import { RunSnapshots } from "./RunSnapshots.tsx";
+import { RunTable } from "./RunTable.tsx";
 import { RunsRail } from "./RunsRail.tsx";
 import { cachedSource, eventsUrl, httpRunSource, parseRunEvents, seriesUrl } from "./source.ts";
 import {
@@ -109,7 +111,7 @@ describe("the plot's next step (R2.7)", () => {
     expect(prompt(neverRun)).toMatchObject({ action: "run", sim: "baseline", name: "Baseline" });
   });
   it("asks to tick runs once something has flown", () => {
-    expect(prompt((r) => r)).toEqual({ action: null, text: "Tick up to two runs to plot them." });
+    expect(prompt((r) => r)).toEqual({ action: null, text: "Tick up to six runs to plot them." });
   });
 });
 
@@ -156,7 +158,10 @@ describe("results view model", () => {
   it("plots before/after when an overlaid sim's rerun supersedes its run", () => {
     const prev = [{ sim: "baseline", run_id: "aaa" }, { sim: "higher_altitude", run_id: "bbb" }];
     const next = [{ sim: "baseline", run_id: "ccc" }, { sim: "baseline", run_id: "aaa", superseded_by: "ccc" }, { sim: "higher_altitude", run_id: "bbb" }];
-    expect(followRerun(prev, next, ["baseline", "higher_altitude"])).toEqual(["baseline", "baseline@aaa"]);
+    // The earlier run joins the plot; what was plotted stays, in its own colour.
+    expect(followRerun(prev, next, ["baseline", "higher_altitude"])).toEqual(["baseline", "higher_altitude", "baseline@aaa"]);
+    // At the six-run cap the oldest other pick makes room, never the pair.
+    expect(followRerun(prev, next, ["x1", "baseline", "x2", "x3", "x4", "x5"])).toEqual(["baseline", "x2", "x3", "x4", "x5", "baseline@aaa"]);
     // Not overlaid, already known, or already plotted: no change.
     expect(followRerun(prev, next, ["higher_altitude"])).toBeNull();
     expect(followRerun(next, next, ["baseline", "higher_altitude"])).toBeNull();
@@ -205,6 +210,12 @@ describe("results view model", () => {
     expect(environmentLabel(c)).toBe("calm (0 m/s, 15 °C)");
     expect(environmentLabel({ ...c, wind_speed_ms: 4.2, wind_direction_deg: 315, base_temperature_k: 285.15 })).toBe("wind 4.2 m/s from NW (12 °C)");
     expect(environmentLabel(null)).toBe("unknown");
+    expect(environmentLabel(c, "imperial")).toBe("calm (0 mph, 59 °F)");
+    expect(environmentShort({ ...c, wind_speed_ms: 4.2, wind_direction_deg: 315, base_temperature_k: 285.15 }, "imperial")).toBe("wind 9.4 mph NW, 54 °F");
+    expect(environmentShort({ ...c, wind_speed_ms: 4.4704, wind_direction_deg: 270 }, "imperial")).toBe("wind 10 mph W, 59 °F");
+    const us = assumptionsOf(c, "engineering", "imperial");
+    expect(us).toContain("Atmosphere: US Standard Atmosphere 1976, 59 °F and 29.92 inHg at the site");
+    expect(us).toContain("Launch rail 4.92 ft at 0.0° from vertical");
     // The footer's compact form fits beside the warnings at 1536 px without an ellipsis.
     expect(environmentShort(c)).toBe("calm, 15 °C");
     expect(environmentShort({ ...c, wind_speed_ms: 3, wind_direction_deg: 270 })).toBe("wind 3 m/s W, 15 °C");
@@ -227,6 +238,29 @@ describe("results view model", () => {
     expect(d).toMatchObject({ modelRev: "Model Rev 07", environment: "calm, 15 °C", environmentFull: "calm (0 m/s, 15 °C)", warnings: 1 });
     expect(runDetails(s, row, []).warnings).toBe(0);
     expect(runDetails(s, null).modelRev).toBe("Model rev unknown");
+    const inches = staticStore((x) => ({ ...withRuns(x), ui: { ...x.ui, units: "in" } })).getState();
+    expect(runDetails(inches, primaryRow(resultsRows(inches)))).toMatchObject({ environment: "calm, 59 °F", environmentFull: "calm (0 mph, 59 °F)" });
+  });
+
+  it("gives each of six plotted runs its own slot, and legends a run its rerun replaced", () => {
+    const snap = snapshot();
+    const base = snap.runs.runs.find((r) => r.sim === "baseline")!;
+    const extras = ["e1", "e2", "e3", "e4"].map((sim) => ({ ...structuredClone(base), sim, sim_name: sim, config: sim, run_id: `run-${sim}` }));
+    const before = { ...structuredClone(base), run_id: "0ldba5e11ne0", superseded_by: base.run_id! };
+    snap.runs.runs = [...snap.runs.runs, ...extras, before];
+    const overlay = ["baseline", "higher_altitude", "e1", "e2", "e3", "e4"];
+    const rows = resultsRows(state({ snap, overlay }));
+    expect(overlay.map((k) => rows.find((r) => r.key === k)!.series)).toEqual(["a", "b", "c", "d", "e", "f"]);
+    expect(new Set(rows.flatMap((r) => (r.color === null ? [] : [r.color]))).size).toBe(6);
+    expect(resultsRows(state({ snap, overlay: [...overlay.slice(1), "baseline@0ldba5e11ne0"] })).find((r) => r.key === "baseline@0ldba5e11ne0")!.series).toBe("f");
+    // The first load still starts from two: the cap is what ticking can reach.
+    expect(defaultOverlay(rows)).toEqual(["baseline", "higher_altitude"]);
+    // A superseded row shares its sim with the latest run; its line is found by row key.
+    const old = rows.find((r) => r.key === "baseline@0ldba5e11ne0")!;
+    const latest = rows.find((r) => r.key === "baseline")!;
+    const entries = legendRows([latest, old], [{ id: "baseline" }, { id: "baseline@0ldba5e11ne0" }]);
+    expect(entries.map((e) => [e.row.key, e.line.id])).toEqual([["baseline", "baseline"], ["baseline@0ldba5e11ne0", "baseline@0ldba5e11ne0"]]);
+    expect(legendRows([old], [{ id: "baseline" }])).toEqual([]);
   });
 
   it("lists snapshot cards for the plotted runs, A then B", () => {
@@ -244,6 +278,48 @@ describe("results view model", () => {
 
 const CSV_A = "t,altitude,x,y\n0,0,0,0\n0.5,10,0.1,0\n1,15,0.2,0.1\n";
 const CSV_B = "t,altitude,speed\n0,0,0\n0.5,12,20\n";
+
+describe("run table units", () => {
+  const FOOT = 0.3048;
+  const SI = { apogee_m: 347.575, max_velocity_ms: 105.2, flight_time_s: 91.4 };
+
+  /** Headers and baseline-row cells as the table renders them, through the same markup B1 reads. */
+  function table(edit: (s: AppState) => AppState = (s) => s, manifest?: string) {
+    const snap = snapshot();
+    const base = snap.runs.runs.find((r) => r.sim === "baseline")!;
+    base.summary = { ...base.summary!, ...SI };
+    if (manifest !== undefined) snap.files.files["rocketwright.toml"] = manifest;
+    const html = renderToStaticMarkup(<RunTable app={staticStore((s) => edit(withRuns(s, { snap, overlay: [] })))} />);
+    const header = (key: string) => new RegExp(`data-key="${key}"[^>]*>([^<]*)`).exec(html)![1]!;
+    const row = html.slice(html.indexOf('data-sim="baseline"'));
+    const cell = (id: string) => new RegExp(`data-testid="runs\\.${id}"[^>]*>([^<]*)`).exec(row)![1]!;
+    return {
+      apogee: [header("apogee"), cell("apogee")],
+      speed: [header("maxSpeed"), cell("max-speed")],
+      time: [header("flightTime"), cell("flight-time")],
+    };
+  }
+  const shownNumber = (cell: string) => Number(cell.replaceAll(",", ""));
+
+  it("shows metric by default, in the headers B1 reads", () => {
+    expect(table()).toEqual({ apogee: ["Apogee (m)", "348"], speed: ["Max speed (m/s)", "105"], time: ["Flight time (s)", "91"] });
+  });
+
+  it("states imperial headers and values for known SI inputs", () => {
+    const shown = table((s) => ({ ...s, ui: { ...s.ui, units: "in" } }));
+    expect(shown).toEqual({ apogee: ["Apogee (ft)", "1,140"], speed: ["Max speed (ft/s)", "345"], time: ["Flight time (s)", "91"] });
+    // The convert-by-header reading (D29): the number times its header's unit is the SI value, within the rounding shown.
+    expect(Math.abs(shownNumber(shown.apogee[1]!) * FOOT - SI.apogee_m)).toBeLessThanOrEqual(0.5 * FOOT);
+    expect(Math.abs(shownNumber(shown.speed[1]!) * FOOT - SI.max_velocity_ms)).toBeLessThanOrEqual(0.5 * FOOT);
+    expect(Math.abs(shownNumber(shown.time[1]!) - SI.flight_time_s)).toBeLessThanOrEqual(0.5);
+  });
+
+  it("reads imperial from the project's own display units", () => {
+    expect(table((s) => s, 'format = 1\n[display_units]\nlength = "in"\n').apogee).toEqual(["Apogee (ft)", "1,140"]);
+    expect(table((s) => s, 'format = 1\n[display_units]\nlength = "mm"\naltitude = "ft"\n').speed[0]).toBe("Max speed (ft/s)");
+    expect(table((s) => ({ ...s, ui: { ...s.ui, units: "in" } }), '[display_units]\naltitude = "m"\n').apogee).toEqual(["Apogee (m)", "348"]);
+  });
+});
 
 describe("CSV export", () => {
   it("writes the runs in long format over the union of columns", () => {
@@ -457,7 +533,7 @@ describe("static markup", () => {
     for (const region of ["run-table", "plot", "trajectory-inset", "run-details"]) expect(page).toContain(`data-rw-region="${region}"`);
     expect(testIds(page, "page.title")).toEqual(["Flight results"]);
     for (const id of ["results.run-selected", "results.plot-menu", "results.export-csv", "runs.table-header"]) expect(testIds(page, id), id).toHaveLength(1);
-    expect(testIds(page, "plot.tab")).toEqual(["Altitude", "Velocity", "Acceleration", "Stability"]);
+    expect(testIds(page, "plot.tab")).toEqual(["Altitude", "Velocity", "Acceleration", "Stability", "Mach", "Drag coefficient", "Mass", "Thrust", "Lateral distance"]);
     expect(page).toMatch(/data-testid="plot\.tab" data-tab="altitude" aria-selected="true"/);
     // One row per flight sim; never-run Recovery test reads Not run and offers Run (R2.7).
     expect(testIds(page, "runs.table-row")).toHaveLength(4);

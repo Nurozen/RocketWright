@@ -130,12 +130,39 @@
   background: var(--rw-text-secondary);
 }
 
-.rw-dot[data-series="a"] {
-  background: var(--rw-series-a);
+/* One overlay slot's colour and row tint: dots, swatches, table rows and the rail read these. */
+[data-series="a"] {
+  --rw-run-series: var(--rw-series-a);
+  --rw-run-series-row: var(--rw-selection-row);
 }
 
-.rw-dot[data-series="b"] {
-  background: var(--rw-series-b);
+[data-series="b"] {
+  --rw-run-series: var(--rw-series-b);
+  --rw-run-series-row: var(--rw-series-b-row);
+}
+
+[data-series="c"] {
+  --rw-run-series: var(--rw-series-c);
+  --rw-run-series-row: var(--rw-series-c-row);
+}
+
+[data-series="d"] {
+  --rw-run-series: var(--rw-series-d);
+  --rw-run-series-row: var(--rw-series-d-row);
+}
+
+[data-series="e"] {
+  --rw-run-series: var(--rw-series-e);
+  --rw-run-series-row: var(--rw-series-e-row);
+}
+
+[data-series="f"] {
+  --rw-run-series: var(--rw-series-f);
+  --rw-run-series-row: var(--rw-series-f-row);
+}
+
+.rw-dot[data-series]:not([data-series="none"]) {
+  background: var(--rw-run-series);
 }
 
 /* ---- run table ----------------------------------------------------------- */
@@ -247,38 +274,21 @@
   gap: 10px;
 }
 
-.rw-runtable tr[data-series="a"] {
-  background: var(--rw-selection-row);
+.rw-runtable tr[data-series] {
+  background: var(--rw-run-series-row);
 }
 
-.rw-runtable tr[data-series="b"] {
-  background: var(--rw-series-b-row);
+.rw-runtable tr[data-series] td {
+  border-top-color: var(--rw-run-series);
+  border-bottom-color: var(--rw-run-series);
 }
 
-.rw-runtable tr[data-series="a"] td {
-  border-top-color: var(--rw-series-a);
-  border-bottom-color: var(--rw-series-a);
+.rw-runtable tr[data-series] td:first-child {
+  box-shadow: inset 1px 0 0 var(--rw-run-series);
 }
 
-.rw-runtable tr[data-series="b"] td {
-  border-top-color: var(--rw-series-b);
-  border-bottom-color: var(--rw-series-b);
-}
-
-.rw-runtable tr[data-series="a"] td:first-child {
-  box-shadow: inset 1px 0 0 var(--rw-series-a);
-}
-
-.rw-runtable tr[data-series="a"] td:last-child {
-  box-shadow: inset -1px 0 0 var(--rw-series-a);
-}
-
-.rw-runtable tr[data-series="b"] td:first-child {
-  box-shadow: inset 1px 0 0 var(--rw-series-b);
-}
-
-.rw-runtable tr[data-series="b"] td:last-child {
-  box-shadow: inset -1px 0 0 var(--rw-series-b);
+.rw-runtable tr[data-series] td:last-child {
+  box-shadow: inset -1px 0 0 var(--rw-run-series);
 }
 
 .rw-runtable tr[data-status="not_run"] td:not(.rw-runtable__menu),
@@ -334,15 +344,18 @@
   min-width: 0;
 }
 
+/* Nine tabs wrap to a second row in a narrow window rather than hide behind a scroll. */
 .rw-plot-tabs {
   display: flex;
   flex: none;
-  height: 32px;
+  flex-wrap: wrap;
+  min-height: 32px;
   padding-left: 2px;
   border-bottom: var(--rw-hairline) solid var(--rw-line);
 }
 
 .rw-plot-tab {
+  height: 32px;
   padding: 0 14px;
   font-size: var(--rw-font-size-body);
 }
@@ -411,6 +424,12 @@
   font-size: var(--rw-font-size-secondary);
 }
 
+.rw-legend[data-columns="2"] {
+  display: grid;
+  grid-template-columns: repeat(2, auto);
+  column-gap: 18px;
+}
+
 .rw-legend li {
   display: flex;
   align-items: center;
@@ -424,8 +443,8 @@
   background: var(--rw-series-a);
 }
 
-.rw-legend__swatch[data-series="b"] {
-  background: var(--rw-series-b);
+.rw-legend__swatch[data-series] {
+  background: var(--rw-run-series);
 }
 
 /* The event lines' key: a dashed rule in the run's colour (set inline), as the lines are drawn. */
@@ -679,9 +698,9 @@
   color: var(--rw-success);
 }
 
-.rw-run-row[data-series="b"] .rw-status-glyph[data-tone="teal"],
-.rw-run-row__status[data-tone="teal"][data-series="b"] {
-  color: var(--rw-series-b);
+.rw-run-row[data-series]:not([data-series="a"]) .rw-status-glyph[data-tone="teal"],
+.rw-run-row__status[data-tone="teal"][data-series]:not([data-series="a"]) {
+  color: var(--rw-run-series);
 }
 
 .rw-runs-rail__search {
@@ -942,12 +961,8 @@
     background: var(--rw-bg-canvas);
   }
 
-  .rw-runtable tr[data-series="a"] td.rw-runtable__menu {
-    background: linear-gradient(var(--rw-selection-row), var(--rw-selection-row)), var(--rw-bg-canvas);
-  }
-
-  .rw-runtable tr[data-series="b"] td.rw-runtable__menu {
-    background: linear-gradient(var(--rw-series-b-row), var(--rw-series-b-row)), var(--rw-bg-canvas);
+  .rw-runtable tr[data-series] td.rw-runtable__menu {
+    background: linear-gradient(var(--rw-run-series-row), var(--rw-run-series-row)), var(--rw-bg-canvas);
   }
 
   .rw-assumptions {

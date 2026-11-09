@@ -2,8 +2,8 @@
 import { describe, expect, it } from "vitest";
 import { drawEventLines, laneHeight, laneOf, mergeShared, type Ctx2D, type DrawnEvent } from "./eventLines.ts";
 import { eventMarkers, plotEventMarkers, type EventRun, type FlightEvent, type RunSummary } from "./events.ts";
-import { fmtNum, isPlotTab, legendFigure, PLOT_TABS } from "./quantities.ts";
-import { parseSeriesCsv, seriesColumn, seriesToCsv } from "./series.ts";
+import { fmtFlight, fmtNum, isPlotTab, legendFigure, PLOT_TABS, plotAxis, plotValues } from "./quantities.ts";
+import { parseSeriesCsv, plotColumn, seriesColumn, seriesToCsv } from "./series.ts";
 import { alignLines, yFloor } from "./TimePlot.tsx";
 
 const SUMMARY: RunSummary = {
@@ -405,10 +405,26 @@ describe("plot helpers", () => {
     expect(yFloor(-40, 120)).toBe(-40);
   });
 
-  it("has the four tabs in order", () => {
-    expect(PLOT_TABS.map((t) => t.label)).toEqual(["Altitude", "Velocity", "Acceleration", "Stability"]);
-    expect(isPlotTab("velocity")).toBe(true);
-    expect(isPlotTab("thrust")).toBe(false);
+  it("has the nine tabs in order, each with its axis", () => {
+    expect(PLOT_TABS.map((t) => t.label)).toEqual(["Altitude", "Velocity", "Acceleration", "Stability", "Mach", "Drag coefficient", "Mass", "Thrust", "Lateral distance"]);
+    expect(PLOT_TABS.map((t) => plotAxis(t, "metric"))).toEqual(["Altitude (m)", "Velocity (m/s)", "Acceleration (m/s²)", "Stability (cal)", "Mach", "Drag coefficient", "Mass (kg)", "Thrust (N)", "Lateral distance (m)"]);
+    expect(PLOT_TABS.map((t) => plotAxis(t, "imperial"))).toEqual(["Altitude (ft)", "Velocity (ft/s)", "Acceleration (ft/s²)", "Stability (cal)", "Mach", "Drag coefficient", "Mass (lb)", "Thrust (lbf)", "Lateral distance (ft)"]);
+    expect(isPlotTab("thrust")).toBe(true);
+    expect(isPlotTab("spin")).toBe(false);
+  });
+
+  it("computes lateral distance from the engine's x and y and scales plotted values for display only", () => {
+    const series = parseSeriesCsv("t,x,y,thrust,mach\n0,3,4,44.48221615,0.5\n1,6,8,0,0.25\n");
+    expect(plotColumn(series, "lateral")).toEqual([5, 10]);
+    expect(seriesColumn(series, "lateral")).toBeNull();
+    expect(plotColumn(parseSeriesCsv("t,x\n0,3\n"), "lateral")).toBeNull();
+    const tab = (id: string) => PLOT_TABS.find((t) => t.id === id)!;
+    expect(plotValues(series, tab("lateral"), "metric")).toEqual([5, 10]);
+    expect(plotValues(series, tab("lateral"), "imperial")![0]).toBeCloseTo(16.4042, 3);
+    expect(plotValues(series, tab("thrust"), "imperial")![0]).toBeCloseTo(10, 6);
+    expect(plotValues(series, tab("mach"), "imperial")).toEqual([0.5, 0.25]);
+    // The series itself stays SI: nothing scales in place.
+    expect(seriesColumn(series, "thrust")![0]).toBeCloseTo(44.48221615);
   });
 
   it("formats legend figures from the summary", () => {
@@ -416,6 +432,12 @@ describe("plot helpers", () => {
     expect(legendFigure("velocity", SUMMARY)).toBe("max 119 m/s");
     expect(legendFigure("stability", SUMMARY)).toBe("min 1.62 cal");
     expect(legendFigure("altitude", null)).toBeNull();
+    expect(legendFigure("altitude", SUMMARY, "imperial")).toBe("2,009 ft");
+    expect(legendFigure("velocity", SUMMARY, "imperial")).toBe(`max ${fmtFlight(SUMMARY.max_velocity_ms, "velocity", "imperial")}`);
+    expect(legendFigure("stability", SUMMARY, "imperial")).toBe("min 1.62 cal");
+    expect(legendFigure("mach", SUMMARY)).toBe(`max ${fmtNum(SUMMARY.max_mach, 2)}`);
+    expect(legendFigure("lateral", SUMMARY, "imperial")).toMatch(/^drift [0-9,]+ ft$/);
+    expect(legendFigure("thrust", SUMMARY)).toBeNull();
     expect(fmtNum(1234.4)).toBe("1,234");
     expect(fmtNum(null)).toBe("—");
   });
