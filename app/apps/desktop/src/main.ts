@@ -2,12 +2,15 @@
  * Electron 44 main process (M1.52, R6.1). Serves the web bundle over
  * http://127.0.0.1 (never file://, which breaks the WASM fetch) and opens it.
  *
- * - `--project <dir>` (repeatable) or `--dev-project` (`make dev`: a copy of
- *   `fixtures/research-vehicle`, else an empty temp project) spawns the app
- *   server (`apps/server/src/rpc/cli.ts`, through `env -u
- *   ELECTRON_RUN_AS_NODE node`, `backend.ts`) and points the page at it: the
- *   query carries `rpc=`/`http=`, and the preload (`preload.ts`) exposes the
- *   same URLs as `window.rwDesktop` for navigations that drop the query.
+ * - An interactive run always spawns the app server (`apps/server/src/rpc/cli.ts`,
+ *   through `env -u ELECTRON_RUN_AS_NODE node`, `backend.ts`) and points the
+ *   page at it: the query carries `rpc=`/`http=`, and the preload
+ *   (`preload.ts`) exposes the same URLs as `window.rwDesktop` for navigations
+ *   that drop the query. `--project <dir>` (repeatable) or `--dev-project`
+ *   (`make dev`: a copy of `fixtures/research-vehicle`, else an empty temp
+ *   project) opens those; with neither (R0.1) it starts with no project,
+ *   reopens the last one before the window exists (`reopen.ts`), and the page
+ *   shows Welcome if nothing reopened.
  *   Main also holds its own RPC socket on the server (`mainRpc.ts`, D2): the
  *   open projects (`project.list`, then `project.opened` pushes) and, from B8,
  *   `embed.target` for the chat pane.
@@ -54,7 +57,8 @@
  *
  * Packaged (`make package`, `packaged.ts`): this file is bundled to
  * `main.mjs` in place, the server runs bundled under Electron as Node with
- * the shipped `rocketwright`, and no `--project` opens a copy of the sample.
+ * the shipped `rocketwright`, and `--dev-project` does nothing: a release
+ * build never opens a `/tmp` copy.
  */
 import { mountEmbedView, captureEmbedView, type EmbedBridge, type EmbedTarget as HelperEmbedTarget } from "@lecturn/embed/electron";
 import { embedThemeInput, PANE_MAIN_CHANNEL, type DesktopBoot, type EmbedTarget, type LecturnHostThemeJson, type LecturnStatus, type LecturnThemeJson, type PaneMainMessage } from "@rw/contracts";
@@ -69,12 +73,13 @@ import { capturePageDpr1, countForeground, debuggerSessions, emulateDpr1, instal
 import { waitGuestSized } from "./guestSize.ts";
 import { captureComposite, createPaneController, droppedCapture, GUEST_WEB_PREFERENCES, isGuestUrl, type EmbedBridgeLike, type MountArgs, type PaneController } from "./lecturn.ts";
 import { connectMainRpc, type MainRpc } from "./mainRpc.ts";
-import { buildPreload, desktopArg, documentsDirOverride, lecturnBaseDirFor, parseDesktopArgs, REPO_ROOT, resolveDevProject, startBackend, userDataOverride, waitForHttp, type Backend, type DevProject } from "./backend.ts";
+import { bootProjects, buildPreload, desktopArg, documentsDirOverride, lecturnBaseDirFor, parseDesktopArgs, REPO_ROOT, resolveDevProject, startBackend, userDataOverride, waitForHttp, type Backend, type DevProject } from "./backend.ts";
 import { registerDesktopServices } from "./nativeDialogs.ts";
 import { packagedLayout, packagedServerOptions, userArgv } from "./packaged.ts";
 import { installProtocol, linkInArgv, linkQueue, openFromLink, parseOpenUrl } from "./protocol.ts";
 import { once, shutdownOnQuit } from "./quit.ts";
 import { createRecents } from "./recents.ts";
+import { reopenLast } from "./reopen.ts";
 
 const packaged = app.isPackaged ? packagedLayout(process.resourcesPath) : null;
 const argv = userArgv(process.argv, process.defaultApp);
@@ -519,12 +524,11 @@ async function main(): Promise<void> {
     const link = cold === null ? null : parseOpenUrl(cold);
     if (link !== null) links.push(link);
   }
-  // A packaged window with no --project opens the shipped sample, as `make dev` does.
-  const sample = packaged !== null && !hidden;
-  const dev: DevProject | null = desk.projects.length === 0 && (desk.devProject || sample) ? resolveDevProject(packaged?.samplesRoot) : null;
+  // `make dev` only: a release never opens a `/tmp` copy, and ships no fixture to copy.
+  const dev: DevProject | null = desk.projects.length === 0 && desk.devProject && packaged === null ? resolveDevProject() : null;
   if (dev !== null) process.stderr.write(`dev project (${dev.source}): ${dev.dir}\n`);
-  const projects = dev !== null ? [dev.dir] : desk.projects;
-  const live = projects.length > 0;
+  const projects = bootProjects(dev !== null ? [dev.dir] : desk.projects, hidden);
+  const live = projects !== null;
   // The preload only matters with a server; the spike render path stays preload-free.
   const scratch = live ? await mkdtemp(join(tmpdir(), "rw-desktop-")) : undefined;
   const preload = scratch !== undefined ? join(scratch, "preload.cjs") : undefined;
@@ -553,7 +557,7 @@ async function main(): Promise<void> {
   const lecturnBaseDir = lecturnBaseDirFor(app.getPath("userData"));
   const documents = (): string => documentsDirOverride(app.isPackaged) ?? app.getPath("documents");
   const backend = await startBackend({
-    projects: live ? projects : null,
+    projects,
     webRoot,
     query,
     page: pagePath,
@@ -570,7 +574,14 @@ async function main(): Promise<void> {
   // D2: main's own socket on the child; B8/B10 use it for `embed.target` and per-project mounts.
   let pane: PaneController | null = null;
   const mainRpc = await startMainRpc(backend, hidden, (status) => pane?.onStatus(status));
-  const boot: DesktopBoot = { activeProjectId: null, notice: null };
+  let boot: DesktopBoot = { activeProjectId: null, notice: null };
+  const recents = createRecents({
+    file: join(app.getPath("userData"), "recents.json"),
+    excluded: projects ?? [],
+    readOnly: hidden,
+    openDirs: () => mainRpc?.projects().map((p) => p.dir) ?? [],
+    log: (line) => process.stderr.write(`${line}\n`),
+  });
   registerDesktopServices<BrowserWindow>({
     ipc: ipcMain,
     dialog,
@@ -578,13 +589,7 @@ async function main(): Promise<void> {
     documents,
     boot: () => boot,
     headless: hidden,
-    recents: createRecents({
-      file: join(app.getPath("userData"), "recents.json"),
-      excluded: projects,
-      readOnly: hidden,
-      openDirs: () => mainRpc?.projects().map((p) => p.dir) ?? [],
-      log: (line) => process.stderr.write(`${line}\n`),
-    }),
+    recents,
   });
   const shutdown = once(async (code: number): Promise<void> => {
     pane?.destroy();
@@ -606,6 +611,16 @@ async function main(): Promise<void> {
     return;
   }
   backend.server?.child.once("exit", (c, sig) => process.stderr.write(`app server exited (${sig ?? c})\n`));
+  // R0.1: settled before the window exists, so no window shows Welcome and then swaps it for the project.
+  if (mainRpc !== null && projects !== null && projects.length === 0) {
+    const rpc = mainRpc;
+    boot = await reopenLast({
+      pickLastActive: () => recents.pickLastActive(),
+      openProject: async (dir) => (await rpc.call("project.open", { dir })).project,
+      linkPending: () => links.pending(),
+      log: (line) => process.stderr.write(`${line}\n`),
+    });
+  }
   const win = new BrowserWindow({ width, height, useContentSize: true, webPreferences: webPreferences(preload, backend) });
   appWindow = win;
   pane = startPane(win, mainRpc);

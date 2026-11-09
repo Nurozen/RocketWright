@@ -78,15 +78,14 @@ app, `VERSION=x.y.z` sets the version, and `SIGNED=1` signs and notarizes.
   paths, the web bundle, the embed theme, and `node_modules/` with a clean
   hoisted install of the vendored `lecturn` and `@lecturn/embed` (the kit's
   pnpm settings and patches). Natives are unpacked into `app.asar.unpacked`.
-- Beside the archive: `bin/rocketwright`, the sample
-  `fixtures/research-vehicle`, and `NOTICE.md`.
+- Beside the archive: `bin/rocketwright` and `NOTICE.md`.
 - At runtime (`app/apps/desktop/src/packaged.ts`) the server runs under
   Electron as Node with the shipped `rocketwright`, and the Lecturn sidecar
   keeps its state in `<userData>/lecturn` (`~/Library/Application
-  Support/RocketWright/lecturn`). Without `--project`, the window opens a
-  fresh `/tmp` copy of the sample, as `make dev` does. Open your own project
-  with `open -a RocketWright --args --project ~/my-rocket` or a
-  `rocketwright://open?workspace=<dir>` link.
+  Support/RocketWright/lecturn`). Without `--project`, the window reopens the
+  last project, or shows Welcome on first run; a release build never opens a
+  `/tmp` copy. Open another project with `open -a RocketWright --args
+  --project ~/my-rocket` or a `rocketwright://open?workspace=<dir>` link.
 - The script fails unless the archive has both bundles, the web bundle and
   the Lecturn packages, the resources have the binary and the sample, and
   (with the switch on) no `@cursor/sdk` is anywhere in the package.
@@ -97,8 +96,10 @@ profile:
 ```sh
 make package TARGETS=dir
 t=$(mktemp -d /tmp/rw-pkg.XXXXXX)
+app=dist/desktop/mac-arm64/RocketWright.app/Contents
+"$app/Resources/bin/rocketwright" init "$t/sample" --name sample --template sample --json
 LECTURN_HOME=$t/home RW_LECTURN_BASE_DIR=$t/base RW_USER_DATA_DIR=$t/electron \
-  dist/desktop/mac-arm64/RocketWright.app/Contents/MacOS/RocketWright --dev-project --smoke
+  "$app/MacOS/RocketWright" --project "$t/sample" --smoke
 ```
 
 It prints the probe JSON (`page.status` `ready`, `project` set) and exits 0.

@@ -12,8 +12,9 @@
  *   Node (`ELECTRON_RUN_AS_NODE=1`): a packaged app has no `node` on PATH;
  * - the `rocketwright` sidecar is `<resources>/bin/rocketwright`, outside
  *   the archive so it can be executed (`RW_SIDECAR_BIN` still wins);
- * - with no `--project`, the window opens a fresh `/tmp` copy of the bundled
- *   sample project (`<resources>/fixtures/research-vehicle`), as `make dev` does.
+ * - `--dev-project` is ignored (`make dev`'s fixture is not shipped): with no
+ *   `--project` the window reopens the last project or shows Welcome, and
+ *   never a `/tmp` copy.
  */
 import { join } from "node:path";
 import { REPO_ROOT, type SpawnServerOptions } from "./backend.ts";
@@ -28,8 +29,6 @@ export interface PackagedLayout {
   serverCli: string;
   /** The `rocketwright` binary beside the archive. */
   sidecarBin: string;
-  /** The directory holding `fixtures/research-vehicle` (`resolveDevProject`'s root). */
-  samplesRoot: string;
 }
 
 /** Paths of a packaged app whose Electron `process.resourcesPath` is `resourcesPath`. */
@@ -37,7 +36,6 @@ export function packagedLayout(resourcesPath: string, appRoot = REPO_ROOT, platf
   return {
     serverCli: join(appRoot, PACKAGED_SERVER_CLI),
     sidecarBin: join(resourcesPath, "bin", platform === "win32" ? "rocketwright.exe" : "rocketwright"),
-    samplesRoot: resourcesPath,
   };
 }
 

@@ -101,7 +101,7 @@ export function installProtocol(opts: ProtocolOptions): boolean {
 }
 
 /** Queues links until `ready` is called with the handler (links can arrive before the window). */
-export function linkQueue(): { push(link: OpenLink): void; ready(handler: (link: OpenLink) => void): void } {
+export function linkQueue(): { push(link: OpenLink): void; ready(handler: (link: OpenLink) => void): void; pending(): boolean } {
   let handler: ((link: OpenLink) => void) | null = null;
   const queued: OpenLink[] = [];
   return {
@@ -113,6 +113,7 @@ export function linkQueue(): { push(link: OpenLink): void; ready(handler: (link:
       handler = h;
       for (const link of queued.splice(0)) h(link);
     },
+    pending: () => queued.length > 0,
   };
 }
 

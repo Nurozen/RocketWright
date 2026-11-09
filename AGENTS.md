@@ -117,8 +117,10 @@ projects. Details: [docs/dev/clean-room.md](docs/dev/clean-room.md).
   temp dir itself (see environment.md).
 - Some agent shells export `ELECTRON_RUN_AS_NODE=1`; run Electron with
   `env -u ELECTRON_RUN_AS_NODE` outside make.
-- Temp projects belong under `/tmp`, not macOS's long `$TMPDIR`: the sidecar's
-  Unix socket path is limited to about 104 bytes.
+- Temp projects belong under `/tmp`, not macOS's long `$TMPDIR`, which keeps
+  the sidecar's Unix socket at `.rw/sidecar.sock`. A path over about 104 bytes
+  still works: the socket moves to a short temp path that the project's lock
+  file records.
 
 ## Docs and comments
 

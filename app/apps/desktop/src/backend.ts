@@ -251,6 +251,16 @@ export interface DevProject {
   temp: boolean;
 }
 
+/**
+ * What the app server should open (seam 1): the explicit projects, `[]` for an
+ * interactive window with none (a server with nothing open, then reopen or
+ * Welcome), or null for a hidden run with none, which stays server-free.
+ */
+export function bootProjects(explicit: readonly string[], hidden: boolean): string[] | null {
+  if (explicit.length > 0) return [...explicit];
+  return hidden ? null : [];
+}
+
 /** A directory holds a project if it has a `*.toml` at its top level. */
 export function isProjectDir(dir: string): boolean {
   try {
@@ -263,8 +273,9 @@ export function isProjectDir(dir: string): boolean {
 /**
  * The `make dev` project: a fresh copy of `fixtures/research-vehicle` (so dev
  * edits never touch the committed fixture), or an empty temp project if the
- * fixture is not there yet. Temp dirs live under `/tmp`: the sidecar's Unix
- * socket path (`<dir>/.rw/sidecar.sock`) is limited to ~104 bytes on macOS.
+ * fixture is not there yet. Temp dirs live under `/tmp` to keep paths short;
+ * a path too long for the sidecar's socket still works (it falls back to a
+ * short one under the temp dir).
  */
 export function resolveDevProject(repoRoot = REPO_ROOT, tmpRoot = "/tmp"): DevProject {
   const fixture = join(repoRoot, "fixtures/research-vehicle");
@@ -283,7 +294,7 @@ export interface Backend {
   close(): Promise<void>;
 }
 
-/** The app server (when `projects` is non-null) plus the static web bundle. */
+/** The app server (when `projects` is non-null, even if empty) plus the static web bundle. */
 export async function startBackend(
   opts: { projects: string[] | null; webRoot?: string; query?: string; page?: string | undefined } & Omit<SpawnServerOptions, "projects">,
 ): Promise<Backend> {

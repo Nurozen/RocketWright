@@ -12,6 +12,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { EMBED_RENDERER_IPC_GLOBAL } from "@lecturn/embed/renderer";
 import { EMBED_HOST_BRIDGE_CHANNEL, EMBED_PANE_RECT_CHANNEL, PANE_HOST_CHANNEL, PANE_MAIN_CHANNEL, PANE_SEND_CHANNELS } from "@rw/contracts";
 import {
+  bootProjects,
   appUrl,
   buildPreload,
   childEnv,
@@ -302,6 +303,13 @@ describe("dev project", () => {
 });
 
 describe("CLI flags", () => {
+  it("starts a zero-project server for an interactive window and none for a hidden run with no project", () => {
+    expect(bootProjects([], false)).toEqual([]);
+    expect(bootProjects([], true)).toBeNull();
+    expect(bootProjects(["/a"], true)).toEqual(["/a"]);
+    expect(bootProjects(["/a", "/b"], false)).toEqual(["/a", "/b"]);
+  });
+
   it("parses projects, modes, and implies --hidden from --smoke", () => {
     const a = parseDesktopArgs(["--project", "/a", "--project", "/b", "--smoke", "--page", "04", "--render-out", "x.png"]);
     expect(a).toMatchObject({ projects: ["/a", "/b"], smoke: true, hidden: true, browser: false, devProject: false, page: "04" });
