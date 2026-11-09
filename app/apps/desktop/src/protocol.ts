@@ -12,8 +12,11 @@
  *   in packaged builds or with `RW_REGISTER_PROTOCOL=1`, so a dev or test
  *   run never rewrites the user's handler or blocks a parallel window.
  * - `openFromLink` maps a link to `project.open` on the app server (main's
- *   RPC), asks the page to show that project, and has the pane open the
- *   thread once the project's view is mounted (`PaneController.openThread`).
+ *   RPC), then activates the project (`projectActivator`).
+ * - `projectActivator` is the one way main brings a project forward (links and
+ *   `host.show`): it raises the window, has the pane open the thread once the
+ *   project's view is mounted (`PaneController.openThread`), and asks the page
+ *   to show the project.
  *
  * Electron-free: `app` and the RPC come in through the `*Like` slices.
  */
@@ -117,13 +120,29 @@ export function linkQueue(): { push(link: OpenLink): void; ready(handler: (link:
   };
 }
 
+export interface ActivatorDeps {
+  /** Raises the window. */
+  focus(): void;
+  /** The pane: open the thread now or once the project mounts. */
+  openThread(projectId: string, threadId: string): void;
+  /** Asks the page to show the project (`open-project` on the pane channel). */
+  showProject(projectId: string, threadId?: string): void;
+}
+
+/** The thread is queued before the page is asked to switch, so the pane has it when the project mounts. */
+export function projectActivator(deps: ActivatorDeps): (projectId: string, threadId?: string) => void {
+  return (projectId, threadId) => {
+    deps.focus();
+    if (threadId !== undefined) deps.openThread(projectId, threadId);
+    deps.showProject(projectId, threadId);
+  };
+}
+
 export interface OpenDeps {
   /** `project.open` on the app server (main's RPC). */
   openProject(dir: string): Promise<ProjectInfo>;
-  /** Asks the page to show the project (`open-project` on the pane channel). */
-  showProject(projectId: string, threadId?: string): void;
-  /** The pane: open the thread now or once the project mounts. */
-  openThread(projectId: string, threadId: string): void;
+  /** Brings the opened project (and the link's thread) forward. */
+  activateProject(projectId: string, threadId?: string): void;
   log?: (line: string) => void;
 }
 
@@ -136,7 +155,6 @@ export async function openFromLink(link: OpenLink, deps: OpenDeps): Promise<Proj
     deps.log?.(`protocol: project.open ${link.workspace} failed: ${e instanceof Error ? e.message : String(e)}`);
     return null;
   }
-  if (link.thread !== undefined) deps.openThread(project.projectId, link.thread);
-  deps.showProject(project.projectId, link.thread);
+  deps.activateProject(project.projectId, link.thread);
   return project;
 }

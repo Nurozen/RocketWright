@@ -4,7 +4,7 @@
  */
 import { describe, expect, it } from "vitest";
 import type { ProjectInfo } from "@rw/contracts";
-import { installProtocol, linkInArgv, linkQueue, openFromLink, parseOpenUrl, type AppLike, type OpenLink } from "./protocol.ts";
+import { installProtocol, linkInArgv, linkQueue, openFromLink, parseOpenUrl, projectActivator, type AppLike, type OpenLink } from "./protocol.ts";
 
 const PROJECT: ProjectInfo = { projectId: "research-vehicle", name: "Research vehicle", dir: "/private/tmp/rv" } as ProjectInfo;
 
@@ -75,6 +75,30 @@ describe("single instance", () => {
   });
 });
 
+describe("projectActivator", () => {
+  function activator(): { activate: ReturnType<typeof projectActivator>; calls: string[] } {
+    const calls: string[] = [];
+    const activate = projectActivator({
+      focus: () => void calls.push("focus"),
+      openThread: (p, t) => void calls.push(`openThread ${p} ${t}`),
+      showProject: (p, t) => void calls.push(`show ${p} ${t ?? "-"}`),
+    });
+    return { activate, calls };
+  }
+
+  it("raises the window, queues the thread, then asks the page to switch", () => {
+    const { activate, calls } = activator();
+    activate("p1", "t1");
+    expect(calls).toEqual(["focus", "openThread p1 t1", "show p1 t1"]);
+  });
+
+  it("opens no thread when none is named", () => {
+    const { activate, calls } = activator();
+    activate("p1");
+    expect(calls).toEqual(["focus", "show p1 -"]);
+  });
+});
+
 describe("openFromLink", () => {
   it("opens the project, queues the thread for its pane, then asks the page to show it", async () => {
     const calls: string[] = [];
@@ -82,12 +106,11 @@ describe("openFromLink", () => {
       { workspace: "/tmp/rv", thread: "lt-3" },
       {
         openProject: async (dir) => (calls.push(`project.open ${dir}`), PROJECT),
-        openThread: (p, t) => void calls.push(`openThread ${p} ${t}`),
-        showProject: (p, t) => void calls.push(`show ${p} ${t ?? "-"}`),
+        activateProject: (p, t) => void calls.push(`activate ${p} ${t ?? "-"}`),
       },
     );
     expect(project).toEqual(PROJECT);
-    expect(calls).toEqual(["project.open /tmp/rv", "openThread research-vehicle lt-3", "show research-vehicle lt-3"]);
+    expect(calls).toEqual(["project.open /tmp/rv", "activate research-vehicle lt-3"]);
   });
 
   it("does nothing more when project.open fails", async () => {
@@ -99,8 +122,7 @@ describe("openFromLink", () => {
         openProject: async () => {
           throw new Error("not_found: no project");
         },
-        openThread: () => void calls.push("openThread"),
-        showProject: () => void calls.push("show"),
+        activateProject: () => void calls.push("activate"),
         log: (l) => void logs.push(l),
       },
     );
