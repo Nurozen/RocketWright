@@ -1,6 +1,6 @@
-import { describe, expect, it, vi } from "vitest";
-import { DESKTOP_INVOKE_CHANNELS, type DesktopBoot } from "@rw/contracts";
-import { registerDesktopServices, type DialogLike, type HandlerIpc } from "./nativeDialogs.ts";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { DESKTOP_INVOKE_CHANNELS, type DesktopBoot, type HostRequest } from "@rw/contracts";
+import { CONSENT_ACCEPT_BUTTON, CONSENT_CANCEL_BUTTON, CONSENT_DEADLINE_MS, createConsentDialogs, registerDesktopServices, type ConsentBoxOptions, type ConsentDialogLike, type DialogLike, type HandlerIpc } from "./nativeDialogs.ts";
 import type { Recents } from "./recents.ts";
 
 type Handler = (event: { sender: unknown }, ...args: unknown[]) => unknown;
@@ -171,5 +171,295 @@ describe("recents and boot", () => {
     expect(vi.mocked(t.recents.see).mock.calls).toEqual([[{ dir: "/work/a", name: "A" }], [null]]);
     for (const bad of [undefined, "x", { dir: "relative", name: "A" }, { dir: "/a" }]) await expect(t.call(c.setActiveProject, bad)).rejects.toThrow(TypeError);
     expect(t.recents.see).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("consent dialog", () => {
+  const NEW: HostRequest = { requestId: "r1", tool: "project_new", path: "/docs/RocketWright/solstice", name: "solstice", template: "empty", request: "Add a nose cone" };
+  const OPEN: HostRequest = { requestId: "r2", tool: "project_open", path: "/work/rocket" };
+
+  interface Box {
+    options: ConsentBoxOptions;
+    answer(response: number): void;
+  }
+
+  /** Like Electron: an aborted box closes as if its Cancel was pressed, unless told to ignore the signal. */
+  function consent(opts: { headless?: boolean; window?: FakeWindow | null; ignoreAbort?: boolean } = {}) {
+    const win: FakeWindow = { webContents: {}, isDestroyed: () => false };
+    const boxes: Box[] = [];
+    const order: string[] = [];
+    const showMessageBox = vi.fn<ConsentDialogLike<FakeWindow>["showMessageBox"]>(
+      (_win, options) =>
+        new Promise((resolve) => {
+          order.push("box");
+          boxes.push({ options, answer: (response) => resolve({ response }) });
+          if (opts.ignoreAbort !== true) options.signal.addEventListener("abort", () => resolve({ response: options.cancelId }), { once: true });
+        }),
+    );
+    const dialogs = createConsentDialogs<FakeWindow>({
+      dialog: { showMessageBox },
+      window: () => (opts.window === undefined ? win : opts.window),
+      focus: () => void order.push("focus"),
+      ...(opts.headless !== undefined ? { headless: opts.headless } : {}),
+    });
+    const socket = new AbortController();
+    const ask = (request: HostRequest, signal: AbortSignal = socket.signal) => dialogs.ask(request, signal);
+    return { win, boxes, order, showMessageBox, dialogs, socket, ask };
+  }
+
+  /** Lets the promise chain reach the dialog (or the answer) under fake timers. */
+  const settle = () => vi.advanceTimersByTimeAsync(0);
+
+  beforeEach(() => void vi.useFakeTimers());
+  afterEach(() => void vi.useRealTimers());
+
+  describe("what it shows", () => {
+    it("names the action, name, folder, template and request, parented to the window", async () => {
+      const t = consent();
+      void t.ask(NEW);
+      await settle();
+      expect(t.showMessageBox).toHaveBeenCalledOnce();
+      expect(t.showMessageBox.mock.calls[0]?.[0]).toBe(t.win);
+      const o = t.boxes[0]!.options;
+      expect(o.message).toBe("The agent wants to create a new project");
+      expect(o.detail).toBe("Name: solstice\nFolder: /docs/RocketWright/solstice\nTemplate: empty\n\nA new thread will then start on this request:\n\nAdd a nose cone");
+      expect(o.buttons[CONSENT_ACCEPT_BUTTON]).toBe("Create project");
+    });
+
+    it("words an open as an open, and leaves out what was not sent", async () => {
+      const t = consent();
+      void t.ask(OPEN);
+      await settle();
+      const o = t.boxes[0]!.options;
+      expect(o.message).toBe("The agent wants to open a project");
+      expect(o.detail).toBe("Folder: /work/rocket");
+      expect(o.buttons[CONSENT_ACCEPT_BUTTON]).toBe("Open project");
+    });
+
+    it("shows the whole request, newlines and backticks included", async () => {
+      const t = consent();
+      const request = `${"x".repeat(1990)}\n\`\`\`\nend`;
+      void t.ask({ ...NEW, request });
+      await settle();
+      expect(t.boxes[0]!.options.detail.endsWith(request)).toBe(true);
+    });
+
+    it("makes Cancel both the default and the escape answer", async () => {
+      const t = consent();
+      void t.ask(NEW);
+      await settle();
+      const o = t.boxes[0]!.options;
+      expect(o.buttons[CONSENT_CANCEL_BUTTON]).toBe("Cancel");
+      expect([o.defaultId, o.cancelId]).toEqual([CONSENT_CANCEL_BUTTON, CONSENT_CANCEL_BUTTON]);
+    });
+
+    it("raises the window before the box", async () => {
+      const t = consent();
+      void t.ask(NEW);
+      await settle();
+      expect(t.order).toEqual(["focus", "box"]);
+    });
+
+    it.each(["/work/a\u202eb", "/work/a\nb", "/work/a\u2066b"])("refuses a path that would not read as what it is: %j", async (path) => {
+      const t = consent();
+      await expect(t.ask({ ...OPEN, path })).resolves.toEqual({ accepted: false });
+      expect(t.showMessageBox).not.toHaveBeenCalled();
+    });
+
+    it("refuses a name that would not read as what it is", async () => {
+      const t = consent();
+      await expect(t.ask({ ...NEW, name: "a\u202eb" })).resolves.toEqual({ accepted: false });
+      expect(t.showMessageBox).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("the answer", () => {
+    it("accepts on the accept button", async () => {
+      const t = consent();
+      const answer = t.ask(NEW);
+      await settle();
+      t.boxes[0]!.answer(CONSENT_ACCEPT_BUTTON);
+      await expect(answer).resolves.toEqual({ accepted: true });
+    });
+
+    it.each([
+      ["Cancel", { response: CONSENT_CANCEL_BUTTON }],
+      ["a button that does not exist", { response: 7 }],
+      ["no response at all (electron#55367)", {}],
+    ])("refuses on %s", async (_name, result) => {
+      const t = consent();
+      t.showMessageBox.mockResolvedValueOnce(result);
+      await expect(t.ask(NEW)).resolves.toEqual({ accepted: false });
+    });
+
+    it("lets a failing dialog reject, for the channel to answer as a refusal, and still shows the next", async () => {
+      const t = consent();
+      t.showMessageBox.mockRejectedValueOnce(new Error("no dialog"));
+      await expect(t.ask(NEW)).rejects.toThrow("no dialog");
+      const next = t.ask(OPEN);
+      await settle();
+      t.boxes[0]!.answer(CONSENT_ACCEPT_BUTTON);
+      await expect(next).resolves.toEqual({ accepted: true });
+    });
+
+    it("leaves no timer behind once answered", async () => {
+      const t = consent();
+      const answer = t.ask(NEW);
+      await settle();
+      expect(vi.getTimerCount()).toBe(1);
+      t.boxes[0]!.answer(CONSENT_CANCEL_BUTTON);
+      await answer;
+      expect(vi.getTimerCount()).toBe(0);
+    });
+  });
+
+  describe("no one to ask", () => {
+    it("refuses on a hidden run without a dialog", async () => {
+      const t = consent({ headless: true });
+      await expect(t.ask(NEW)).resolves.toEqual({ accepted: false });
+      expect(t.showMessageBox).not.toHaveBeenCalled();
+    });
+
+    it("refuses before the window exists and after it is destroyed", async () => {
+      for (const window of [null, { webContents: {}, isDestroyed: () => true }]) {
+        const t = consent({ window });
+        await expect(t.ask(NEW)).resolves.toEqual({ accepted: false });
+        expect(t.showMessageBox).not.toHaveBeenCalled();
+        expect(t.order).toEqual([]);
+      }
+    });
+  });
+
+  describe("one at a time", () => {
+    it("holds the second box until the first closes, in arrival order", async () => {
+      const t = consent();
+      const first = t.ask(NEW);
+      const second = t.ask(OPEN);
+      await settle();
+      expect(t.boxes).toHaveLength(1);
+      expect(t.boxes[0]!.options.detail).toContain("solstice");
+      t.boxes[0]!.answer(CONSENT_CANCEL_BUTTON);
+      await expect(first).resolves.toEqual({ accepted: false });
+      await settle();
+      expect(t.boxes).toHaveLength(2);
+      expect(t.boxes[1]!.options.detail).toBe("Folder: /work/rocket");
+      t.boxes[1]!.answer(CONSENT_ACCEPT_BUTTON);
+      await expect(second).resolves.toEqual({ accepted: true });
+    });
+
+    it("keeps the order when a waiting request drops out", async () => {
+      const t = consent();
+      const leaving = new AbortController();
+      void t.ask(NEW);
+      const dropped = t.ask({ ...OPEN, path: "/dropped" }, leaving.signal);
+      const third = t.ask(OPEN);
+      await settle();
+      leaving.abort();
+      await expect(dropped).resolves.toEqual({ accepted: false });
+      await settle();
+      expect(t.boxes).toHaveLength(1);
+      t.boxes[0]!.answer(CONSENT_CANCEL_BUTTON);
+      await settle();
+      expect(t.boxes.map((b) => b.options.detail)).toEqual([expect.stringContaining("solstice"), "Folder: /work/rocket"]);
+      t.boxes[1]!.answer(CONSENT_ACCEPT_BUTTON);
+      await expect(third).resolves.toEqual({ accepted: true });
+    });
+  });
+
+  describe("the deadline (D10)", () => {
+    it("is under the server's guard and Lecturn's limit", () => {
+      expect(CONSENT_DEADLINE_MS).toBeLessThan(115_000);
+    });
+
+    it("stays open until the deadline, then closes the box as a Cancel", async () => {
+      const t = consent();
+      const answer = t.ask(NEW);
+      await settle();
+      const { signal } = t.boxes[0]!.options;
+      await vi.advanceTimersByTimeAsync(CONSENT_DEADLINE_MS - 1);
+      expect(signal.aborted).toBe(false);
+      await vi.advanceTimersByTimeAsync(1);
+      expect(signal.aborted).toBe(true);
+      await expect(answer).resolves.toEqual({ accepted: false });
+    });
+
+    it("answers on time even if the box ignores its signal, and holds the next box", async () => {
+      const t = consent({ ignoreAbort: true });
+      const stuck = t.ask(NEW);
+      const next = t.ask(OPEN);
+      await settle();
+      await vi.advanceTimersByTimeAsync(CONSENT_DEADLINE_MS);
+      await expect(stuck).resolves.toEqual({ accepted: false });
+      await expect(next).resolves.toEqual({ accepted: false });
+      expect(t.boxes).toHaveLength(1);
+    });
+
+    it("refuses an accept that comes after the deadline", async () => {
+      const t = consent({ ignoreAbort: true });
+      const answer = t.ask(NEW);
+      await settle();
+      await vi.advanceTimersByTimeAsync(CONSENT_DEADLINE_MS);
+      t.boxes[0]!.answer(CONSENT_ACCEPT_BUTTON);
+      await expect(answer).resolves.toEqual({ accepted: false });
+    });
+
+    it("counts from arrival, not from when the box opens", async () => {
+      const t = consent();
+      const first = t.ask(NEW);
+      await vi.advanceTimersByTimeAsync(CONSENT_DEADLINE_MS / 2);
+      const second = t.ask(OPEN);
+      await vi.advanceTimersByTimeAsync(CONSENT_DEADLINE_MS / 2);
+      await expect(first).resolves.toEqual({ accepted: false });
+      await settle();
+      expect(t.boxes).toHaveLength(2);
+      await vi.advanceTimersByTimeAsync(CONSENT_DEADLINE_MS / 2);
+      await expect(second).resolves.toEqual({ accepted: false });
+    });
+
+    it("skips a queued request whose deadline passed while it waited", async () => {
+      const t = consent({ ignoreAbort: true });
+      const first = t.ask(NEW);
+      const second = t.ask(OPEN);
+      await settle();
+      await vi.advanceTimersByTimeAsync(CONSENT_DEADLINE_MS);
+      await Promise.all([first, second]);
+      t.boxes[0]!.answer(CONSENT_CANCEL_BUTTON);
+      await settle();
+      expect(t.showMessageBox).toHaveBeenCalledOnce();
+    });
+  });
+
+  describe("abort", () => {
+    it("closes the box when the socket's signal fires", async () => {
+      const t = consent();
+      const answer = t.ask(NEW);
+      await settle();
+      t.socket.abort();
+      expect(t.boxes[0]!.options.signal.aborted).toBe(true);
+      await expect(answer).resolves.toEqual({ accepted: false });
+    });
+
+    it("never opens a box for a signal already aborted", async () => {
+      const t = consent();
+      t.socket.abort();
+      await expect(t.ask(NEW)).resolves.toEqual({ accepted: false });
+      await settle();
+      expect(t.showMessageBox).not.toHaveBeenCalled();
+    });
+
+    it("on shutdown closes the box and every waiting one, and refuses later requests", async () => {
+      const t = consent();
+      const open = t.ask(NEW);
+      const waiting = t.ask(OPEN);
+      await settle();
+      t.dialogs.close();
+      expect(t.boxes[0]!.options.signal.aborted).toBe(true);
+      await expect(open).resolves.toEqual({ accepted: false });
+      await expect(waiting).resolves.toEqual({ accepted: false });
+      await expect(t.ask(OPEN)).resolves.toEqual({ accepted: false });
+      await settle();
+      expect(t.showMessageBox).toHaveBeenCalledOnce();
+      expect(vi.getTimerCount()).toBe(0);
+    });
   });
 });

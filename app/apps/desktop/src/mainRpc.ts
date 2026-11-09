@@ -17,8 +17,9 @@
  * - `mainToken` claims the host channel (D11) once seeding is done, and each
  *   `host.request` then goes to `onHostRequest`. Anything but a clear answer is
  *   a refusal, and a closing socket aborts the handler's `signal`.
+ *   `host.show` goes to `onHostShow`.
  */
-import { RPC_VERSION, type HostRequest, type HostResponse, type LecturnStatus, type ProjectInfo, type RpcError, type RpcMethod, type RpcParams, type RpcResult, type ServerFrame } from "@rw/contracts";
+import { RPC_VERSION, type HostRequest, type HostResponse, type HostShow, type LecturnStatus, type ProjectInfo, type RpcError, type RpcMethod, type RpcParams, type RpcResult, type ServerFrame } from "@rw/contracts";
 
 export interface MainRpcOptions {
   /** Called once per newly seen project (seeded ones included). */
@@ -33,6 +34,8 @@ export interface MainRpcOptions {
    * the socket closes, since nobody can receive the answer then.
    */
   onHostRequest?: (request: HostRequest, signal: AbortSignal) => HostAnswer | Promise<HostAnswer>;
+  /** Called on every `host.show`: bring that project (and thread) to the front. */
+  onHostShow?: (show: HostShow) => void;
   /** Called after the open-project list changes (opened, renamed, or closed). */
   onProjectsChanged?: () => void;
   /** Called once when the socket closes or errors after connecting. */
@@ -147,6 +150,8 @@ export async function connectMainRpc(rpcUrl: string, opts: MainRpcOptions = {}):
       opts.onLecturnStatus?.(status);
     } else if (f.kind === "push" && f.topic === "host.request") {
       void answerHost(f.payload as HostRequest);
+    } else if (f.kind === "push" && f.topic === "host.show") {
+      opts.onHostShow?.(f.payload as HostShow);
     }
   });
   ws.addEventListener("close", () => shut("RPC socket closed"));

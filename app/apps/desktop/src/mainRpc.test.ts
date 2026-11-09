@@ -6,7 +6,7 @@
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
 import { afterEach, describe, expect, it } from "vitest";
-import { RPC_VERSION, type LecturnStatus, type ProjectInfo } from "@rw/contracts";
+import { RPC_VERSION, type HostShow, type LecturnStatus, type ProjectInfo } from "@rw/contracts";
 import { acceptUpgrade, type WsConnection } from "@rw/contracts/ws";
 import { SEED_PROJECT_ID, startMockServer, type MockServer } from "@rw/contracts/mock";
 import { connectMainRpc, MainRpcError, type MainRpc, type MainRpcOptions } from "./mainRpc.ts";
@@ -122,6 +122,16 @@ describe("main RPC client: host channel (U35, D11)", () => {
     rpc.close();
     expect(signal?.aborted).toBe(true);
     await expect(consent).rejects.toThrow("disconnected");
+  });
+
+  it("hands host.show to its handler", async () => {
+    const srv = await startMockServer({ tickMs: 5 });
+    servers.push(srv);
+    const shown: HostShow[] = [];
+    clients.push(await connectMainRpc(srv.url, { mainToken: "main-secret", onHostShow: (s) => shown.push(s) }));
+    srv.mock.showHost({ projectId: "p1", threadId: "t1" });
+    await until(() => shown.length === 1);
+    expect(shown).toEqual([{ projectId: "p1", threadId: "t1" }]);
   });
 
   it("fails the connect when the channel is taken, without echoing the secret", async () => {

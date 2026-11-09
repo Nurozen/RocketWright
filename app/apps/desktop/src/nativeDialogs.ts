@@ -9,9 +9,13 @@
  *
  * `dialog.showX` is looked up on every call, so a test can stub it after this
  * registers (Playwright's `app.evaluate`).
+ *
+ * `createConsentDialogs` is the native dialog behind the agent's project tools
+ * (R1.3, D10, D11). The host channel brings it the request; no page is involved.
  */
-import { DESKTOP_INVOKE_CHANNELS, type DesktopBoot, type FileFilter } from "@rw/contracts";
+import { DESKTOP_INVOKE_CHANNELS, type DesktopBoot, type FileFilter, type HostRequest } from "@rw/contracts";
 import { isAbsolute, join } from "node:path";
+import type { HostAnswer } from "./mainRpc.ts";
 import type { Recents } from "./recents.ts";
 
 interface OpenOptions {
@@ -121,5 +125,122 @@ export function registerDesktopServices<W extends WindowLike>(deps: DesktopServi
   handle(c.setActiveProject, (_win, project) => recents.see(activeProject(project)));
   return () => {
     for (const channel of channels) ipc.removeHandler(channel);
+  };
+}
+
+/**
+ * D10: Lecturn's live-tool call ends at 120 s and the server's guard at about
+ * 115 s, so the dialog gives up first. A later accept would create a project
+ * the agent was told failed.
+ */
+export const CONSENT_DEADLINE_MS = 100_000;
+
+/** Button indexes: Cancel comes first, so it is the default on every platform. */
+export const CONSENT_CANCEL_BUTTON = 0;
+export const CONSENT_ACCEPT_BUTTON = 1;
+
+export interface ConsentBoxOptions {
+  type: "question";
+  title: string;
+  message: string;
+  detail: string;
+  buttons: string[];
+  defaultId: number;
+  cancelId: number;
+  noLink: boolean;
+  signal: AbortSignal;
+}
+
+export interface ConsentDialogLike<W> {
+  /** `response` is optional because electron#55367 can resolve an aborted box without one. */
+  showMessageBox(window: W, options: ConsentBoxOptions): Promise<{ response?: number }>;
+}
+
+export interface ConsentDeps<W extends WindowLike> {
+  dialog: ConsentDialogLike<W>;
+  /** Read per dialog: a box needs a parent, because `signal` does nothing on a parentless macOS box. */
+  window: () => W | null;
+  /** Raises the window, so the sheet is not hidden behind another app. */
+  focus: () => void;
+  /** A hidden run: nobody can answer, so every request is refused. */
+  headless?: boolean;
+}
+
+export interface ConsentDialogs {
+  /** Shows the request once its turn comes. `signal` closes the box as a Cancel. */
+  ask(request: HostRequest, signal: AbortSignal): Promise<HostAnswer>;
+  /** Closes every box as a Cancel and refuses every later request. */
+  close(): void;
+}
+
+const REFUSED: HostAnswer = { accepted: false };
+
+/** A control or bidi character could make the path on screen differ from the path acted on. `request` is cleaned by the server (D13). */
+const MISLEADING = /[\p{Cc}\p{Bidi_Control}]/u;
+
+function consentText(r: HostRequest): Pick<ConsentBoxOptions, "message" | "detail" | "buttons"> {
+  const isNew = r.tool === "project_new";
+  const facts = [...(r.name !== undefined ? [`Name: ${r.name}`] : []), `Folder: ${r.path}`, ...(r.template !== undefined ? [`Template: ${r.template}`] : [])];
+  const work = r.request !== undefined && r.request !== "" ? `\n\nA new thread will then start on this request:\n\n${r.request}` : "";
+  return {
+    message: isNew ? "The agent wants to create a new project" : "The agent wants to open a project",
+    detail: facts.join("\n") + work,
+    buttons: ["Cancel", isNew ? "Create project" : "Open project"],
+  };
+}
+
+/**
+ * One box at a time, in arrival order. `HostChannel` refuses a second request
+ * while one waits, but its caller's deadline can free that slot with a box
+ * still up, so main keeps its own order.
+ */
+export function createConsentDialogs<W extends WindowLike>(deps: ConsentDeps<W>): ConsentDialogs {
+  const { dialog, headless = false } = deps;
+  const asking = new Set<AbortController>();
+  let closed = false;
+  let tail: Promise<unknown> = Promise.resolve();
+
+  const show = (request: HostRequest, signal: AbortSignal): Promise<{ response?: number }> | null => {
+    const win = deps.window();
+    if (win === null || win.isDestroyed()) return null;
+    deps.focus();
+    return dialog.showMessageBox(win, {
+      type: "question",
+      title: "RocketWright",
+      ...consentText(request),
+      defaultId: CONSENT_CANCEL_BUTTON,
+      cancelId: CONSENT_CANCEL_BUTTON,
+      noLink: true,
+      signal,
+    });
+  };
+
+  return {
+    ask: async (request, signal) => {
+      if (headless || closed || signal.aborted || MISLEADING.test(request.path) || MISLEADING.test(request.name ?? "")) return REFUSED;
+      const cancel = new AbortController();
+      asking.add(cancel);
+      const abort = (): void => cancel.abort();
+      signal.addEventListener("abort", abort, { once: true });
+      // From arrival, not from showing: the server's clock started when it sent this.
+      const deadline = setTimeout(abort, CONSENT_DEADLINE_MS);
+      const cancelled = new Promise<null>((resolve) => cancel.signal.addEventListener("abort", () => resolve(null), { once: true }));
+      // A box already aborted is never opened (electron#55367), and the next waits until this one has really closed.
+      const turn = tail.then(() => (cancel.signal.aborted ? null : show(request, cancel.signal)));
+      tail = turn.catch(() => undefined);
+      try {
+        // The race answers on time even if a box ignores its signal.
+        const result = await Promise.race([turn, cancelled]);
+        return { accepted: result?.response === CONSENT_ACCEPT_BUTTON };
+      } finally {
+        clearTimeout(deadline);
+        signal.removeEventListener("abort", abort);
+        asking.delete(cancel);
+      }
+    },
+    close: () => {
+      closed = true;
+      for (const cancel of asking) cancel.abort();
+    },
   };
 }

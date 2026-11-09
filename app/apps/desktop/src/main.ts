@@ -47,6 +47,9 @@
  *   interactive runs (dev: `RW_REGISTER_PROTOCOL=1`) register the scheme and
  *   take the single-instance lock; a link opens the project (`project.open`)
  *   and then the thread in the pane. Hidden runs never do.
+ * - The agent's project tools (R1.3): each `host.request` from the app server
+ *   is one native consent dialog (`createConsentDialogs`), and `host.show`
+ *   brings the project forward through the same `activateProject` as a link.
  * - The native menu (`menu.ts`, R0.10) belongs to interactive windows only: a
  *   hidden run keeps Electron's default and is never driven by keyboard.
  * - `--zero-project` (B3 surface captures): a hidden run that boots a server
@@ -67,7 +70,7 @@
  * build never opens a `/tmp` copy.
  */
 import { mountEmbedView, captureEmbedView, type EmbedBridge, type EmbedTarget as HelperEmbedTarget } from "@lecturn/embed/electron";
-import { DESKTOP_COMMAND_CHANNEL, embedThemeInput, PANE_MAIN_CHANNEL, type DesktopBoot, type EmbedTarget, type LecturnHostThemeJson, type LecturnStatus, type LecturnThemeJson, type PaneMainMessage } from "@rw/contracts";
+import { DESKTOP_COMMAND_CHANNEL, embedThemeInput, PANE_MAIN_CHANNEL, type DesktopBoot, type EmbedTarget, type LecturnHostThemeJson, type LecturnThemeJson, type PaneMainMessage } from "@rw/contracts";
 import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, shell, systemPreferences, webContents } from "electron";
 import { mkdirSync, readFileSync, rmSync } from "node:fs";
 import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
@@ -79,12 +82,12 @@ import { capturePageDpr1, countForeground, debuggerSessions, emulateDpr1, instal
 import { waitGuestSized } from "./guestSize.ts";
 import { openHiddenWindow } from "./hiddenWindow.ts";
 import { captureComposite, createPaneController, droppedCapture, GUEST_WEB_PREFERENCES, isGuestUrl, type EmbedBridgeLike, type MountArgs, type PaneController } from "./lecturn.ts";
-import { connectMainRpc, type MainRpc } from "./mainRpc.ts";
+import { connectMainRpc, type MainRpc, type MainRpcOptions } from "./mainRpc.ts";
 import { APP_NAME, createMenuController, linkAction, type MenuController } from "./menu.ts";
 import { bootProjects, buildPreload, desktopArg, documentsDirOverride, lecturnBaseDirFor, parseDesktopArgs, REPO_ROOT, resolveDevProject, seededProfileDir, startBackend, userDataOverride, waitForHttp, type Backend, type DevProject } from "./backend.ts";
-import { registerDesktopServices } from "./nativeDialogs.ts";
+import { createConsentDialogs, registerDesktopServices } from "./nativeDialogs.ts";
 import { packagedLayout, packagedServerOptions, userArgv } from "./packaged.ts";
-import { installProtocol, linkInArgv, linkQueue, openFromLink, parseOpenUrl } from "./protocol.ts";
+import { installProtocol, linkInArgv, linkQueue, openFromLink, parseOpenUrl, projectActivator } from "./protocol.ts";
 import { once, shutdownOnQuit } from "./quit.ts";
 import { createRecents, type Recents } from "./recents.ts";
 import { reopenLast } from "./reopen.ts";
@@ -598,7 +601,22 @@ async function main(): Promise<void> {
   // D2: main's own socket on the child; B8/B10 use it for `embed.target` and per-project mounts.
   let pane: PaneController | null = null;
   let menu: MenuController | null = null;
-  const mainRpc = await startMainRpc(backend, hidden, (status) => pane?.onStatus(status), () => void menu?.refresh());
+  // Main's socket claims the host channel before any window exists, so both of these read the window when called: until then a request is refused.
+  const consent = createConsentDialogs<BrowserWindow>({ dialog, window: () => appWindow, focus: () => focusWindow?.(), headless: hidden });
+  const activateProject = projectActivator({
+    focus: () => focusWindow?.(),
+    openThread: (projectId, threadId) => pane?.openThread(projectId, threadId),
+    showProject: (projectId, threadId) => {
+      const m: PaneMainMessage = threadId === undefined ? { type: "open-project", projectId } : { type: "open-project", projectId, threadId };
+      if (appWindow !== null && !appWindow.isDestroyed()) appWindow.webContents.send(PANE_MAIN_CHANNEL, m);
+    },
+  });
+  const mainRpc = await startMainRpc(backend, hidden, {
+    onLecturnStatus: (status) => pane?.onStatus(status),
+    onProjectsChanged: () => void menu?.refresh(),
+    onHostRequest: (request, signal) => consent.ask(request, signal),
+    onHostShow: ({ projectId, threadId }) => activateProject(projectId, threadId),
+  });
   let boot: DesktopBoot = { activeProjectId: null, notice: null };
   const savedRecents = createRecents({
     file: join(app.getPath("userData"), "recents.json"),
@@ -629,6 +647,7 @@ async function main(): Promise<void> {
     recents,
   });
   const shutdown = once(async (code: number): Promise<void> => {
+    consent.close();
     pane?.destroy();
     mainRpc?.close();
     await backend.close();
@@ -661,6 +680,12 @@ async function main(): Promise<void> {
   // Below 1024 the header's start column clips; below about 792 the project menu is gone (`header-long-name.spec.ts` holds the floor).
   const win = new BrowserWindow({ width, height, minWidth: MIN_WINDOW_WIDTH, useContentSize: true, webPreferences: webPreferences(preload, backend) });
   appWindow = win;
+  focusWindow = () => {
+    if (win.isDestroyed()) return;
+    if (win.isMinimized()) win.restore();
+    win.show();
+    win.focus();
+  };
   pane = startPane(win, mainRpc);
   app.setAboutPanelOptions({ applicationName: APP_NAME, applicationVersion: app.getVersion() });
   menu = createMenuController({
@@ -677,12 +702,6 @@ async function main(): Promise<void> {
   });
   await menu.refresh();
   guardLinks(win, new URL(backend.url).origin);
-  focusWindow = () => {
-    if (win.isDestroyed()) return;
-    if (win.isMinimized()) win.restore();
-    win.show();
-    win.focus();
-  };
   if (freezeClock !== undefined) {
     await win.loadURL("about:blank");
     await installFreezeClock(debuggerSessions.session(win.webContents), freezeClock);
@@ -696,11 +715,7 @@ async function main(): Promise<void> {
     links.ready((link) => {
       void openFromLink(link, {
         openProject: async (dir) => (await rpc.call("project.open", { dir })).project,
-        showProject: (projectId, threadId) => {
-          const m: PaneMainMessage = threadId === undefined ? { type: "open-project", projectId } : { type: "open-project", projectId, threadId };
-          if (!win.isDestroyed()) win.webContents.send(PANE_MAIN_CHANNEL, m);
-        },
-        openThread: (projectId, threadId) => pane?.openThread(projectId, threadId),
+        activateProject,
         log: (line) => process.stderr.write(`${line}\n`),
       });
     });
@@ -725,13 +740,12 @@ function guardLinks(win: BrowserWindow, appOrigin: string): void {
 }
 
 /** Main's IF10 client on the child (null without a server, or if it cannot connect: the window still works). */
-async function startMainRpc(backend: Backend, quiet: boolean, onLecturnStatus: (status: LecturnStatus) => void, onProjectsChanged: () => void): Promise<MainRpc | null> {
+async function startMainRpc(backend: Backend, quiet: boolean, hooks: Pick<MainRpcOptions, "onLecturnStatus" | "onProjectsChanged" | "onHostRequest" | "onHostShow">): Promise<MainRpc | null> {
   if (backend.server === null) return null;
   try {
     return await connectMainRpc(backend.server.rpcUrl, {
       mainToken: backend.server.mainToken,
-      onLecturnStatus,
-      onProjectsChanged,
+      ...hooks,
       ...(quiet ? {} : { onProjectOpened: (p) => process.stderr.write(`project opened: ${p.projectId} (${p.dir})\n`) }),
     });
   } catch (e) {
