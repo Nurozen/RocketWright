@@ -6,7 +6,7 @@
  */
 import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import type { RpcMethod } from "@rw/contracts";
 import { TestClient, makeValidator } from "@rw/contracts/mock/harness";
 import { AppServer } from "../src/rpc/AppServer.ts";
@@ -14,6 +14,8 @@ import { sidecarBin, tempProject } from "./helpers/harness.ts";
 
 const validator = makeValidator();
 const SEED = "fixtures/research-vehicle";
+/** A synthetic curve: ThrustCurve data is never committed. */
+const ENG = "; synthetic\nC6 18 70 0-3-5 0.0110 0.0240 Synth\n   0.050 6.000\n   0.200 12.000\n   0.400 6.000\n   1.500 4.500\n   1.800 0.000\n";
 
 describe("contract batch (U13)", () => {
   let server: AppServer;
@@ -69,6 +71,20 @@ describe("contract batch (U13)", () => {
     const { motors } = await c.call("motor.search", { projectId, query: "C6", limit: 5 });
     expect(motors.length).toBeGreaterThan(0);
     expect(motors[0]!.id).toMatch(/:/);
+  });
+
+  it("reads a typed ~ as home for both import and export (D18)", async () => {
+    vi.stubEnv("HOME", outside);
+    try {
+      writeFileSync(join(outside, "Tilde_C6.eng"), ENG);
+      expect((await c.call("import.file", { projectId, path: "~/Tilde_C6.eng", kind: "motor", dry_run: true })).dry_run).toBe(true);
+      // Home is outside the project, so a renderer's export there is refused rather than landing in a folder called `~`.
+      expect(await c.request("export.file", { projectId, format: "ork", path: "~/out.ork" })).toMatchObject({ ok: false, error: { code: "api_error" } });
+      expect(existsSync(join(dir, "~"))).toBe(false);
+      expect(existsSync(join(outside, "out.ork"))).toBe(false);
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 
   it("import.file reads a motor from outside the project", async () => {

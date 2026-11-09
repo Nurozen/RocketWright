@@ -46,6 +46,7 @@ function fakeClient(open: string[], fail: Record<string, string> = {}) {
     calls.push({ method, params });
     if (method === "project.list") return Promise.resolve({ projects: projects.map(info) });
     if (method === "project.defaults") return Promise.resolve({ location: "/docs" });
+    if (method === "project.create") return Promise.resolve({ project: info(params["name"] as string) });
     if (method === "project.subscribe") {
       const projectId = params["projectId"] as string;
       if (fail[projectId] !== undefined) return Promise.reject(new Error(fail[projectId]));
@@ -86,6 +87,7 @@ function fakeHost(over: Partial<HostApi> = {}) {
     pickFolder: () => Promise.resolve(null),
     pickFile: () => Promise.resolve(null),
     saveAs: () => Promise.resolve(null),
+    exportFile: () => Promise.resolve({ canceled: true }),
     recents: () => Promise.resolve([]),
     removeRecent: () => Promise.resolve(),
     setActiveProject: (p) => {
@@ -698,6 +700,177 @@ describe("the project menu", () => {
       await settled();
       expect(document.querySelector('[data-testid="rename-project.error"]')?.textContent).toContain("control characters");
       expect(document.querySelector('[data-testid="rename-project"]')).not.toBeNull();
+    });
+  });
+});
+
+describe("import and export", () => {
+  const button = (name: string) => [...document.querySelectorAll("button")].find((b) => b.textContent?.trim() === name);
+  const click = async (name: string) => {
+    await act(async () => button(name)!.click());
+    await settled();
+  };
+  const dialog = (id: string) => document.querySelector<HTMLElement>(`[data-testid="${id}"]`);
+  const text = (id: string) => document.querySelector(`[data-testid="${id}"]`)?.textContent ?? null;
+  const send = async (h: ReturnType<typeof fakeHost>, command: DesktopCommand) => {
+    await act(async () => h.send(command));
+    await settled();
+  };
+  const imports = (t: ReturnType<typeof fakeClient>) => t.calls.filter((c) => c.method === "import.file").map((c) => c.params);
+  const picking = (path: string) => fakeHost({ pickFile: () => Promise.resolve(path) });
+
+  describe("on Welcome", () => {
+    it("creates a project from an .ork through the New project flow (D17)", async () => {
+      const t = fakeClient([]);
+      const h = picking("/outside/My Rocket.ork");
+      await mount(t, h);
+      await send(h, { id: "file.import" });
+      const form = dialog("new-project")!;
+      expect(form.querySelector("input")?.value).toBe("My Rocket");
+      expect(form.textContent).toContain("Imports My Rocket.ork into the new project.");
+      expect(form.textContent).not.toContain("Template");
+      await click("Create project");
+      expect(t.calls.find((c) => c.method === "project.create")?.params).toEqual({ name: "My Rocket", location: "/docs", source: { ork: "/outside/My Rocket.ork" } });
+      expect(imports(t)).toEqual([]);
+    });
+
+    it("offers only designs in the picker, and has a control a browser can reach", async () => {
+      const t = fakeClient([]);
+      const pickFile = vi.fn<HostApi["pickFile"]>(() => Promise.resolve(null));
+      await mount(t, fakeHost({ pickFile }));
+      await click("Import an .ork file…");
+      expect(pickFile.mock.calls[0]![0]?.filters).toEqual([{ name: "OpenRocket design", extensions: ["ork"] }]);
+    });
+
+    it("says a motor needs a project, and sends nothing", async () => {
+      const t = fakeClient([]);
+      const h = picking("/outside/C6.eng");
+      await mount(t, h);
+      await send(h, { id: "file.import" });
+      expect(text("project-actions.error")).toContain("Open a project first");
+      expect(imports(t)).toEqual([]);
+    });
+  });
+
+  describe("with a project open", () => {
+    it("imports a motor from a picked path over the page's own socket", async () => {
+      const t = fakeClient(["a"]);
+      const h = picking("/outside/C6.eng");
+      await mount(t, h);
+      await send(h, { id: "file.import" });
+      expect(imports(t)).toEqual([{ projectId: "a", path: "/outside/C6.eng", kind: "motor" }]);
+      expect(text("project-actions.notice")).toContain("Imported C6.eng.");
+    });
+
+    it("refuses a file it cannot read, without calling the server", async () => {
+      const t = fakeClient(["a"]);
+      const h = picking("/outside/notes.txt");
+      await mount(t, h);
+      await send(h, { id: "file.import" });
+      expect(text("project-actions.error")).toContain(".ork, .eng and .rse");
+      expect(imports(t)).toEqual([]);
+    });
+
+    it("asks before an .ork changes anything, with a new project as the default", async () => {
+      const t = fakeClient(["a"]);
+      const h = picking("/outside/r.ork");
+      await mount(t, h);
+      await send(h, { id: "file.import" });
+      expect(dialog("ork-import")).not.toBeNull();
+      expect(document.activeElement?.textContent).toBe("Create new project");
+      expect(imports(t)).toEqual([]);
+      await click("Create new project");
+      expect(dialog("new-project")?.textContent).toContain("Imports r.ork");
+      expect(imports(t)).toEqual([]);
+    });
+
+    it("replaces the design only after a second, explicit step", async () => {
+      const t = fakeClient(["a"]);
+      const h = picking("/outside/r.ork");
+      await mount(t, h);
+      await send(h, { id: "file.import" });
+      await click("Replace current design…");
+      expect(document.activeElement?.textContent).toBe("Keep current design");
+      expect(imports(t)).toEqual([]);
+      await click("Replace design");
+      expect(imports(t)).toEqual([{ projectId: "a", path: "/outside/r.ork", kind: "ork" }]);
+      expect(text("project-actions.notice")).toContain("Imported r.ork.");
+    });
+
+    it("backs out of the replace without importing", async () => {
+      const t = fakeClient(["a"]);
+      const h = picking("/outside/r.ork");
+      await mount(t, h);
+      await send(h, { id: "file.import" });
+      await click("Replace current design…");
+      await click("Keep current design");
+      expect(dialog("ork-import")).not.toBeNull();
+      await click("Cancel");
+      expect(dialog("ork-import")).toBeNull();
+      expect(imports(t)).toEqual([]);
+    });
+
+    it("exports through the host and warns about what the format left out (U44)", async () => {
+      const t = fakeClient(["a"]);
+      const exportFile = vi.fn<HostApi["exportFile"]>(() => Promise.resolve({ canceled: false, out: { path: "/o/r.ork", bytes: 1, sha256: "x", skipped: ["lox_tank"] } }));
+      const h = fakeHost({ exportFile });
+      await mount(t, h);
+      await send(h, { id: "file.export" });
+      await click("Export…");
+      expect(exportFile.mock.calls[0]![0]).toEqual({ projectId: "a", format: "ork", defaultName: "Project a.ork" });
+      expect(text("project-actions.notice")).toContain("leaving out a part this format cannot hold: lox_tank");
+    });
+
+    it("says nothing was exported when the person cancels the save", async () => {
+      const t = fakeClient(["a"]);
+      const h = fakeHost();
+      await mount(t, h);
+      await send(h, { id: "file.export" });
+      await click("Export…");
+      expect(text("project-actions.notice")).toBeNull();
+    });
+
+    it("does not offer an export of a project with no parts", async () => {
+      const t = fakeClient(["a"]);
+      const exportFile = vi.fn<HostApi["exportFile"]>(() => Promise.resolve({ canceled: true }));
+      const h = fakeHost({ exportFile });
+      await mount(t, h);
+      const store = storeOf(shown());
+      await act(async () => {
+        store.setState((s) => {
+          const snapshot = s.project.snapshot!;
+          return { project: { ...s.project, snapshot: { ...snapshot, evaluated: { ...snapshot.evaluated!, components: [] } } } };
+        });
+      });
+      await send(h, { id: "file.export" });
+      expect(dialog("export-dialog")?.textContent).toContain("no parts yet");
+      expect(button("Export…")!.disabled).toBe(true);
+    });
+
+    it("will not let a drop replace a dialog that is open", async () => {
+      const t = fakeClient(["a"]);
+      const h = picking("/outside/r.ork");
+      await mount(t, h, { host: { ...h.host, pathForFile: () => "/outside/C6.eng" } });
+      await send(h, { id: "file.import" });
+      const drop = new Event("drop", { bubbles: true, cancelable: true });
+      Object.defineProperty(drop, "dataTransfer", { value: { types: ["Files"], files: [new Blob(["x"])] } });
+      await act(async () => void window.dispatchEvent(drop));
+      await settled();
+      expect(drop.defaultPrevented).toBe(true);
+      expect(text("project-actions.error")).toContain("finish what is open first");
+      expect(imports(t)).toEqual([]);
+      expect(dialog("ork-import")).not.toBeNull();
+    });
+
+    it("imports a dropped file like a picked one", async () => {
+      const t = fakeClient(["a"]);
+      const h = fakeHost();
+      await mount(t, h, { host: { ...h.host, pathForFile: () => "/outside/C6.rse" } });
+      const drop = new Event("drop", { bubbles: true, cancelable: true });
+      Object.defineProperty(drop, "dataTransfer", { value: { types: ["Files"], files: [new Blob(["x"])] } });
+      await act(async () => void window.dispatchEvent(drop));
+      await settled();
+      expect(imports(t)).toEqual([{ projectId: "a", path: "/outside/C6.rse", kind: "motor" }]);
     });
   });
 });

@@ -133,6 +133,15 @@ export interface ExportFileRequest {
 
 export type ExportFileResult = { canceled: true } | { canceled: false; out: ExportOut };
 
+/** What each export format is called and where it lands; main names the save dialog's filter from this, the page the choice. */
+export const EXPORT_FILE_TYPES: Record<ExportFormat, { label: string; description: string; extension: string }> = {
+  ork: { label: "OpenRocket design", description: "The rocket as an .ork file.", extension: "ork" },
+  rasp: { label: "Motor curves", description: "The motors of the default configuration, as a RASP .eng file.", extension: "eng" },
+  glb: { label: "3D model", description: "A .glb model of the rocket.", extension: "glb" },
+  stl: { label: "3D print mesh", description: "An .stl mesh of the rocket.", extension: "stl" },
+  csv: { label: "Flight data", description: "One flown run as a .csv table.", extension: "csv" },
+};
+
 /**
  * Computed when read, never stored. Only ENOENT is `missing` (D5): `denied`
  * (EPERM/EACCES, e.g. TCC on an ad-hoc build) and `locked` (another process

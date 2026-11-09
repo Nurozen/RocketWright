@@ -20,13 +20,13 @@ const item = (list: MenuEntry[], label: string) => list.find((e) => e.kind !== "
 describe("the header's project menu", () => {
   it("follows the mockup: current project, Recent, then the commands", () => {
     const list = entries({ menu: model({ recents: [recent("weekend-flyer"), recent("altitude-study")] }) });
-    expect(texts(list)).toEqual(["Solstice", "---", "Recent", "weekend-flyer", "altitude-study", "---", "New project…", "Open folder…", "Open sample rocket", "Rename project…", "Close project"]);
+    expect(texts(list)).toEqual(["Solstice", "---", "Recent", "weekend-flyer", "altitude-study", "---", "New project…", "Open folder…", "Open sample rocket", "Import…", "Export…", "Rename project…", "Close project"]);
     expect(item(list, "Solstice").checked).toBe(true);
     expect(item(list, "New project…").gutter).toBe(false);
   });
 
   it("leaves Recent out when there is none", () => {
-    expect(texts(entries())).toEqual(["Solstice", "---", "New project…", "Open folder…", "Open sample rocket", "Rename project…", "Close project"]);
+    expect(texts(entries())).toEqual(["Solstice", "---", "New project…", "Open folder…", "Open sample rocket", "Import…", "Export…", "Rename project…", "Close project"]);
   });
 
   it("puts the shown project first under its live name, then the other open ones", () => {

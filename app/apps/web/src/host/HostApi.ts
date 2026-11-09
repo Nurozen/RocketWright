@@ -4,7 +4,7 @@
  * everything else calls a `HostApi` and shows whatever comes back, so a
  * browser's empty Recents and typed paths need no second code path.
  */
-import type { DesktopBoot, DesktopBridge, DesktopCommand, FileFilter, PickFileOptions, PickFolderOptions, RecentProject, SaveAsOptions, ProjectInfo } from "@rw/contracts";
+import type { DesktopBoot, DesktopBridge, DesktopCommand, ExportFileRequest, ExportFileResult, FileFilter, PickFileOptions, PickFolderOptions, RecentProject, SaveAsOptions, ProjectInfo, schema } from "@rw/contracts";
 import { createBrowserHost } from "./browserHost.ts";
 import { createElectronHost } from "./electronHost.ts";
 
@@ -16,6 +16,12 @@ export interface HostApi {
   pickFolder(options?: PickFolderOptions): Promise<string | null>;
   pickFile(options?: PickFileOptions): Promise<string | null>;
   saveAs(options?: SaveAsOptions): Promise<string | null>;
+  /**
+   * Asks where and writes the export (D18). The desktop's main process owns the
+   * save dialog and may write anywhere the person picked; a browser asks for a
+   * path inside the project and writes it through `writeInProject`.
+   */
+  exportFile(request: ExportFileRequest, writeInProject: (path: string) => Promise<schema.ExportOut>): Promise<ExportFileResult>;
   /** Always empty in a browser, which keeps no store (R0.12). */
   recents(): Promise<RecentProject[]>;
   removeRecent(dir: string): Promise<void>;
@@ -45,6 +51,8 @@ export interface PathPromptRequest {
   title: string;
   defaultPath?: string;
   filters?: FileFilter[];
+  /** The line under the field, when "the full path on this computer" is not what is wanted. */
+  hint?: string;
 }
 
 /** Resolves to the typed path, or null when the person cancels. */

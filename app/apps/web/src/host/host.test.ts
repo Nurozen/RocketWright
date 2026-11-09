@@ -122,6 +122,40 @@ describe("browser host", () => {
   });
 });
 
+describe("export", () => {
+  const OUT = { path: "exports/a.ork", bytes: 1, sha256: "x" };
+  const request = { projectId: "p1", format: "ork" as const, defaultName: "a.ork" };
+
+  it("leaves the desktop's export to main and its save dialog", async () => {
+    const { bridge, calls } = fakeBridge({ exportFile: () => Promise.resolve({ canceled: false, out: OUT }) });
+    const write = vi.fn<(path: string) => Promise<typeof OUT>>();
+    const seen = vi.spyOn(bridge, "exportFile");
+    expect(await createElectronHost(bridge).exportFile(request, write)).toEqual({ canceled: false, out: OUT });
+    expect(seen).toHaveBeenCalledWith(request);
+    expect(write).not.toHaveBeenCalled();
+    expect(calls).toEqual([]);
+  });
+
+  it("in a browser, asks for a path in the project and writes through the page's own socket", async () => {
+    const asked: PathPromptRequest[] = [];
+    const host = createBrowserHost((r) => {
+      asked.push(r);
+      return Promise.resolve("exports/typed.ork");
+    });
+    const write = vi.fn<(path: string) => Promise<typeof OUT>>(() => Promise.resolve(OUT));
+    expect(await host.exportFile(request, write)).toEqual({ canceled: false, out: OUT });
+    expect(write.mock.calls).toEqual([["exports/typed.ork"]]);
+    expect(asked[0]).toMatchObject({ kind: "save", title: "Export", defaultPath: "exports/a.ork" });
+    expect(asked[0]?.hint).toContain("inside the project");
+  });
+
+  it("writes nothing when a browser's prompt is cancelled", async () => {
+    const write = vi.fn<(path: string) => Promise<typeof OUT>>();
+    expect(await createBrowserHost(() => Promise.resolve(null)).exportFile(request, write)).toEqual({ canceled: true });
+    expect(write).not.toHaveBeenCalled();
+  });
+});
+
 describe("path prompts", () => {
   const REQ: PathPromptRequest = { kind: "folder", title: "Open" };
 

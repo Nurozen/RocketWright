@@ -34,7 +34,7 @@ describe("the native menu", () => {
   it("sends the project commands to the page, labelled from the one table", () => {
     const actions = fakeActions();
     const t = buildMenuTemplate(state(), actions);
-    for (const id of ["project.new", "project.open", "project.openSample", "project.rename", "project.close", "help.quickStart", "app.settings"] as const) {
+    for (const id of ["project.new", "project.open", "project.openSample", "file.import", "file.export", "project.rename", "project.close", "help.quickStart", "app.settings"] as const) {
       const item = byId(t, id);
       expect(item.label).toBe(APP_COMMANDS.find((c) => c.id === id)!.label);
       click(item);
@@ -100,8 +100,9 @@ describe("the native menu", () => {
 
   it("only offers project-bound items with a project open", () => {
     const t = buildMenuTemplate(state({ projectOpen: false }), fakeActions());
-    for (const id of ["project.close", "project.rename", "app.settings", "view.tab:design"]) expect(byId(t, id).enabled, id).toBe(false);
+    for (const id of ["project.close", "project.rename", "file.export", "app.settings", "view.tab:design"]) expect(byId(t, id).enabled, id).toBe(false);
     expect(byId(t, "project.new").enabled).toBeUndefined();
+    expect(byId(t, "file.import").enabled, "an .ork starts a new project (D17)").toBeUndefined();
     expect(byId(t, "project.openSample").enabled).toBeUndefined();
   });
 

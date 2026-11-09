@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DESKTOP_INVOKE_CHANNELS, type DesktopBoot, type HostRequest } from "@rw/contracts";
-import { CONSENT_ACCEPT_BUTTON, CONSENT_CANCEL_BUTTON, CONSENT_DEADLINE_MS, createConsentDialogs, registerDesktopServices, type ConsentBoxOptions, type ConsentDialogLike, type DialogLike, type HandlerIpc } from "./nativeDialogs.ts";
+import { CONSENT_ACCEPT_BUTTON, CONSENT_CANCEL_BUTTON, CONSENT_DEADLINE_MS, createConsentDialogs, registerDesktopServices, type ConsentBoxOptions, type ConsentDialogLike, type DesktopServices, type DialogLike, type HandlerIpc } from "./nativeDialogs.ts";
 import type { Recents } from "./recents.ts";
 
 type Handler = (event: { sender: unknown }, ...args: unknown[]) => unknown;
@@ -10,7 +10,7 @@ interface FakeWindow {
   isDestroyed(): boolean;
 }
 
-function setup(opts: { headless?: boolean; window?: FakeWindow | null } = {}) {
+function setup(opts: { headless?: boolean; window?: FakeWindow | null; exportFile?: DesktopServices<FakeWindow>["exportFile"] } = {}) {
   const handlers = new Map<string, Handler>();
   const ipc: HandlerIpc = {
     handle: (channel, listener) => void handlers.set(channel, listener),
@@ -41,6 +41,7 @@ function setup(opts: { headless?: boolean; window?: FakeWindow | null } = {}) {
     recents,
     boot: () => boot.value,
     ...(opts.headless !== undefined ? { headless: opts.headless } : {}),
+    ...(opts.exportFile !== undefined ? { exportFile: opts.exportFile } : {}),
   });
   const call = (channel: string, ...args: unknown[]): Promise<unknown> => {
     const handler = handlers.get(channel);
@@ -52,7 +53,7 @@ function setup(opts: { headless?: boolean; window?: FakeWindow | null } = {}) {
 }
 
 const c = DESKTOP_INVOKE_CHANNELS;
-const OWNED = [c.boot, c.pickFolder, c.pickFile, c.saveAs, c.recents, c.removeRecent, c.setActiveProject];
+const OWNED = [c.boot, c.pickFolder, c.pickFile, c.saveAs, c.exportFile, c.recents, c.removeRecent, c.setActiveProject];
 
 describe("sender check", () => {
   it("registers the services it owns and removes them", () => {
@@ -145,6 +146,55 @@ describe("pickers", () => {
     await expect(t.call(c.saveAs)).resolves.toBeNull();
     expect(t.dialog.showOpenDialog).not.toHaveBeenCalled();
     expect(t.dialog.showSaveDialog).not.toHaveBeenCalled();
+  });
+});
+
+describe("export (D18)", () => {
+  const OUT = { path: "/saved", bytes: 1, sha256: "x" };
+  const writer = () => vi.fn<NonNullable<DesktopServices<FakeWindow>["exportFile"]>>(() => Promise.resolve(OUT));
+
+  it("asks where with the format's filter, then writes only to the path the person chose", async () => {
+    const exportFile = writer();
+    const t = setup({ exportFile });
+    const request = { projectId: "p", format: "glb", defaultName: "Rocket.glb", path: "/etc/page-supplied", allow_outside: true };
+    await expect(t.call(c.exportFile, request)).resolves.toEqual({ canceled: false, out: OUT });
+    expect(t.dialog.showSaveDialog).toHaveBeenCalledWith(t.win, { title: "Export 3D model", defaultPath: "/docs/Rocket.glb", filters: [{ name: "3D model", extensions: ["glb"] }] });
+    expect(exportFile.mock.calls).toEqual([[{ projectId: "p", format: "glb", defaultName: "Rocket.glb" }, "/saved"]]);
+  });
+
+  it("keeps the dialog in Documents whatever folder the page names", async () => {
+    const t = setup({ exportFile: writer() });
+    await t.call(c.exportFile, { projectId: "p", format: "ork", defaultName: "../../etc/a.ork" });
+    expect(vi.mocked(t.dialog.showSaveDialog).mock.calls[0]![1].defaultPath).toBe("/docs/a.ork");
+  });
+
+  it("passes the run a CSV needs", async () => {
+    const exportFile = writer();
+    const t = setup({ exportFile });
+    await t.call(c.exportFile, { projectId: "p", format: "csv", run: "baseline/r1" });
+    expect(exportFile.mock.calls[0]![0]).toEqual({ projectId: "p", format: "csv", run: "baseline/r1" });
+  });
+
+  it("writes nothing when the person cancels, or on a hidden run", async () => {
+    const exportFile = writer();
+    const t = setup({ exportFile });
+    vi.mocked(t.dialog.showSaveDialog).mockResolvedValueOnce({ canceled: true });
+    await expect(t.call(c.exportFile, { projectId: "p", format: "stl" })).resolves.toEqual({ canceled: true });
+    const hidden = setup({ exportFile, headless: true });
+    await expect(hidden.call(c.exportFile, { projectId: "p", format: "stl" })).resolves.toEqual({ canceled: true });
+    expect(hidden.dialog.showSaveDialog).not.toHaveBeenCalled();
+    expect(exportFile).not.toHaveBeenCalled();
+  });
+
+  it("refuses a malformed request and a window that is not the app's, before any dialog", async () => {
+    const t = setup({ exportFile: writer() });
+    await expect(t.call(c.exportFile, { projectId: "p", format: "constructor" })).rejects.toThrow("exportFile");
+    await expect(t.callAs({}, c.exportFile, { projectId: "p", format: "ork" })).rejects.toThrow("not the app window");
+    expect(t.dialog.showSaveDialog).not.toHaveBeenCalled();
+  });
+
+  it("says so when there is no server to write through", async () => {
+    await expect(setup().call(c.exportFile, { projectId: "p", format: "ork" })).rejects.toThrow("not connected");
   });
 });
 

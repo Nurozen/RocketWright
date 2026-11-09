@@ -4,7 +4,8 @@
  * for creating and opening. The server repeats every check; a failure it
  * reports is thrown as-is so the caller can show its message.
  */
-import type { ProjectInfo, ProjectTemplate, RecentStatus } from "@rw/contracts";
+import { EXPORT_FILE_TYPES, type FileFilter, type ProjectInfo, type ProjectTemplate, type RecentStatus, type schema } from "@rw/contracts";
+import { exportFileName } from "../pages/results/csv.ts";
 import type { RpcLike } from "../state/rpc.ts";
 import type { RadioCardOption } from "../ui/RadioCard.tsx";
 import { formatDate } from "./format.ts";
@@ -68,11 +69,71 @@ export interface CreateRequest {
   name: string;
   location: string;
   template: NewProjectTemplate;
+  /** Build it from this `.ork` instead of the template (D17). */
+  ork?: string | undefined;
 }
 
-export async function createProject(rpc: ProjectRpc, { name, location, template }: CreateRequest): Promise<ProjectInfo> {
-  const { project } = await rpc.call("project.create", { name: name.trim(), location: location.trim(), template });
+export async function createProject(rpc: ProjectRpc, { name, location, template, ork }: CreateRequest): Promise<ProjectInfo> {
+  const from = ork === undefined ? { template } : { source: { ork } };
+  const { project } = await rpc.call("project.create", { name: name.trim(), location: location.trim(), ...from });
   return project;
+}
+
+export const ORK_FILTERS: FileFilter[] = [{ name: "OpenRocket design", extensions: ["ork"] }];
+export const IMPORT_FILTERS: FileFilter[] = [{ name: "Rocket or motor", extensions: ["ork", "eng", "rse"] }, ...ORK_FILTERS, { name: "Motor curve", extensions: ["eng", "rse"] }];
+
+export const IMPORT_UNSUPPORTED = "RocketWright can import .ork, .eng and .rse files.";
+export const IMPORT_MOTOR_NEEDS_PROJECT = "Open a project first: a motor file is added to a project.";
+export const IMPORT_BUSY = "Could not import that file: finish what is open first, then try again.";
+
+/** How a file is imported, from its extension; null when it cannot be. */
+export function importKindOf(path: string): schema.ImportKind | null {
+  const extension = /\.([^./\\]+)$/.exec(path)?.[1]?.toLowerCase();
+  if (extension === "ork") return "ork";
+  return extension === "eng" || extension === "rse" ? "motor" : null;
+}
+
+export function fileBase(path: string): string {
+  return path.split(/[/\\]/).at(-1) ?? path;
+}
+
+/** The file's name without its extension: the New project dialog's first guess at a name. */
+export function fileStem(path: string): string {
+  return fileBase(path).replace(/\.[^.]*$/, "");
+}
+
+export interface Notice {
+  tone: "success" | "warning";
+  text: string;
+}
+
+/** A long list would push the rest of the window away; the count still says how many. */
+const MAX_NOTICE_ITEMS = 5;
+
+function itemList(items: readonly string[]): string {
+  const shown = items.slice(0, MAX_NOTICE_ITEMS).join(", ");
+  return items.length > MAX_NOTICE_ITEMS ? `${shown}, and ${items.length - MAX_NOTICE_ITEMS} more` : shown;
+}
+
+/** What the person is told after an import, warnings from the file included. */
+export function importedNotice(fileName: string, out: Pick<schema.ImportOut, "diagnostics">): Notice {
+  const warnings = (out.diagnostics ?? []).map((d) => d.message);
+  if (warnings.length === 0) return { tone: "success", text: `Imported ${fileName}.` };
+  return { tone: "warning", text: `Imported ${fileName}, with ${warnings.length === 1 ? "a warning" : `${warnings.length} warnings`}: ${itemList(warnings)}` };
+}
+
+/** What the person is told after an export; parts the format cannot hold must not vanish silently (U44). */
+export function exportedNotice(out: Pick<schema.ExportOut, "path" | "skipped">): Notice {
+  const skipped = out.skipped ?? [];
+  if (skipped.length === 0) return { tone: "success", text: `Exported to ${out.path}.` };
+  return { tone: "warning", text: `Exported to ${out.path}, leaving out ${skipped.length === 1 ? "a part" : `${skipped.length} parts`} this format cannot hold: ${itemList(skipped)}.` };
+}
+
+/** The file name a save dialog starts from. */
+export function exportDefaultName(projectName: string, format: schema.ExportFormat, sim?: string): string {
+  if (format === "csv") return exportFileName(sim === undefined ? [] : [{ sim }]);
+  const stem = projectName.trim().replace(/[/\\:]+/g, "-") || "rocket";
+  return `${stem}${format === "rasp" ? "-motors" : ""}.${EXPORT_FILE_TYPES[format].extension}`;
 }
 
 export async function renameProject(rpc: ProjectRpc, projectId: string, name: string): Promise<ProjectInfo> {

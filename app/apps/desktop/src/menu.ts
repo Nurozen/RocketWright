@@ -92,6 +92,10 @@ export function buildMenuTemplate(state: MenuState, actions: MenuActions): MenuI
     command("project.openSample"),
     { id: "project.openRecent", label: commandLabel("project.openRecent"), submenu: recentItems(state, send) },
     SEPARATOR,
+    // Import stays on with no project: an .ork there starts a new one (D17).
+    command("file.import"),
+    command("file.export", { enabled: projectOpen }),
+    SEPARATOR,
     command("project.rename", { enabled: projectOpen }),
     command("project.close", { accelerator: "CmdOrCtrl+W", enabled: projectOpen }),
     { id: "window.close", label: "Close window", accelerator: "CmdOrCtrl+Shift+W", click: () => actions.closeWindow() },

@@ -9,6 +9,7 @@ export function createElectronHost(bridge: DesktopBridge): HostApi {
     pickFolder: (options) => bridge.pickFolder(options),
     pickFile: (options) => bridge.pickFile(options),
     saveAs: (options) => bridge.saveAs(options),
+    exportFile: (request) => bridge.exportFile(request),
     recents: () => bridge.recents(),
     removeRecent: (dir) => bridge.removeRecent(dir),
     setActiveProject: (project) => bridge.setActiveProject(project),

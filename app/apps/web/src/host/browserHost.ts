@@ -15,6 +15,9 @@ function request(kind: PathPromptKind, fallbackTitle: string, options: PickFolde
   return { kind, title: title ?? fallbackTitle, ...(defaultPath !== undefined ? { defaultPath } : {}), ...(filters !== undefined ? { filters } : {}) };
 }
 
+/** A browser may not write outside the project (D18). */
+const IN_PROJECT_HINT = "A path inside the project. The desktop app can save anywhere.";
+
 export function createBrowserHost(prompt: PathPrompt): HostApi {
   return {
     kind: "browser",
@@ -22,6 +25,10 @@ export function createBrowserHost(prompt: PathPrompt): HostApi {
     pickFolder: (options) => prompt(request("folder", "Choose a folder", options)),
     pickFile: (options) => prompt(request("file", "Choose a file", options)),
     saveAs: (options) => prompt(request("save", "Save as", options)),
+    exportFile: async ({ defaultName }, writeInProject) => {
+      const path = await prompt({ ...request("save", "Export", { defaultPath: `exports/${defaultName ?? "export"}` }), hint: IN_PROJECT_HINT });
+      return path === null ? { canceled: true } : { canceled: false, out: await writeInProject(path) };
+    },
     recents: () => Promise.resolve([]),
     removeRecent: () => Promise.resolve(),
     setActiveProject: () => Promise.resolve(),

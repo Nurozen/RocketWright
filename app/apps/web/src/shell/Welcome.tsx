@@ -19,12 +19,14 @@ export interface WelcomeProps {
   /** Why the window came back here (a failed reopen or open). */
   notice: string | null;
   onOpened: (projectId: string) => void;
+  /** Import a design as a new project (D17); a browser has no native menu to find it in. */
+  onImport?: (() => void) | undefined;
 }
 
 /** Null: closed. An empty object: plain New project. */
 type DialogState = { offer?: NewProjectOffer } | null;
 
-export function Welcome({ client, host, notice, onOpened }: WelcomeProps) {
+export function Welcome({ client, host, notice, onOpened, onImport }: WelcomeProps) {
   const [recents, setRecents] = useState<RecentProject[]>([]);
   // The clock for the rows' ages, read when the list is, not on every render.
   const [loadedAt, setLoadedAt] = useState(0);
@@ -114,6 +116,12 @@ export function Welcome({ client, host, notice, onOpened }: WelcomeProps) {
           Open sample rocket
         </button>
       </div>
+
+      {onImport !== undefined && (
+        <button type="button" className="rw-button rw-button--quiet rw-welcome__import" disabled={busy} onClick={onImport}>
+          Import an .ork file…
+        </button>
+      )}
 
       <div className="rw-welcome__messages">
         {status !== null && (
