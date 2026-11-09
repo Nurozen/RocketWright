@@ -20,11 +20,11 @@ import { selectedComponentIds } from "../../state/slices/selection.ts";
 import type { GlbDeps } from "../../viewport/glb-source.ts";
 import { COMPARE_EVENT, type CompareEventDetail } from "../../shell/ConnectedShell.tsx";
 import { AddPartButton } from "../assembly/AddPartPopover.tsx";
+import { presetGeometryOps } from "../assembly/presets.ts";
 import { ComponentTreeSlot } from "../assembly/AssemblyPage.tsx";
 import { ChangedFieldsCard, ThreadHistory, useOpenThreadHistory } from "./AgentExtras.tsx";
 import { ComponentEditor, type EditorStatus, type PanelTab } from "./ComponentEditor.tsx";
 import { MaterialsPanel, type MaterialsLibrary } from "./MaterialsPanel.tsx";
-import { editorFields } from "../../ui/fields/index.ts";
 import { PROFILE_VIEW_LABEL, PROFILE_VIEWS, type ProfileView as ViewId } from "./profile-geometry.ts";
 import { ProfileView } from "./ProfileView.tsx";
 import { draftProposal, findStepProposal, type Proposal } from "./proposal.ts";
@@ -290,10 +290,7 @@ function ComponentsWorkspace({ store, client, glbDeps, ui }: { store: AppStore; 
         onApplyPreset={(item) => {
           const c = comps[0];
           if (c === undefined) return;
-          const keys = new Set(editorFields(c.shape.type).filter((f) => f.tab === "Geometry").map((f) => f.key));
-          const ops: PatchOp[] = Object.entries(item.data)
-            .filter(([k, v]) => keys.has(k) && v !== undefined && v !== null)
-            .map(([k, v]) => ({ op: "replace", path: `/c/${c.id}/${k}`, value: v as never }));
+          const ops = presetGeometryOps(item, c);
           if (ops.length === 0) {
             ui.setState({ error: `${item.name} has no ${c.shape.type.replace(/_/g, " ")} fields to apply.` });
             return;

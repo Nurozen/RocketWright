@@ -11,6 +11,7 @@ import type {
   ProjectSnapshot,
   RpcHelloFrame,
   RwRef,
+  schema,
   SimulateOut,
   ViewId,
 } from "@rw/contracts";
@@ -39,6 +40,8 @@ export interface ProjectSlice {
   /** Subscribes to `projectId`, loads threads, and loads + handshakes the wasm core. */
   connect(client: RpcLike, projectId: string): Promise<void>;
   disconnect(): void;
+  /** `library.search` on this project; throws when no project is connected. */
+  searchLibrary(query: schema.LibrarySearchIn): Promise<schema.LibrarySearchOut>;
 }
 
 /** Unsaved UI edits previewed through rw-wasm (and sidecar dry runs). */

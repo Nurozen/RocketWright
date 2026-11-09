@@ -49,9 +49,9 @@
     "boot": "project",
     "mockup": "04-add-part.png",
     "existing": "design-fins.png",
-    "ready": null,
-    "overlay": null,
-    "pane": null,
+    "ready": "[data-testid=\"add-part.popover\"]",
+    "overlay": "[data-testid=\"add-part.popover\"]",
+    "pane": "visible",
     "checks": [
       "A popover opens from the Components plus button.",
       "It has Part types and Parts library tabs and an Attach to dropdown.",

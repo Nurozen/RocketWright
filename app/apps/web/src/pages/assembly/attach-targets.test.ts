@@ -1,7 +1,7 @@
 /** U23: the palette's placements, checked against the real core: what it offers, the sidecar accepts. */
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
-import type { EvaluatedModel, PatchOp, schema } from "@rw/contracts";
+import { CONTAINMENT, containmentAllowed, type EvaluatedModel, type PatchOp, type schema } from "@rw/contracts";
 import { loadRwWasm } from "@rw/rw-wasm";
 import { beforeAll, describe, expect, it } from "vitest";
 import { addPartOps, PART_KINDS, type PartKind } from "../../state/ops/parts.ts";
@@ -90,6 +90,26 @@ describe("attachmentFor", () => {
   it("keeps a tank to the parents the core allows", () => {
     const allowed = model.components.filter((c) => attachmentFor("tank", c) !== null).map((c) => c.id);
     expect(allowed).toEqual(["body_tube", "coupler"]);
+  });
+});
+
+describe("the generated table", () => {
+  it("decides every kind on every parent, short only of an anchor the parent lacks", () => {
+    const noPlace: string[] = [];
+    for (const kind of PART_KINDS) {
+      for (const parent of parentChoices(model.components)) {
+        const allowed = containmentAllowed(parent.shape.type as PartKind, kind, CONTAINMENT.natural_kind[kind]);
+        const attach = attachmentFor(kind, parent);
+        if (!allowed) expect(attach, `${kind} on ${parent.id}`).toBeNull();
+        else if (attach === null) noPlace.push(parent.shape.type);
+      }
+    }
+    // A default nose cone or transition is solid, so it has no `inner` anchor to hold anything.
+    expect(new Set(noPlace)).toEqual(new Set(["nose_cone", "transition"]));
+  });
+
+  it("offers as parents exactly the kinds some rule lets hold a part", () => {
+    expect(parentChoices(model.components).map((c) => c.id).sort()).toEqual(["body_tube", "coupler", "inner_tube", "nose_cone", "transition"]);
   });
 });
 
