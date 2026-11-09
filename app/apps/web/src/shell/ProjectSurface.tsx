@@ -106,6 +106,7 @@ export function ProjectSurface({ client, projectId, initialPage, runSource, http
     if (surfaceRef === undefined) return;
     const handle: SurfaceHandle = {
       flush: () => flushProject(store),
+      hasUnsavedWork: () => hasUnsavedWork(store.getState()),
       exportChoices: () => exportChoices(store.getState()),
       disconnect: () => store.getState().project.disconnect(),
       reconnect: () => {

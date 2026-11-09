@@ -31,6 +31,8 @@ export interface HostApi {
   setDirty(dirty: boolean): Promise<void>;
   /** Save and quit: main asks, `flush` saves as Close does, and main is told what could not be saved. A browser has no quit. Returns the unsubscribe. */
   onFlush(flush: () => Promise<string[]>): () => void;
+  /** Answers main's dirty check (before a quit or a close). A no-op where main has no such question. */
+  onDirtyCheck(isDirty: () => boolean): () => void;
   /** Native menu commands; a browser has none. Returns the unsubscribe. */
   onCommand(listener: (command: DesktopCommand) => void): () => void;
   /** A dropped file's path; null when it has none (always, in a browser: D18). */

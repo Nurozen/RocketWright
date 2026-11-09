@@ -16,6 +16,7 @@ function fakeBridge(overrides: Partial<DesktopBridge> = {}) {
     return Promise.resolve(result);
   };
   const flushListeners = new Set<(id: number) => void>();
+const dirtyListeners = new Set<(id: number) => void>();
   const bridge: DesktopBridge = {
     boot: record("boot", { activeProjectId: "p1", notice: "n" }),
     pickFolder: record("pickFolder", "/picked/folder"),
@@ -27,9 +28,14 @@ function fakeBridge(overrides: Partial<DesktopBridge> = {}) {
     setActiveProject: record("setActiveProject", undefined),
     setDirty: record("setDirty", undefined),
     flushDone: record("flushDone", undefined),
+    dirtyAnswer: record("dirtyAnswer", undefined),
     onFlush: (listener) => {
       flushListeners.add(listener);
       return () => void flushListeners.delete(listener);
+    },
+    onDirtyCheck: (listener) => {
+      dirtyListeners.add(listener);
+      return () => void dirtyListeners.delete(listener);
     },
     prefs: record("prefs", { window: null, view: {}, lastTab: null, defaultDisplayUnits: null }),
     setPrefs: record("setPrefs", undefined),
@@ -42,7 +48,7 @@ function fakeBridge(overrides: Partial<DesktopBridge> = {}) {
     pathForFile: () => "/dropped/rocket.ork",
     ...overrides,
   };
-  return { bridge, calls, listeners, flushListeners };
+  return { bridge, calls, listeners, flushListeners, dirtyListeners };
 }
 
 describe("electron host", () => {
@@ -100,6 +106,29 @@ describe("electron host", () => {
     createElectronHost(bridge).onFlush(() => Promise.reject(new Error("socket closed")));
     for (const l of flushListeners) l(8);
     await vi.waitFor(() => expect(calls).toEqual([["flushDone", { id: 8, problems: ["socket closed"] }]]));
+  });
+
+  it("answers a dirty check with what the page says right now", async () => {
+    const { bridge, calls, dirtyListeners } = fakeBridge();
+    let dirty = false;
+    const off = createElectronHost(bridge).onDirtyCheck(() => dirty);
+    for (const l of dirtyListeners) l(4);
+    dirty = true;
+    for (const l of dirtyListeners) l(5);
+    await vi.waitFor(() => expect(calls).toEqual([["dirtyAnswer", { id: 4, dirty: false }], ["dirtyAnswer", { id: 5, dirty: true }]]));
+    off();
+    expect(dirtyListeners.size).toBe(0);
+  });
+
+  it("reports a dirty check that throws as dirty, so the person is asked", async () => {
+    const { bridge, calls, dirtyListeners } = fakeBridge();
+    const error = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    createElectronHost(bridge).onDirtyCheck(() => {
+      throw new Error("no store");
+    });
+    for (const l of dirtyListeners) l(6);
+    await vi.waitFor(() => expect(calls).toEqual([["dirtyAnswer", { id: 6, dirty: true }]]));
+    error.mockRestore();
   });
 
   it("reports a dropped file's path, and null for one not on disk", () => {

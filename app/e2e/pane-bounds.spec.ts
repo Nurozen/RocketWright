@@ -46,6 +46,7 @@ function fakeDesktopPreload(): void {
     openProviders: () => Promise.resolve(),
     onCommand: () => () => undefined,
     onFlush: () => () => undefined,
+    onDirtyCheck: () => () => undefined,
   };
 }
 

@@ -25,6 +25,7 @@ function setup(opts: { headless?: boolean; window?: FakeWindow | null; exportFil
   const relaunch = vi.fn<() => void>();
   const setDirty = vi.fn<(dirty: boolean) => void>();
   const flushDone = vi.fn<(result: { id: number; problems: string[] }) => void>();
+  const dirtyAnswer = vi.fn<(result: { id: number; dirty: boolean }) => void>();
   const recents: Recents = {
     list: vi.fn<Recents["list"]>(() => Promise.resolve([{ dir: "/a", name: "A", lastOpened: "t", status: "ok" }])),
     see: vi.fn<Recents["see"]>(() => Promise.resolve()),
@@ -51,6 +52,7 @@ function setup(opts: { headless?: boolean; window?: FakeWindow | null; exportFil
     openProviders,
     setDirty,
     flushDone,
+    dirtyAnswer,
     ...(opts.headless !== undefined ? { headless: opts.headless } : {}),
     ...(opts.exportFile !== undefined ? { exportFile: opts.exportFile } : {}),
   });
@@ -60,11 +62,11 @@ function setup(opts: { headless?: boolean; window?: FakeWindow | null; exportFil
     return Promise.resolve().then(() => handler({ sender: win.webContents }, ...args));
   };
   const callAs = (sender: unknown, channel: string, ...args: unknown[]): Promise<unknown> => Promise.resolve().then(() => handlers.get(channel)!({ sender }, ...args));
-  return { handlers, win, dialog, recents, boot, relaunch, prefs, openProviders, setDirty, flushDone, documentsCalls, setDocuments: (d: string) => (documents = d), call, callAs, dispose };
+  return { handlers, win, dialog, recents, boot, relaunch, prefs, openProviders, setDirty, flushDone, dirtyAnswer, documentsCalls, setDocuments: (d: string) => (documents = d), call, callAs, dispose };
 }
 
 const c = DESKTOP_INVOKE_CHANNELS;
-const OWNED = [c.boot, c.pickFolder, c.pickFile, c.saveAs, c.exportFile, c.recents, c.removeRecent, c.setActiveProject, c.setDirty, c.flushDone, c.relaunch, c.prefs, c.setPrefs, c.openProviders];
+const OWNED = [c.boot, c.pickFolder, c.pickFile, c.saveAs, c.exportFile, c.recents, c.removeRecent, c.setActiveProject, c.setDirty, c.flushDone, c.dirtyAnswer, c.relaunch, c.prefs, c.setPrefs, c.openProviders];
 
 describe("sender check", () => {
   it("registers the services it owns and removes them", () => {
@@ -126,6 +128,15 @@ describe("setDirty", () => {
     await t.call(c.setDirty, false);
     expect(t.setDirty.mock.calls).toEqual([[true], [false]]);
     await expect(t.call(c.setDirty, "yes")).rejects.toThrow(/boolean/);
+  });
+});
+
+describe("dirtyAnswer", () => {
+  it("passes on a well-formed answer and refuses anything else", async () => {
+    const t = setup();
+    await t.call(c.dirtyAnswer, { id: 4, dirty: true });
+    expect(t.dirtyAnswer.mock.calls).toEqual([[{ id: 4, dirty: true }]]);
+    for (const bad of [null, "x", { id: "4", dirty: true }, { id: 4 }, { id: 4, dirty: "yes" }]) await expect(t.call(c.dirtyAnswer, bad)).rejects.toThrow(/dirtyAnswer/);
   });
 });
 
