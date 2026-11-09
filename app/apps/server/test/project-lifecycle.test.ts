@@ -7,9 +7,11 @@ import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSy
 import { basename, join } from "node:path";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { TestClient, makeValidator } from "@rw/contracts/mock/harness";
+import { LecturnLink } from "../src/lecturn/connection.ts";
 import { AppServer } from "../src/rpc/AppServer.ts";
 import { MAX_PROJECT_REALPATH, projectedRealpath } from "../src/project/create.ts";
 import { displayName, readProjectName } from "../src/project/inspect.ts";
+import { FakeConnection, connectTo } from "./helpers/fakeLecturn.ts";
 import { sidecarBin, tempProject } from "./helpers/harness.ts";
 
 const validator = makeValidator();
@@ -353,3 +355,33 @@ describe("project lifecycle (U14)", () => {
   });
 });
 
+describe("project rename reaches Lecturn (R0.7)", () => {
+  const conn = new FakeConnection();
+  let base: string;
+  let server: AppServer;
+  let c: TestClient;
+
+  beforeAll(async () => {
+    base = mkdtempSync("/tmp/rwu32-");
+    server = await AppServer.start({ bin: sidecarBin(), stderr: "ignore", log: () => undefined, lecturn: (events) => new LecturnLink(connectTo(conn), events) });
+    c = await TestClient.connect(server.rpcUrl, validator);
+  }, 600_000);
+
+  afterAll(async () => {
+    c?.close();
+    await server?.close();
+    if (base !== undefined) rmSync(base, { recursive: true, force: true });
+  });
+
+  it("retitles the workspace from project.rename and from a manifest edit", async () => {
+    const { project } = await c.call("project.create", { name: "Before", location: base });
+    const root = realpathSync(project.dir);
+    await vi.waitFor(() => expect(conn.ensured).toContainEqual([root, "Before"]));
+
+    await c.call("project.rename", { projectId: project.projectId, name: "Renamed" });
+    await vi.waitFor(() => expect(conn.ensured.at(-1)).toEqual([root, "Renamed"]));
+
+    await c.call("model.patch", { projectId: project.projectId, ops: [{ op: "replace", path: "/project/name", value: "Patched" }] });
+    await vi.waitFor(() => expect(conn.ensured.at(-1)).toEqual([root, "Patched"]));
+  });
+});

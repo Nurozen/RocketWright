@@ -2010,7 +2010,7 @@ packages:
     resolution: {integrity: sha512-0/BnGCCfyUMkBpeDgWihanIAF9JmZhHBgUhEqzvf+adhNGLoP6TaiI5oF8oyb3I45P+PcnrqihSf01M0l0G5+Q==}
 
   lecturn@file:../vendor/lecturn/lecturn.tgz:
-    resolution: {integrity: sha512-Is8kxEt1eOYLPikTCffhlt9r8aAqOcgspVWzvJWTNq8qjaogBE2oKMjJz1WfBgMsy2toZE1fi9M5kqBGuDIN3g==, tarball: file:../vendor/lecturn/lecturn.tgz}
+    resolution: {integrity: sha512-aceyJ3XT6vaWx9BUhi5hD3dNT3oMNowYIAXDBHc5nfHW7k+yOqRLiDSgNorKTRa/1lSvhUVNXUPHwYlY7j2DbA==, tarball: file:../vendor/lecturn/lecturn.tgz}
     version: 0.0.50
     engines: {node: ^22.16 || ^23.11 || >=24.10}
     hasBin: true
