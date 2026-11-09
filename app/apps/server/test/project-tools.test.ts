@@ -101,6 +101,7 @@ describe("project tools: branches (U37)", () => {
     for (const t of list) {
       expect(t.description).toMatch(/cannot change projects/);
       expect(t.description).toMatch(/do not retry/);
+      expect(t.description).toMatch(/Planning and scratch files are welcome.*inside its `artifacts\/` folder/);
       expect(t.annotations?.idempotentHint).toBe(false);
     }
     expect(list[0]!.inputSchema.required).toEqual(["name"]);

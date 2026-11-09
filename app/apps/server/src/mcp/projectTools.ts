@@ -122,13 +122,14 @@ const REQUEST_ARG = {
 
 const AFTER =
   "A thread cannot change projects: this thread stays where it is and a new thread in that project carries `request`. The person confirms in a native dialog. " +
-  "If they cancel, or the call is refused, tell them and stop; do not retry.";
+  "If they cancel, or the call is refused, tell them and stop; do not retry. " +
+  "Planning and scratch files are welcome in a project; keep them all inside its `artifacts/` folder.";
 
 const DEFINITIONS: readonly SidecarTool[] = [
   definition(
     "project_new",
     "New project",
-    `Creates a new RocketWright project and opens it in the app. ${AFTER} Refuses a folder that already holds a project; use \`rw_project_open\` for that.`,
+    `Creates a new RocketWright project and opens it in the app; use this instead of \`rw init\` here. ${AFTER} Refuses a folder that already holds a project; use \`rw_project_open\` for that.`,
     {
       name: { type: "string", description: "The project's name, which is also its folder's: one path segment." },
       location: { type: "string", description: "The parent folder, absolute or starting with ~. Default: the app's projects folder." },

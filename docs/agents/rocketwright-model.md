@@ -114,12 +114,17 @@ my-rocket/
   renders/                rw render output (derived, safe to delete)
   runs/<sim>/<run_id>/    rw sim output: summary.json, events.json, manifest.json, series.csv
   .rw/                    history, lock, and sidecar socket (never edit; gitignored)
+  artifacts/              your planning and scratch files (ignored by RocketWright)
 ```
 
 The `.rw.toml` files and `rocketwright.toml` are the canonical model.
 Everything else (renders, runs, the 3D view) is derived from them. You may
 edit the TOML files directly with your editor, or through `rw set`, `rw add`,
 `rw rm`, and `rw mv`. Both are fine. Run `rw check --strict` after either.
+
+Planning and scratch files (plans, notes, drafts) are welcome in a project.
+Keep all of them inside `artifacts/`, in subfolders if you like. RocketWright
+ignores that folder, so nothing there changes the model or its history.
 
 ## File format
 
@@ -372,7 +377,7 @@ as `name`, `material`, `finish`, `appearance`, `instances`, `override`, and
 
 | Command | Use it to |
 |---|---|
-| `rw init --template simple-rocket [dir]` | start a project in the working directory (or in `dir` when you are asked for one); the other templates are `minimum`, `sample` (a larger worked example), and `empty` (no parts; `rw check` reports `RW-E100` until you add some) |
+| `rw init --template simple-rocket [dir]` | outside the app (CLI or standalone MCP), start a project in the working directory (or in `dir` when you are asked for one); inside the app use `project_new` instead; the other templates are `minimum`, `sample` (a larger worked example), and `empty` (no parts; `rw check` reports `RW-E100` until you add some) |
 | `rw check --strict` | check the design (the gate) |
 | `rw check --strict --json` | the full report: `status`, `diagnostics`, `dims` (`length`, `max_diameter`, `length_cal`, `fineness`, ...), `mass` (with the mass breakdown `mass.components[]`: `component`, `mass`, `cg`, `override`), `aero` (with the per-component terms `aero.terms[]`: `component`, `cna`, `cp`, `model`), `stability`, `motor`, `clearance`, `assertions`, `report` |
 | `rw check --strict --set <path>=<value>` | a what-if: check with overrides, writing nothing (repeat `--set`; the paths are the `rw set` paths) |
@@ -558,6 +563,7 @@ App-only tools (they act on the live window the user sees):
 | `viewport_render` | capture the 3D viewport as an image |
 | `viewport_select`, `viewport_set_camera` | select a component; move the camera |
 | `plot_render` | capture a results plot |
+| `project_new`, `project_open` | start a new project or open an existing one. A thread cannot change projects: the user confirms in a dialog, the window switches, and a new thread in that project takes `request`, which holds only the work left to do. If the user cancels or the call is refused, stop and do not retry |
 
 MCP Apps cards: hosts that support MCP Apps draw a card under some tool
 results. `simulate`, `engine_simulate`, `job_status` and `run_diff` declare

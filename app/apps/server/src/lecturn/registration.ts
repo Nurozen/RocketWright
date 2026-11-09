@@ -1,8 +1,12 @@
 /**
  * RocketWright's Lecturn app registration (spec W2.1, plan B8; Lecturn
- * `AppRegistration`). Lecturn pins a grant to these fields: changing any of
- * them (the binary path, `embedOrigins`, the instructions) asks the user to
- * approve RocketWright again.
+ * `AppRegistration`). Lecturn pins a grant to `headlessTools` and
+ * `embedOrigins`: changing either (the binary path, `listArgs`, an origin)
+ * asks the user to approve RocketWright again. The instructions are not
+ * pinned, but a paired user server keeps the text of its first grant until the
+ * next granted re-pair, so the project rules are repeated where each lease or
+ * turn refreshes them: the `project_new`/`project_open` descriptions and the
+ * window's host context (D8).
  *
  * - `headlessTools` runs the same `rocketwright` binary as the app's own rw
  *   sidecar (`RW_SIDECAR_BIN`, Makefile `RW_PLAIN_BIN`), so both share one
@@ -54,6 +58,9 @@ export const RW_LECTURN_INSTRUCTIONS = [
   "- For visual confirmation use rw_render (deterministic drawings and 3D views) or rw_viewport_render (the live viewport the user sees in RocketWright); rw_plot_render shows a Results plot.",
   "- rw: refs (rw:c/fins, rw:run/<id>) name components, configs, sims, runs, and steps. Mentioned refs arrive as chips in the user's message; read their current values with rw_model_get before relying on them.",
   "- rw_simulate returns a job_id; poll rw_job_status until it is complete or failed. rw_engine_simulate returns the finished run.",
+  "- A thread cannot change projects. In this app, start a new project with rw_project_new and open an existing one with rw_project_open, instead of rw init. Each asks the person in a dialog, switches the window and starts a new thread in that project; this thread stays where it is.",
+  "- Put in request only the work left to do after that step: it becomes the new thread's first message. Leave it out when nothing is left. If the person cancels or the call is refused, tell them and stop; do not retry.",
+  "- You may write planning and scratch files (plans, notes, drafts) in the project. Keep all of them inside its artifacts/ folder, in subfolders if you like, and create the folder if it is missing. RocketWright ignores artifacts/, so nothing there changes the model or its history.",
   "- Imports, exports, network fetches, and large jobs may need the user's approval. If a call is refused or not approved, do not retry it unless the user asks.",
   "- The motor library is built in and works offline. Only when the user asks for ThrustCurve, or for a real motor the library lacks, search thrustcurve.org with rw_thrustcurve_search, then download one motor file into lib/motors with rw_thrustcurve_fetch (it needs the user's approval). Assign its lib: ref and check. Never reach the network otherwise.",
 ].join("\n");
