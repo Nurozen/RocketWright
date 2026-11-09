@@ -59,7 +59,8 @@ fn create_here(hub: &Arc<Hub>, args: Value, ctx: &CallCtx) -> Result<Value, ApiE
         .into_iter()
         .map(|(p, t)| (p, t.into_bytes()))
         .collect();
-    // An existing `.gitignore` gains `.rw/` (the dry run above planned it).
+    // An existing `.gitignore` gains the entries it lacks (the dry run above
+    // planned them).
     let planned = rw_project::create::planned_writes(&hub.project, files);
     rw_project::create::write_planned(&hub.project, &planned)?;
     let lock = hub

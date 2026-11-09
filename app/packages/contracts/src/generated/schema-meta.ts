@@ -2319,6 +2319,18 @@ export const SCHEMA_REGISTRY = [
     "tsName": "RunDiffOut"
   },
   {
+    "name": "tools/run_delete.input",
+    "file": "tools/run_delete.input.json",
+    "iface": "IF8",
+    "tsName": "RunDeleteIn"
+  },
+  {
+    "name": "tools/run_delete.output",
+    "file": "tools/run_delete.output.json",
+    "iface": "IF8",
+    "tsName": "MutationOut"
+  },
+  {
     "name": "tools/model_diff.input",
     "file": "tools/model_diff.input.json",
     "iface": "IF8",
@@ -2709,6 +2721,19 @@ export const MCP_TOOL_CATALOG = [
       "idempotent": true,
       "open_world": false,
       "mutating": false
+    }
+  },
+  {
+    "name": "run_delete",
+    "input": "tools/run_delete.input",
+    "output": "tools/run_delete.output",
+    "approval": "always",
+    "hints": {
+      "read_only": false,
+      "destructive": true,
+      "idempotent": false,
+      "open_world": false,
+      "mutating": true
     }
   },
   {

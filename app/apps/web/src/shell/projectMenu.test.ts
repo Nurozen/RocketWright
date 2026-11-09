@@ -53,7 +53,9 @@ describe("the header's project menu", () => {
     const list = entries({ menu });
     expect(item(list, "gone")).toMatchObject({ disabled: true, hint: "Missing" });
     expect(item(list, "busy")).toMatchObject({ disabled: false, hint: "In use" });
-    item(list, "Remove gone from Recent").onSelect?.();
+    const remove = list.find((e) => e.kind !== "divider" && e.kind !== "heading" && e.accessibleName === "Remove gone from Recent") as MenuItem;
+    expect(remove).toMatchObject({ label: "Remove", quiet: true });
+    remove.onSelect?.();
     expect(menu.onRemoveRecent).toHaveBeenCalledWith("/p/gone");
   });
 

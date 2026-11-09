@@ -16,7 +16,7 @@
 
 use std::collections::BTreeMap;
 
-use rw_api::{LibItem, LibKind};
+use rw_api::{FacetCount, LibItem, LibKind, LibraryFacets, LibrarySearchIn, LibrarySearchOut};
 use rw_model::diag::{self, Diagnostic};
 use rw_model::patch::main_rocket_path;
 use rw_model::source::parse_source;
@@ -115,7 +115,8 @@ fn eng_header(text: &str) -> Option<Value> {
 }
 
 /// Presets a `library_search` without a `limit` lists (the catalogs hold
-/// thousands of parts; narrow with a query or kind, or pass a limit).
+/// thousands of parts; narrow with a filter, or page with `limit` and
+/// `offset`).
 pub const DEFAULT_PRESET_LIMIT: usize = 100;
 
 /// A motor file's format.
@@ -277,6 +278,35 @@ fn matches(item: &LibItem, query: Option<&str>, kind: Option<LibKind>) -> bool {
     item.id.to_lowercase().contains(&q)
         || item.name.to_lowercase().contains(&q)
         || item.data.to_string().to_lowercase().contains(&q)
+}
+
+/// A preset's catalog manufacturer.
+fn item_manufacturer(item: &LibItem) -> Option<&str> {
+    item.data.get("preset")?.get("manufacturer")?.as_str()
+}
+
+/// A part's component type; materials and motors have none.
+fn item_component_type(item: &LibItem) -> Option<&str> {
+    item.data.get("type")?.as_str()
+}
+
+/// A filter value, with blank meaning no filter (as for `query`).
+fn wanted(filter: Option<&str>) -> Option<&str> {
+    filter.map(str::trim).filter(|f| !f.is_empty())
+}
+
+fn same(value: &str, filter: &str) -> bool {
+    value.eq_ignore_ascii_case(filter)
+}
+
+fn facet(counts: BTreeMap<&str, u32>) -> Vec<FacetCount> {
+    counts
+        .into_iter()
+        .map(|(value, count)| FacetCount {
+            value: value.to_string(),
+            count,
+        })
+        .collect()
 }
 
 impl Library {
@@ -516,28 +546,65 @@ impl Library {
         out
     }
 
-    /// [`Library::search`] over the project library, then the built-in
-    /// presets ([`crate::presets`]); `limit` applies to the combined list.
-    /// Without a `limit`, every project item and at most
-    /// [`DEFAULT_PRESET_LIMIT`] presets are listed.
-    pub fn search_with_presets(
-        &self,
-        query: Option<&str>,
-        kind: Option<LibKind>,
-        limit: Option<u32>,
-    ) -> Vec<LibItem> {
-        let mut out = self.search(query, kind, limit);
-        let room = limit.map_or(DEFAULT_PRESET_LIMIT, |n| {
-            (n as usize).saturating_sub(out.len())
-        });
-        out.extend(
-            crate::presets::items()
-                .iter()
-                .filter(|i| matches(i, query, kind))
-                .take(room)
-                .cloned(),
-        );
-        out
+    /// `library_search`: the project library, then the built-in presets
+    /// ([`crate::presets`]). `offset` and `limit` window the combined list.
+    /// Without a `limit`, the window holds every remaining project item and
+    /// at most [`DEFAULT_PRESET_LIMIT`] presets. `total` and the facets count
+    /// the whole search, not the window.
+    pub fn search_with_presets(&self, input: &LibrarySearchIn) -> LibrarySearchOut {
+        let query = input.query.as_deref();
+        let wanted_maker = wanted(input.manufacturer.as_deref());
+        let wanted_type = wanted(input.component_type.as_deref());
+        let offset = input.offset.unwrap_or(0);
+        let limit = input.limit.map(|n| n as usize);
+
+        let project = self.items();
+        let mut items = Vec::new();
+        let mut total = 0u32;
+        let mut presets_listed = 0;
+        let mut manufacturers = BTreeMap::<&str, u32>::new();
+        let mut component_types = BTreeMap::<&str, u32>::new();
+        for item in project
+            .iter()
+            .chain(crate::presets::items())
+            .filter(|item| matches(item, query, input.kind))
+        {
+            let maker = item_manufacturer(item);
+            let ty = item_component_type(item);
+            let maker_ok = wanted_maker.is_none_or(|w| maker.is_some_and(|m| same(m, w)));
+            let type_ok = wanted_type.is_none_or(|w| ty.is_some_and(|t| same(t, w)));
+            if let Some(m) = maker.filter(|_| type_ok) {
+                *manufacturers.entry(m).or_default() += 1;
+            }
+            if let Some(t) = ty.filter(|_| maker_ok) {
+                *component_types.entry(t).or_default() += 1;
+            }
+            if !(maker_ok && type_ok) {
+                continue;
+            }
+            let position = total;
+            total += 1;
+            if position < offset {
+                continue;
+            }
+            let is_preset = item.id.starts_with("preset:");
+            let has_room = match limit {
+                Some(n) => items.len() < n,
+                None => !is_preset || presets_listed < DEFAULT_PRESET_LIMIT,
+            };
+            if has_room {
+                presets_listed += usize::from(is_preset);
+                items.push(item.clone());
+            }
+        }
+        LibrarySearchOut {
+            items,
+            total,
+            facets: LibraryFacets {
+                manufacturers: facet(manufacturers),
+                component_types: facet(component_types),
+            },
+        }
     }
 
     /// One item by id (`lib:<path>#<id>`, or `lib:<path>` for its first item).
@@ -607,6 +674,176 @@ mod tests {
             "lib:lib/materials/woods.rw.toml#birch"
         );
         assert!(l.show("lib:nope").is_none());
+    }
+
+    fn search(l: &Library, v: Value) -> LibrarySearchOut {
+        l.search_with_presets(&serde_json::from_value(v).unwrap())
+    }
+
+    fn counted<'a>(facets: &'a [FacetCount], value: &str) -> Option<&'a FacetCount> {
+        facets.iter().find(|f| f.value == value)
+    }
+
+    fn catalog_preset_count() -> u32 {
+        crate::presets::items()
+            .iter()
+            .filter(|i| i.kind == LibKind::Preset)
+            .count() as u32
+    }
+
+    #[test]
+    fn filters_presets_by_manufacturer_and_component_type() {
+        let l = Library::default();
+        let estes_tubes = search(
+            &l,
+            json!({"kind": "preset", "manufacturer": "estes", "component_type": "BODY_TUBE", "limit": 500}),
+        );
+        assert!(estes_tubes.total > 0);
+        assert_eq!(estes_tubes.items.len() as u32, estes_tubes.total);
+        for i in &estes_tubes.items {
+            assert_eq!(i.data["preset"]["manufacturer"], "Estes");
+            assert_eq!(i.data["type"], "body_tube");
+        }
+        // A partial name is not a manufacturer, and a blank filter is none.
+        assert_eq!(
+            search(&l, json!({"kind": "preset", "manufacturer": "Est"})).total,
+            0
+        );
+        assert_eq!(
+            search(&l, json!({"kind": "preset", "manufacturer": "  "})).total,
+            catalog_preset_count()
+        );
+        // Filters combine with the text query.
+        let all_estes = search(&l, json!({"kind": "preset", "manufacturer": "Estes"})).total;
+        let queried = search(
+            &l,
+            json!({"kind": "preset", "manufacturer": "Estes", "query": "bt-55"}),
+        );
+        assert!(queried.total > 0 && queried.total < all_estes);
+    }
+
+    #[test]
+    fn each_facet_ignores_its_own_filter_and_counts_the_rest() {
+        let l = Library::default();
+        let everything = search(&l, json!({"kind": "preset"}));
+        let f = &everything.facets;
+        assert_eq!(
+            f.manufacturers.iter().map(|c| c.count).sum::<u32>(),
+            everything.total
+        );
+        assert_eq!(
+            f.component_types.iter().map(|c| c.count).sum::<u32>(),
+            everything.total
+        );
+        assert!(f.manufacturers.windows(2).all(|w| w[0].value < w[1].value));
+
+        let estes = search(&l, json!({"kind": "preset", "manufacturer": "Estes"}));
+        // The manufacturer list is unchanged by choosing one of them.
+        assert_eq!(estes.facets.manufacturers, f.manufacturers);
+        let estes_count = counted(&f.manufacturers, "Estes").unwrap().count;
+        assert_eq!(estes.total, estes_count);
+        // The type list narrows to that manufacturer.
+        assert_eq!(
+            estes
+                .facets
+                .component_types
+                .iter()
+                .map(|c| c.count)
+                .sum::<u32>(),
+            estes_count
+        );
+
+        let tubes = search(&l, json!({"kind": "preset", "component_type": "body_tube"}));
+        assert_eq!(tubes.facets.component_types, f.component_types);
+        assert_eq!(
+            tubes.total,
+            counted(&f.component_types, "body_tube").unwrap().count
+        );
+        assert_eq!(
+            counted(&tubes.facets.manufacturers, "Estes").unwrap().count,
+            search(
+                &l,
+                json!({"kind": "preset", "component_type": "body_tube", "manufacturer": "Estes"})
+            )
+            .total
+        );
+    }
+
+    #[test]
+    fn project_parts_filter_by_type_but_have_no_manufacturer() {
+        let files = lib(&[(
+            "lib/components/tubes.rw.toml",
+            "[c.bt55]\nname = \"BT-55\"\ntype = \"body_tube\"\nlength = \"300 mm\"\nod = \"33.7 mm\"\nid = \"32.6 mm\"\n",
+        )]);
+        let l = Library::load(&files, None);
+        let tubes = search(
+            &l,
+            json!({"component_type": "body_tube", "kind": "component"}),
+        );
+        assert_eq!(tubes.total, 1);
+        assert_eq!(tubes.items[0].name, "BT-55");
+        assert_eq!(
+            search(&l, json!({"manufacturer": "Estes", "kind": "component"})).total,
+            0
+        );
+    }
+
+    #[test]
+    fn paging_reaches_every_item_once_in_order() {
+        let files = lib(&[(
+            "lib/motors/RW_A8G.eng",
+            "; c\nRW_A8G 18 70 3-5 0.003 0.015 RocketWright\n 0.1 5\n",
+        )]);
+        let l = Library::load(&files, None);
+        let whole = catalog_preset_count();
+        let mut ids = Vec::new();
+        loop {
+            let page = search(
+                &l,
+                json!({"kind": "preset", "limit": 500, "offset": ids.len()}),
+            );
+            assert_eq!(page.total, whole);
+            if page.items.is_empty() {
+                break;
+            }
+            ids.extend(page.items.into_iter().map(|i| i.id));
+        }
+        assert_eq!(ids.len() as u32, whole);
+        let unique: std::collections::BTreeSet<_> = ids.iter().collect();
+        assert_eq!(unique.len(), ids.len());
+        let catalog: Vec<_> = crate::presets::items()
+            .iter()
+            .filter(|i| i.kind == LibKind::Preset)
+            .map(|i| i.id.clone())
+            .collect();
+        assert_eq!(ids, catalog);
+
+        // Project items come first and share the window with presets.
+        let first = search(&l, json!({"limit": 2}));
+        assert_eq!(first.items[0].kind, LibKind::Motor);
+        assert!(first.items[1].id.starts_with("preset:"));
+        let next = search(&l, json!({"limit": 2, "offset": 1}));
+        assert_eq!(next.items[0].id, first.items[1].id);
+
+        // Past the end: nothing, with the count still reported.
+        let past = search(&l, json!({"kind": "preset", "offset": whole}));
+        assert!(past.items.is_empty());
+        assert_eq!(past.total, whole);
+    }
+
+    #[test]
+    fn without_a_limit_each_window_lists_at_most_the_default_presets() {
+        let files = lib(&[(
+            "lib/motors/RW_A8G.eng",
+            "; c\nRW_A8G 18 70 3-5 0.003 0.015 RocketWright\n 0.1 5\n",
+        )]);
+        let l = Library::load(&files, None);
+        let first = search(&l, json!({}));
+        assert_eq!(first.items.len(), 1 + DEFAULT_PRESET_LIMIT);
+        assert!(first.total as usize > first.items.len());
+        let next = search(&l, json!({"offset": first.items.len()}));
+        assert_eq!(next.items.len(), DEFAULT_PRESET_LIMIT);
+        assert_ne!(next.items[0].id, first.items.last().unwrap().id);
     }
 
     #[test]

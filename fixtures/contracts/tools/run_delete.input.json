@@ -1,0 +1,7 @@
+{
+  "provenance": "contract-fixture",
+  "type": "tools/run_delete.input",
+  "payload": {
+    "run": "baseline/f8eb21388e28"
+  }
+}

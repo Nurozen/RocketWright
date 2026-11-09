@@ -11,7 +11,7 @@ import { stripCurrentStep } from "../../shell/connect.ts";
 import { Icon } from "../../shell/Icon.tsx";
 import type { Units } from "../../state/index.ts";
 import { type AppStore, useAppState } from "../../state/store.ts";
-import { displayUnit, toDisplay } from "./fields.ts";
+import { displayUnit, toDisplay } from "../../ui/fields/index.ts";
 import type { ChangedField } from "./proposal.ts";
 import { openThreadSteps, type ThreadHistoryItem } from "./thread-history.ts";
 

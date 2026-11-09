@@ -1,8 +1,9 @@
 /**
  * The header at the narrowest window the app runs in, with the longest name a
- * project can have (255 bytes, `MAX_PROJECT_NAME_BYTES`). No minimum window
- * size is enforced; 1024 is the width of the smallest display RocketWright
- * has been seen on (a 1024x768 macOS CI runner, content 1024x656).
+ * project can have (255 bytes, `MAX_PROJECT_NAME_BYTES`). 1024 is the
+ * interactive window's `minWidth` (`D/main.ts`), and the width of the smallest
+ * display RocketWright has been seen on (a 1024x768 macOS CI runner, content
+ * 1024x656).
  */
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { readFileSync, rmSync, writeFileSync } from "node:fs";

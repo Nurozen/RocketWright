@@ -50,15 +50,18 @@ export const PROJECT_NOT_OPEN = "project not open in RocketWright";
 export interface LecturnCallContext {
   workspaceRoot: string;
   threadId: string | null;
+  /** Lecturn's id for the calling project (U38's copy of the caller's thread settings needs it). */
+  projectId: string | null;
 }
 
 /** `_meta["lecturn/context"]` of a live call, or undefined without a workspace root. */
 export function lecturnContextOf(meta: Record<string, unknown> | undefined): LecturnCallContext | undefined {
   const c = meta?.[META_LECTURN_CONTEXT];
   if (typeof c !== "object" || c === null) return undefined;
-  const { workspaceRoot, threadId } = c as Record<string, unknown>;
+  const { workspaceRoot, threadId, projectId } = c as Record<string, unknown>;
   if (typeof workspaceRoot !== "string" || workspaceRoot === "") return undefined;
-  return { workspaceRoot, threadId: typeof threadId === "string" && threadId !== "" ? threadId : null };
+  const id = (v: unknown): string | null => (typeof v === "string" && v !== "" ? v : null);
+  return { workspaceRoot, threadId: id(threadId), projectId: id(projectId) };
 }
 
 /** Default wait for `broker.respond`. */

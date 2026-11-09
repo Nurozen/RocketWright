@@ -9,7 +9,7 @@
  * diagnostics (draft preview) stay the authority the editor shows.
  */
 import type { Units } from "../../state/index.ts";
-import { toDisplay, toSource } from "./fields.ts";
+import { toDisplay, toSource } from "../../ui/fields/index.ts";
 
 export type Pt = readonly [number, number];
 

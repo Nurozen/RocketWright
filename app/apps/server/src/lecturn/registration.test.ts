@@ -7,7 +7,7 @@
 import { chmodSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { AGENT_OPS } from "@rw/contracts";
+import { AGENT_OPS, PROJECT_TOOLS } from "@rw/contracts";
 import { afterAll, describe, expect, it } from "vitest";
 import { APP_ICON_PATH, absoluteSidecarBinary, iconDataUrl, rocketwrightRegistration, RW_LECTURN_INSTRUCTIONS } from "./registration.ts";
 
@@ -78,13 +78,46 @@ describe("Lecturn registration (B8, W2.1)", () => {
 
   it("names only tools the sidecar or the window serves, with the rw_ prefix", () => {
     const sidecarTools = readdirSync(join(REPO, "fixtures/contracts/tools")).map((f) => f.split(".")[0]!);
-    const known = new Set([...sidecarTools, ...AGENT_OPS]);
+    const known = new Set([...sidecarTools, ...AGENT_OPS, ...PROJECT_TOOLS]);
     // Tool names are plain text (CPW2B): no backticks model code formatting for identifiers.
     const named = [...RW_LECTURN_INSTRUCTIONS.matchAll(/\brw_([a-z_]+)\b/g)].map((m) => m[1]!);
     expect(named.length).toBeGreaterThan(5);
     expect(named.filter((t) => !known.has(t))).toEqual([]);
     // Every tool-like name carries the prefix.
     expect([...RW_LECTURN_INSTRUCTIONS.matchAll(/(?<!rw_)\b(model_patch|design_check|simulate|job_status)\b/g)]).toEqual([]);
+  });
+
+  describe("project rules (R1.1, R1.4), in the instructions and the skill", () => {
+    const skill = readFileSync(join(REPO, "docs/agents/SKILL.md"), "utf8");
+    const app = skill.slice(skill.indexOf("## In the RocketWright app"), skill.indexOf("## The loop"));
+    const flat = app.replace(/\s+/g, " ");
+    const forbidsPlanning = /\b(?:never|not|no|don't|avoid)\b[^.\n]*\b(?:planning|scratch)\b/i;
+
+    it.each([
+      ["registration.ts", RW_LECTURN_INSTRUCTIONS],
+      ["SKILL.md", flat],
+    ])("%s sends project changes through the tools", (_where, text) => {
+      expect(text).toMatch(/A thread cannot change projects/);
+      expect(text).toContain("rw_project_new");
+      expect(text).toContain("rw_project_open");
+      expect(text).toMatch(/instead of rw init/);
+      expect(text).toMatch(/request only the work left/);
+      expect(text).toMatch(/do not retry/);
+    });
+
+    it.each([
+      ["registration.ts", RW_LECTURN_INSTRUCTIONS],
+      ["SKILL.md", flat],
+    ])("%s permits planning files and confines them to artifacts/", (_where, text) => {
+      expect(text).toMatch(/You may write planning and scratch files/);
+      expect(text).toMatch(/Keep all of them inside its artifacts\/ folder/);
+      expect(text).not.toMatch(forbidsPlanning);
+    });
+
+    it("scopes the rw init guidance to the CLI and standalone MCP", () => {
+      expect(skill).toMatch(/Outside the app \(CLI or standalone MCP\), create projects/);
+      expect(readFileSync(join(REPO, "docs/agents/rocketwright-model.md"), "utf8")).toMatch(/\| `rw init --template simple-rocket \[dir\]` \| outside the app/);
+    });
   });
 
   it("resolves the rocketwright binary to an absolute path", () => {

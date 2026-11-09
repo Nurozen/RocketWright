@@ -28,6 +28,7 @@ import type { RpcLike } from "../state/rpc.ts";
 import { createAppStore, useAppState } from "../state/store.ts";
 import { browserGlbDeps } from "../viewport/glb-source.ts";
 import { ConnectedShell, type PageSlots } from "./ConnectedShell.tsx";
+import type { CommandHandlers } from "./commands.ts";
 import type { ProjectMenuModel } from "./model.ts";
 import type { SurfaceHandle } from "./useProjectActions.tsx";
 
@@ -47,11 +48,13 @@ export interface ProjectSurfaceProps {
   projectMenu?: ProjectMenuModel | undefined;
   /** Filled while this surface is mounted: what `AppRoot` needs before it can leave the project. */
   surfaceRef?: RefObject<SurfaceHandle | null> | undefined;
+  commandsRef?: RefObject<CommandHandlers | null> | undefined;
+  onOpenHelp?: (() => void) | undefined;
 }
 
 const message = (e: unknown): string => (e instanceof Error ? e.message : String(e));
 
-export function ProjectSurface({ client, projectId, initialPage, runSource, httpBase, onPageChange, onOpenFailed, onSwitchProject, onProjectInfo, projectMenu, surfaceRef }: ProjectSurfaceProps) {
+export function ProjectSurface({ client, projectId, initialPage, runSource, httpBase, onPageChange, onOpenFailed, onSwitchProject, onProjectInfo, projectMenu, surfaceRef, commandsRef, onOpenHelp }: ProjectSurfaceProps) {
   const [store] = useState(() => {
     const st = createAppStore();
     st.getState().ui.navigate(initialPage);
@@ -158,7 +161,7 @@ export function ProjectSurface({ client, projectId, initialPage, runSource, http
   const renderCompare = () => <ComparePage store={store} client={client} glbDeps={glbDeps} />;
   return (
     <>
-      <ConnectedShell store={store} client={client} renderPage={renderPage} renderCompare={renderCompare} pageSlots={pageSlots} onSwitchProject={onSwitchProject} projectMenu={projectMenu} />
+      <ConnectedShell store={store} client={client} renderPage={renderPage} renderCompare={renderCompare} pageSlots={pageSlots} onSwitchProject={onSwitchProject} projectMenu={projectMenu} commandsRef={commandsRef} onOpenHelp={onOpenHelp} />
       <ThumbnailBaker store={store} glbDeps={glbDeps} />
     </>
   );

@@ -32,6 +32,8 @@ export interface HeaderProps {
   onRedo?: () => void;
   /** Settings (B12: opens Lecturn's providers panel in the embedded pane). */
   onOpenSettings?: () => void;
+  /** Opens the quick start. */
+  onOpenHelp?: () => void;
 }
 
 /** `⌘Z` on macOS, `Ctrl+Z` elsewhere. */
@@ -99,6 +101,7 @@ export function Header({
   onUndo,
   onRedo,
   onOpenSettings,
+  onOpenHelp,
 }: HeaderProps) {
   const [menu, setMenu] = useState(false);
   const switcher = useRef<HTMLButtonElement>(null);
@@ -222,7 +225,7 @@ export function Header({
         )}
         <span className="rw-header__sep" aria-hidden />
         <SettingsButton {...(onOpenSettings ? { onClick: onOpenSettings } : {})} />
-        <button type="button" className="rw-icon-button" data-testid="header.help" aria-label="Help">
+        <button type="button" className="rw-icon-button" data-testid="header.help" aria-label="Help" onClick={onOpenHelp}>
           <Icon name="help" size={22} />
         </button>
       </div>

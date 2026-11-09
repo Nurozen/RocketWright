@@ -1,6 +1,6 @@
 /**
  * The U13 contract batch against the real sidecar: the thin wrappers over
- * existing tools, `export.file`'s refusal of `allow_outside`, and the stubs
+ * existing tools, `export.file`'s role check on `allow_outside`, and the stubs
  * that answer `internal` until their step lands. Every frame is validated
  * against the IF10 schemas (`TestClient`).
  */
@@ -41,6 +41,21 @@ describe("contract batch (U13)", () => {
     const r = await c.request("export.file", { projectId, format: "ork", path, allow_outside: true });
     expect(r).toMatchObject({ ok: false, error: { code: "forbidden" } });
     expect(existsSync(path)).toBe(false);
+  });
+
+  it("export.file with allow_outside writes outside the project on main's socket only (D11)", async () => {
+    const main = await TestClient.connect(server.rpcUrl, validator);
+    try {
+      await main.call("host.register", { token: server.mainToken });
+      const path = join(outside, "from-main.ork");
+      await main.call("export.file", { projectId, format: "ork", path, allow_outside: true });
+      expect(existsSync(path)).toBe(true);
+      const again = join(outside, "from-page.ork");
+      expect(await c.request("export.file", { projectId, format: "ork", path: again, allow_outside: true })).toMatchObject({ ok: false, error: { code: "forbidden" } });
+      expect(existsSync(again)).toBe(false);
+    } finally {
+      main.close();
+    }
   });
 
   it("export.file writes inside the project without allow_outside", async () => {
@@ -85,12 +100,14 @@ describe("contract batch (U13)", () => {
     expect(await c.request("motor.show", { projectId, id: "generic:NOPE" })).toMatchObject({ ok: false, error: { code: "api_error" } });
   });
 
+  it("run.delete reaches the sidecar and validates its params", async () => {
+    expect(await c.request("run.delete", { projectId, run: "baseline/aaaaaaaaaaaa", dry_run: true })).toMatchObject({ ok: false, error: { code: "api_error", api: { code: "not_found" } } });
+    expect(await c.request("run.delete", { projectId } as never)).toMatchObject({ ok: false, error: { code: "invalid_params" } });
+  });
+
   it("the unimplemented methods answer internal until their steps land", async () => {
     const stubs: [RpcMethod, Record<string, unknown>][] = [
       ["project.restartSidecar", { projectId }],
-      ["run.delete", { projectId, run: "baseline/abc" }],
-      ["host.register", { token: "x" }],
-      ["host.respond", { requestId: "r", accepted: true }],
     ];
     for (const [method, params] of stubs) {
       expect(await c.request(method, params as never), method).toMatchObject({ ok: false, error: { code: "internal" } });

@@ -141,6 +141,7 @@
   z-index: var(--rw-ui-z);
   min-width: 192px;
   width: max-content;
+  max-width: min(360px, calc(100vw - 16px));
   padding: 4px;
   overflow-y: auto;
   border: var(--rw-hairline) solid var(--rw-ui-edge);
@@ -162,6 +163,13 @@
   background: none;
   text-align: left;
   white-space: nowrap;
+}
+
+/* A small follow-up to the row above it, not another row of the list. */
+.rw-ui-menu button[data-quiet="true"] {
+  height: 26px;
+  color: var(--rw-text-secondary);
+  font-size: var(--rw-font-size-secondary);
 }
 
 .rw-ui-menu button:hover:not(:disabled),
@@ -192,9 +200,13 @@
 
 .rw-ui-menu__label {
   flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .rw-ui-menu__hint {
+  flex: none;
   margin-left: 16px;
   color: var(--rw-text-secondary);
   font-size: var(--rw-font-size-secondary);

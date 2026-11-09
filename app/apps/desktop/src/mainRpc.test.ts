@@ -6,10 +6,10 @@
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
 import { afterEach, describe, expect, it } from "vitest";
-import { RPC_VERSION, type LecturnStatus, type ProjectInfo } from "@rw/contracts";
+import { RPC_VERSION, type HostShow, type LecturnStatus, type ProjectInfo } from "@rw/contracts";
 import { acceptUpgrade, type WsConnection } from "@rw/contracts/ws";
 import { SEED_PROJECT_ID, startMockServer, type MockServer } from "@rw/contracts/mock";
-import { connectMainRpc, MainRpcError, type MainRpc } from "./mainRpc.ts";
+import { connectMainRpc, MainRpcError, type MainRpc, type MainRpcOptions } from "./mainRpc.ts";
 
 const servers: MockServer[] = [];
 const clients: MainRpc[] = [];
@@ -70,6 +70,77 @@ const until = async (pred: () => boolean, ms = 5_000): Promise<void> => {
   }
 };
 
+describe("main RPC client: host channel (U35, D11)", () => {
+  const ASK = { tool: "project_open", path: "/tmp/rocket" } as const;
+
+  async function hostSetup(onHostRequest?: MainRpcOptions["onHostRequest"]): Promise<MockServer> {
+    const srv = await startMockServer({ tickMs: 5 });
+    servers.push(srv);
+    clients.push(await connectMainRpc(srv.url, { mainToken: "main-secret", ...(onHostRequest === undefined ? {} : { onHostRequest }) }));
+    return srv;
+  }
+
+  it("registers with the token and sends the handler's answer", async () => {
+    const seen: string[] = [];
+    const srv = await hostSetup((request) => {
+      seen.push(request.path);
+      return { accepted: true, displayUnits: { length: "mm" } };
+    });
+    await expect(srv.mock.requestHost(ASK)).resolves.toMatchObject({ accepted: true, displayUnits: { length: "mm" } });
+    expect(seen).toEqual(["/tmp/rocket"]);
+  });
+
+  it("stays an ordinary client without a token", async () => {
+    const srv = await startMockServer({ tickMs: 5 });
+    servers.push(srv);
+    clients.push(await connectMainRpc(srv.url, { mainToken: null }));
+    await expect(srv.mock.requestHost(ASK)).rejects.toThrow("no host");
+  });
+
+  it("refuses when the handler throws or there is none", async () => {
+    await expect((await hostSetup()).mock.requestHost(ASK)).resolves.toMatchObject({ accepted: false });
+    const broken = await hostSetup(() => {
+      throw new Error("dialog failed");
+    });
+    await expect(broken.mock.requestHost(ASK)).resolves.toMatchObject({ accepted: false });
+  });
+
+  it("aborts the handler when the socket closes", async () => {
+    const srv = await startMockServer({ tickMs: 5 });
+    servers.push(srv);
+    let signal: AbortSignal | undefined;
+    const rpc = await connectMainRpc(srv.url, {
+      mainToken: "main-secret",
+      onHostRequest: (_r, s) => {
+        signal = s;
+        return new Promise(() => undefined);
+      },
+    });
+    const consent = srv.mock.requestHost(ASK);
+    await until(() => signal !== undefined);
+    expect(signal?.aborted).toBe(false);
+    rpc.close();
+    expect(signal?.aborted).toBe(true);
+    await expect(consent).rejects.toThrow("disconnected");
+  });
+
+  it("hands host.show to its handler", async () => {
+    const srv = await startMockServer({ tickMs: 5 });
+    servers.push(srv);
+    const shown: HostShow[] = [];
+    clients.push(await connectMainRpc(srv.url, { mainToken: "main-secret", onHostShow: (s) => shown.push(s) }));
+    srv.mock.showHost({ projectId: "p1", threadId: "t1" });
+    await until(() => shown.length === 1);
+    expect(shown).toEqual([{ projectId: "p1", threadId: "t1" }]);
+  });
+
+  it("fails the connect when the channel is taken, without echoing the secret", async () => {
+    const srv = await hostSetup();
+    await expect(connectMainRpc(srv.url, { mainToken: "other-secret" })).rejects.toThrow(/host\.register: forbidden/);
+    await expect(connectMainRpc(srv.url, { mainToken: "other-secret" })).rejects.not.toThrow(/other-secret/);
+  });
+});
+
 describe("main RPC client (B6)", () => {
   it("seeds the open projects from project.list", async () => {
     const { rpc, opened } = await setup();
@@ -103,6 +174,21 @@ describe("main RPC client (B6)", () => {
     await other.call("project.open", { dir: "/tmp/Second Rocket" });
     await until(() => opened.length === 3);
     expect(opened.map((x) => x.projectId)).toEqual([SEED_PROJECT_ID, "second-rocket", "second-rocket"]);
+  });
+
+  it("reports every change to the open projects, so the native menu can rebuild Recent", async () => {
+    const srv = await startMockServer({ tickMs: 5 });
+    servers.push(srv);
+    let changes = 0;
+    const rpc = await connectMainRpc(srv.url, { onProjectsChanged: () => (changes += 1) });
+    clients.push(rpc);
+    const other = await connectMainRpc(srv.url);
+    clients.push(other);
+    const p = (await other.call("project.open", { dir: "/tmp/Second Rocket" })).project;
+    await until(() => changes === 1);
+    await other.call("project.close", { projectId: p.projectId });
+    await until(() => changes === 2);
+    expect(rpc.projects().map((x) => x.projectId)).toEqual([SEED_PROJECT_ID]);
   });
 
   it("keeps the last lecturn.status and reports each push, live switches included (B10, D25)", async () => {

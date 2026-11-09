@@ -34,6 +34,7 @@ pub const TITLES: &[(&str, &str)] = &[
     ("job_cancel", "Cancel run"),
     ("run_list", "List runs"),
     ("run_diff", "Compare runs"),
+    ("run_delete", "Delete run"),
     ("model_diff", "Compare models"),
     ("history_list", "List history"),
     ("history_show", "Show history step"),
@@ -294,6 +295,15 @@ fn success(name: &str, args: &Value, out: &Value) -> String {
         "import_file" => {
             let items = count(len(out, "imported"), "item", "items");
             mutation(out, format!("{items} imported"), &items)
+        }
+        "run_delete" => {
+            // Never a step: `mutation` would read this as "No change".
+            let run = text(args, "run").unwrap_or("run");
+            if dry_run(out) {
+                format!("Dry run · delete {run}")
+            } else {
+                format!("Deleted {run}")
+            }
         }
         "cfd_import" => mutation(out, "Dataset imported".into(), "dataset"),
         "thrustcurve_fetch" => {
@@ -673,6 +683,18 @@ mod tests {
                 none.clone(),
                 json!({"model_hash": "h", "runs": [{}, {}]}),
                 "2 runs",
+            ),
+            (
+                "run_delete",
+                json!({"run": "baseline/f8eb21388e28"}),
+                mutation_out(None, false, 0),
+                "Deleted baseline/f8eb21388e28",
+            ),
+            (
+                "run_delete",
+                json!({"run": "baseline/f8eb21388e28"}),
+                mutation_out(None, true, 0),
+                "Dry run · delete baseline/f8eb21388e28",
             ),
             (
                 "run_diff",

@@ -12,6 +12,13 @@
     "sha256": {
       "type": "string",
       "pattern": "^[0-9a-f]{64}$"
+    },
+    "skipped": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Ids of components the format could not represent and the file leaves\nout (`.ork` has no tank or feed parts)."
     }
   },
   "required": [

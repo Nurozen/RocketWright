@@ -1072,3 +1072,247 @@ fn prune_outputs_keeps_the_newest_per_prefix() {
         .unwrap_err();
     assert_eq!(e.code, ApiErrorCode::Locked);
 }
+
+// ---- run_delete -------------------------------------------------------------
+
+/// Writes a run directory by hand (no flight): the contract fixture's
+/// manifest named `sim`/`id`, and the files the store looks for.
+fn seed_run_at(dir: &Path, sim: &str, id: &str, visual: bool) {
+    let fixture =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/contracts/run-manifest.json");
+    let v: Value = serde_json::from_str(&std::fs::read_to_string(fixture).unwrap()).unwrap();
+    let mut m = v["payload"].clone();
+    m["sim"] = sim.into();
+    m["run_id"] = id.into();
+    std::fs::create_dir_all(dir.join("branches/booster")).unwrap();
+    std::fs::write(dir.join("manifest.json"), m.to_string()).unwrap();
+    std::fs::write(
+        dir.join("branches/booster/series.csv"),
+        format!("{sim}/{id}"),
+    )
+    .unwrap();
+    let data = if visual {
+        "visual.json"
+    } else {
+        "summary.json"
+    };
+    std::fs::write(dir.join(data), format!("{{\"run\":\"{sim}/{id}\"}}")).unwrap();
+}
+
+fn seed_run(d: &TempDir, sim: &str, id: &str) {
+    seed_run_at(&d.path().join("runs").join(sim).join(id), sim, id, false);
+}
+
+fn delete_run(run: &str, dry_run: bool) -> Command {
+    Command::RunDelete(rw_api::RunDeleteIn {
+        run: run.into(),
+        dry_run,
+    })
+}
+
+const RUN_A: &str = "aaaaaaaaaaaa";
+const RUN_B: &str = "bbbbbbbbbbbb";
+const RUN_C: &str = "cccccccccccc";
+
+#[test]
+fn run_delete_removes_one_run_and_leaves_everything_else_byte_stable() {
+    let d = project("sess-rundel");
+    seed_run(&d, "baseline", RUN_A);
+    seed_run(&d, "baseline", RUN_B);
+    seed_run(&d, "other", RUN_C);
+    let mut s = Session::open(d.path(), SessionOptions::writer()).unwrap();
+    let events = Arc::new(Mutex::new(Vec::new()));
+    let sink = events.clone();
+    s.on_event(move |e| sink.lock().unwrap().push(e.clone()));
+    let c = ctx(Origin::Ui);
+    let before = tree_state(d.path());
+    let kept: Vec<_> = [
+        "runs/baseline/bbbbbbbbbbbb/summary.json",
+        "runs/other/cccccccccccc/manifest.json",
+    ]
+    .map(|p| (p, read(&d, p)))
+    .to_vec();
+    let target = format!("baseline/{RUN_A}");
+
+    let Response::RunDelete(dry) = s.execute(&delete_run(&target, true), &c).unwrap() else {
+        panic!("wrong response");
+    };
+    assert!(dry.dry_run);
+    assert_eq!(dry.files.len(), 3, "{:?}", dry.files);
+    assert_eq!(tree_state(d.path()), before, "a dry run writes nothing");
+    assert!(events.lock().unwrap().is_empty());
+
+    let Response::RunDelete(out) = s.execute(&delete_run(&target, false), &c).unwrap() else {
+        panic!("wrong response");
+    };
+    assert_eq!(out.step, None, "the model did not change");
+    assert!(!out.dry_run);
+    assert_eq!(out.model_hash, s.model().model_hash);
+    assert!(out.delta.changed.is_empty());
+    assert!(out.delta.new_diagnostics.is_empty());
+    let paths: Vec<&str> = out.files.iter().map(|f| f.path.as_str()).collect();
+    assert_eq!(
+        paths,
+        [
+            "runs/baseline/aaaaaaaaaaaa/branches/booster/series.csv",
+            "runs/baseline/aaaaaaaaaaaa/manifest.json",
+            "runs/baseline/aaaaaaaaaaaa/summary.json",
+        ]
+    );
+    assert!(out.files.iter().all(|f| f.status == FileStatus::D));
+
+    let mut expected = before;
+    expected.retain(|k, _| !k.starts_with("runs/baseline/aaaaaaaaaaaa/"));
+    assert_eq!(tree_state(d.path()), expected, "only that run's files went");
+    for (p, text) in kept {
+        assert_eq!(read(&d, p), text, "{p}");
+    }
+    let ev = events.lock().unwrap();
+    assert_eq!(ev.len(), 1);
+    assert_eq!(ev[0].uris, vec![URI_RUNS]);
+    assert_eq!(ev[0].origin, Origin::Ui);
+    assert!(ev[0].step.is_none());
+    drop(ev);
+
+    let again = s.execute(&delete_run(&target, false), &c).unwrap_err();
+    assert_eq!(again.code, ApiErrorCode::NotFound);
+}
+
+#[test]
+fn run_delete_handles_visual_runs_and_refuses_records_without_a_manifest() {
+    let d = project("sess-rundel-kinds");
+    let visual = d.path().join("runs/study").join(RUN_A);
+    seed_run_at(&visual, "study", RUN_A, true);
+    // Engine and CFD records have no manifest.json.
+    for (sim, data) in [("engine.demo", "engine.json"), ("cfd.tank", "cfd.json")] {
+        let dir = d.path().join("runs").join(sim).join(RUN_B);
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join(data), "{}").unwrap();
+    }
+    let mut s = Session::open(d.path(), SessionOptions::writer()).unwrap();
+    let c = ctx(Origin::Mcp);
+    s.execute(&delete_run(&format!("study/{RUN_A}"), false), &c)
+        .unwrap();
+    assert!(!visual.exists());
+    for sim in ["engine.demo", "cfd.tank"] {
+        let e = s
+            .execute(&delete_run(&format!("{sim}/{RUN_B}"), false), &c)
+            .unwrap_err();
+        assert_eq!(e.code, ApiErrorCode::NotFound, "{sim}");
+        assert!(
+            d.path().join("runs").join(sim).join(RUN_B).is_dir(),
+            "{sim}"
+        );
+    }
+}
+
+#[test]
+fn run_delete_takes_only_an_exact_name() {
+    let d = project("sess-rundel-exact");
+    seed_run(&d, "baseline", RUN_A);
+    let mut s = Session::open(d.path(), SessionOptions::writer()).unwrap();
+    let c = ctx(Origin::Mcp);
+    // Each of these resolves through `find` for a read, to the same run.
+    for fuzzy in ["baseline", "aaaaaa"] {
+        assert!(s.runs().find(fuzzy).is_some(), "{fuzzy}");
+        let e = s.execute(&delete_run(fuzzy, false), &c).unwrap_err();
+        assert_eq!(e.code, ApiErrorCode::NotFound, "{fuzzy}");
+        assert!(
+            e.hint.as_deref().unwrap().contains("<sim>/<run-id>"),
+            "{e:?}"
+        );
+    }
+    assert!(d.path().join("runs/baseline").join(RUN_A).is_dir());
+    for exact in [
+        RUN_A.to_string(),
+        format!("rw:run/{RUN_A}"),
+        format!("runs/baseline/{RUN_A}"),
+        format!("./runs/baseline/{RUN_A}/"),
+    ] {
+        s.execute(&delete_run(&exact, true), &c)
+            .unwrap_or_else(|e| panic!("{exact}: {e:?}"));
+    }
+}
+
+#[test]
+fn run_delete_cannot_escape_the_runs_directory() {
+    let d = project("sess-rundel-escape");
+    seed_run_at(&d.path().join("outside/x"), "outside", "x", false);
+    // A manifest in `runs/` whose own fields point out of it.
+    seed_run_at(
+        &d.path().join("runs/evil").join(RUN_A),
+        "../outside",
+        "x",
+        false,
+    );
+    let mut s = Session::open(d.path(), SessionOptions::writer()).unwrap();
+    let c = ctx(Origin::Mcp);
+    for bad in [
+        "../outside/x",
+        "runs/../outside/x",
+        "baseline/../../outside/x",
+        "..",
+    ] {
+        assert!(s.runs().find(bad).is_none(), "{bad}");
+        let e = s.execute(&delete_run(bad, false), &c).unwrap_err();
+        assert_eq!(e.code, ApiErrorCode::NotFound, "{bad}");
+    }
+    let e = s.execute(&delete_run("x", false), &c).unwrap_err();
+    assert_eq!(e.code, ApiErrorCode::InvalidInput, "{e:?}");
+    assert!(d.path().join("outside/x/manifest.json").is_file());
+    assert!(d.path().join("runs/evil").join(RUN_A).is_dir());
+
+    #[cfg(unix)]
+    {
+        std::os::unix::fs::symlink(d.path().join("outside"), d.path().join("runs/linked")).unwrap();
+        seed_run_at(&d.path().join("outside/y"), "linked", "y", false);
+        let e = s.execute(&delete_run("linked/y", false), &c).unwrap_err();
+        assert_eq!(e.code, ApiErrorCode::InvalidInput, "{e:?}");
+        assert!(d.path().join("outside/y/manifest.json").is_file());
+    }
+}
+
+#[test]
+fn run_delete_refuses_a_sim_with_an_active_job() {
+    use crate::jobs::{JobCtx, JobFailure, JobSpec};
+    let d = project("sess-rundel-job");
+    seed_run(&d, "baseline", RUN_A);
+    let mut s = Session::open(d.path(), SessionOptions::writer()).unwrap();
+    let c = ctx(Origin::Ui);
+    let job = s.jobs().submit(
+        JobSpec {
+            kind: rw_api::JobKind::Simulate,
+            sim: Some("baseline".into()),
+            run_id: Some(RUN_A.into()),
+        },
+        Box::new(|jc: &JobCtx| {
+            while jc.progress(0.0) {
+                std::thread::sleep(Duration::from_millis(5));
+            }
+            Err(JobFailure::Cancelled)
+        }),
+    );
+    let target = format!("baseline/{RUN_A}");
+    for dry_run in [true, false] {
+        let e = s.execute(&delete_run(&target, dry_run), &c).unwrap_err();
+        assert_eq!(e.code, ApiErrorCode::Conflict, "{e:?}");
+    }
+    assert!(d.path().join("runs/baseline").join(RUN_A).is_dir());
+    s.jobs().cancel(&job.job_id).unwrap();
+    s.jobs().wait(&job.job_id, Duration::from_secs(10)).unwrap();
+    s.execute(&delete_run(&target, false), &c).unwrap();
+    assert!(!d.path().join("runs/baseline").join(RUN_A).exists());
+}
+
+#[test]
+fn run_delete_needs_a_writer_but_a_dry_run_does_not() {
+    let d = project("sess-rundel-ro");
+    seed_run(&d, "baseline", RUN_A);
+    let mut s = Session::open(d.path(), SessionOptions::read_only()).unwrap();
+    let c = ctx(Origin::Cli);
+    let target = format!("baseline/{RUN_A}");
+    let e = s.execute(&delete_run(&target, false), &c).unwrap_err();
+    assert_eq!(e.code, ApiErrorCode::Locked);
+    s.execute(&delete_run(&target, true), &c).unwrap();
+    assert!(d.path().join("runs/baseline").join(RUN_A).is_dir());
+}

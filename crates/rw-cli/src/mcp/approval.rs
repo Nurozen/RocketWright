@@ -13,7 +13,8 @@
 //! which B17 removed with the old chat engine; this is now the only copy.
 //! They are keyed off [`CommandDef::approval`]:
 //! - `always` tools ask (`import_file`, `export_file`, `cfd_import`,
-//!   `thrustcurve_fetch`, whose reason names the motor and the network host);
+//!   `run_delete`, whose reason names the run, and `thrustcurve_fetch`,
+//!   whose reason names the motor and the network host);
 //! - `conditional` tools ask for a network URL anywhere in the arguments
 //!   (any `scheme://` string except `rw://`), or for an `engine_simulate`
 //!   duration that is missing (the engine's default, `DesignOptions::
@@ -169,6 +170,10 @@ fn always_reason(tool: &str, args: &Value) -> String {
     }
     if tool == "thrustcurve_fetch" {
         return thrustcurve_reason(args);
+    }
+    if tool == "run_delete" {
+        let run = args.get("run").and_then(Value::as_str).unwrap_or("a run");
+        return format!("Permanently deletes run {run}");
     }
     let what = action(tool);
     let path = args.get("path").and_then(Value::as_str);

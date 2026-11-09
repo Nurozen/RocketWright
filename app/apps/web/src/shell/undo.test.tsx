@@ -1,7 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Header, undoTitle } from "./Header.tsx";
-import { canonicalStep, restoreTarget, stepTitle, undoKey, undoState } from "./undo.ts";
+import { canonicalStep, isTextField, restoreTarget, stepTitle, undoInField, undoKey, undoState } from "./undo.ts";
 
 const step = (seq: number, title = `Edit ${seq}`, tool: string | null = "model_patch") => ({ seq, title, tool });
 const restore = (seq: number, target: string) => step(seq, `Restore ${target}`, "history_restore");
@@ -96,5 +96,33 @@ describe("Header undo/redo", () => {
   it("names the shortcut per platform", () => {
     expect(undoTitle("redo", s3, true)).toBe("Redo: forward to Step 03 · Fin revision (⇧⌘Z)");
     expect(undoTitle("redo", s3, false)).toBe("Redo: forward to Step 03 · Fin revision (Ctrl+Y)");
+  });
+});
+
+describe("native Undo and Redo in a text field", () => {
+  const el = (tagName: string, extra: Record<string, unknown> = {}) => ({ tagName, ...extra }) as unknown as Element;
+
+  it("counts typed-text controls and nothing else", () => {
+    expect(isTextField(el("TEXTAREA"))).toBe(true);
+    expect(isTextField(el("INPUT", { type: "text" }))).toBe(true);
+    expect(isTextField(el("INPUT", { type: "number" }))).toBe(true);
+    expect(isTextField(el("DIV", { isContentEditable: true }))).toBe(true);
+    expect(isTextField(el("INPUT", { type: "checkbox" }))).toBe(false);
+    expect(isTextField(el("SELECT"))).toBe(false);
+    expect(isTextField(el("BUTTON"))).toBe(false);
+    expect(isTextField(null)).toBe(false);
+  });
+
+  it("undoes in the field and says it did", () => {
+    const execCommand = vi.fn<(command: string) => boolean>(() => true);
+    expect(undoInField("undo", { activeElement: el("TEXTAREA"), execCommand } as unknown as Document)).toBe(true);
+    expect(undoInField("redo", { activeElement: el("TEXTAREA"), execCommand } as unknown as Document)).toBe(true);
+    expect(execCommand.mock.calls.map(([c]) => c)).toEqual(["undo", "redo"]);
+  });
+
+  it("leaves it to the design history when no text field has focus", () => {
+    const execCommand = vi.fn<(command: string) => boolean>(() => true);
+    expect(undoInField("undo", { activeElement: el("BODY"), execCommand } as unknown as Document)).toBe(false);
+    expect(execCommand).not.toHaveBeenCalled();
   });
 });

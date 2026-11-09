@@ -4,18 +4,18 @@
  * its RPC mirror (IF10 `ProjectSnapshot`, `ThreadInfo`, history) onto this
  * shape. `PLACEHOLDER_SHELL` is the static stand-in used without a server.
  */
-import type { DesktopCommand, PageId, RecentProject, RwRef } from "@rw/contracts";
+import { TOP_TABS, type DesktopCommand, type PageId, type RecentProject, type RwRef } from "@rw/contracts";
 import type { StatusView } from "../state/status.ts";
 import type { IconName } from "./Icon.tsx";
 
 /** Header tabs, in display order (concepts.md §3). */
-export const TOP_TABS = [
-  { id: "design", label: "Design" },
-  { id: "propulsion", label: "Propulsion" },
-  { id: "simulate", label: "Simulate" },
-  { id: "results", label: "Results" },
-] as const;
+export { TOP_TABS };
 export type TopTab = (typeof TOP_TABS)[number]["id"];
+
+/** A `view.tab` command names its tab as text: it crosses from main. */
+export function isTopTab(tab: string): tab is TopTab {
+  return TOP_TABS.some((t) => t.id === tab);
+}
 
 /** Design local tabs (concepts.md §3 Local tabs). */
 export const DESIGN_TABS = [

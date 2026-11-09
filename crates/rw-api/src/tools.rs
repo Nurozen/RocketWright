@@ -276,8 +276,20 @@ pub struct LibrarySearchIn {
     pub query: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub kind: Option<LibKind>,
+    /// Catalog manufacturer, as `facets.manufacturers` lists it (whole name,
+    /// any case). Only built-in presets record one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub manufacturer: Option<String>,
+    /// Component type, e.g. `body_tube`, as `facets.component_types` lists it.
+    /// Matches parts only, never materials or motors.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub component_type: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub limit: Option<u32>,
+    /// Matching items to pass over before the first one returned. Page with
+    /// `total`: the list is project items, then presets, in a stable order.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub offset: Option<u32>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
@@ -297,6 +309,24 @@ pub struct LibItem {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct LibrarySearchOut {
     pub items: Vec<LibItem>,
+    /// Every item matching the search, before `offset` and `limit`.
+    pub total: u32,
+    pub facets: LibraryFacets,
+}
+
+/// The values a search can narrow by. Each facet ignores its own filter, so
+/// choosing a manufacturer still lists the others.
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize, JsonSchema)]
+pub struct LibraryFacets {
+    pub manufacturers: Vec<FacetCount>,
+    pub component_types: Vec<FacetCount>,
+}
+
+/// One facet value and how many matching items carry it.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+pub struct FacetCount {
+    pub value: String,
+    pub count: u32,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
@@ -405,6 +435,16 @@ pub struct JobRef {
 pub struct RunListIn {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub sim: Option<String>,
+}
+
+/// `run_delete`: one flight or visual run.
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize, JsonSchema)]
+pub struct RunDeleteIn {
+    /// The run: <sim>/<run-id>, rw:run/<run-id>, or its full run id. A sim
+    /// id or a shortened run id is refused: deleting takes an exact name.
+    pub run: String,
+    #[serde(default)]
+    pub dry_run: bool,
 }
 
 /// `run_list` and `rw://runs/index`.
@@ -609,6 +649,10 @@ pub struct ExportOut {
     pub bytes: u64,
     #[schemars(extend("pattern" = "^[0-9a-f]{64}$"))]
     pub sha256: String,
+    /// Ids of components the format could not represent and the file leaves
+    /// out (`.ork` has no tank or feed parts).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub skipped: Vec<String>,
 }
 
 // ---- ThrustCurve (opt-in network) -------------------------------------------

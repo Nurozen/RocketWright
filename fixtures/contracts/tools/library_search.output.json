@@ -11,9 +11,27 @@
         "data": {
           "type": "body_tube",
           "od": "54 mm",
-          "id": "51.8 mm"
+          "id": "51.8 mm",
+          "preset": {
+            "manufacturer": "LOC Precision"
+          }
         }
       }
-    ]
+    ],
+    "total": 1,
+    "facets": {
+      "manufacturers": [
+        {
+          "value": "LOC Precision",
+          "count": 1
+        }
+      ],
+      "component_types": [
+        {
+          "value": "body_tube",
+          "count": 1
+        }
+      ]
+    }
   }
 }

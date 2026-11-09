@@ -12,13 +12,16 @@ import { hostFor, type HostApi } from "../host/HostApi.ts";
 import type { RunDataSource } from "../pages/results/source.ts";
 import { RpcClient, type RpcLike } from "../state/rpc.ts";
 import { BRAND } from "./brand.ts";
-import { dispatchCommand } from "./commands.ts";
+import { dispatchCommand, type CommandHandlers } from "./commands.ts";
 import { INITIAL_LIFECYCLE, lifecycle, shellOutcome, type LifecycleState } from "./lifecycle.ts";
 import { PathPromptModal } from "./PathPromptModal.tsx";
 import { errorText, nextOpen } from "./projectActions.ts";
 import { ProjectSurface } from "./ProjectSurface.tsx";
+import { QuickStart } from "./QuickStart.tsx";
+import { undoInField } from "./undo.ts";
 import { useProjectActions, type SurfaceHandle } from "./useProjectActions.tsx";
 import { Welcome } from "./Welcome.tsx";
+import { applyZoom, nextZoom, ZOOM_DEFAULT } from "./zoom.ts";
 
 export interface AppRootProps {
   url: string;
@@ -140,10 +143,27 @@ export function AppRoot({ url, requestedProjectId, initialPage, runSource, httpB
     return onOpenProject(desktop, (id) => latest.current.switchProject(id));
   }, [desktop, client]);
 
+  const surfaceCommands = useRef<CommandHandlers | null>(null);
+  const [helpOpen, setHelpOpen] = useState(false);
+  const openHelp = useCallback(() => setHelpOpen(true), []);
+  const zoom = useRef(ZOOM_DEFAULT);
+  // Registered once, not per connection: a pick made while still connecting is told why it did nothing rather than vanishing.
   useEffect(() => {
-    if (client === null) return;
-    return host.onCommand((command) => void dispatchCommand(command, latest.current.commands));
-  }, [client, host]);
+    // Undo and Redo go to the focused text field first. Only the page can tell, and it has to work with no project too (New project's name field).
+    const edit = (kind: "undo" | "redo", history: () => void) => {
+      if (!undoInField(kind, document)) history();
+    };
+    const windowCommands: CommandHandlers = {
+      "edit.undo": () => edit("undo", () => dispatchCommand({ id: "edit.undo" }, surfaceCommands.current ?? {})),
+      "edit.redo": () => edit("redo", () => dispatchCommand({ id: "edit.redo" }, surfaceCommands.current ?? {})),
+      "help.quickStart": openHelp,
+      "view.zoom": ({ direction }) => {
+        zoom.current = nextZoom(zoom.current, direction);
+        applyZoom(window, zoom.current);
+      },
+    };
+    return host.onCommand((command) => void dispatchCommand(command, { ...latest.current.commands, ...surfaceCommands.current, ...windowCommands }));
+  }, [host, openHelp]);
 
   let screen = null;
   if (state.phase === "fatal") {
@@ -165,6 +185,8 @@ export function AppRoot({ url, requestedProjectId, initialPage, runSource, httpB
         onProjectInfo={onProjectInfo}
         projectMenu={actions.menu}
         surfaceRef={surfaceRef}
+        commandsRef={surfaceCommands}
+        onOpenHelp={openHelp}
       />
     );
   }
@@ -172,6 +194,7 @@ export function AppRoot({ url, requestedProjectId, initialPage, runSource, httpB
     <>
       {screen}
       {actions.overlays}
+      {helpOpen && <QuickStart onClose={() => setHelpOpen(false)} />}
       <PathPromptModal prompts={prompts} />
     </>
   );

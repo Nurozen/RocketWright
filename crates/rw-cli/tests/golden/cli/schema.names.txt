@@ -66,6 +66,8 @@ tools/run_list.input
 tools/run_list.output
 tools/run_diff.input
 tools/run_diff.output
+tools/run_delete.input
+tools/run_delete.output
 tools/model_diff.input
 tools/model_diff.output
 tools/history_list.input

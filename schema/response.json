@@ -325,6 +325,22 @@
       "properties": {
         "command": {
           "type": "string",
+          "const": "run_delete"
+        },
+        "output": {
+          "$ref": "#/$defs/MutationOut"
+        }
+      },
+      "required": [
+        "command",
+        "output"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "command": {
+          "type": "string",
           "const": "model_diff"
         },
         "output": {
@@ -4701,10 +4717,21 @@
           "items": {
             "$ref": "#/$defs/LibItem"
           }
+        },
+        "total": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0,
+          "description": "Every item matching the search, before `offset` and `limit`."
+        },
+        "facets": {
+          "$ref": "#/$defs/LibraryFacets"
         }
       },
       "required": [
-        "items"
+        "items",
+        "total",
+        "facets"
       ]
     },
     "LibItem": {
@@ -4750,6 +4777,46 @@
         "preset",
         "motor"
       ]
+    },
+    "LibraryFacets": {
+      "type": "object",
+      "properties": {
+        "manufacturers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/FacetCount"
+          }
+        },
+        "component_types": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/FacetCount"
+          }
+        }
+      },
+      "required": [
+        "manufacturers",
+        "component_types"
+      ],
+      "description": "The values a search can narrow by. Each facet ignores its own filter, so\nchoosing a manufacturer still lists the others."
+    },
+    "FacetCount": {
+      "type": "object",
+      "properties": {
+        "value": {
+          "type": "string"
+        },
+        "count": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "value",
+        "count"
+      ],
+      "description": "One facet value and how many matching items carry it."
     },
     "MotorSearchOut": {
       "type": "object",
@@ -5885,6 +5952,13 @@
         "sha256": {
           "type": "string",
           "pattern": "^[0-9a-f]{64}$"
+        },
+        "skipped": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Ids of components the format could not represent and the file leaves\nout (`.ork` has no tank or feed parts)."
         }
       },
       "required": [

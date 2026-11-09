@@ -14,14 +14,30 @@
  * - `lecturnStatus`: the child's last `lecturn.status` push (null before the
  *   first); `onLecturnStatus` fires on each one, so the pane follows a live
  *   switch (D25, B10).
+ * - `mainToken` claims the host channel (D11) once seeding is done, and each
+ *   `host.request` then goes to `onHostRequest`. Anything but a clear answer is
+ *   a refusal, and a closing socket aborts the handler's `signal`.
+ *   `host.show` goes to `onHostShow`.
  */
-import { RPC_VERSION, type LecturnStatus, type ProjectInfo, type RpcError, type RpcMethod, type RpcParams, type RpcResult, type ServerFrame } from "@rw/contracts";
+import { RPC_VERSION, type HostRequest, type HostResponse, type HostShow, type LecturnStatus, type ProjectInfo, type RpcError, type RpcMethod, type RpcParams, type RpcResult, type ServerFrame } from "@rw/contracts";
 
 export interface MainRpcOptions {
   /** Called once per newly seen project (seeded ones included). */
   onProjectOpened?: (project: ProjectInfo) => void;
   /** Called on every `lecturn.status` push (the first arrives right after `hello`). */
   onLecturnStatus?: (status: LecturnStatus) => void;
+  /** The server's `RW_MAIN_TOKEN`: claims the host channel. Without it this socket is an ordinary client. */
+  mainToken?: string | null;
+  /**
+   * Answers a `host.request` (one consent dialog); the answer is sent as
+   * `host.respond`. A throw, or no handler, sends a refusal. `signal` fires when
+   * the socket closes, since nobody can receive the answer then.
+   */
+  onHostRequest?: (request: HostRequest, signal: AbortSignal) => HostAnswer | Promise<HostAnswer>;
+  /** Called on every `host.show`: bring that project (and thread) to the front. */
+  onHostShow?: (show: HostShow) => void;
+  /** Called after the open-project list changes (opened, renamed, or closed). */
+  onProjectsChanged?: () => void;
   /** Called once when the socket closes or errors after connecting. */
   onClose?: () => void;
   /** Connect + hello + `project.list` deadline (default 30 s). */
@@ -38,6 +54,9 @@ export interface MainRpc {
   call<M extends RpcMethod>(method: M, params: RpcParams<M>): Promise<RpcResult<M>>;
   close(): void;
 }
+
+/** What `onHostRequest` decides; the request id is filled in here. */
+export type HostAnswer = Omit<HostResponse, "requestId">;
 
 /** An IF10 error response. */
 export class MainRpcError extends Error {
@@ -60,6 +79,7 @@ export async function connectMainRpc(rpcUrl: string, opts: MainRpcOptions = {}):
   // Pushes that arrive before the seed list finishes are applied after it, so order stays push-consistent.
   let seeding: (() => void)[] | null = [];
   let status: LecturnStatus | null = null;
+  const answering = new Set<AbortController>();
 
   const see = (p: ProjectInfo): void => {
     if (seen.has(p.projectId)) return;
@@ -80,6 +100,8 @@ export async function connectMainRpc(rpcUrl: string, opts: MainRpcOptions = {}):
       r.fail(new Error(`${r.method}: ${why}`));
       pending.delete(id);
     }
+    for (const a of answering) a.abort(new Error(why));
+    answering.clear();
     helloFail?.(new Error(why));
     opts.onClose?.();
   };
@@ -107,18 +129,29 @@ export async function connectMainRpc(rpcUrl: string, opts: MainRpcOptions = {}):
       else r.fail(new MainRpcError(r.method, f.error));
     } else if (f.kind === "push" && f.topic === "project.opened") {
       const { project } = f.payload as { project: ProjectInfo };
-      apply(() => see(project));
+      apply(() => {
+        see(project);
+        opts.onProjectsChanged?.();
+      });
     } else if (f.kind === "push" && f.topic === "project.closed") {
       const { projectId } = f.payload as { projectId: string };
-      apply(() => seen.delete(projectId));
+      apply(() => {
+        seen.delete(projectId);
+        opts.onProjectsChanged?.();
+      });
     } else if (f.kind === "push" && f.topic === "project.updated") {
       const { project } = f.payload as { project: ProjectInfo };
       apply(() => {
         if (seen.has(project.projectId)) seen.set(project.projectId, { ...project });
+        opts.onProjectsChanged?.();
       });
     } else if (f.kind === "push" && f.topic === "lecturn.status") {
       status = f.payload as LecturnStatus;
       opts.onLecturnStatus?.(status);
+    } else if (f.kind === "push" && f.topic === "host.request") {
+      void answerHost(f.payload as HostRequest);
+    } else if (f.kind === "push" && f.topic === "host.show") {
+      opts.onHostShow?.(f.payload as HostShow);
     }
   });
   ws.addEventListener("close", () => shut("RPC socket closed"));
@@ -135,6 +168,21 @@ export async function connectMainRpc(rpcUrl: string, opts: MainRpcOptions = {}):
       pending.set(id, { method, ok: ok as (r: unknown) => void, fail, timer });
       ws.send(JSON.stringify({ kind: "request", id, method, params }));
     });
+
+  const answerHost = async (request: HostRequest): Promise<void> => {
+    const abort = new AbortController();
+    answering.add(abort);
+    let answer: HostAnswer = { accepted: false };
+    try {
+      if (opts.onHostRequest !== undefined) answer = await opts.onHostRequest(request, abort.signal);
+    } catch {
+      answer = { accepted: false };
+    } finally {
+      answering.delete(abort);
+    }
+    // A closed socket already failed the server's side of this request.
+    if (!closed) await call("host.respond", { ...answer, requestId: request.requestId }).catch(() => undefined);
+  };
 
   const timeoutMs = opts.timeoutMs ?? 30_000;
   let deadline: NodeJS.Timeout | undefined;
@@ -154,6 +202,7 @@ export async function connectMainRpc(rpcUrl: string, opts: MainRpcOptions = {}):
     seeding = null;
     for (const p of projects) see(p);
     for (const change of early) change();
+    if (opts.mainToken !== undefined && opts.mainToken !== null) await call("host.register", { token: opts.mainToken });
   } catch (e) {
     ws.close();
     shut("connect failed");

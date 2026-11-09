@@ -7,7 +7,8 @@
 ## Layout (`layout.rs`, `library.rs`)
 
 - Sources: `rocketwright.toml`, `*.rw.toml`/`*.rw.json` outside `lib/`, `runs/`,
-  `renders/`, and hidden directories (depth <= 4). `parts/*.rw.toml` merge by `include`.
+  `renders/`, `artifacts/`, and hidden directories (depth <= 4). `parts/*.rw.toml`
+  merge by `include`. `artifacts/` is where agents keep planning and scratch files.
 - Library: `lib/components/*.rw.toml`, `lib/materials/*.rw.toml`, `lib/motors/*.eng|*.rse`.
   `rocketwright.toml [lib.sha256]` pins each file:
   - mismatch, or a recorded file missing: `RW-E006 lib-hash` (error; the file is not used);
@@ -167,7 +168,8 @@ ops -> `TomlStore::preview` -> eval (+library) -> `Checker` -> dry run returns
   `renders/<config>.<view>.png` plus the manifest. WebGL2 or a fallback
   adapter → exit 2 unless `RW_RENDER_ALLOW_SOFTWARE=1`. See `spikes.md` RL3.
 - `rw init` writes an embedded template (`templates/`, via `build.rs`) and a
-  `.gitignore` with `.rw/`, then records the initial step. It and a
+  `.gitignore` with `.rw/` and `artifacts/` (added to one already in the folder;
+  an existing project's is never changed), then records the initial step. It and a
   project-creating `rw import ork` refuse, naming the files, when a new file
   would land on something already in the folder; a dry run refuses the same
   way. `rw init`'s exit code reports creation only: the strict check's status
