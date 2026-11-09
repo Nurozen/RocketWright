@@ -1916,8 +1916,8 @@ export interface ExportFileIn {
    */
   run?: string | null;
   /**
-   * Allow a path outside the project (absolute or `..`); the gated
-   * approval names the path. Default: the path must stay inside.
+   * Reserved for the person's own export: `rw export --allow-outside` and
+   * the app's File > Export. Refused on an agent's call.
    */
   allow_outside?: boolean;
 }

@@ -82,6 +82,23 @@ export function documentsDirOverride(isPackaged: boolean, env: NodeJS.ProcessEnv
 }
 
 /**
+ * The `--drive` and `--measure` modules to load, or undefined: both import and
+ * run an arbitrary file in the main process, so a shipped app never honours them.
+ */
+export function harnessModule(isPackaged: boolean, path: string | undefined): string | undefined {
+  return isPackaged ? undefined : path;
+}
+
+/**
+ * The server's env with the test switches removed: a shipped app must not grow
+ * test hooks because the environment asked for them (`RW_TEST_HOOKS` enables
+ * them in the server and the sidecar, the other `RW_TEST_*` are their knobs).
+ */
+export function withoutTestHooks(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
+  return Object.fromEntries(Object.entries(env).filter(([k]) => !k.startsWith("RW_TEST_")));
+}
+
+/**
  * A bar capture's seeded Electron profile (B3: `recents.json` for Welcome and
  * the project menu), replacing the hidden run's fresh temp one: `RW_SEEDED_PROFILE`
  * when set and unpackaged. Never honoured by a shipped app. The harness owns the
@@ -191,7 +208,10 @@ export function spawnServer(opts: SpawnServerOptions = {}): Promise<ServerHandle
   if (opts.runAsNode === true) extra.ELECTRON_RUN_AS_NODE = "1";
   if (opts.documentsDir !== undefined) extra.RW_DOCUMENTS_DIR = opts.documentsDir;
   const { cmd, args } = serverCommand(opts.node ?? (env.RW_NODE || "node"), opts.cli ?? SERVER_CLI, opts.projects ?? [], opts.lecturnBaseDir, opts.runAsNode);
-  const child = spawn(cmd, args, { env: childEnv(env, extra), stdio: ["ignore", "pipe", "pipe"] });
+  // stdin stays open and unused: its write end closing is how the server learns this process died, however it died.
+  extra.RW_EXIT_WITH_PARENT = "1";
+  const child = spawn(cmd, args, { env: childEnv(env, extra), stdio: ["pipe", "pipe", "pipe"] });
+  child.stdin?.on("error", () => undefined);
   const exited = new Promise<void>((r) => child.once("exit", () => r()));
   const stop = async (graceMs = 10_000): Promise<void> => {
     if (child.exitCode !== null || child.signalCode !== null) return;

@@ -17,7 +17,7 @@
  *   never a `/tmp` copy.
  */
 import { join } from "node:path";
-import { REPO_ROOT, type SpawnServerOptions } from "./backend.ts";
+import { REPO_ROOT, withoutTestHooks, type SpawnServerOptions } from "./backend.ts";
 
 /** The bundled Electron main, relative to the app root (the asar). */
 export const PACKAGED_MAIN = "app/apps/desktop/src/main.mjs";
@@ -50,6 +50,6 @@ export function packagedServerOptions(layout: PackagedLayout, execPath: string, 
     cli: layout.serverCli,
     node: execPath,
     runAsNode: true,
-    env: { ...env, RW_SIDECAR_BIN: env.RW_SIDECAR_BIN || layout.sidecarBin },
+    env: { ...withoutTestHooks(env), RW_SIDECAR_BIN: env.RW_SIDECAR_BIN || layout.sidecarBin },
   };
 }

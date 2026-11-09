@@ -4238,7 +4238,7 @@
         },
         "allow_outside": {
           "type": "boolean",
-          "description": "Allow a path outside the project (absolute or `..`); the gated\napproval names the path. Default: the path must stay inside."
+          "description": "Reserved for the person's own export: `rw export --allow-outside` and\nthe app's File > Export. Refused on an agent's call."
         }
       },
       "required": [

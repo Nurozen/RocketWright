@@ -3,7 +3,7 @@
  * against fake deps, where a dialog can be held open; the last block drives
  * the real route, host channel and `rw init`. Projects stay under `/tmp`.
  */
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/client";
@@ -119,6 +119,9 @@ describe("project tools: branches (U37)", () => {
       ["a name of dots", { name: ".." }, /name: /],
       ["an empty name", { name: "" }, /name: /],
       ["a name with a bidi override", { name: "abc\u202Etxt" }, /name: cannot contain/],
+      ["a name with a zero-width space", { name: "abc\u200Btxt" }, /name: cannot contain/],
+      ["a name with a Unicode tag character", { name: "abc\u{E0041}txt" }, /name: cannot contain/],
+      ["a location with a zero-width joiner", { location: "/tmp/a\u200Db" }, /location: cannot contain/],
       ["a name over 255 bytes", { name: "n".repeat(256) }, /name: at most 255 bytes/],
       ["a location with a bidi override", { location: "/tmp/\u202Eabc" }, /location: cannot contain/],
       ["an unknown template", { template: "nope" }, /template: expected/],
@@ -131,6 +134,16 @@ describe("project tools: branches (U37)", () => {
     it("project_new refuses a request over the cap rather than truncating it (D13)", async () => {
       const r = await tools().call("project_new", newArgs({ request: "x".repeat(2001) }), CALLER);
       expect(outcome(r)).toMatchObject(refusedBeforeDialog("invalid_args", /request: at most 2000 characters/));
+    });
+
+    it("project_new refuses a request with too many lines, rather than padding the dialog (D13)", async () => {
+      const r = await tools().call("project_new", newArgs({ request: "line\n".repeat(50) }), CALLER);
+      expect(outcome(r)).toMatchObject(refusedBeforeDialog("invalid_args", /request: at most 40 lines/));
+    });
+
+    it("project_open refuses a path with invisible characters", async () => {
+      const r = await tools().call("project_open", { path: "/tmp/a\u200Bb" }, CALLER);
+      expect(outcome(r)).toMatchObject(refusedBeforeDialog("invalid_args", /path: cannot contain/));
     });
 
     it("project_new on a folder holding a project hints rw_project_open", async () => {
@@ -184,6 +197,19 @@ describe("project tools: branches (U37)", () => {
       expect(shown).toEqual([]);
     });
 
+    it.each([
+      ["timeout", "timeout", /did not answer the confirmation in time\. Nothing was created/],
+      ["unavailable", "unavailable", /no desktop window could show the confirmation\. Nothing was created/],
+      ["refused", "invalid_args", /refused to show this confirmation.*Nothing was created/],
+    ] as const)("a dialog declined as %s says so, not that the person cancelled", async (declined, code, message) => {
+      const r = await tools({ askHost: () => Promise.resolve({ requestId: "r", accepted: false, declined }) }).call("project_new", newArgs(), CALLER);
+      expect(r.isError).toBe(true);
+      expect(errorCode(r)).toBe(code);
+      expect(text(r)).toMatch(message);
+      expect(text(r)).not.toMatch(/cancelled/);
+      expect(created).toEqual([]);
+    });
+
     it("an unanswered dialog times out at the deadline, through the signal it was given", async () => {
       let signal: AbortSignal | undefined;
       const r = await tools({
@@ -229,7 +255,8 @@ describe("project tools: branches (U37)", () => {
 
     it("stays busy after the accept, until the project is up", async () => {
       const making = deferred<string>();
-      const t = tools({ create: () => making.promise });
+      // The first project hangs until released; "another" takes the normal path once that is done.
+      const t = tools({ create: (a) => (a.name === "another" ? Promise.resolve(join(a.location!, a.name)) : making.promise) });
       const first = t.call("project_new", newArgs(), CALLER);
       await vi.waitFor(() => expect(asked).toHaveLength(1));
       await new Promise((r) => setTimeout(r, 10));
@@ -237,6 +264,57 @@ describe("project tools: branches (U37)", () => {
       making.resolve(join(base, "solstice"));
       await first;
       expect((await t.call("project_new", newArgs({ name: "another" }), CALLER)).isError).not.toBe(true);
+    });
+  });
+
+  describe("the folder the person approves is the folder that is used", () => {
+    it("project_new names the real folder when the location is a symbolic link, and creates there", async () => {
+      const real = join(base, "elsewhere");
+      mkdirSync(real);
+      symlinkSync(real, join(base, "planted"));
+      const r = await tools().call("project_new", { name: "solstice", location: join(base, "planted") }, CALLER);
+      expect(r.isError, text(r)).not.toBe(true);
+      expect(asked[0]).toMatchObject({ path: join(real, "solstice") });
+      expect(created).toEqual([join(real, "solstice")]);
+      expect(opened).toEqual([join(real, "solstice")]);
+    });
+
+    it("project_new refuses a symbolic link at the target, before the dialog", async () => {
+      const real = join(base, "elsewhere");
+      mkdirSync(real);
+      symlinkSync(real, join(base, "solstice"));
+      expect(outcome(await tools().call("project_new", newArgs(), CALLER))).toMatchObject(refusedBeforeDialog("conflict", /symbolic link/));
+    });
+
+    it("project_open names and opens the real folder behind a link", async () => {
+      const real = projectAt("real-project");
+      symlinkSync(real, join(base, "planted"));
+      const r = await tools().call("project_open", { path: join(base, "planted") }, CALLER);
+      expect(r.isError, text(r)).not.toBe(true);
+      expect(asked[0]).toMatchObject({ path: real });
+      expect(opened).toEqual([real]);
+    });
+
+    it("fails, and creates nothing, if the folder became a link while the dialog was open", async () => {
+      const real = join(base, "elsewhere");
+      mkdirSync(real);
+      const r = await tools({
+        askHost: (request) => {
+          asked.push(request);
+          symlinkSync(real, join(base, "solstice"));
+          return accepted();
+        },
+      }).call("project_new", newArgs(), CALLER);
+      expect(r.isError).toBe(true);
+      expect(errorCode(r)).toBe("conflict");
+      expect(created).toEqual([]);
+    });
+
+    it("fails if the project landed anywhere but the approved path, telling the agent not to retry", async () => {
+      const r = await tools({ create: () => Promise.resolve(join(base, "solstice 2")) }).call("project_new", newArgs(), CALLER);
+      expect(r.isError).toBe(true);
+      expect(errorCode(r)).toBe("conflict");
+      expect(text(r)).toMatch(/not at the approved .*solstice; do not retry/);
     });
   });
 
@@ -396,6 +474,15 @@ describe("cleanRequest (D13)", () => {
     expect(cleanRequest("emoji \u{1F680}")).toBe("emoji \u{1F680}");
   });
 
+  it("strips zero-width and Unicode tag characters, so the person and the thread read the same text", () => {
+    expect(cleanRequest("a\u200Bb\u{E0041}c\u2060d\uFEFFe\u00ADf")).toBe("abcdef");
+  });
+
+  it("accepts up to the line cap and refuses past it, counting after cleaning", () => {
+    expect(cleanRequest("x\n".repeat(39) + "x")).toBe("x\n".repeat(39) + "x");
+    expect(() => cleanRequest("x\n".repeat(40) + "x")).toThrow(/at most 40 lines/);
+  });
+
   it("treats nothing left as no request, and counts characters not UTF-16 units", () => {
     expect(cleanRequest(undefined)).toBeNull();
     expect(cleanRequest(null)).toBeNull();
@@ -518,6 +605,19 @@ describe("project tools: the real route and host channel (U37)", () => {
     const r = await pending;
     expect(r.isError, text(r)).not.toBe(true);
     expect(readFileSync(join(base, "inch-units", "rocketwright.toml"), "utf8")).toMatch(/^\[display_units\][\s\S]*^length = "in"$/m);
+  });
+
+  it("a template sample at a free name makes exactly the approved folder, never a numbered one", async () => {
+    // An empty folder is free to use, and `rw init` would have numbered around it for a sample before.
+    mkdirSync(join(base, "Sample rocket"));
+    const pending = call("project_new", { name: "Sample rocket", location: base, template: "sample" });
+    const asked = await main.push("host.request", (r) => r.name === "Sample rocket");
+    expect(asked).toMatchObject({ path: join(base, "Sample rocket") });
+    await main.call("host.respond", { requestId: asked.requestId, accepted: true });
+    const r = await pending;
+    expect(r.isError, text(r)).not.toBe(true);
+    expect(existsSync(join(base, "Sample rocket", "rocketwright.toml"))).toBe(true);
+    expect(existsSync(join(base, "Sample rocket 2"))).toBe(false);
   });
 
   it("works with no workspace root: the caller is simply unknown", async () => {

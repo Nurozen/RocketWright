@@ -142,8 +142,8 @@ fn when(name: &str) -> &'static str {
         }
         "export_file" => {
             "Export the model or a run (ork, rasp, glb, stl, csv) to a path inside the project (e.g. \
-             exports/rocket.glb). Needs the user's approval; a path outside the project also needs \
-             allow_outside: true."
+             exports/rocket.glb). Needs the user's approval. To save anywhere else, ask the person to \
+             use File > Export."
         }
         "schema_get" => {
             "Read a published JSON Schema by name (check-report, tools/model_patch.input, ...), or list \

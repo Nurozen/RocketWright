@@ -13,7 +13,7 @@
  * `createConsentDialogs` is the native dialog behind the agent's project tools
  * (R1.3, D10, D11). The host channel brings it the request; no page is involved.
  */
-import { DESKTOP_INVOKE_CHANNELS, EXPORT_FILE_TYPES, type DesktopBoot, type DisplayUnits, type ExportFileRequest, type FileFilter, type HostRequest, type schema } from "@rw/contracts";
+import { DESKTOP_INVOKE_CHANNELS, DIALOG_UNSAFE_NAME, DIALOG_UNSAFE_TEXT, EXPORT_FILE_TYPES, PROJECT_TOOL_REQUEST_MAX, PROJECT_TOOL_REQUEST_MAX_LINES, type DesktopBoot, type DisplayUnits, type ExportFileRequest, type FileFilter, type HostDecline, type HostRequest, type schema } from "@rw/contracts";
 import { basename, isAbsolute, join } from "node:path";
 import type { HostAnswer } from "./mainRpc.ts";
 import { prefsPatch, type Preferences } from "./preferences.ts";
@@ -218,16 +218,30 @@ export interface ConsentDeps<W extends WindowLike> {
 }
 
 export interface ConsentDialogs {
-  /** Shows the request once its turn comes. `signal` closes the box as a Cancel. */
+  /** Shows the request once its turn comes. `signal` closes the box; the answer says why, when it is not an accept. */
   ask(request: HostRequest, signal: AbortSignal): Promise<HostAnswer>;
-  /** Closes every box as a Cancel and refuses every later request. */
+  /** Asks about a `rocketwright://open` link for a folder not already known here. */
+  askOpenLink(path: string): Promise<HostAnswer>;
+  /** Closes every box and refuses every later request. */
   close(): void;
 }
 
-const REFUSED: HostAnswer = { accepted: false };
+const declining = (declined: HostDecline): HostAnswer => ({ accepted: false, declined });
 
-/** A control or bidi character could make the path on screen differ from the path acted on. `request` is cleaned by the server (D13). */
-const MISLEADING = /[\p{Cc}\p{Bidi_Control}]/u;
+/** Main checks again here: it is the one showing the box, whatever the server sent. */
+function refusedText(r: HostRequest): boolean {
+  if (DIALOG_UNSAFE_NAME.test(r.path) || DIALOG_UNSAFE_NAME.test(r.name ?? "")) return true;
+  if (r.request === undefined) return false;
+  return DIALOG_UNSAFE_TEXT.test(r.request) || Array.from(r.request).length > PROJECT_TOOL_REQUEST_MAX || r.request.split("\n").length > PROJECT_TOOL_REQUEST_MAX_LINES;
+}
+
+function linkText(path: string): Pick<ConsentBoxOptions, "message" | "detail" | "buttons"> {
+  return {
+    message: "A link wants to open a project",
+    detail: `Folder: ${path}\n\nOpen it only if you started this and trust the folder.`,
+    buttons: ["Cancel", "Open project"],
+  };
+}
 
 function consentText(r: HostRequest): Pick<ConsentBoxOptions, "message" | "detail" | "buttons"> {
   const isNew = r.tool === "project_new";
@@ -251,14 +265,15 @@ export function createConsentDialogs<W extends WindowLike>(deps: ConsentDeps<W>)
   let closed = false;
   let tail: Promise<unknown> = Promise.resolve();
 
-  const show = (request: HostRequest, signal: AbortSignal): Promise<{ response?: number }> | null => {
+  type Text = Pick<ConsentBoxOptions, "message" | "detail" | "buttons">;
+  const show = (text: Text, signal: AbortSignal): Promise<{ response?: number }> | "no_window" => {
     const win = deps.window();
-    if (win === null || win.isDestroyed()) return null;
+    if (win === null || win.isDestroyed()) return "no_window";
     deps.focus();
     return dialog.showMessageBox(win, {
       type: "question",
       title: "RocketWright",
-      ...consentText(request),
+      ...text,
       defaultId: CONSENT_CANCEL_BUTTON,
       cancelId: CONSENT_CANCEL_BUTTON,
       noLink: true,
@@ -266,30 +281,46 @@ export function createConsentDialogs<W extends WindowLike>(deps: ConsentDeps<W>)
     });
   };
 
+  const present = async (text: Text, signal: AbortSignal | null, onAccept: () => HostAnswer): Promise<HostAnswer> => {
+    const cancel = new AbortController();
+    asking.add(cancel);
+    const abort = (): void => cancel.abort();
+    signal?.addEventListener("abort", abort, { once: true });
+    // From arrival, not from showing: the server's clock started when it sent this.
+    const deadline = setTimeout(abort, CONSENT_DEADLINE_MS);
+    const cancelled = new Promise<null>((resolve) => cancel.signal.addEventListener("abort", () => resolve(null), { once: true }));
+    // A box already aborted is never opened (electron#55367), and the next waits until this one has really closed.
+    const turn = tail.then(async (): Promise<{ response?: number } | "no_window" | null> => (cancel.signal.aborted ? null : await show(text, cancel.signal)));
+    tail = turn.catch(() => undefined);
+    try {
+      // The race answers on time even if a box ignores its signal.
+      const result = await Promise.race([turn, cancelled]);
+      if (result === "no_window") return declining("unavailable");
+      if (result?.response === CONSENT_ACCEPT_BUTTON) return onAccept();
+      // Electron can answer an aborted box with no response or with Cancel; the abort is what happened.
+      if (cancel.signal.aborted) return declining(closed ? "unavailable" : "timeout");
+      return declining("cancelled");
+    } finally {
+      clearTimeout(deadline);
+      signal?.removeEventListener("abort", abort);
+      asking.delete(cancel);
+    }
+  };
+
   return {
     ask: async (request, signal) => {
-      if (headless || closed || signal.aborted || MISLEADING.test(request.path) || MISLEADING.test(request.name ?? "")) return REFUSED;
-      const cancel = new AbortController();
-      asking.add(cancel);
-      const abort = (): void => cancel.abort();
-      signal.addEventListener("abort", abort, { once: true });
-      // From arrival, not from showing: the server's clock started when it sent this.
-      const deadline = setTimeout(abort, CONSENT_DEADLINE_MS);
-      const cancelled = new Promise<null>((resolve) => cancel.signal.addEventListener("abort", () => resolve(null), { once: true }));
-      // A box already aborted is never opened (electron#55367), and the next waits until this one has really closed.
-      const turn = tail.then(() => (cancel.signal.aborted ? null : show(request, cancel.signal)));
-      tail = turn.catch(() => undefined);
-      try {
-        // The race answers on time even if a box ignores its signal.
-        const result = await Promise.race([turn, cancelled]);
-        if (result?.response !== CONSENT_ACCEPT_BUTTON) return REFUSED;
+      if (headless || closed) return declining("unavailable");
+      if (signal.aborted) return declining("timeout");
+      if (refusedText(request)) return declining("refused");
+      return present(consentText(request), signal, () => {
         const displayUnits = request.tool === "project_new" ? deps.displayUnits?.() : null;
         return displayUnits === null || displayUnits === undefined ? { accepted: true } : { accepted: true, displayUnits };
-      } finally {
-        clearTimeout(deadline);
-        signal.removeEventListener("abort", abort);
-        asking.delete(cancel);
-      }
+      });
+    },
+    askOpenLink: async (path) => {
+      if (headless || closed) return declining("unavailable");
+      if (DIALOG_UNSAFE_NAME.test(path)) return declining("refused");
+      return present(linkText(path), null, () => ({ accepted: true }));
     },
     close: () => {
       closed = true;

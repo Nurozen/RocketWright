@@ -124,6 +124,7 @@ codes! {
     W_UNKNOWN_FIELD = "RW-W001", "unknown-field", Warning, "A key is not part of the schema and is ignored.";
     W_JOINT_COUNT = "RW-W002", "joint-count-missing", Warning, "A shear-pin or screw joint has no `count`.";
     W_LIB_UNRECORDED = "RW-W003", "lib-unrecorded", Warning, "A file under `lib/` has no sha256 in `rocketwright.toml [lib]`.";
+    W_MATERIAL_MISSING = "RW-W004", "material-missing", Warning, "A component that draws its mass from a material names none, so it has no mass in checks or flights.";
     W_IMPORT_APPROX = "RW-W010", "import-approximated", Warning, "An imported file holds something RocketWright cannot represent exactly; it was approximated or skipped (the message says which).";
     W_FLUID_MODEL_MISSING = "RW-W210", "fluid-model-missing", Warning, "A liquid engine has no `fluid_model`, so its tank and feed analysis cannot run (missing input).";
     W_FEED_BC_MISSING = "RW-W211", "feed-bc-missing", Warning, "A feed-graph edge has no boundary condition `bc` (open, closed, check_valve, orifice) (missing input).";

@@ -22,6 +22,9 @@
 //! - `simulate` with `mc > 100` never asks: Monte Carlo is not implemented,
 //!   so it answers `not_implemented` before any gate, approved or not
 //!   (decision 4);
+//! - `export_file` with `allow_outside` is refused on any agent call, approved
+//!   or not ([`refuse_outside`]): Auto and Full send `approved: true` with no
+//!   person asked, so the destination has to be chosen in File > Export;
 //! - `project_create` never runs for a Lecturn call, approved or not: the
 //!   workspace root is bound to the thread, so the app's agent uses
 //!   `rw_project_new`. The app registers `--hide-project-create` on
@@ -33,7 +36,7 @@
 //! a unitless string counts as seconds, as in the old `policy.ts`, so it is
 //! normalized to `"<n> s"` first (`parse_for` rejects nonzero unitless time).
 
-use rw_api::{ApiError, ApiErrorCode, Approval, CommandDef};
+use rw_api::{ApiError, ApiErrorCode, Approval, CommandDef, Origin};
 use rw_units::{DimKind, parse_for, parse_parts};
 use serde_json::Value;
 
@@ -72,6 +75,30 @@ pub fn gate(def: &CommandDef, args: &Value, approval: &Value) -> Option<Gate> {
         return None;
     }
     reason(def, args).map(Gate::Ask)
+}
+
+/// `export_file` with `allow_outside`, unless the call comes from the person's
+/// own surface: `Ui` (File > Export, already behind main's socket role) or
+/// `Cli` (`rw export --allow-outside`). An agent never gets to pick a path
+/// outside the project, whatever the approval says.
+pub fn refuse_outside(def: &CommandDef, args: &Value, origin: Origin) -> Option<ApiError> {
+    if def.name != "export_file"
+        || args.get("allow_outside") != Some(&Value::Bool(true))
+        || matches!(origin, Origin::Ui | Origin::Cli)
+    {
+        return None;
+    }
+    Some(ApiError {
+        code: ApiErrorCode::InvalidInput,
+        message: "the agent cannot save outside the project; nothing written".to_owned(),
+        hint: Some(
+            "export inside the project (e.g. exports/rocket.glb), and ask the person to use \
+             File > Export to save it anywhere else"
+                .into(),
+        ),
+        diagnostics: Vec::new(),
+        outcome: None,
+    })
 }
 
 /// The refusal a Lecturn call to `project_create` gets, dry run included.
@@ -178,9 +205,6 @@ fn always_reason(tool: &str, args: &Value) -> String {
     let what = action(tool);
     let path = args.get("path").and_then(Value::as_str);
     match path {
-        Some(p) if args.get("allow_outside") == Some(&Value::Bool(true)) => {
-            format!("{what} outside the project: {p}")
-        }
         Some(p) => format!("{what} {}, outside the model", Value::from(p)),
         None => format!("{what} files outside the model"),
     }
