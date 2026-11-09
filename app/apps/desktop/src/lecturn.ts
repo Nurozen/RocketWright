@@ -182,6 +182,9 @@ export interface PaneController {
   destroy(): void;
 }
 
+/** The guest's preferences. Never our `preload`: the helper adds its own, and the agent's page must not get `rwDesktop`. */
+export const GUEST_WEB_PREFERENCES = { backgroundThrottling: false } as const;
+
 const LOOPBACK_HOSTS = new Set(["127.0.0.1", "localhost", "[::1]"]);
 
 /** Guest URLs the pane loads: loopback http(s) only (registration `embedOrigins`, D9). */

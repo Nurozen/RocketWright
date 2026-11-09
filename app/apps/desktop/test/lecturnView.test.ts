@@ -26,7 +26,7 @@ import {
   type PaneMainMessage,
 } from "@rw/contracts";
 import { decodePng, encodePng, fillRect, solidImage } from "../../../e2e/bar/png.ts";
-import { captureComposite, compositeAt, createPaneController, droppedCapture, intersects, isGuestUrl, normalizeRect, type EmbedBridgeLike, type MountArgs, type PaneController, type Rect } from "../src/lecturn.ts";
+import { captureComposite, compositeAt, createPaneController, droppedCapture, GUEST_WEB_PREFERENCES, intersects, isGuestUrl, normalizeRect, type EmbedBridgeLike, type MountArgs, type PaneController, type Rect } from "../src/lecturn.ts";
 
 const fx = vi.hoisted(() => {
   type Fn = (...args: never[]) => unknown;
@@ -245,7 +245,7 @@ function setup(opts: { overlayMode?: "snapshot" | "hide"; maxReloads?: number; l
         switcher: false,
         ...(a.composerPlaceholder !== undefined ? { composerPlaceholder: a.composerPlaceholder } : {}),
         onDescribeRefs: a.onDescribeRefs,
-        webPreferences: { backgroundThrottling: false },
+        webPreferences: GUEST_WEB_PREFERENCES,
       });
     },
     workspaceRootOf: (p) => ROOTS[p] ?? null,
@@ -305,6 +305,9 @@ describe("pane mount (B10)", () => {
     expect(v.bounds).toEqual(PANE);
     expect(t.win.contentView.children).toEqual([v]);
     expect(v.options.webPreferences).toMatchObject({ backgroundThrottling: false, sandbox: true, contextIsolation: true, nodeIntegration: false });
+    // The guest's only preload is the helper's, so it never gets `window.rwDesktop`.
+    expect(GUEST_WEB_PREFERENCES).not.toHaveProperty("preload");
+    expect(readFileSync(String(v.options.webPreferences.preload), "utf8")).not.toContain("rwDesktop");
     const url = new URL(v.webContents.loads[0]!);
     expect(url.origin).toBe("http://127.0.0.1:4101");
     expect(new URLSearchParams(url.hash.slice(1)).get("switcher")).toBe("0");
