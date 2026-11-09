@@ -9,7 +9,9 @@
 import type { JsonObject, RenderResult, RwRef } from "./types.ts";
 
 export type ViewId = "iso" | "top" | "side" | "front" | "rear";
-export type PlotId = "altitude" | "velocity" | "acceleration" | "stability";
+/** What the agent's `plot_render` draws. The Results page has more tabs (R3.5); those stay human-only (D20). */
+export const PLOT_IDS = ["altitude", "velocity", "acceleration", "stability"] as const;
+export type PlotId = (typeof PLOT_IDS)[number];
 export type PageId = "assembly" | "components" | "configurations" | "results" | "liquid" | "propulsion-sim";
 
 /** Op → arguments. */

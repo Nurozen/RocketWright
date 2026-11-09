@@ -205,13 +205,18 @@ describe("page 04 Results (live, seeded)", () => {
     expect(r.pixels.sand).toBeGreaterThan(200);
   });
 
-  it("plots Altitude against Time with the four tabs and Canvas2D event lines of the selected run", () => {
+  it("plots Altitude against Time with the nine tabs and Canvas2D event lines of the selected run", () => {
     const r = report.initial;
     expect(r.tabs).toEqual([
       { text: "Altitude", selected: true },
       { text: "Velocity", selected: false },
       { text: "Acceleration", selected: false },
       { text: "Stability", selected: false },
+      { text: "Mach", selected: false },
+      { text: "Drag coefficient", selected: false },
+      { text: "Mass", selected: false },
+      { text: "Thrust", selected: false },
+      { text: "Lateral distance", selected: false },
     ]);
     expect(r.axes).toEqual(["Altitude (m)", "Time (s)"]);
     // Burnout, Apogee, Recovery (chute deployment, not touchdown) of the selected run only (Baseline), at its

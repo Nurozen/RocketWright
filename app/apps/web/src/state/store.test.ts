@@ -349,17 +349,19 @@ describe("runs", () => {
     expect(rows().recovery_test).toBe("outdated");
   });
 
-  it("overlays at most two series (A teal, B sand)", async () => {
+  it("overlays at most six series, the oldest pick dropping out, each with its slot's colour", async () => {
     const { store } = await setup();
     const { toggleOverlay } = store.getState().runs;
     toggleOverlay("baseline");
     toggleOverlay("fin_revision");
     toggleOverlay("recovery_test");
-    expect(store.getState().runs.overlay).toEqual(["fin_revision", "recovery_test"]);
+    expect(store.getState().runs.overlay).toEqual(["baseline", "fin_revision", "recovery_test"]);
     const colors = Object.fromEntries(runRows(store.getState()).map((r) => [r.sim, r.color]));
-    expect(colors).toEqual({ baseline: null, fin_revision: "#61b5ad", higher_altitude: null, recovery_test: "#f1ae6e" });
+    expect(colors).toEqual({ baseline: "#61b5ad", fin_revision: "#f1ae6e", higher_altitude: null, recovery_test: "#3a6bb8" });
+    for (const key of ["s4", "s5", "s6", "s7"]) toggleOverlay(key);
+    expect(store.getState().runs.overlay).toEqual(["fin_revision", "recovery_test", "s4", "s5", "s6", "s7"]);
     toggleOverlay("fin_revision");
-    expect(store.getState().runs.overlay).toEqual(["recovery_test"]);
+    expect(store.getState().runs.overlay).toEqual(["recovery_test", "s4", "s5", "s6", "s7"]);
   });
 });
 

@@ -410,7 +410,7 @@ describe("ui://rw/run-card (B3)", () => {
     ]);
     // The page's colours: web state/types.ts SERIES_COLORS.
     const types = readFileSync(join(HERE, "../../web/src/state/types.ts"), "utf8");
-    expect(types).toContain('SERIES_COLORS = ["#61b5ad", "#f1ae6e"]');
+    expect(types).toContain('SERIES_COLORS = ["#61b5ad", "#f1ae6e",');
     expect(m.calls.filter((c) => c.name === "rw_run_series").map((c) => c.arguments.run_id).sort()).toEqual([ra, rb]);
     expect(text(m.doc, "rw.run-card.open")).toBe("Baseline vs Higher altitude ›");
     expect(text(m.doc, "rw.run-card.chip")).toBe("Saved");

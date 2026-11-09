@@ -1,21 +1,23 @@
 /**
  * Results page body (M1.51, R6.6, C §4.4): title and toolbar (Run selected,
  * Plot, Export CSV), run table, Outdated banner, plot panel with tabs, event
- * lines and a two-run overlay (A teal, B sand), trajectory inset, and the run
- * details footer. Everything shown comes from the runs slice (status computed
- * against the current model hash, I7) and the runs' own series.
+ * lines and an overlay of up to six runs, trajectory inset, and the run details
+ * footer. Everything shown comes from the runs slice (status computed against
+ * the current model hash, I7) and the runs' own series; `displayUnits` scales
+ * it for the screen and Export CSV stays SI.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
-import { SERIES_COLORS } from "../../state/types.ts";
+import { SERIES_COLORS, SERIES_SLOTS } from "../../state/types.ts";
+import { unitSystemOf } from "../../state/displayUnits.ts";
 import { hasNoParts } from "../../state/selectors.ts";
 import { useAppState, type AppStore } from "../../state/store.ts";
 import { plotEventMarkers, type EventMarker, type RunSummary } from "../../plots/events.ts";
 import type { DrawnEvent } from "../../plots/eventLines.ts";
-import { legendFigure, PLOT_TABS, plotTab, type PlotTabId } from "../../plots/quantities.ts";
+import { legendFigure, PLOT_TABS, plotAxis, plotTab, plotValues, type PlotTabId } from "../../plots/quantities.ts";
 import { seriesColumn } from "../../plots/series.ts";
 import { TimePlot, type PlotLine } from "../../plots/TimePlot.tsx";
 import { downloadText, exportFileName, exportRunsCsv, type ExportRun } from "./csv.ts";
-import { defaultOverlay, outdatedBanner, plotPrompt, primaryRow, rowRef, runDetails, type ResultsRow } from "./model.ts";
+import { defaultOverlay, legendRows, outdatedBanner, plotPrompt, primaryRow, rowRef, runDetails, type ResultsRow } from "./model.ts";
 import { MenuButton } from "../../ui/Menu.tsx";
 import { useResultsRows } from "./parts.tsx";
 import { ResultsIcon } from "./ResultsIcon.tsx";
@@ -46,6 +48,7 @@ export function ResultsPage({ app, source }: ResultsPageProps) {
   const notice = useResultsUi(app, (u) => u.notice);
   const sheetOpen = useResultsUi(app, (u) => u.conditions) !== null;
   const ui = resultsUiStore(app);
+  const system = useAppState(app, unitSystemOf);
 
   // First visit with runs: plot the first two Complete runs and select series A.
   useEffect(() => {
@@ -59,7 +62,7 @@ export function ResultsPage({ app, source }: ResultsPageProps) {
     if (!rows.some((r) => r.selected) && first !== undefined) st.selection.select([rowRef(first)], "table");
   }, [app, rows]);
 
-  const overlayRows = useMemo(() => (["a", "b"] as const).flatMap((slot) => rows.filter((r) => r.series === slot && r.entry.run_id != null)), [rows]);
+  const overlayRows = useMemo(() => SERIES_SLOTS.flatMap((slot) => rows.filter((r) => r.series === slot && r.entry.run_id != null)), [rows]);
   const keys = useMemo(() => overlayRows.map((r) => ({ sim: r.sim, runId: r.entry.run_id! })), [overlayRows]);
   const loaded = useRunData(source, projectId, keys);
   const dataOf = (r: ResultsRow): RunData | null => {
@@ -73,11 +76,11 @@ export function ResultsPage({ app, source }: ResultsPageProps) {
       overlayRows.flatMap((r) => {
         const data = dataOf(r);
         const t = data ? seriesColumn(data.series, "t") : null;
-        const y = data ? seriesColumn(data.series, tab.column) : null;
+        const y = data ? plotValues(data.series, tab, system) : null;
         return t && y ? [{ id: r.key, label: r.name, color: r.color ?? SERIES_COLORS[0], t, y }] : [];
       }),
     // `loaded` changes whenever a series arrives.
-    [overlayRows, loaded, tab],
+    [overlayRows, loaded, tab, system],
   );
   const primary = primaryRow(rows);
   // Burnout, Apogee, Recovery (chute deployment) of one plotted run only, in its colour: the selected
@@ -126,6 +129,9 @@ export function ResultsPage({ app, source }: ResultsPageProps) {
   const runAll = (sims: string[], force = false) => {
     for (const sim of sims) void app.getState().runs.run(sim, { force }).catch(() => undefined);
   };
+  // Beyond three entries the direct legend goes to two columns, so it does not fill the plot.
+  const legendEntries = lines.length + (eventRun ? 1 : 0);
+  const legendColumns = legendEntries > 3 ? 2 : 1;
   const loading = keys.some((k) => loaded[runKey(k)]?.status !== "ready");
   const loadError = keys.map((k) => loaded[runKey(k)]).find((s) => s?.status === "error");
   const prompt = plotPrompt(rows, noParts);
@@ -230,7 +236,7 @@ export function ResultsPage({ app, source }: ResultsPageProps) {
           </div>
           <div className="rw-results__chart" data-tab={tabId} data-loading={loading ? "true" : undefined}>
             {lines.length > 0 ? (
-              <TimePlot lines={lines} events={events} yLabel={tab.axis} onDrawn={onDrawn} topInset={14 + 22 * (lines.length + (eventRun ? 1 : 0))} avoid={legendRef} />
+              <TimePlot lines={lines} events={events} yLabel={plotAxis(tab, system)} onDrawn={onDrawn} topInset={14 + 22 * Math.ceil(legendEntries / legendColumns)} avoid={legendRef} />
             ) : (
               <>
                 <p className="rw-results__empty" data-testid="plot.empty">
@@ -255,11 +261,9 @@ export function ResultsPage({ app, source }: ResultsPageProps) {
               </>
             )}
             {lines.length > 0 && (
-              <ul className="rw-legend rw-list" data-testid="plot.legend" ref={legendRef}>
-                {overlayRows.map((r) => {
-                  const line = lines.find((l) => l.id === r.sim);
-                  if (!line) return null;
-                  const fig = legendFigure(tabId, r.metrics ?? ((r.entry.summary ?? null) as RunSummary | null));
+              <ul className="rw-legend rw-list" data-testid="plot.legend" data-columns={legendColumns} ref={legendRef}>
+                {legendRows(overlayRows, lines).map(({ row: r, line }) => {
+                  const fig = legendFigure(tabId, r.metrics ?? ((r.entry.summary ?? null) as RunSummary | null), system);
                   return (
                     <li key={r.key} data-testid="plot.series" data-sim={r.sim} data-row-key={r.key} data-series={r.series ?? undefined} data-color={line.color} data-points={line.t.length}>
                       <span className="rw-legend__swatch" data-series={r.series ?? undefined} aria-hidden />

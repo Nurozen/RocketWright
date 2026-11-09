@@ -23,6 +23,15 @@
   --rw-series-a: var(--rw-accent); /* first compared run */
   --rw-series-b: #f1ae6e; /* [series-b] second compared run */
   --rw-series-b-row: #302d28; /* [series-b/row] selected series-B row */
+  /* Not bar tokens: runs three to six on the Results overlay (mirrors SERIES_COLORS in web state/types.ts). */
+  --rw-series-c: #3a6bb8;
+  --rw-series-c-row: #1f2732;
+  --rw-series-d: #9f75e1;
+  --rw-series-d-row: #2b2837;
+  --rw-series-e: #b83d6d;
+  --rw-series-e-row: #2e2229;
+  --rw-series-f: #38a017;
+  --rw-series-f-row: #1e2e1f;
   --rw-ghost: #e8a94a; /* [amber/ghost] dashed previous geometry */
   --rw-warning: #fac95e; /* [warning] Modified, Outdated, Missing inputs */
   --rw-success: #61b5ad; /* [success] done checks are teal, never green */

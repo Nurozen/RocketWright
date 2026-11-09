@@ -116,6 +116,26 @@ describe("plot_render", () => {
     expect(store.getState().ui.page).toBe("assembly");
   });
 
+  it("keeps the agent to its four plots and two runs while the Results page shows nine and six", async () => {
+    expect(() => plotArgs({ plot: "mach" })).toThrow(/altitude, velocity/);
+    expect(() => plotArgs({ plot: "lateral" })).toThrow(PlotRenderError);
+    expect(() => plotArgs({ plot: "altitude", runs: ["a", "b", "c"] })).toThrow(/at most 2 runs/);
+    const specs: PlotImageSpec[] = [];
+    const six = storeWith((s) => withRuns(s, snapshot(), ["baseline", "higher_altitude", "fin_revision"]));
+    const r = await answer(req({ plot: "altitude" }), six, deps(fakeSource().source, specs));
+    expect(r).toMatchObject({ ok: true, result: { runs: [{ sim: "baseline" }, { sim: "higher_altitude" }] } });
+    expect(specs[0]!.lines.map((l) => l.color)).toEqual(["#61b5ad", "#f1ae6e"]);
+  });
+
+  it("plots in the project's units, as the Results page shows them", async () => {
+    const specs: PlotImageSpec[] = [];
+    const store = storeWith((s) => ({ ...withRuns(s), ui: { ...s.ui, units: "in" } }));
+    await answer(req({ plot: "altitude", runs: ["baseline"] }), store, deps(fakeSource().source, specs));
+    expect(specs[0]!.yLabel).toBe("Altitude (ft)");
+    expect(specs[0]!.lines[0]!.y[3]).toBeCloseTo(80 / 0.3048, 6);
+    expect(specs[0]!.legend[0]!.label).toMatch(/^Baseline \(2,009 ft\)$/);
+  });
+
   it("accepts a sim id, <sim>/<run id>, rw:sim/<sim>, and no runs (the page's overlay, else its default)", async () => {
     const rows = resultsRows(withRuns(createAppStore().getState()));
     const id = rows[0]!.entry.run_id!;
