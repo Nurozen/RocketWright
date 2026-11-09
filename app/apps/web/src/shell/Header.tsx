@@ -117,6 +117,7 @@ export function Header({
           type="button"
           className="rw-project"
           data-testid="header.project-switcher"
+          title={projectName}
           aria-haspopup="menu"
           aria-expanded={menu}
           onClick={() => {
@@ -124,7 +125,9 @@ export function Header({
             setMenu(!menu);
           }}
         >
-          <span>{projectName}</span>
+          <span className="rw-project__name" data-testid="header.project-name">
+            {projectName}
+          </span>
           <Icon name="chevron-down" size={16} />
         </button>
         <Menu
@@ -135,9 +138,9 @@ export function Header({
           testId="header.project-menu"
           items={projectMenuEntries({ projects, projectId, projectName, menu: projectMenu, onSwitch: (id) => onSwitchProject?.(id) })}
         />
-        <span className="rw-save" data-testid="header.save-state" data-tone={saveTone}>
+        <span className="rw-save" data-testid="header.save-state" data-tone={saveTone} title={saveState}>
           {saveTone === "amber" ? <Icon name="status-dot" size={18} className="rw-save__dot" /> : <Icon name="cloud" size={18} />}
-          {saveState}
+          <span className="rw-save__label">{saveState}</span>
         </span>
       </div>
       <nav className="rw-tabs" role="tablist" aria-label="Workspace">
