@@ -103,7 +103,9 @@ export function RunTable({ app }: { app: AppStore }) {
               <td className="rw-runtable__dot">
                 <span className="rw-dot" data-series={r.series ?? "none"} />
               </td>
-              <td className="rw-runtable__name">{r.name}</td>
+              <td className="rw-runtable__name" title={r.name}>
+                {r.name}
+              </td>
               <td>
                 <span className="rw-runtable__status" data-testid="runs.status">
                   <StatusGlyph status={r.status} />

@@ -308,15 +308,15 @@ export function ConnectedShell({ store, client = null, renderPage, renderCompare
 
   const snap = s.project.snapshot;
   const compareOpen = s.ui.compare !== null && renderCompare !== undefined;
-  const checkIssues = useMemo(() => checkIssuesOf(snap?.check?.diagnostics ?? [], snap?.evaluated?.components ?? []), [snap?.check, snap?.evaluated]);
+  const checkIssues = useMemo(() => checkIssuesOf(snap?.check?.diagnostics ?? [], snap?.evaluated?.components ?? [], { engines: snap?.evaluated?.engines, configs: snap?.evaluated?.configs, sims: snap?.evaluated?.sims }), [snap?.check, snap?.evaluated]);
   const checkPanel: CheckPanelModel = {
     issues: checkIssues,
     checked: snap?.check != null,
     running: checking,
     error: checkError,
     onRunAgain: () => handlers.onCheckModel?.(),
-    onGoToPart: (ref) => {
-      // The Compare view stands in for the page, so the part would be selected out of sight.
+    onGoTo: (ref) => {
+      // The Compare view stands in for the page, so the target would be selected out of sight.
       store.getState().ui.setCompare(null);
       run(openRef(store, ref, "check"));
     },

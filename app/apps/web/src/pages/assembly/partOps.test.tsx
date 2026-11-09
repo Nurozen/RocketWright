@@ -217,6 +217,12 @@ describe("the menu", () => {
     expect(item(list, "delete").danger).toBe(true);
   });
 
+  it("gives each operation a leading icon", () => {
+    const { store } = setup();
+    const list = items(store, "fins");
+    expect(["rename", "duplicate", "move", "delete"].map((id) => item(list, id).icon !== undefined)).toEqual([true, true, true, true]);
+  });
+
   it("lists Move to targets without descendants, and disables it for a root nose cone", () => {
     const { store } = setup();
     expect(item(items(store, "upper"), "move").submenu?.map((e) => e.id)).not.toContain("lower");

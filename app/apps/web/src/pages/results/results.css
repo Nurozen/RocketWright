@@ -32,6 +32,23 @@
   height: 100%;
   min-height: 0;
   padding: 0 10px 15px 11px;
+  overflow: hidden auto; /* Only scrolls once the narrow layout below stacks the plot card. */
+  container: rw-results / inline-size;
+}
+
+/*
+ * The conditions sheet takes the agent column's place and more: the shell gives
+ * the column the sheet's width, so the page and history strip narrow beside it
+ * instead of running under it. The pane keeps its own width at the window edge,
+ * where the sheet covers it.
+ */
+.rw-shell:has(.rw-results[data-conditions="open"]) {
+  grid-template-columns: calc(var(--rw-rail-w) + var(--rw-hairline)) minmax(0, 1fr) var(--rw-sheet-w);
+}
+
+.rw-shell:has(.rw-results[data-conditions="open"]) .rw-agent {
+  justify-self: end;
+  width: calc(var(--rw-agent-w) + var(--rw-hairline));
 }
 
 .rw-results__head {
@@ -846,4 +863,116 @@
 .rw-snap__meta {
   padding-left: 20px;
   color: var(--rw-text-secondary);
+}
+
+/* ---- narrow page: beside the conditions sheet, and on small windows ------- */
+
+/* The sort labels stay on one line when the page narrows beside the sheet. */
+@container rw-results (max-width: 860px) {
+  .rw-runtable th:nth-child(3) {
+    width: 16%;
+  }
+
+  /* The run details wrap to a second row rather than ellipsize the environment. */
+  .rw-details {
+    flex-wrap: wrap;
+    row-gap: 6px;
+    height: auto;
+    min-height: 56px;
+    padding-block: 8px;
+  }
+}
+
+/* Under this the toolbar no longer fits beside the title, nor the columns in the width. */
+@container rw-results (max-width: 640px) {
+  .rw-results__head {
+    flex-wrap: wrap;
+    row-gap: 8px;
+    height: auto;
+    min-height: 75px;
+    padding: 10px 0 10px 8px;
+  }
+
+  .rw-results__actions {
+    flex-wrap: wrap;
+  }
+
+  /* The table scrolls sideways under a pinned actions column, so every row keeps its menu in view. */
+  .rw-runtable {
+    overflow-x: auto;
+  }
+
+  .rw-runtable table {
+    min-width: 540px;
+  }
+
+  .rw-runtable th,
+  .rw-runtable td {
+    padding: 0 8px;
+  }
+
+  .rw-runtable__check {
+    width: 32px;
+  }
+
+  .rw-runtable__dot {
+    width: 18px;
+  }
+
+  /* Sized so a Not run row's Run button stays clear of the pinned column at the narrowest window. */
+  .rw-runtable th:nth-child(3) {
+    width: 104px;
+  }
+
+  .rw-runtable th:nth-child(4) {
+    width: 100px;
+  }
+
+  .rw-runtable__status {
+    gap: 6px;
+  }
+
+  .rw-runtable th.rw-runtable__menu,
+  .rw-runtable td.rw-runtable__menu {
+    position: sticky;
+    right: 0;
+    width: 36px;
+    padding: 0;
+    border-left: var(--rw-hairline) solid var(--rw-line);
+    background: var(--rw-bg-canvas);
+  }
+
+  .rw-runtable tr[data-series="a"] td.rw-runtable__menu {
+    background: linear-gradient(var(--rw-selection-row), var(--rw-selection-row)), var(--rw-bg-canvas);
+  }
+
+  .rw-runtable tr[data-series="b"] td.rw-runtable__menu {
+    background: linear-gradient(var(--rw-series-b-row), var(--rw-series-b-row)), var(--rw-bg-canvas);
+  }
+
+  .rw-assumptions {
+    left: 8px;
+    width: auto;
+  }
+}
+
+/* Too narrow for the plot and the trajectory side by side: stack them and let the page scroll. */
+@container rw-results (max-width: 560px) {
+  .rw-results__card {
+    flex: none;
+    flex-direction: column;
+  }
+
+  .rw-results__plot {
+    flex: none;
+    min-height: 320px;
+  }
+
+  .rw-results__inset {
+    height: 260px;
+    width: auto;
+    margin-top: 0;
+    border-top: var(--rw-hairline) solid var(--rw-line);
+    border-left: 0;
+  }
 }

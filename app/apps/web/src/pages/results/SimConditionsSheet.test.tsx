@@ -10,8 +10,12 @@ import { resetDirtyFields } from "../../state/dirtyFields.ts";
 import { createAppStore, type AppStore } from "../../state/store.ts";
 import type { AppState } from "../../state/types.ts";
 import { resultsUiStore } from "./resultsUi.ts";
+import { ResultsPage } from "./ResultsPage.tsx";
 import { RunTable } from "./RunTable.tsx";
 import { newSimulation, SimConditionsSheet } from "./SimConditionsSheet.tsx";
+
+vi.mock("./TrajectoryView.tsx", () => ({ TrajectoryView: () => null }));
+vi.mock("../../plots/TimePlot.tsx", () => ({ TimePlot: () => null }));
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -79,6 +83,20 @@ async function type(field: HTMLInputElement, value: string) {
 const click = (el: HTMLElement) => act(async () => el.click());
 
 describe("the sheet", () => {
+  it("marks the page while it is open, so the shell narrows the page beside the sheet", async () => {
+    const { app } = makeStore();
+    const el = document.createElement("div");
+    document.body.append(el);
+    root = createRoot(el);
+    await act(async () => root!.render(<ResultsPage app={app} source={null} />));
+    const page = el.querySelector<HTMLElement>('[data-testid="results-page"]')!;
+    expect(page.dataset["conditions"]).toBeUndefined();
+    await act(async () => resultsUiStore(app).getState().set({ conditions: "flight" }));
+    expect(page.dataset["conditions"]).toBe("open");
+    await act(async () => resultsUiStore(app).getState().set({ conditions: null }));
+    expect(page.dataset["conditions"]).toBeUndefined();
+  });
+
   it("is a dialog named for the sim, with labelled groups and units found by role and name (D27)", async () => {
     const { app } = makeStore();
     await mount(app, "baseline");

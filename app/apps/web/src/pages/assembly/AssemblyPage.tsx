@@ -151,7 +151,7 @@ export function ComponentTreeSlot({ store }: { store: AppStore }) {
   const hidden = useAppState(store, (s) => s.ui.hidden);
   const refs = useAppState(store, (s) => s.selection.refs);
   const [collapsed, setCollapsed] = useState<readonly string[]>([]);
-  const [menu, setMenu] = useState<{ id: string; at: { x: number; y: number } } | null>(null);
+  const [menu, setMenu] = useState<{ id: string; at: { x: number; y: number; band: { top: number; bottom: number } } } | null>(null);
   const thumbs = useAppState(store, (s) => s.thumbs.urls);
   const rows = useMemo(
     () => treeRows(components ?? [], hidden, selectedComponentIds(refs), collapsed).map((r) => {

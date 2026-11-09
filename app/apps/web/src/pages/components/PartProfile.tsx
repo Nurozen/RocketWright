@@ -2,7 +2,8 @@
  * The editor's live part preview (concept 02 "Fin profile (side view)"):
  * a fin set's planform dimensioned with tip chord, root chord, and span from
  * the fields; other parts get their side silhouette with length and outer
- * diameter. Pure SVG from the evaluated shape (draft preview while editing).
+ * diameter; parts with no outer diameter get none. Pure SVG from the evaluated
+ * shape (draft preview while editing).
  */
 import type { schema } from "@rw/contracts";
 import { formatLength } from "../assembly/inspector-model.ts";
@@ -73,7 +74,21 @@ export function outlineLayout(points: readonly (readonly [number, number])[], w 
   return { pts, k, left, yRoot, yTip: yRoot - span * k, span, root, xRoot0: left + (points[0]?.[0] ?? 0) * k, xRoot1: left + ((points[0]?.[0] ?? 0) + root) * k, xMax: left + Math.max(...xs) * k };
 }
 
+/**
+ * Whether a part has an outline to draw. A parachute, streamer or shock cord has
+ * no outer diameter (its Diameter is the canopy's, not a body's), so it would
+ * draw as a flat line labelled 0 mm: those have no profile at all.
+ */
+export function hasSideProfile(comp: Comp): boolean {
+  const outline = freeformPoints(comp);
+  if (outline !== null) return outline.length >= 3;
+  if (planformOf(comp) !== null) return true;
+  const s = comp.shape as { od?: number; fore_od?: number; aft_od?: number };
+  return Math.max(s.od ?? 0, s.fore_od ?? 0, s.aft_od ?? 0) > 0;
+}
+
 export function PartProfile({ comp, units }: { comp: Comp; units: Units }) {
+  if (!hasSideProfile(comp)) return null;
   const outline = freeformPoints(comp);
   const plan = outline === null ? planformOf(comp) : null;
   const fin = (plan !== null || outline !== null) && comp.shape.type.endsWith("fin_set");

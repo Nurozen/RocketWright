@@ -44,6 +44,7 @@ export function ResultsPage({ app, source }: ResultsPageProps) {
   const tabId = useResultsUi(app, (u) => u.plotTab);
   const showEvents = useResultsUi(app, (u) => u.showEvents);
   const notice = useResultsUi(app, (u) => u.notice);
+  const sheetOpen = useResultsUi(app, (u) => u.conditions) !== null;
   const ui = resultsUiStore(app);
 
   // First visit with runs: plot the first two Complete runs and select series A.
@@ -130,7 +131,7 @@ export function ResultsPage({ app, source }: ResultsPageProps) {
   const prompt = plotPrompt(rows, noParts);
 
   return (
-    <section className="rw-results" data-testid="results-page">
+    <section className="rw-results" data-testid="results-page" data-conditions={sheetOpen ? "open" : undefined}>
       <header className="rw-results__head">
         <h1 className="rw-page-title" data-testid="page.title">
           Flight results
