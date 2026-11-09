@@ -4,13 +4,14 @@
  * fires with no blur, so the registry has to reach it; the write must be one
  * a flush can wait for and report on.
  */
-import type { ProjectSnapshot } from "@rw/contracts";
+import type { ProjectSnapshot, schema } from "@rw/contracts";
 import { MockRpc } from "@rw/contracts/mock";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
 import { createStore } from "zustand/vanilla";
-import { flushDirtyFields, resetDirtyFields } from "../../state/dirtyFields.ts";
+import { anyDirtyField, flushDirtyFields, resetDirtyFields } from "../../state/dirtyFields.ts";
+import { blurFromWindow } from "../../testing/windowFocus.ts";
 import type { RpcLike } from "../../state/rpc.ts";
 import { createAppStore, type AppStore } from "../../state/store.ts";
 import type { AppState, DeepReadonly } from "../../state/types.ts";
@@ -50,7 +51,27 @@ async function recovery(call: RpcLike["call"]) {
   const store = appStore(snap);
   const { content } = configurationsSlots(store, client, ui);
   await act(async () => root!.render(<>{content}</>));
-  return { input: el.querySelector<HTMLInputElement>('[data-testid="recovery.altitude"]')!, ui, store };
+  return { input: el.querySelector<HTMLInputElement>('[data-testid="recovery.altitude"]')!, ui, store, el };
+}
+
+/** The Motors tab with Baseline on a motor whose ejection delay is a custom, typed value. */
+async function motors(call: RpcLike["call"]) {
+  const snap = structuredClone(mock.snapshot());
+  const model = snap.evaluated!;
+  const curve = { designation: "RW_B4G", manufacturer: "RocketWright", class: "B", diameter: 0.018, length: 0.07, delays: [3, 5], prop_mass: 0.01, total_mass: 0.02, total_impulse: 5, burn_time: 1, average_thrust: 5, max_thrust: 15, points: [{ t: 0, thrust: 0 }, { t: 1, thrust: 0 }], sha256: "0", source: { kind: "generic", id: "RW_B4G" } } as unknown as schema.ThrustCurve;
+  for (const a of model.configs["baseline"]!.motors) {
+    a.motor = "RW_B4G";
+    (a as { delay?: number | null }).delay = 4;
+  }
+  const ui = createConfigurationsUi();
+  ui.setState({ subtab: "Motors", library: { state: "ready", motors: [curve], builtIn: [curve], project: "ready" } });
+  const client = { call, on: () => () => undefined, onClose: () => () => undefined } as unknown as RpcLike;
+  const el = document.createElement("div");
+  document.body.append(el);
+  root = createRoot(el);
+  const { content } = configurationsSlots(appStore(snap), client, ui);
+  await act(async () => root!.render(<>{content}</>));
+  return { el };
 }
 
 const type = async (input: HTMLInputElement, value: string) =>
@@ -115,6 +136,60 @@ describe("a Configurations field still focused when the project is left", () => 
     expect(problems).toHaveLength(1);
     expect(problems[0]).toContain("deployment altitude");
     expect(call).not.toHaveBeenCalled();
+  });
+
+  it("leaves typed text alone and writes nothing when the window loses focus", async () => {
+    const call = vi.fn<() => Promise<unknown>>(() => Promise.resolve({})) as unknown as RpcLike["call"];
+    const { input } = await recovery(call);
+    await type(input, "250");
+    await blurFromWindow(input);
+    expect(input.value).toBe("250");
+    expect(anyDirtyField()).toBe(true);
+    expect(call).not.toHaveBeenCalled();
+  });
+
+  it("keeps refused text through the window losing focus, and writes once when focus really moves", async () => {
+    const call = vi.fn<() => Promise<unknown>>(() => Promise.resolve({})) as unknown as RpcLike["call"];
+    const { input } = await recovery(call);
+    await type(input, "high");
+    await blurFromWindow(input);
+    expect(input.value).toBe("high");
+    await type(input, "250");
+    await blurFromWindow(input);
+    await act(async () => input.focus());
+    await act(async () => input.blur());
+    expect(call).toHaveBeenCalledOnce();
+  });
+
+  it("a rename under way keeps its text and stays dirty when the window loses focus, and commits on a real blur", async () => {
+    const call = vi.fn<() => Promise<unknown>>(() => Promise.resolve({})) as unknown as RpcLike["call"];
+    const { el } = await recovery(call);
+    await act(async () => el.querySelector<HTMLButtonElement>('[data-testid="configs.action"][data-action="rename"]')!.click());
+    const rename = el.querySelector<HTMLInputElement>('[data-testid="configs.rename-input"]')!;
+    await type(rename, "Heavy");
+    await blurFromWindow(rename);
+    expect(el.querySelector<HTMLInputElement>('[data-testid="configs.rename-input"]')?.value).toBe("Heavy");
+    expect(anyDirtyField()).toBe(true);
+    expect(call).not.toHaveBeenCalled();
+    await act(async () => rename.focus());
+    await act(async () => rename.blur());
+    expect(call).toHaveBeenCalledOnce();
+  });
+
+  it("the typed motor delay keeps its text and writes nothing when the window loses focus, and writes on a real blur", async () => {
+    const call = vi.fn<() => Promise<unknown>>(() => Promise.resolve({})) as unknown as RpcLike["call"];
+    const { el } = await motors(call);
+    const delay = el.querySelector<HTMLInputElement>('[data-testid="motor.delay"]')!;
+    expect(delay.tagName).toBe("INPUT");
+    const patches = () => (call as unknown as { mock: { calls: unknown[][] } }).mock.calls.filter((c) => c[0] === "model.patch");
+    await type(delay, "7");
+    await blurFromWindow(delay);
+    expect(delay.value).toBe("7");
+    expect(anyDirtyField()).toBe(true);
+    expect(patches()).toHaveLength(0);
+    await act(async () => delay.focus());
+    await act(async () => delay.blur());
+    expect(patches()).toHaveLength(1);
   });
 
   it("reports a write the server refused", async () => {

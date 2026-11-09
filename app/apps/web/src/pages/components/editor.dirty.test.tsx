@@ -8,6 +8,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { anyDirtyField, flushDirtyFields, resetDirtyFields } from "../../state/dirtyFields.ts";
 import { ComponentEditor, type ComponentEditorProps } from "./ComponentEditor.tsx";
+import { blurFromWindow } from "../../testing/windowFocus.ts";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -124,5 +125,43 @@ describe("an editor field still focused when the project is left", () => {
     await act(async () => input.blur());
     expect(input.value).not.toBe("tall");
     await expect(flushDirtyFields()).resolves.toEqual(["Span needs a number."]);
+  });
+});
+
+describe("the window losing focus (a native dialog) with a part field being edited", () => {
+  it("leaves invalid typed text and its dirty state alone", async () => {
+    const { input, onCommit } = await editor();
+    await type(input, "tall");
+    await blurFromWindow(input);
+    expect(input.value).toBe("tall");
+    expect(document.body.querySelector('[data-field="span"]')?.getAttribute("data-invalid")).toBe("true");
+    expect(anyDirtyField()).toBe(true);
+    expect(onCommit).not.toHaveBeenCalled();
+    await expect(flushDirtyFields()).resolves.toEqual(["Span needs a number."]);
+  });
+
+  it("does not commit valid typed text", async () => {
+    const { input, onCommit } = await editor();
+    await type(input, "100");
+    await blurFromWindow(input);
+    expect(input.value).toBe("100");
+    expect(onCommit).not.toHaveBeenCalled();
+  });
+
+  it("commits when focus then really moves on", async () => {
+    const { input, onCommit } = await editor();
+    await type(input, "100");
+    await blurFromWindow(input);
+    await act(async () => input.focus());
+    await act(async () => input.blur());
+    expect(onCommit).toHaveBeenCalledOnce();
+  });
+
+  it("leaves a typed name alone too", async () => {
+    const { input, onCommit } = await editor("name");
+    await type(input, "New name");
+    await blurFromWindow(input);
+    expect(input.value).toBe("New name");
+    expect(onCommit).not.toHaveBeenCalled();
   });
 });

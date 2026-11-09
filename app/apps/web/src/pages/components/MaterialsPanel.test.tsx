@@ -3,6 +3,7 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { anyDirtyField, flushDirtyFields, resetDirtyFields } from "../../state/dirtyFields.ts";
+import { blurFromWindow } from "../../testing/windowFocus.ts";
 import { MaterialsPanel, type MaterialsPanelProps } from "./MaterialsPanel.tsx";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -274,6 +275,46 @@ describe("creating a material", () => {
     expect(await flushDirtyFields()).toEqual([]);
     expect(p.onMutate).toHaveBeenCalledTimes(1);
     expect(anyDirtyField()).toBe(false);
+  });
+});
+
+describe("the window losing focus (a native dialog) with a material being typed", () => {
+  it("leaves the name and its dirty state alone and writes nothing", async () => {
+    const p = props();
+    const el = await mount(p);
+    await click(button(el, "New material"));
+    await type(input(el, "Density"), "100");
+    await act(async () => input(el, "Name").focus());
+    await type(input(el, "Name"), "foam");
+    await blurFromWindow(input(el, "Name"));
+    expect(input(el, "Name").value).toBe("foam");
+    expect(anyDirtyField()).toBe(true);
+    expect(p.onMutate).not.toHaveBeenCalled();
+  });
+
+  it("saves when focus then really moves on", async () => {
+    const p = props();
+    const el = await mount(p);
+    await click(button(el, "New material"));
+    await type(input(el, "Density"), "100");
+    await act(async () => input(el, "Name").focus());
+    await type(input(el, "Name"), "foam");
+    await blurFromWindow(input(el, "Name"));
+    await act(async () => input(el, "Name").focus());
+    await act(async () => input(el, "Name").blur());
+    expect(p.onMutate).toHaveBeenCalledOnce();
+  });
+
+  it("leaves a density alone too", async () => {
+    const p = props();
+    const el = await mount(p);
+    await click(button(el, "New material"));
+    await type(input(el, "Name"), "foam");
+    await act(async () => input(el, "Density").focus());
+    await type(input(el, "Density"), "100");
+    await blurFromWindow(input(el, "Density"));
+    expect(input(el, "Density").value).toBe("100");
+    expect(p.onMutate).not.toHaveBeenCalled();
   });
 });
 

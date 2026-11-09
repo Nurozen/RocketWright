@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import { resolve } from "node:path";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
@@ -27,4 +28,5 @@ export default defineConfig({
   },
   optimizeDeps: { exclude: ["@rw/rw-wasm", "manifold-3d"] },
   server: { host: "127.0.0.1" },
+  test: { setupFiles: ["./src/testing/setup.ts"] },
 });
