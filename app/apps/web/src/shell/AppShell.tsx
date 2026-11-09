@@ -7,6 +7,7 @@
  * `ConnectedShell` feeds it from the store; `ShellApp` from a static model.
  */
 import type { ReactNode } from "react";
+import type { CheckPanelModel } from "./CheckIssuesPanel.tsx";
 import type { ProjectMenuModel, ShellNavRow, ShellHistoryStep } from "./model.ts";
 import { AgentPane } from "./AgentPane.tsx";
 import { Header } from "./Header.tsx";
@@ -57,6 +58,8 @@ export interface AppShellProps {
   agentEmbed?: ReactNode;
   /** Page controls in the pane's RocketWright strip (`AgentExtras`). */
   agentExtras?: ReactNode;
+  /** What the last check found (R2.6). */
+  checkPanel?: CheckPanelModel | undefined;
   /** Rows below the history steps (compare result, run snapshots). */
   historyExtra?: ReactNode;
   comparing?: boolean;
@@ -86,6 +89,7 @@ export function AppShell({
   onLocalTabChange,
   handlers = {},
   projectMenu,
+  checkPanel,
   children,
   toolbar,
   agent,
@@ -117,6 +121,7 @@ export function AppShell({
         projects={model.projects ?? []}
         projectId={model.projectId ?? null}
         projectMenu={projectMenu}
+        checkPanel={checkPanel}
         {...(onTabChange ? { onTabChange } : {})}
         {...(h.onCheckModel ? { onCheckModel: h.onCheckModel } : {})}
         {...(h.onOpenProjects ? { onOpenProjects: h.onOpenProjects } : {})}

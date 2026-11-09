@@ -5,6 +5,7 @@
 import { useRef, useState } from "react";
 import { Menu } from "../ui/Menu.tsx";
 import { BRAND } from "./brand.ts";
+import { CheckIssuesPanel, type CheckPanelModel } from "./CheckIssuesPanel.tsx";
 import { Icon } from "./Icon.tsx";
 import { stepLabel, TOP_TABS, type CheckStatus, type ProjectMenuModel, type ShellHistoryStep, type ShellProject, type TopTab } from "./model.ts";
 import { projectMenuEntries } from "./projectMenu.ts";
@@ -19,6 +20,8 @@ export interface HeaderProps {
   projectId?: string | null;
   onTabChange?: (tab: TopTab) => void;
   onCheckModel?: () => void;
+  /** What the last check found (R2.6). Check model opens it; absent (the static shell), the button only runs the check. */
+  checkPanel?: CheckPanelModel | undefined;
   /** The switcher opened (refresh the project list). */
   onOpenProjects?: () => void;
   onSwitchProject?: (projectId: string) => void;
@@ -93,6 +96,7 @@ export function Header({
   projectId = null,
   onTabChange,
   onCheckModel,
+  checkPanel,
   onOpenProjects,
   onSwitchProject,
   projectMenu,
@@ -105,6 +109,8 @@ export function Header({
 }: HeaderProps) {
   const [menu, setMenu] = useState(false);
   const switcher = useRef<HTMLButtonElement>(null);
+  const [issuesOpen, setIssuesOpen] = useState(false);
+  const checkButton = useRef<HTMLButtonElement>(null);
   return (
     <header className="rw-header" data-rw-region="header" data-testid="header">
       <div className="rw-header__start">
@@ -197,6 +203,7 @@ export function Header({
           </span>
         ) : (
           <button
+            ref={checkButton}
             type="button"
             className="rw-button rw-button--primary"
             data-testid="header.check-model"
@@ -204,7 +211,16 @@ export function Header({
             title={checkTitle(check)}
             aria-busy={check.status === "running" || undefined}
             disabled={check.status === "running"}
-            onClick={onCheckModel}
+            aria-haspopup={checkPanel === undefined ? undefined : "dialog"}
+            aria-expanded={checkPanel === undefined ? undefined : issuesOpen}
+            onClick={() => {
+              if (checkPanel !== undefined && issuesOpen) {
+                setIssuesOpen(false);
+                return;
+              }
+              if (checkPanel !== undefined) setIssuesOpen(true);
+              onCheckModel?.();
+            }}
           >
             {check.status === "running" ? (
               <Icon name="spinner" size={18} className="rw-spin" />
@@ -222,6 +238,10 @@ export function Header({
               {checkTitle(check)}
             </span>
           </button>
+        )}
+        {checkPanel !== undefined && (
+          // A model emptied while the panel is open has no button left to hang it from.
+          <CheckIssuesPanel open={issuesOpen && check.status !== "empty"} anchor={checkButton.current} onClose={() => setIssuesOpen(false)} {...checkPanel} />
         )}
         <span className="rw-header__sep" aria-hidden />
         <SettingsButton {...(onOpenSettings ? { onClick: onOpenSettings } : {})} />

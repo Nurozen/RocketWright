@@ -1243,3 +1243,135 @@ button:disabled {
   margin: 0;
   padding-left: 20px;
 }
+
+/* ---- check issues (R2.6) ------------------------------------------------- */
+
+.rw-check-issues {
+  display: flex;
+  flex-direction: column;
+  width: min(612px, calc(100vw - 16px));
+}
+
+/* The caret sits outside the surface, so the body scrolls instead. Doubled class: ui.css loads after this file. */
+.rw-ui-popover.rw-check-issues {
+  overflow: visible;
+}
+
+.rw-check-issues::before {
+  position: absolute;
+  top: -5px;
+  right: 80px;
+  width: 8px;
+  height: 8px;
+  border-top: var(--rw-hairline) solid var(--rw-ui-edge);
+  border-left: var(--rw-hairline) solid var(--rw-ui-edge);
+  background: var(--rw-panel);
+  content: "";
+  transform: rotate(45deg);
+}
+
+.rw-check-issues__head {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 10px;
+  margin: 0 18px;
+  padding: 14px 0 12px;
+  border-bottom: var(--rw-hairline) solid var(--rw-line);
+}
+
+.rw-check-issues__title {
+  font-size: var(--rw-font-size-pane-title);
+  font-weight: var(--rw-font-weight-strong);
+}
+
+.rw-check-issues__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding: 0 18px;
+}
+
+.rw-check-issues__group + .rw-check-issues__group {
+  border-top: var(--rw-hairline) solid var(--rw-line);
+}
+
+.rw-check-issues__heading {
+  margin: 0;
+  padding: 12px 0 4px;
+  color: var(--rw-text-secondary);
+  font-size: var(--rw-font-size-body);
+  font-weight: var(--rw-font-weight-strong);
+}
+
+.rw-check-issues__row {
+  display: grid;
+  grid-template-columns: 20px 70px minmax(0, 1fr) 118px auto;
+  align-items: center;
+  column-gap: 12px;
+  min-height: 36px;
+  padding: 6px 0;
+  font-size: var(--rw-font-size-secondary);
+}
+
+.rw-check-issues__row + .rw-check-issues__row {
+  border-top: var(--rw-hairline) solid var(--rw-line);
+}
+
+.rw-check-issues__row[data-severity="error"] .rw-check-issues__mark {
+  color: var(--rw-danger);
+}
+
+.rw-check-issues__row[data-severity="warning"] .rw-check-issues__mark {
+  color: var(--rw-warning);
+}
+
+.rw-check-issues__mark .rw-icon__knock {
+  stroke: var(--rw-panel);
+}
+
+.rw-check-issues__code {
+  color: var(--rw-text-secondary);
+  white-space: nowrap;
+}
+
+.rw-check-issues__message {
+  min-width: 0;
+  color: var(--rw-text-primary);
+}
+
+.rw-check-issues__part {
+  overflow: hidden;
+  color: var(--rw-text-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rw-check-issues__goto {
+  border: 0;
+  background: none;
+  color: var(--rw-accent);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.rw-check-issues__note {
+  margin: 0;
+  padding: 16px 0;
+  color: var(--rw-text-secondary);
+  font-size: var(--rw-font-size-secondary);
+}
+
+.rw-check-issues__note[data-tone="danger"] {
+  color: var(--rw-danger);
+}
+
+.rw-check-issues__foot {
+  display: flex;
+  flex: none;
+  justify-content: flex-end;
+  margin: 0 18px;
+  padding: 12px 0 14px;
+  border-top: var(--rw-hairline) solid var(--rw-line);
+}

@@ -24,6 +24,10 @@ export const GLYPH_BODIES = {
   /** Filled disc with a knocked-out check: done states (teal) and the Check model button (white on teal fill). */
   "check-disc": '<circle cx="10" cy="10" r="8" fill="currentColor" stroke="none"/><path class="rw-icon__knock" d="M6.6 10.3l2.3 2.2 4.5-4.9" stroke-width="1.8"/>',
   alert: '<path d="M10 3l7.5 13h-15z"/><path d="M10 8v3.5M10 14h.01"/>',
+  /** Filled severity marks of the Check model panel: the knocked-out mark takes the panel's colour. */
+  "error-disc": '<circle cx="10" cy="10" r="8" fill="currentColor" stroke="none"/><path class="rw-icon__knock" d="M10 6v4.8M10 14h.01" stroke-width="1.9"/>',
+  "alert-solid": '<path d="M10 3.2l7.6 13.3H2.4z" fill="currentColor" stroke-linejoin="round"/><path class="rw-icon__knock" d="M10 8.2v3.6M10 14.3h.01" stroke-width="1.8"/>',
+  refresh: '<path d="M15.8 8.2A6 6 0 0 0 5 6.2L3.5 8"/><path d="M3.5 4.5V8H7"/><path d="M4.2 11.8a6 6 0 0 0 10.8 2l1.5-1.8"/><path d="M16.5 15.5V12H13"/>',
   "error-circle": '<circle cx="10" cy="10" r="7.5"/><path d="M7.5 7.5l5 5M12.5 7.5l-5 5"/>',
   spinner: '<path d="M10 2.5a7.5 7.5 0 1 1-7.5 7.5"/>',
   "status-dot": '<circle cx="10" cy="10" r="3" fill="currentColor"/>',

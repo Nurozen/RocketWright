@@ -29,8 +29,16 @@ function checkOf(s: AppState, running: boolean): ShellModel["check"] {
     missing_inputs: "issues",
     no_parts: "empty",
   };
-  return { status: map[v.kind] ?? "unknown", issues: v.count ?? 0, label: v.label };
+  const status = map[v.kind] ?? "unknown";
+  if (status !== "errors" && status !== "issues") return { status, issues: v.count ?? 0, label: v.label };
+  // R2.6: the badge counts every row the panel lists, not only the worst severity.
+  const diagnostics = s.project.snapshot?.check?.diagnostics ?? [];
+  const errors = diagnostics.filter((d) => d.severity === "error").length;
+  const warnings = diagnostics.filter((d) => d.severity === "warning").length;
+  return { status, issues: errors + warnings, label: errors > 0 && warnings > 0 ? `${plural(errors, "error")}, ${plural(warnings, "warning")}` : v.label };
 }
+
+const plural = (n: number, word: string): string => `${String(n)} ${word}${n === 1 ? "" : "s"}`;
 
 function componentsNav(s: AppState): ShellNavSection {
   const comps = s.project.snapshot?.evaluated?.components ?? [];

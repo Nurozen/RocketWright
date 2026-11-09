@@ -26,9 +26,11 @@ import { EmbedPane } from "../embed/EmbedPane.tsx";
 import { StartChatPrompt } from "../embed/StartChatPrompt.tsx";
 import { defaultCompare, versionLabel } from "../pages/compare/model.ts";
 import type { RpcLike } from "../state/rpc.ts";
+import { openRef } from "../state/navigation.ts";
 import { type AppStore, useAppState } from "../state/store.ts";
 import type { ViewId } from "@rw/contracts";
 import { AppShell, type ShellHandlers } from "./AppShell.tsx";
+import { checkIssuesOf, type CheckPanelModel } from "./CheckIssuesPanel.tsx";
 import type { CommandHandlers } from "./commands.ts";
 import { shellModelFrom } from "./connect.ts";
 import { isTopTab, PAGE_TABS, pageOf, type DesignTab, type TopTab, type ProjectMenuModel, type ShellHistoryStep, type ShellNavRow, type ShellProject } from "./model.ts";
@@ -115,6 +117,7 @@ export function ConnectedShell({ store, client = null, renderPage, renderCompare
   const s = useAppState(store, (x) => x);
   const [clock, setClock] = useState(now());
   const [checking, setChecking] = useState(false);
+  const [checkError, setCheckError] = useState<string | null>(null);
   const [projects, setProjects] = useState<ShellProject[] | null>(null);
   const [projectsError, setProjectsError] = useState<string | null>(null);
   const [reverting, setReverting] = useState(false);
@@ -197,7 +200,12 @@ export function ConnectedShell({ store, client = null, renderPage, renderCompare
     onCheckModel: () => {
       if (client === null || projectId === null) return;
       setChecking(true);
-      run(client.call("check.run", { projectId }).finally(() => setChecking(false)));
+      setCheckError(null);
+      // Said in the panel that asked: this pane's error line is hidden behind the embed.
+      void client
+        .call("check.run", { projectId })
+        .catch((e: unknown) => setCheckError(message(e)))
+        .finally(() => setChecking(false));
     },
     onOpenProjects: () => {
       projectMenu?.onOpen();
@@ -291,6 +299,19 @@ export function ConnectedShell({ store, client = null, renderPage, renderCompare
 
   const snap = s.project.snapshot;
   const compareOpen = s.ui.compare !== null && renderCompare !== undefined;
+  const checkIssues = useMemo(() => checkIssuesOf(snap?.check?.diagnostics ?? [], snap?.evaluated?.components ?? []), [snap?.check, snap?.evaluated]);
+  const checkPanel: CheckPanelModel = {
+    issues: checkIssues,
+    checked: snap?.check != null,
+    running: checking,
+    error: checkError,
+    onRunAgain: () => handlers.onCheckModel?.(),
+    onGoToPart: (ref) => {
+      // The Compare view stands in for the page, so the part would be selected out of sight.
+      store.getState().ui.setCompare(null);
+      run(openRef(store, ref, "check"));
+    },
+  };
 
   // The pane's own "no threads" line is Lecturn's, and offers nothing to do.
   const startChat = showStartChat(s) ? <StartChatPrompt start={s.chat.lecturn.threadStart} onStart={() => run(newPageThread(store))} /> : null;
@@ -323,6 +344,7 @@ export function ConnectedShell({ store, client = null, renderPage, renderCompare
       onTabChange={goToTab}
       onLocalTabChange={(id) => run(navigatePage(store, id as PageId))}
       handlers={handlers}
+      checkPanel={checkPanel}
       projectMenu={projectMenu === undefined || projectsError === null ? projectMenu : { ...projectMenu, errors: [...projectMenu.errors, projectsError] }}
       agent={agent}
       agentEmbed={embed}
