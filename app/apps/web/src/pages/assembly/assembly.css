@@ -639,7 +639,7 @@
 /* ---- add part palette ---------------------------------------------------- */
 
 .rw-add-part__popover {
-  width: 460px;
+  width: 560px;
 }
 
 .rw-add-part {
@@ -647,6 +647,17 @@
   flex-direction: column;
   gap: 12px;
   padding: 4px 16px 16px;
+}
+
+.rw-add-part__tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: var(--rw-hairline) solid var(--rw-line);
+}
+
+.rw-add-part__tabs .rw-tab {
+  padding: 6px 14px 8px;
+  font-size: 14px;
 }
 
 .rw-add-part__note {
@@ -702,4 +713,92 @@
   color: var(--rw-text-secondary);
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* ---- Add part: Parts library --------------------------------------------- */
+
+.rw-parts {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rw-parts__search,
+.rw-parts__filter {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  font-size: var(--rw-font-size-secondary);
+  color: var(--rw-text-secondary);
+}
+
+.rw-parts__filters {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.rw-parts__filter select {
+  width: 100%;
+}
+
+.rw-parts__status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0;
+  font-size: var(--rw-font-size-secondary);
+  color: var(--rw-text-secondary);
+}
+
+.rw-parts__list {
+  overflow-y: auto;
+  border: var(--rw-hairline) solid var(--rw-line);
+  border-radius: var(--rw-radius-sm);
+}
+
+.rw-parts__empty {
+  margin: 0;
+  padding: 16px;
+  color: var(--rw-text-secondary);
+}
+
+.rw-parts__row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 10px;
+  box-sizing: border-box;
+  border-bottom: var(--rw-hairline) solid var(--rw-line);
+}
+
+.rw-parts__row--pending {
+  color: var(--rw-text-secondary);
+}
+
+.rw-parts__text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.rw-parts__name,
+.rw-parts__meta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rw-parts__meta {
+  font-size: var(--rw-font-size-secondary);
+  color: var(--rw-text-secondary);
+}
+
+.rw-parts__actions {
+  display: flex;
+  flex: none;
+  gap: 6px;
 }

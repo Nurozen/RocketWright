@@ -212,7 +212,7 @@ export const SCRIPT_ROWS: readonly ScriptRow[] = [
   newPart(ringFore, "others", "Centering ring", "Body tube"),
   newPart(ringAft, "others", "Centering ring", "Body tube"),
   newPart(mmt, "others", "Inner tube", "Body tube"),
-  newPart(block, "block", "Engine block", "Inner Tube"),
+  newPart(block, "block", "Engine block", "Inner tube"),
 
   rename(nose, "Nose cone"),
   pick(nose, "shape", G, "Shape", "Ogive"),

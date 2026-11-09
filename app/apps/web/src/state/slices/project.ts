@@ -65,6 +65,11 @@ export function createProjectSlice(ctx: SliceCtx): ProjectSlice {
       ctx.patch("draft", { engine: h.status });
     },
 
+    searchLibrary(query) {
+      const { client, projectId } = ctx.conn();
+      return client.call("library.search", { ...query, projectId });
+    },
+
     disconnect(): void {
       const { client, projectId } = ctx;
       const sid = ctx.get().project.subscriptionId;

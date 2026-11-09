@@ -36,7 +36,7 @@ export const STAGE_NEEDS: Readonly<Record<StageId, readonly StageId[]>> = {
 };
 
 /** The enabled stages: the steps that make a stage reachable add it. */
-export const B1_STAGES: ReadonlySet<StageId> = new Set<StageId>(["launch", "welcome", "choose", "new", "materials", "nose", "body", "quit", "reopen", "compare"]);
+export const B1_STAGES: ReadonlySet<StageId> = new Set<StageId>(["launch", "welcome", "choose", "new", "materials", "nose", "body", "others", "block", "quit", "reopen", "compare"]);
 
 /** One message per stage enabled without a stage it needs. */
 export function validateStages(enabled: ReadonlySet<StageId>): string[] {
@@ -129,8 +129,10 @@ async function pressAdd(ctx: DriveContext, row: BoundRow): Promise<void> {
 async function addPart(ctx: DriveContext, row: BoundRow): Promise<void> {
   const { page } = ctx;
   await page.getByRole("button", exactly("Add part")).click();
-  if (row.attachTo !== undefined) await page.getByLabel("Attach to", { exact: true }).selectOption({ label: row.attachTo });
-  await page.getByRole("button", exactly(row.label)).click();
+  // Inside the popover: the viewport labels parts with buttons, and the editor has its own Attach to.
+  const palette = page.getByRole("dialog", exactly("Add part"));
+  if (row.attachTo !== undefined) await palette.getByLabel("Attach to", { exact: true }).selectOption({ label: row.attachTo });
+  await palette.getByRole("button", exactly(row.label)).click();
 }
 
 async function assignMotor(ctx: DriveContext, row: BoundRow): Promise<void> {
