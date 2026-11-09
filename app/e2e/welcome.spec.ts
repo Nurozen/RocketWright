@@ -110,6 +110,49 @@ test("a name already taken is refused in the dialog", async ({ page }) => {
   await expect(dialog).toBeVisible();
 });
 
+// ---- Recent rows (R0.2) ----
+
+test("a long Recent path keeps a gutter before the time and the status, and Missing keeps clear of Remove", async ({ page }) => {
+  const longDir = (name: string): string => `/Users/someone/${"a-rather-long-folder-name/".repeat(12)}${name}`;
+  const recents = [
+    { dir: longDir("weekend-flyer"), name: "weekend-flyer", lastOpened: new Date(Date.now() - 7_200_000).toISOString(), status: "ok" },
+    { dir: longDir("old-prototype"), name: "old-prototype", lastOpened: new Date(Date.now() - 86_400_000).toISOString(), status: "missing" },
+  ];
+  // A browser keeps no Recents (R0.12), so this stands in for the preload that serves them.
+  await page.addInitScript((list) => {
+    const done = <T,>(value: T) => () => Promise.resolve(value);
+    Object.assign(window, {
+      rwDesktop: {
+        desktop: true,
+        platform: "darwin",
+        rpcUrl: null,
+        serverUrl: null,
+        boot: done({ activeProjectId: null, notice: null }),
+        recents: done(list),
+        removeRecent: done(undefined),
+        setActiveProject: done(undefined),
+        setDirty: done(undefined),
+        onCommand: () => () => {},
+        pathForFile: () => "",
+      },
+    });
+  }, recents);
+  await openWelcome(page);
+  const rows = page.locator(".rw-welcome__recent-row");
+  await expect(rows).toHaveCount(2);
+  for (const row of [rows.nth(0), rows.nth(1)]) {
+    const path = await row.locator(".rw-welcome__recent-path").boundingBox();
+    const age = await row.locator(".rw-welcome__recent-age").boundingBox();
+    expect(path, "the path is on screen").not.toBeNull();
+    expect(age, "the time or status is on screen").not.toBeNull();
+    expect(path!.x + path!.width + 16, "the path stops short of the time or status").toBeLessThanOrEqual(age!.x);
+  }
+  const missing = rows.nth(1);
+  const status = await missing.locator(".rw-welcome__recent-age").boundingBox();
+  const remove = await missing.getByRole("button", exact("Remove old-prototype from Recent")).boundingBox();
+  expect(status!.x + status!.width + 8, "Missing stops short of Remove").toBeLessThanOrEqual(remove!.x);
+});
+
 // ---- the header's project menu (R0.6, R0.7, D22) ----
 
 const exact = (name: string) => ({ name, exact: true });

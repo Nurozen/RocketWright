@@ -3,9 +3,11 @@
  * the shown one checked, Recent, then the project commands, every label from
  * the one command table.
  */
+import { createElement } from "react";
 import type { DesktopCommand, RecentProject } from "@rw/contracts";
 import type { MenuEntry } from "../ui/Menu.tsx";
 import { commandLabel } from "./commands.ts";
+import { Icon } from "./Icon.tsx";
 import type { ProjectMenuModel, ShellProject } from "./model.ts";
 import { RECENT_STATUS_TEXT } from "./projectActions.ts";
 
@@ -23,7 +25,18 @@ function recentEntries(recent: RecentProject, onCommand: (c: DesktopCommand) => 
     disabled: missing,
     onSelect: () => onCommand({ id: "project.openRecent", dir: recent.dir }),
   };
-  return missing ? [row, { id: `remove:${recent.dir}`, label: `Remove ${recent.name} from Recent`, onSelect: () => onRemove(recent.dir) }] : [row];
+  if (!missing) return [row];
+  // Short and quiet, so it reads as an action on the row above rather than a project of its own; the name says which.
+  const remove: MenuEntry = {
+    id: `remove:${recent.dir}`,
+    label: "Remove",
+    accessibleName: `Remove ${recent.name} from Recent`,
+    quiet: true,
+    gutter: false,
+    icon: createElement(Icon, { name: "close", size: 14 }),
+    onSelect: () => onRemove(recent.dir),
+  };
+  return [row, remove];
 }
 
 export interface ProjectMenuInput {

@@ -21,6 +21,10 @@ export interface MenuItem {
   gutter?: false | undefined;
   /** Destructive action, drawn in the danger colour. */
   danger?: boolean | undefined;
+  /** The name a screen reader announces, when the visible label is shorter. */
+  accessibleName?: string | undefined;
+  /** A small follow-up action to the row above, drawn compact and secondary. */
+  quiet?: boolean | undefined;
   icon?: ReactNode;
   /** Right-aligned hint, such as a shortcut. */
   hint?: string | undefined;
@@ -110,8 +114,10 @@ function MenuList({ entries, label, testId, listRef, close, back }: MenuListProp
               aria-checked={entry.checked}
               aria-haspopup={entry.submenu === undefined ? undefined : "menu"}
               aria-expanded={entry.submenu === undefined ? undefined : open}
+              aria-label={entry.accessibleName}
               disabled={entry.disabled}
               data-danger={entry.danger === true ? "true" : undefined}
+              data-quiet={entry.quiet === true ? "true" : undefined}
               data-testid={testId === undefined ? undefined : `${testId}.item`}
               data-item={entry.id}
               onClick={() => {
@@ -133,7 +139,9 @@ function MenuList({ entries, label, testId, listRef, close, back }: MenuListProp
                   {entry.icon}
                 </span>
               )}
-              <span className="rw-ui-menu__label">{entry.label}</span>
+              <span className="rw-ui-menu__label" title={entry.label}>
+                {entry.label}
+              </span>
               {entry.hint !== undefined && <span className="rw-ui-menu__hint">{entry.hint}</span>}
               {entry.submenu !== undefined && <Icon name="chevron-right" size={16} className="rw-ui-menu__more" />}
             </button>

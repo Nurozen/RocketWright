@@ -96,6 +96,7 @@ export function NewProjectDialog({ client, host, offer, onClose, onCreated }: Ne
       open
       onClose={onClose}
       title="New project"
+      className="rw-new-project-dialog"
       testId="new-project"
       initialFocus={nameRef}
       dismissOnEscape={!creating}
