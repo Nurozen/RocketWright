@@ -154,3 +154,11 @@ license = "NASA NTRS, distribution PUBLIC, GOV_PUBLIC_USE_PERMITTED"
 usage = "equations-only"
 page_offset = "printed = pdf - 9"
 used_for = "rw-liquid: thrust coefficient and throat sizing (eq 1-32..1-34), chamber volume and L* (eq 4-4, 4-5), conical nozzle (eq 4-7), injector orifices (eq 4-39, 4-40), pressurant gas law and polytropic expansion (eq 5-1, 5-15), line losses (eq 7-7), tank volume, geometry, and hoop stress (eq 8-1, 8-16, 8-29, 8-30)"
+
+[drev-tm-9703]
+file = "references/validation-data/drev-tm-9703-1997-dupuis-hathaway-basic-finner-range-supersonic.pdf"
+sha256 = "b6ddd7d29ed431ac75995792641621adb20c77995bb513819a1900b7ec8d940e"
+citation = "Dupuis, A. D. and Hathaway, W. \"Aeroballistic Range Tests of the Basic Finner Reference Projectile at Supersonic Velocities\". DREV-TM-9703, Defence Research Establishment Valcartier, August 1997. DTIC ADA636861."
+url = "https://archive.org/details/DTIC_ADA636861"
+license = "Approved for public release; distribution unlimited (Crown copyright, Canada)"
+usage = "equations-only / data cited"
