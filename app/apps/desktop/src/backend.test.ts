@@ -4,7 +4,7 @@
  * plumbing, the dev-project fallback, the preload script, and browser mode
  * against the real app server.
  */
-import { mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { runInNewContext } from "node:vm";
@@ -17,6 +17,7 @@ import {
   childEnv,
   defaultSidecarBin,
   desktopArg,
+  documentsDirOverride,
   isProjectDir,
   lecturnBaseDirFor,
   parseDesktopArgs,
@@ -86,6 +87,16 @@ describe("server spawn", () => {
     expect(env).toEqual({ LECTURN_HOME: "/tmp/lh", RW_LECTURN_BASE_DIR: "/tmp/lb", LECTURN_TEST_PROVIDERS: "1" });
   });
 
+  it("takes a test's Documents folder from RW_DOCUMENTS_DIR, unpackaged only, and creates it", () => {
+    const dir = join(temp("rw-docs-"), "nested/Documents");
+    expect(documentsDirOverride(false, {})).toBeUndefined();
+    expect(documentsDirOverride(false, { RW_DOCUMENTS_DIR: "" })).toBeUndefined();
+    expect(documentsDirOverride(true, { RW_DOCUMENTS_DIR: dir })).toBeUndefined();
+    expect(existsSync(dir)).toBe(false);
+    expect(documentsDirOverride(false, { RW_DOCUMENTS_DIR: dir })).toBe(dir);
+    expect(statSync(dir).isDirectory()).toBe(true);
+  });
+
   it("takes the run's profile from RW_USER_DATA_DIR and names the base dir the server really uses (CPW2B)", () => {
     expect(userDataOverride({})).toBeUndefined();
     expect(userDataOverride({ RW_USER_DATA_DIR: "" })).toBeUndefined();
@@ -151,6 +162,22 @@ setInterval(() => {}, 1000);`,
     try {
       await expect.poll(() => seen, { timeout: 5000 }).toContain("eran");
       expect(JSON.parse(seen.trim())).toEqual({ eran: null, args: ["--project", "/tmp/rw-proj"], sidecar: "/opt/rw/rocketwright" });
+    } finally {
+      await server.stop();
+    }
+  });
+
+  it("hands the server main's Documents folder over the inherited value", async () => {
+    let seen = "";
+    const cli = fakeCli(
+      `process.stdout.write("RW_SERVER_URL=http://127.0.0.1:1\\nRW_RPC_URL=ws://127.0.0.1:1/rpc\\n");
+setTimeout(() => process.stdout.write(JSON.stringify({ docs: process.env.RW_DOCUMENTS_DIR ?? null }) + "\\n"), 20);
+setInterval(() => {}, 1000);`,
+    );
+    const server = await spawnServer({ cli, documentsDir: "/tmp/rw-docs/Documents", env: { ...process.env, RW_DOCUMENTS_DIR: "/tmp/rw-docs/inherited" }, log: (c) => (seen += c) });
+    try {
+      await expect.poll(() => seen, { timeout: 5000 }).toContain("docs");
+      expect(JSON.parse(seen.trim())).toEqual({ docs: "/tmp/rw-docs/Documents" });
     } finally {
       await server.stop();
     }

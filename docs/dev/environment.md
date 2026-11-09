@@ -154,6 +154,9 @@ child connects only when it has a Lecturn base dir:
   (`app/e2e/lecturn-env.ts`), so no run writes under the real
   `~/Library/Application Support/Electron`; hidden runs always use a fresh
   temp profile, removed on exit.
+- `RW_DOCUMENTS_DIR`: stands in for the OS Documents folder, for native
+  dialogs and the server's default project location. Unpackaged runs only;
+  a shipped app ignores it. E2E uses a short `/tmp` path (socket limit).
 - `LECTURN_HOME`: where a user's own Lecturn server would be found (the
   helper's default is `~/.lecturn`).
 - `RW_NODE`: the Node that runs the Lecturn sidecar (default: the child's

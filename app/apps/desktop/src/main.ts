@@ -57,8 +57,8 @@
  * the shipped `rocketwright`, and no `--project` opens a copy of the sample.
  */
 import { mountEmbedView, captureEmbedView, type EmbedBridge, type EmbedTarget as HelperEmbedTarget } from "@lecturn/embed/electron";
-import { embedThemeInput, PANE_MAIN_CHANNEL, type EmbedTarget, type LecturnHostThemeJson, type LecturnStatus, type LecturnThemeJson, type PaneMainMessage } from "@rw/contracts";
-import { app, BrowserWindow, ipcMain, nativeImage, systemPreferences } from "electron";
+import { embedThemeInput, PANE_MAIN_CHANNEL, type DesktopBoot, type EmbedTarget, type LecturnHostThemeJson, type LecturnStatus, type LecturnThemeJson, type PaneMainMessage } from "@rw/contracts";
+import { app, BrowserWindow, dialog, ipcMain, nativeImage, systemPreferences } from "electron";
 import { mkdirSync, readFileSync, rmSync } from "node:fs";
 import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -67,12 +67,14 @@ import { pathToFileURL } from "node:url";
 import { parseArgs } from "node:util";
 import { capturePageDpr1, countForeground, debuggerSessions, emulateDpr1, installFreezeClock, pngSize } from "./capture.ts";
 import { waitGuestSized } from "./guestSize.ts";
-import { captureComposite, createPaneController, droppedCapture, isGuestUrl, type EmbedBridgeLike, type MountArgs, type PaneController } from "./lecturn.ts";
+import { captureComposite, createPaneController, droppedCapture, GUEST_WEB_PREFERENCES, isGuestUrl, type EmbedBridgeLike, type MountArgs, type PaneController } from "./lecturn.ts";
 import { connectMainRpc, type MainRpc } from "./mainRpc.ts";
-import { buildPreload, desktopArg, lecturnBaseDirFor, parseDesktopArgs, REPO_ROOT, resolveDevProject, startBackend, userDataOverride, waitForHttp, type Backend, type DevProject } from "./backend.ts";
+import { buildPreload, desktopArg, documentsDirOverride, lecturnBaseDirFor, parseDesktopArgs, REPO_ROOT, resolveDevProject, startBackend, userDataOverride, waitForHttp, type Backend, type DevProject } from "./backend.ts";
+import { registerDesktopServices } from "./nativeDialogs.ts";
 import { packagedLayout, packagedServerOptions, userArgv } from "./packaged.ts";
 import { installProtocol, linkInArgv, linkQueue, openFromLink, parseOpenUrl } from "./protocol.ts";
 import { once, shutdownOnQuit } from "./quit.ts";
+import { createRecents } from "./recents.ts";
 
 const packaged = app.isPackaged ? packagedLayout(process.resourcesPath) : null;
 const argv = userArgv(process.argv, process.defaultApp);
@@ -322,7 +324,7 @@ function startPane(win: BrowserWindow, rpc: MainRpc | null): PaneController | nu
       switcher: false,
       ...(a.composerPlaceholder !== undefined ? { composerPlaceholder: a.composerPlaceholder } : {}),
       onDescribeRefs: a.onDescribeRefs,
-      webPreferences: { backgroundThrottling: false },
+      webPreferences: GUEST_WEB_PREFERENCES,
       ...(freezeClock !== undefined ? { freezeClock } : {}),
     });
   return createPaneController({
@@ -335,6 +337,9 @@ function startPane(win: BrowserWindow, rpc: MainRpc | null): PaneController | nu
     log: (line) => process.stderr.write(`${line}\n`),
   });
 }
+
+/** The window `rwDesktop` calls are accepted from (`nativeDialogs.ts`); a hidden retry replaces it. */
+let appWindow: BrowserWindow | null = null;
 
 /** Attempts at opening the hidden window before giving up. */
 const OPEN_ATTEMPTS = 4;
@@ -351,6 +356,7 @@ async function openHiddenWindow(backend: Backend, preload: string | undefined, c
   for (let attempt = 1; attempt <= OPEN_ATTEMPTS; attempt++) {
     await waitForHttp(backend.url, deadline);
     const win = new BrowserWindow({ show: false, width, height, useContentSize: true, webPreferences: webPreferences(preload, backend) });
+    appWindow = win;
     win.webContents.on("console-message", (e) => consoleLines.push(`[${e.level}] ${e.message}`));
     win.webContents.on("preload-error", (_e, path, err) => consoleLines.push(`[preload-error] ${path}: ${err.message}`));
     try {
@@ -545,12 +551,14 @@ async function main(): Promise<void> {
   // else <userData>/lecturn (hidden runs get a fresh temp userData above).
   // The arg names the dir the child really uses (CPW2B).
   const lecturnBaseDir = lecturnBaseDirFor(app.getPath("userData"));
+  const documents = (): string => documentsDirOverride(app.isPackaged) ?? app.getPath("documents");
   const backend = await startBackend({
     projects: live ? projects : null,
     webRoot,
     query,
     page: pagePath,
     lecturnBaseDir,
+    documentsDir: documents(),
     log: (c) => process.stderr.write(c),
     ...(packaged !== null ? packagedServerOptions(packaged, process.execPath) : {}),
   });
@@ -562,6 +570,22 @@ async function main(): Promise<void> {
   // D2: main's own socket on the child; B8/B10 use it for `embed.target` and per-project mounts.
   let pane: PaneController | null = null;
   const mainRpc = await startMainRpc(backend, hidden, (status) => pane?.onStatus(status));
+  const boot: DesktopBoot = { activeProjectId: null, notice: null };
+  registerDesktopServices<BrowserWindow>({
+    ipc: ipcMain,
+    dialog,
+    window: () => appWindow,
+    documents,
+    boot: () => boot,
+    headless: hidden,
+    recents: createRecents({
+      file: join(app.getPath("userData"), "recents.json"),
+      excluded: projects,
+      readOnly: hidden,
+      openDirs: () => mainRpc?.projects().map((p) => p.dir) ?? [],
+      log: (line) => process.stderr.write(`${line}\n`),
+    }),
+  });
   const shutdown = once(async (code: number): Promise<void> => {
     pane?.destroy();
     mainRpc?.close();
@@ -583,6 +607,7 @@ async function main(): Promise<void> {
   }
   backend.server?.child.once("exit", (c, sig) => process.stderr.write(`app server exited (${sig ?? c})\n`));
   const win = new BrowserWindow({ width, height, useContentSize: true, webPreferences: webPreferences(preload, backend) });
+  appWindow = win;
   pane = startPane(win, mainRpc);
   focusWindow = () => {
     if (win.isDestroyed()) return;

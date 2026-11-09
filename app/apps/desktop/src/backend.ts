@@ -15,7 +15,7 @@
  *   local server.
  */
 import { spawn, type ChildProcess } from "node:child_process";
-import { cpSync, existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync } from "node:fs";
 import { stripTypeScriptTypes } from "node:module";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -62,6 +62,20 @@ export function childEnv(base: NodeJS.ProcessEnv = process.env, extra: Record<st
 export function userDataOverride(env: NodeJS.ProcessEnv = process.env): string | undefined {
   const dir = env.RW_USER_DATA_DIR;
   return dir === undefined || dir === "" ? undefined : resolve(dir);
+}
+
+/**
+ * A test's stand-in for the OS Documents folder: `RW_DOCUMENTS_DIR` when set
+ * and unpackaged (a shipped app never takes it from the environment), created
+ * so a dialog can open on it. Never touches the real Documents, which macOS
+ * guards with a TCC prompt.
+ */
+export function documentsDirOverride(isPackaged: boolean, env: NodeJS.ProcessEnv = process.env): string | undefined {
+  const dir = env.RW_DOCUMENTS_DIR;
+  if (isPackaged || dir === undefined || dir === "") return undefined;
+  const full = resolve(dir);
+  mkdirSync(full, { recursive: true });
+  return full;
 }
 
 /**
@@ -136,6 +150,8 @@ export interface SpawnServerOptions {
    * the server. Without either the server runs without Lecturn.
    */
   lecturnBaseDir?: string;
+  /** Main's Documents folder, as `RW_DOCUMENTS_DIR`: new projects default under it on the server too. */
+  documentsDir?: string;
 }
 
 /** Command and args that run `node <cli> …` with `ELECTRON_RUN_AS_NODE` unset (or, with `runAsNode`, set by the env instead). */
@@ -152,6 +168,7 @@ export function spawnServer(opts: SpawnServerOptions = {}): Promise<ServerHandle
   const bin = defaultSidecarBin(env);
   if (bin !== undefined) extra.RW_SIDECAR_BIN = bin;
   if (opts.runAsNode === true) extra.ELECTRON_RUN_AS_NODE = "1";
+  if (opts.documentsDir !== undefined) extra.RW_DOCUMENTS_DIR = opts.documentsDir;
   const { cmd, args } = serverCommand(opts.node ?? (env.RW_NODE || "node"), opts.cli ?? SERVER_CLI, opts.projects ?? [], opts.lecturnBaseDir, opts.runAsNode);
   const child = spawn(cmd, args, { env: childEnv(env, extra), stdio: ["ignore", "pipe", "pipe"] });
   const exited = new Promise<void>((r) => child.once("exit", () => r()));
