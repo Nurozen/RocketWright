@@ -124,7 +124,15 @@ describe("server spawn", () => {
       serverUrl: "http://127.0.0.1:5",
       rpcUrl: "ws://127.0.0.1:5/rpc",
       liveMcpUrl: null,
+      mainToken: null,
     });
+  });
+
+  it("parses RW_MAIN_TOKEN and never a partial line, and keeps it out of the page URL (D11)", () => {
+    const urls = parseServerUrls("RW_SERVER_URL=http://127.0.0.1:5\nRW_MAIN_TOKEN=s3cret\nRW_RPC_URL=ws://127.0.0.1:5/rpc?token=abc\n");
+    expect(urls?.mainToken).toBe("s3cret");
+    expect(parseServerUrls("RW_SERVER_URL=http://a\nRW_RPC_URL=ws://a/rpc\nRW_MAIN_TOKEN=s3c")?.mainToken).toBeNull();
+    expect(appUrl("http://127.0.0.1:9", urls)).not.toContain("s3cret");
   });
 
   it("parses the optional RW_LIVE_MCP_URL line and never a partial line", () => {
@@ -135,6 +143,7 @@ describe("server spawn", () => {
       serverUrl: "http://127.0.0.1:5",
       rpcUrl: "ws://127.0.0.1:5/rpc?token=abc",
       liveMcpUrl: "http://127.0.0.1:5/mcp/live",
+      mainToken: null,
     });
     // A partial live line is ignored, not truncated.
     expect(parseServerUrls("RW_SERVER_URL=http://a\nRW_RPC_URL=ws://a/rpc\nRW_LIVE_MCP_URL=http://a/mc")?.liveMcpUrl).toBeNull();

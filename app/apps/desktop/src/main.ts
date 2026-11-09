@@ -678,6 +678,7 @@ async function startMainRpc(backend: Backend, quiet: boolean, onLecturnStatus: (
   if (backend.server === null) return null;
   try {
     return await connectMainRpc(backend.server.rpcUrl, {
+      mainToken: backend.server.mainToken,
       onLecturnStatus,
       ...(quiet ? {} : { onProjectOpened: (p) => process.stderr.write(`project opened: ${p.projectId} (${p.dir})\n`) }),
     });

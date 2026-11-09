@@ -450,6 +450,11 @@ ELECTRON_RUN_AS_NODE node`), serves the bundle on `http://127.0.0.1:<port>`
 (never `file://`: WASM needs http), and passes the server URLs both in the
 page query (`rpc=`, `http=`) and through the preload as `window.rwDesktop`.
 
+Electron main holds one more secret. The server prints `RW_MAIN_TOKEN=<secret>`
+on stdout, never in an environment variable (the server's env reaches Lecturn).
+Main uses it to claim the host channel, the only socket that can answer a
+consent request or export outside the project; the renderer never sees it.
+
 The RPC socket needs the server's per-launch secret: `RW_RPC_URL` (and
 `AppServer.rpcUrl`) is `ws://127.0.0.1:<port>/rpc?token=<secret>`, and an
 upgrade without it is refused (401). The preload's `rpcUrl` carries it; the
