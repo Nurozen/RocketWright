@@ -53,8 +53,9 @@ h2 {
 
 .rw-shell {
   display: grid;
-  width: 100vw;
-  height: 100vh;
+  /* Not 100vw and 100vh: under the View menu's CSS zoom those scale, so the shell would overflow or leave a gap. */
+  width: 100%;
+  height: 100%;
   grid-template-columns: calc(var(--rw-rail-w) + var(--rw-hairline)) minmax(0, 1fr) calc(var(--rw-agent-w) + var(--rw-hairline));
   grid-template-rows: calc(var(--rw-header-h) + var(--rw-hairline)) minmax(0, 1fr) auto calc(var(--rw-history-h) + var(--rw-hairline));
   grid-template-areas:
@@ -1182,4 +1183,13 @@ button:disabled {
 .rw-lifecycle {
   padding: 24px;
   color: var(--rw-text-secondary);
+}
+
+/* ---- quick start --------------------------------------------------------- */
+
+.rw-quick-start {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding-left: 20px;
 }

@@ -47,6 +47,8 @@
  *   interactive runs (dev: `RW_REGISTER_PROTOCOL=1`) register the scheme and
  *   take the single-instance lock; a link opens the project (`project.open`)
  *   and then the thread in the pane. Hidden runs never do.
+ * - The native menu (`menu.ts`, R0.10) belongs to interactive windows only: a
+ *   hidden run keeps Electron's default and is never driven by keyboard.
  * - `--zero-project` (B3 surface captures): a hidden run that boots a server
  *   with no project open, as an interactive launch with none does, so the
  *   page shows Welcome. `RW_SEEDED_PROFILE` (unpackaged) is the profile to use
@@ -65,8 +67,8 @@
  * build never opens a `/tmp` copy.
  */
 import { mountEmbedView, captureEmbedView, type EmbedBridge, type EmbedTarget as HelperEmbedTarget } from "@lecturn/embed/electron";
-import { embedThemeInput, PANE_MAIN_CHANNEL, type DesktopBoot, type EmbedTarget, type LecturnHostThemeJson, type LecturnStatus, type LecturnThemeJson, type PaneMainMessage } from "@rw/contracts";
-import { app, BrowserWindow, dialog, ipcMain, nativeImage, systemPreferences } from "electron";
+import { DESKTOP_COMMAND_CHANNEL, embedThemeInput, PANE_MAIN_CHANNEL, type DesktopBoot, type EmbedTarget, type LecturnHostThemeJson, type LecturnStatus, type LecturnThemeJson, type PaneMainMessage } from "@rw/contracts";
+import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, shell, systemPreferences, webContents } from "electron";
 import { mkdirSync, readFileSync, rmSync } from "node:fs";
 import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -78,12 +80,13 @@ import { waitGuestSized } from "./guestSize.ts";
 import { openHiddenWindow } from "./hiddenWindow.ts";
 import { captureComposite, createPaneController, droppedCapture, GUEST_WEB_PREFERENCES, isGuestUrl, type EmbedBridgeLike, type MountArgs, type PaneController } from "./lecturn.ts";
 import { connectMainRpc, type MainRpc } from "./mainRpc.ts";
+import { APP_NAME, createMenuController, linkAction, type MenuController } from "./menu.ts";
 import { bootProjects, buildPreload, desktopArg, documentsDirOverride, lecturnBaseDirFor, parseDesktopArgs, REPO_ROOT, resolveDevProject, seededProfileDir, startBackend, userDataOverride, waitForHttp, type Backend, type DevProject } from "./backend.ts";
 import { registerDesktopServices } from "./nativeDialogs.ts";
 import { packagedLayout, packagedServerOptions, userArgv } from "./packaged.ts";
 import { installProtocol, linkInArgv, linkQueue, openFromLink, parseOpenUrl } from "./protocol.ts";
 import { once, shutdownOnQuit } from "./quit.ts";
-import { createRecents } from "./recents.ts";
+import { createRecents, type Recents } from "./recents.ts";
 import { reopenLast } from "./reopen.ts";
 import { classifyPane, PANE_DOM_VIEW_SCRIPT, SNAPSHOT_SHOWN_SCRIPT, waitOverlaySnapshot, type PaneDomView } from "./surfacePane.ts";
 
@@ -365,6 +368,8 @@ function startPane(win: BrowserWindow, rpc: MainRpc | null): PaneController | nu
   });
 }
 
+const MIN_WINDOW_WIDTH = 1024;
+
 /** The window `rwDesktop` calls are accepted from (`nativeDialogs.ts`); a hidden retry replaces it. */
 let appWindow: BrowserWindow | null = null;
 
@@ -592,15 +597,28 @@ async function main(): Promise<void> {
   });
   // D2: main's own socket on the child; B8/B10 use it for `embed.target` and per-project mounts.
   let pane: PaneController | null = null;
-  const mainRpc = await startMainRpc(backend, hidden, (status) => pane?.onStatus(status));
+  let menu: MenuController | null = null;
+  const mainRpc = await startMainRpc(backend, hidden, (status) => pane?.onStatus(status), () => void menu?.refresh());
   let boot: DesktopBoot = { activeProjectId: null, notice: null };
-  const recents = createRecents({
+  const savedRecents = createRecents({
     file: join(app.getPath("userData"), "recents.json"),
     excluded: projects ?? [],
     readOnly: hidden,
     openDirs: () => mainRpc?.projects().map((p) => p.dir) ?? [],
     log: (line) => process.stderr.write(`${line}\n`),
   });
+  // Recents and "is a project showing" both drive the menu, so a change here rebuilds it.
+  const recents: Recents = {
+    ...savedRecents,
+    see: async (project) => {
+      await savedRecents.see(project);
+      await menu?.setProjectOpen(project !== null);
+    },
+    remove: async (dir) => {
+      await savedRecents.remove(dir);
+      await menu?.refresh();
+    },
+  };
   registerDesktopServices<BrowserWindow>({
     ipc: ipcMain,
     dialog,
@@ -640,9 +658,25 @@ async function main(): Promise<void> {
       log: (line) => process.stderr.write(`${line}\n`),
     });
   }
-  const win = new BrowserWindow({ width, height, useContentSize: true, webPreferences: webPreferences(preload, backend) });
+  // Below 1024 the header's start column clips; below about 792 the project menu is gone (`header-long-name.spec.ts` holds the floor).
+  const win = new BrowserWindow({ width, height, minWidth: MIN_WINDOW_WIDTH, useContentSize: true, webPreferences: webPreferences(preload, backend) });
   appWindow = win;
   pane = startPane(win, mainRpc);
+  app.setAboutPanelOptions({ applicationName: APP_NAME, applicationVersion: app.getVersion() });
+  menu = createMenuController({
+    win,
+    channel: DESKTOP_COMMAND_CHANNEL,
+    platform: process.platform,
+    dev: !app.isPackaged,
+    recents: () => recents.list(),
+    apply: (template) => Menu.setApplicationMenu(Menu.buildFromTemplate(template)),
+    focused: () => webContents.getFocusedWebContents(),
+    openExternal: (url) => shell.openExternal(url),
+    quit: () => app.quit(),
+    log: (line) => process.stderr.write(`${line}\n`),
+  });
+  await menu.refresh();
+  guardLinks(win, new URL(backend.url).origin);
   focusWindow = () => {
     if (win.isDestroyed()) return;
     if (win.isMinimized()) win.restore();
@@ -673,12 +707,30 @@ async function main(): Promise<void> {
   }
 }
 
+/** Keeps the app window on the app: a web link opens the browser, and nothing else may replace the page or open a second window. */
+function guardLinks(win: BrowserWindow, appOrigin: string): void {
+  const openOutside = (url: string): void => {
+    shell.openExternal(url).catch((e: unknown) => process.stderr.write(`cannot open ${url}: ${e instanceof Error ? e.message : String(e)}\n`));
+  };
+  win.webContents.setWindowOpenHandler(({ url }) => {
+    if (linkAction(url, appOrigin) === "external") openOutside(url);
+    return { action: "deny" };
+  });
+  win.webContents.on("will-navigate", (e, url) => {
+    const action = linkAction(url, appOrigin);
+    if (action === "navigate") return;
+    e.preventDefault();
+    if (action === "external") openOutside(url);
+  });
+}
+
 /** Main's IF10 client on the child (null without a server, or if it cannot connect: the window still works). */
-async function startMainRpc(backend: Backend, quiet: boolean, onLecturnStatus: (status: LecturnStatus) => void): Promise<MainRpc | null> {
+async function startMainRpc(backend: Backend, quiet: boolean, onLecturnStatus: (status: LecturnStatus) => void, onProjectsChanged: () => void): Promise<MainRpc | null> {
   if (backend.server === null) return null;
   try {
     return await connectMainRpc(backend.server.rpcUrl, {
       onLecturnStatus,
+      onProjectsChanged,
       ...(quiet ? {} : { onProjectOpened: (p) => process.stderr.write(`project opened: ${p.projectId} (${p.dir})\n`) }),
     });
   } catch (e) {

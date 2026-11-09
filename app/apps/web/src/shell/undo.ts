@@ -96,3 +96,24 @@ export function undoKey(e: Pick<KeyboardEvent, "key" | "metaKey" | "ctrlKey" | "
   if (k === "y" && e.ctrlKey && !e.metaKey) return "redo";
   return null;
 }
+
+/** `<input>` types with no text to undo. */
+const NON_TEXT_INPUTS: ReadonlySet<string> = new Set(["button", "checkbox", "color", "file", "image", "radio", "range", "reset", "submit"]);
+
+/** True for a control with its own text history, which a native Undo would change. */
+export function isTextField(el: Element | null): boolean {
+  if (el === null) return false;
+  if ((el as HTMLElement).isContentEditable === true || el.tagName === "TEXTAREA") return true;
+  return el.tagName === "INPUT" && !NON_TEXT_INPUTS.has((el as HTMLInputElement).type);
+}
+
+/**
+ * The native menu's Undo or Redo in the focused text field, if there is one
+ * (R0.10). A custom menu item suppresses the native action, so the field gets
+ * it here. False means no text field has focus: it is the design history's.
+ */
+export function undoInField(kind: "undo" | "redo", doc: Pick<Document, "activeElement" | "execCommand">): boolean {
+  if (!isTextField(doc.activeElement)) return false;
+  doc.execCommand(kind);
+  return true;
+}

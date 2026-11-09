@@ -16,7 +16,7 @@
  * panel; `embed/wiring.ts` handles navigate, mentions, the D12 fallback,
  * run subtitles and the host context.
  */
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
 import type { PageId, RwRef } from "@rw/contracts";
 import { ensurePageThread, navigatePage, newPageThread, openArtifactThread, openProviders, openThread } from "../embed/rail.ts";
 import { setPane } from "../embed/threads.ts";
@@ -28,8 +28,9 @@ import type { RpcLike } from "../state/rpc.ts";
 import { type AppStore, useAppState } from "../state/store.ts";
 import type { ViewId } from "@rw/contracts";
 import { AppShell, type ShellHandlers } from "./AppShell.tsx";
+import type { CommandHandlers } from "./commands.ts";
 import { shellModelFrom } from "./connect.ts";
-import { PAGE_TABS, pageOf, type DesignTab, type ProjectMenuModel, type ShellHistoryStep, type ShellNavRow, type ShellProject } from "./model.ts";
+import { isTopTab, PAGE_TABS, pageOf, type DesignTab, type TopTab, type ProjectMenuModel, type ShellHistoryStep, type ShellNavRow, type ShellProject } from "./model.ts";
 import { undoKey } from "./undo.ts";
 import { ViewportToolbar, type ViewChip } from "./ViewportToolbar.tsx";
 
@@ -59,6 +60,10 @@ export interface ConnectedShellProps {
   onSwitchProject?: (projectId: string) => void;
   /** Recents and the project commands; `AppRoot` owns both. */
   projectMenu?: ProjectMenuModel | undefined;
+  /** Filled while mounted: the native menu commands that act on this project's shell. */
+  commandsRef?: RefObject<CommandHandlers | null> | undefined;
+  /** Header Help. */
+  onOpenHelp?: (() => void) | undefined;
 }
 
 /** Shell slots a page may own; absent ones keep the shell defaults. */
@@ -105,7 +110,7 @@ const chipOf = (v: ViewId): ViewChip => (v[0]!.toUpperCase() + v.slice(1)) as Vi
 
 const message = (e: unknown): string => (e instanceof Error ? e.message : String(e));
 
-export function ConnectedShell({ store, client = null, renderPage, renderCompare, toolbarControls, pageSlots, now = Date.now, onPaneBridge, onSwitchProject, projectMenu }: ConnectedShellProps) {
+export function ConnectedShell({ store, client = null, renderPage, renderCompare, toolbarControls, pageSlots, now = Date.now, onPaneBridge, onSwitchProject, projectMenu, commandsRef, onOpenHelp }: ConnectedShellProps) {
   const s = useAppState(store, (x) => x);
   const [clock, setClock] = useState(now());
   const [checking, setChecking] = useState(false);
@@ -247,11 +252,30 @@ export function ConnectedShell({ store, client = null, renderPage, renderCompare
     },
     // W3.6: with the embed, Settings shows Lecturn's providers panel in the pane.
     onOpenSettings: () => openProviders(store),
+    ...(onOpenHelp !== undefined ? { onOpenHelp } : {}),
   };
+  const goToTab = (t: TopTab) => run(navigatePage(store, pageOf(t, t === "design" ? lastDesign : null)));
 
   // Undo/redo shortcuts (text fields keep their own undo).
   const keys = useRef(handlers);
   keys.current = handlers;
+  const toTab = useRef(goToTab);
+  toTab.current = goToTab;
+  useEffect(() => {
+    if (commandsRef === undefined) return;
+    const table: CommandHandlers = {
+      "edit.undo": () => keys.current.onUndo?.(),
+      "edit.redo": () => keys.current.onRedo?.(),
+      "app.settings": () => keys.current.onOpenSettings?.(),
+      "view.tab": ({ tab }) => {
+        if (isTopTab(tab)) toTab.current(tab);
+      },
+    };
+    commandsRef.current = table;
+    return () => {
+      if (commandsRef.current === table) commandsRef.current = null;
+    };
+  }, [commandsRef]);
   useEffect(() => {
     const on = (e: KeyboardEvent) => {
       const k = undoKey(e);
@@ -287,7 +311,7 @@ export function ConnectedShell({ store, client = null, renderPage, renderCompare
       model={model}
       activeTab={tab}
       activeLocalTab={local}
-      onTabChange={(t) => run(navigatePage(store, pageOf(t, t === "design" ? lastDesign : null)))}
+      onTabChange={goToTab}
       onLocalTabChange={(id) => run(navigatePage(store, id as PageId))}
       handlers={handlers}
       projectMenu={projectMenu === undefined || projectsError === null ? projectMenu : { ...projectMenu, errors: [...projectMenu.errors, projectsError] }}

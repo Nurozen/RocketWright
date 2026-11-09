@@ -2,7 +2,7 @@
  * Playwright e2e (`make e2e`, `make check` stage 3, M1.18; `pnpm -C app e2e
  * [spec]`). Specs are `app/e2e/*.spec.ts`, in two projects:
  * - `electron`: specs that drive the Electron app via `_electron` (b4a.spec.ts,
- *   rebuild-case1.spec.ts); no browser download is needed.
+ *   rebuild-case1.spec.ts, native-menu.spec.ts); no browser download is needed.
  * - `web`: specs on the web bundle against the live server (page01.spec.ts,
  *   M1.50; page02/page03.spec.ts, M2.9/M2.10). The global setup builds the web app, serves it
  *   with `vite preview`, and starts the mock, both on port 0; their URLs reach
@@ -15,7 +15,7 @@ import { defineConfig } from "@playwright/test";
 import { join } from "node:path";
 import { e2eReportPath, REPO_ROOT } from "./bar/paths.ts";
 
-const ELECTRON_SPECS = /(b4a|rebuild-case1)\.spec\.ts$/;
+const ELECTRON_SPECS = /(b4a|rebuild-case1|native-menu)\.spec\.ts$/;
 /** Project-level `testIgnore` replaces the top-level one, so each project repeats it. */
 const IGNORE = ["**/node_modules/**", "**/__tests__/**", "**/page04.spec.ts"];
 
