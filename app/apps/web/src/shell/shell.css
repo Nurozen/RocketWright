@@ -70,9 +70,12 @@ h2 {
 .rw-header {
   grid-area: header;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  /* Tabs stay centred while both sides fit; the end column never gives up its controls, the start column gives way. */
+  grid-template-columns: minmax(0, 1fr) auto minmax(min-content, 1fr);
   align-items: stretch;
   padding: 0 16px 0 20px;
+  overflow-x: clip;
+  container: rw-header / inline-size;
   background: var(--rw-bg-canvas);
   border-bottom: var(--rw-hairline) solid var(--rw-line);
 }
@@ -83,6 +86,10 @@ h2 {
   align-items: center;
   gap: 16px;
   min-width: 0;
+}
+
+.rw-header__start {
+  overflow-x: clip;
 }
 
 .rw-header__end {
@@ -104,12 +111,14 @@ h2 {
 }
 
 .rw-header__sep {
+  flex: none;
   width: var(--rw-hairline);
   height: 28px;
   background: var(--rw-line);
 }
 
 .rw-brand {
+  flex: none;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -123,6 +132,9 @@ h2 {
 }
 
 .rw-project {
+  /* Only the name gives way; the trigger keeps a clickable floor. */
+  flex: 0 1 auto;
+  min-width: 72px;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -134,13 +146,38 @@ h2 {
   white-space: nowrap;
 }
 
+.rw-project__name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .rw-save {
+  flex: none;
   display: flex;
   align-items: center;
   gap: 8px;
   color: var(--rw-text-secondary);
   font-size: var(--rw-font-size-secondary);
   white-space: nowrap;
+}
+
+/* Narrow windows: the start column sheds what it can so the name stays legible. The save icon still carries its state. */
+@container rw-header (max-width: 1319.98px) {
+  .rw-save__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+}
+
+@container rw-header (max-width: 1199.98px) {
+  .rw-brand__word {
+    display: none;
+  }
 }
 
 .rw-tabs {
