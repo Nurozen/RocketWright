@@ -4,6 +4,7 @@
  * with the CheckDelta. Only `commit()` writes, through `model.patch` (I1, I2).
  */
 import type { MutationOut, PatchOp } from "@rw/contracts";
+import { createMutate } from "../mutate.ts";
 import type { DraftSlice, SliceCtx } from "../types.ts";
 
 /**
@@ -44,6 +45,8 @@ export const EMPTY_DRAFT = {
 export function createDraftSlice(ctx: SliceCtx): DraftSlice {
   /** Bumps on every edit/discard so late dry-run answers are dropped. */
   let gen = 0;
+  /** The commit in flight: `mutate` can settle a draft while Save is still answering, and ops must not apply twice. */
+  let committing: Promise<MutationOut> | null = null;
 
   return {
     ...EMPTY_DRAFT,
@@ -79,22 +82,31 @@ export function createDraftSlice(ctx: SliceCtx): DraftSlice {
       ctx.patch("draft", { ...EMPTY_DRAFT, ops: [] });
     },
 
-    async commit(): Promise<MutationOut> {
-      const { client, projectId } = ctx.conn();
-      const d = ctx.get().draft;
-      if (d.ops.length === 0) throw new Error("nothing to commit");
-      const my = ++gen;
-      ctx.patch("draft", { pending: true, error: null });
-      try {
-        const params = d.label === null ? { projectId, ops: d.ops } : { projectId, ops: d.ops, label: d.label };
-        const out = await client.call("model.patch", params);
-        if (my === gen) ctx.patch("draft", { ...EMPTY_DRAFT, ops: [] });
-        return out;
-      } catch (e) {
-        if (my === gen) ctx.patch("draft", { pending: false, error: e instanceof Error ? e.message : String(e) });
-        throw e;
-      }
+    commit(): Promise<MutationOut> {
+      if (committing !== null) return committing;
+      const send = async (): Promise<MutationOut> => {
+        const { client, projectId } = ctx.conn();
+        const d = ctx.get().draft;
+        if (d.ops.length === 0) throw new Error("nothing to commit");
+        const my = ++gen;
+        ctx.patch("draft", { pending: true, error: null });
+        try {
+          const params = d.label === null ? { projectId, ops: d.ops } : { projectId, ops: d.ops, label: d.label };
+          const out = await client.call("model.patch", params);
+          if (my === gen) ctx.patch("draft", { ...EMPTY_DRAFT, ops: [] });
+          return out;
+        } catch (e) {
+          if (my === gen) ctx.patch("draft", { pending: false, error: e instanceof Error ? e.message : String(e) });
+          throw e;
+        }
+      };
+      committing = send().finally(() => {
+        committing = null;
+      });
+      return committing;
     },
+
+    mutate: createMutate(ctx),
   };
 }
 
