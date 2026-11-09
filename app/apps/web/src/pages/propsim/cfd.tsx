@@ -11,6 +11,7 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import type { schema } from "@rw/contracts";
 import { useStore } from "zustand";
 import { createStore, type StoreApi } from "zustand/vanilla";
+import type { HostApi } from "../../host/HostApi.ts";
 import type { RpcLike } from "../../state/rpc.ts";
 import { useAppState, type AppStore } from "../../state/index.ts";
 import type { FetchText } from "./engineering.tsx";
@@ -75,9 +76,11 @@ export interface CfdTabProps {
   ui: CfdStore;
   httpBase: string;
   fetchText?: FetchText;
+  /** Offers native pickers on the desktop; a browser keeps the typed path (D18). */
+  host?: HostApi | null;
 }
 
-export function CfdTab({ store, client, ui, httpBase, fetchText = (u) => fetch(u) }: CfdTabProps) {
+export function CfdTab({ store, client, ui, httpBase, fetchText = (u) => fetch(u), host = null }: CfdTabProps) {
   const projectId = useAppState(store, (s) => s.project.projectId);
   const datasets = useStore(ui, (s) => s.datasets);
   const chosen = useStore(ui, (s) => s.dataset);
@@ -161,7 +164,7 @@ export function CfdTab({ store, client, ui, httpBase, fetchText = (u) => fetch(u
             No imported CFD result. Import a CSV point file (header x,y,z in metres, body frame; optional vx,vy,vz and scalar columns), or a directory of
             &lt;name&gt;_t&lt;seconds&gt;.csv steps. Imported fields show here with their own provenance and never feed engineering numbers.
           </p>
-          <ImportForm ui={ui} client={client} projectId={projectId} onImported={(id) => void list(id)} />
+          <ImportForm ui={ui} client={client} projectId={projectId} host={host} onImported={(id) => void list(id)} />
         </div>
       ) : state === "error" ? (
         <p className="rw-eng__empty" data-testid="cfd.error">
@@ -172,20 +175,21 @@ export function CfdTab({ store, client, ui, httpBase, fetchText = (u) => fetch(u
           Loading the imported dataset…
         </p>
       ) : (
-        <CfdDatasetView record={record} dataset={ds} ui={ui} client={client} projectId={projectId} onImported={(id) => void list(id)} />
+        <CfdDatasetView record={record} dataset={ds} ui={ui} client={client} projectId={projectId} host={host} onImported={(id) => void list(id)} />
       )}
     </div>
   );
 }
 
-function ImportForm({ ui, client, projectId, onImported }: { ui: CfdStore; client: RpcLike | null; projectId: string | null; onImported: (id: string) => void }) {
+const CSV_FILTERS = [{ name: "CSV point data", extensions: ["csv"] }];
+
+function ImportForm({ ui, client, projectId, host, onImported }: { ui: CfdStore; client: RpcLike | null; projectId: string | null; host: HostApi | null; onImported: (id: string) => void }) {
   const path = useStore(ui, (s) => s.importPath);
   const busy = useStore(ui, (s) => s.importing);
   const error = useStore(ui, (s) => s.importError);
-  const submit = (e: FormEvent) => {
-    e.preventDefault();
-    const p = path.trim();
-    if (client === null || projectId === null || p === "" || busy) return;
+  const run = (raw: string) => {
+    const p = raw.trim();
+    if (client === null || projectId === null || p === "" || ui.getState().importing) return;
     ui.setState({ importing: true, importError: null });
     void (async () => {
       try {
@@ -197,6 +201,21 @@ function ImportForm({ ui, client, projectId, onImported }: { ui: CfdStore; clien
       }
     })();
   };
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    run(path);
+  };
+  /** A picked path imports at once; it stays in the field if the import is refused. */
+  const choose = (pick: () => Promise<string | null>) => {
+    pick()
+      .then((picked) => {
+        if (picked === null) return;
+        ui.setState({ importPath: picked });
+        run(picked);
+      })
+      .catch((x: unknown) => ui.setState({ importError: message(x) }));
+  };
+  const desktop = host !== null && host.kind === "desktop";
   return (
     <form className="rw-cfd__import" data-testid="cfd.import-form" onSubmit={submit}>
       <label>
@@ -213,6 +232,16 @@ function ImportForm({ ui, client, projectId, onImported }: { ui: CfdStore; clien
       <button type="submit" className="rw-button rw-button--primary" data-testid="cfd.import" disabled={busy || path.trim() === "" || client === null}>
         {busy ? "Importing…" : "Import"}
       </button>
+      {desktop && (
+        <span className="rw-cfd__pick">
+          <button type="button" className="rw-button" data-testid="cfd.choose-file" disabled={busy || client === null} onClick={() => choose(() => host.pickFile({ title: "Import CFD points", filters: CSV_FILTERS }))}>
+            Choose CSV file…
+          </button>
+          <button type="button" className="rw-button" data-testid="cfd.choose-directory" disabled={busy || client === null} onClick={() => choose(() => host.pickFolder({ title: "Import a directory of CFD steps" }))}>
+            Choose directory…
+          </button>
+        </span>
+      )}
       {error !== null && (
         <p className="rw-cfd__error" data-testid="cfd.import-error" role="alert">
           {error}
@@ -222,7 +251,7 @@ function ImportForm({ ui, client, projectId, onImported }: { ui: CfdStore; clien
   );
 }
 
-function CfdDatasetView({ record, dataset, ui, client, projectId, onImported }: { record: CfdRecord; dataset: schema.CfdDataset; ui: CfdStore; client: RpcLike | null; projectId: string | null; onImported: (id: string) => void }) {
+function CfdDatasetView({ record, dataset, ui, client, projectId, host, onImported }: { record: CfdRecord; dataset: schema.CfdDataset; ui: CfdStore; client: RpcLike | null; projectId: string | null; host: HostApi | null; onImported: (id: string) => void }) {
   const scalars = useMemo(() => scalarColumns(record), [record]);
   const chosen = useStore(ui, (s) => s.scalar);
   const scalar = chosen !== null && scalars.includes(chosen) ? chosen : (scalars[0] ?? null);
@@ -324,7 +353,7 @@ function CfdDatasetView({ record, dataset, ui, client, projectId, onImported }: 
         </section>
         <section className="rw-cfd__import-side">
           <h2 className="rw-eng__title">Import another</h2>
-          <ImportForm ui={ui} client={client} projectId={projectId} onImported={onImported} />
+          <ImportForm ui={ui} client={client} projectId={projectId} host={host} onImported={onImported} />
         </section>
       </aside>
     </div>

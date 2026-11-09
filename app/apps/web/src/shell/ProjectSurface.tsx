@@ -14,6 +14,7 @@ import { ComparePage } from "../pages/compare/ComparePage.tsx";
 import { componentsSlots, createComponentsUi } from "../pages/components/ComponentsPage.tsx";
 import { configurationsSlots, createConfigurationsUi } from "../pages/configurations/ConfigurationsPage.tsx";
 import { createLiquidUi, liquidSlots } from "../pages/liquid/LiquidPage.tsx";
+import type { HostApi } from "../host/HostApi.ts";
 import { createCfdUi } from "../pages/propsim/cfd.tsx";
 import { createEngineeringUi } from "../pages/propsim/engineering.tsx";
 import { propSimSlots } from "../pages/propsim/PropSimPage.tsx";
@@ -55,11 +56,13 @@ export interface ProjectSurfaceProps {
   surfaceRef?: RefObject<SurfaceHandle | null> | undefined;
   commandsRef?: RefObject<CommandHandlers | null> | undefined;
   onOpenHelp?: (() => void) | undefined;
+  /** Native pickers on the desktop; absent in the tests that render a surface on its own. */
+  host?: HostApi | undefined;
 }
 
 const message = (e: unknown): string => (e instanceof Error ? e.message : String(e));
 
-export function ProjectSurface({ client, projectId, initialPage, runSource, httpBase, onPageChange, onOpenFailed, onSwitchProject, onProjectInfo, onSidecarState, onError, projectMenu, surfaceRef, commandsRef, onOpenHelp }: ProjectSurfaceProps) {
+export function ProjectSurface({ client, projectId, initialPage, runSource, httpBase, onPageChange, onOpenFailed, onSwitchProject, onProjectInfo, onSidecarState, onError, projectMenu, surfaceRef, commandsRef, onOpenHelp, host = undefined }: ProjectSurfaceProps) {
   const [store] = useState(() => {
     const st = createAppStore();
     st.getState().ui.navigate(initialPage);
@@ -134,7 +137,7 @@ export function ProjectSurface({ client, projectId, initialPage, runSource, http
   const [engineeringUi] = useState(createEngineeringUi);
   const [visualUi] = useState(createVisualUi);
   const [cfdUi] = useState(createCfdUi);
-  const propsim = useMemo(() => propSimSlots(store, client, httpBase, engineeringUi, visualUi, cfdUi, runSource), [store, client, httpBase, engineeringUi, visualUi, cfdUi, runSource]);
+  const propsim = useMemo(() => propSimSlots(store, client, httpBase, engineeringUi, visualUi, cfdUi, runSource, host ?? null), [store, client, httpBase, engineeringUi, visualUi, cfdUi, runSource, host]);
   const results: PageSlots = useMemo(
     () => ({
       railNav: <RunsRail app={store} onOpenRun={(sim, name) => void openArtifactThread(store, `rw:sim/${sim}`, name).catch((e: unknown) => console.error(e))} />,

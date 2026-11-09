@@ -11,6 +11,7 @@
  * Simulate.
  */
 import type { ReactNode } from "react";
+import type { HostApi } from "../../host/HostApi.ts";
 import { Icon } from "../../shell/Icon.tsx";
 import type { RpcLike } from "../../state/rpc.ts";
 import { useAppState, type AppStore } from "../../state/index.ts";
@@ -43,9 +44,10 @@ export function propSimSlots(
   visualUi: VisualStore = createVisualUi(),
   cfdUi: CfdStore = createCfdUi(),
   runSource: RunDataSource | null = null,
+  host: HostApi | null = null,
 ): PropSimSlots {
   return {
-    content: <PropSimWorkspace store={store} client={client} httpBase={httpBase} ui={ui} visualUi={visualUi} cfdUi={cfdUi} runSource={runSource} />,
+    content: <PropSimWorkspace store={store} client={client} httpBase={httpBase} ui={ui} visualUi={visualUi} cfdUi={cfdUi} runSource={runSource} host={host} />,
     nav: <SimulationNav store={store} />,
   };
 }
@@ -58,6 +60,7 @@ function PropSimWorkspace({
   visualUi,
   cfdUi,
   runSource,
+  host,
 }: {
   store: AppStore;
   client: RpcLike | null;
@@ -66,6 +69,7 @@ function PropSimWorkspace({
   visualUi: VisualStore;
   cfdUi: CfdStore;
   runSource: RunDataSource | null;
+  host: HostApi | null;
 }) {
   const raw = useAppState(store, (s) => s.ui.tab);
   if (isAnalysisView(raw)) return <AnalysisPage store={store} view={raw} source={runSource} />;
@@ -99,7 +103,7 @@ function PropSimWorkspace({
         ) : tier === "visual" ? (
           <VisualFlowTab store={store} client={client} ui={visualUi} httpBase={httpBase} />
         ) : (
-          <CfdTab store={store} client={client} ui={cfdUi} httpBase={httpBase} />
+          <CfdTab store={store} client={client} ui={cfdUi} httpBase={httpBase} host={host} />
         )}
       </div>
     </div>

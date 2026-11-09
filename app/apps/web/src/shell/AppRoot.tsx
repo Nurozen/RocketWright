@@ -236,6 +236,7 @@ export function AppRoot({ url, requestedProjectId, initialPage, runSource, httpB
         surfaceRef={surfaceRef}
         commandsRef={surfaceCommands}
         onOpenHelp={openHelp}
+        host={host}
       />
     );
   }

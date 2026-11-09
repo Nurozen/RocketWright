@@ -7,45 +7,35 @@
  * first flushes whatever is still in a field and waits for the mirror: its
  * result is then filed under the engine it actually saw.
  */
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import type { MutationOut, PatchOp } from "@rw/contracts";
+import { useMemo, useRef, useState, type ReactNode } from "react";
+import type { MutationOut } from "@rw/contracts";
 import { Icon } from "../../shell/Icon.tsx";
-import { flushProject, trackWrite, useDirtyField } from "../../state/dirtyFields.ts";
-import { useAppState, type AppStore, type Units } from "../../state/index.ts";
+import { flushProject, trackWrite } from "../../state/dirtyFields.ts";
+import { useAppState, type AppStore } from "../../state/index.ts";
 import { deleteEngineOps, duplicateEngineOps, newEngineOps, renameEngineOps } from "../../state/ops/engines.ts";
 import { StatStrip } from "../../ui/StatStrip.tsx";
 import { Modal } from "../../ui/Modal.tsx";
-import { FieldGroupFrame, SelectField, SpinField, TextField, type FieldDiagnostic } from "../../ui/fields/index.ts";
+import { FieldGroupFrame, SelectField, TextField, type FieldDiagnostic } from "../../ui/fields/index.ts";
 import {
   ENGINE_CARDS,
   addInjectorOps,
   cardFields,
   copyEngineName,
-  displayNumber,
   engineSource,
-  fieldOps,
-  fieldUnit,
-  fieldValue,
-  isExpression,
   isModified,
   mirrorAt,
   nextEngineName,
   nextPair,
-  parseFieldText,
   propellantChoice,
   propellantLabels,
   propellantOps,
   tankFields,
   tankGroups,
   type DesignEntry,
-  type EngineField,
-  type EngineSource,
 } from "./engineOps.ts";
+import { FieldRow, message, useTextEdit, type RowContext, type Write } from "./EngineFields.tsx";
+import { FeedGraphEditor } from "./FeedGraphEditor.tsx";
 import { resultStats, type EvalEngine } from "./model.ts";
-
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
-
-type Write = (ops: PatchOp[], label: string) => Promise<unknown>;
 
 const engineNames = (app: AppStore): string[] => Object.values(app.getState().project.snapshot?.evaluated?.engines ?? {}).flatMap((e) => (e == null ? [] : [e.name]));
 const engineKeys = (app: AppStore): string[] => Object.keys(app.getState().project.snapshot?.evaluated?.engines ?? {});
@@ -84,133 +74,6 @@ export function NewEngineButton({ app, onShow, primary = false }: { app: AppStor
       )}
     </>
   );
-}
-
-/**
- * Text a field holds until it is written. Valid text counts as unsaved (D22),
- * so leaving the project writes it; text that fails its check is the field's
- * own to report.
- */
-function useTextEdit(value: string, validate: (text: string) => string | null, write: (text: string) => Promise<unknown>) {
-  const typed = useRef<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  // What was written, shown until the model echoes it back, so the field does not flick to the old value.
-  const [written, setWritten] = useState<string | null>(null);
-  useEffect(() => setWritten(null), [value]);
-  const commit = (): string | null => {
-    const text = typed.current;
-    if (text === null) return null;
-    if (text.trim() === value) {
-      typed.current = null;
-      setError(null);
-      return null;
-    }
-    const invalid = validate(text);
-    if (invalid !== null) {
-      setError(invalid);
-      return invalid;
-    }
-    typed.current = null;
-    setError(null);
-    setWritten(text);
-    trackWrite(write(text)).catch((e: unknown) => {
-      setWritten(null);
-      setError(message(e));
-    });
-    return null;
-  };
-  useDirtyField({ dirty: () => typed.current !== null && validate(typed.current) === null, commit });
-  return {
-    value: written ?? value,
-    error,
-    onChange: (text: string) => {
-      typed.current = text;
-      setError(validate(text));
-    },
-    onCommit: () => void commit(),
-    onDiscard: () => {
-      typed.current = null;
-      setError(null);
-    },
-  };
-}
-
-interface RowContext {
-  engineId: string;
-  engine: EvalEngine;
-  source: EngineSource;
-  units: Units;
-  write: Write;
-  diagnostic: (path: string) => FieldDiagnostic | undefined;
-}
-
-const fieldPath = (engineId: string, key: string) => `/engines/${engineId}/${key.replace(/\./g, "/")}`;
-
-function fieldTitle(f: EngineField, ctx: RowContext): string | undefined {
-  return isExpression(f, ctx.source) ? "Computed from other values in the model; typing a number here replaces the formula." : f.doc;
-}
-
-function NumberRow({ field: f, ctx }: { field: EngineField; ctx: RowContext }) {
-  const shown = displayNumber(f, fieldValue(f, ctx.engine, ctx.source), ctx.units);
-  const edit = useTextEdit(
-    shown,
-    (text) => parseFieldText(f, text, ctx.units).error ?? null,
-    (text) => {
-      const parsed = parseFieldText(f, text, ctx.units);
-      return parsed.error !== undefined ? Promise.resolve() : ctx.write(fieldOps(ctx.engineId, f, parsed.value, ctx.source), `Edit ${f.label} of ${ctx.engine.name}`);
-    },
-  );
-  return (
-    <div className="rw-liq-editor__row">
-      <SpinField
-        testid="liquid-editor.field"
-        field={{ key: f.key, label: f.label }}
-        unit={fieldUnit(f, ctx.units)}
-        value={edit.value}
-        placeholder={f.required === true ? "" : "Not set"}
-        step={f.step ?? 0.1}
-        title={fieldTitle(f, ctx)}
-        byAgent={false}
-        error={edit.error}
-        diag={ctx.diagnostic(fieldPath(ctx.engineId, f.key))}
-        onChange={edit.onChange}
-        onCommit={edit.onCommit}
-        onDiscard={edit.onDiscard}
-      />
-      {edit.error !== null && (
-        <p className="rw-liq-editor__error" role="alert" data-field={f.key}>
-          {edit.error}
-        </p>
-      )}
-    </div>
-  );
-}
-
-function SelectRow({ field: f, ctx, onProblem }: { field: EngineField; ctx: RowContext; onProblem: (text: string) => void }) {
-  const value = fieldValue(f, ctx.engine, ctx.source);
-  const label = `Edit ${f.label} of ${ctx.engine.name}`;
-  const send = (next: string | null) => {
-    trackWrite(ctx.write(fieldOps(ctx.engineId, f, next, ctx.source), label)).catch((e: unknown) => onProblem(message(e)));
-  };
-  return (
-    <SelectField
-      testid="liquid-editor.field"
-      field={{ key: f.key, label: f.label }}
-      value={typeof value === "string" ? value : ""}
-      options={f.options ?? []}
-      labels={f.labels}
-      placeholder={f.placeholder ?? null}
-      title={f.doc}
-      byAgent={false}
-      diag={ctx.diagnostic(fieldPath(ctx.engineId, f.key))}
-      onChange={send}
-      onClear={() => send(null)}
-    />
-  );
-}
-
-function FieldRow({ field, ctx, onProblem }: { field: EngineField; ctx: RowContext; onProblem: (text: string) => void }) {
-  return field.kind === "number" ? <NumberRow field={field} ctx={ctx} /> : <SelectRow field={field} ctx={ctx} onProblem={onProblem} />;
 }
 
 function NameRow({ ctx }: { ctx: RowContext }) {
@@ -486,6 +349,7 @@ export function EngineEditor({ app, engineId, engine, entry, canCompute, onCompu
                 </div>
               )}
             </FieldGroupFrame>
+            <FeedGraphEditor app={app} ctx={ctx} onProblem={setProblem} />
           </div>
         </div>
         {children}

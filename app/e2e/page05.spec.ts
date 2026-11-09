@@ -239,6 +239,25 @@ test("the Properties editor writes a design input, reads Modified, and Compute c
   await expect(page.getByTestId("liquid.modified")).toHaveCount(0);
 });
 
+test("the feed graph table edits a connection in place and leaves the project as it was", async ({ page }) => {
+  await pageTab(page, "properties").click();
+  const graph = page.getByTestId("liquid.properties").getByRole("group", { name: "Feed graph", exact: true });
+  await expect(graph.getByTestId("liquid.feed-node")).toHaveCount(7);
+  await expect(graph.getByTestId("liquid.feed-edge")).toHaveCount(6);
+  const line = graph.getByRole("group", { name: "Connection 1: Tank A to Valve A", exact: true });
+  const diameter = line.getByRole("textbox", { name: "Diameter", exact: true });
+  await expect(diameter).toHaveValue("10");
+  await expect(line.getByRole("combobox", { name: "Boundary condition", exact: true })).toHaveValue("open");
+  await diameter.fill("12");
+  await diameter.press("Enter");
+  await expect(page.getByTestId("liquid.modified")).toHaveText("Modified, needs recompute");
+  await diameter.fill("10");
+  await diameter.press("Enter");
+  await expect(diameter).toHaveValue("10");
+  await page.getByTestId("liquid.compute").click();
+  await expect(page.getByTestId("liquid.modified")).toHaveCount(0);
+});
+
 test("New engine, Duplicate, and Delete", async ({ page }) => {
   await pageTab(page, "properties").click();
   await page.getByTestId("liquid.new-engine").click();
