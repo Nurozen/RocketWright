@@ -107,6 +107,8 @@ test("a generated .ork can become a new project and leaves the open one alone", 
   await page.getByTestId("ork-import").getByRole("button", { name: "Create new project" }).click();
   const form = page.getByTestId("new-project");
   await form.getByLabel("Name").fill("From ork");
+  // The default location lands asynchronously; filling before it does appends to it.
+  await expect(form.getByLabel("Location")).not.toHaveValue("");
   await form.getByLabel("Location").fill(join(base, "made"));
   await form.getByRole("button", { name: "Create project" }).click();
   await expect(page.getByTestId("header.project-switcher")).toHaveText("From ork");
