@@ -38,6 +38,7 @@ import { createRoot } from "react-dom/client";
 import { loadRwWasm } from "@rw/rw-wasm";
 import type { SourceFiles } from "@rw/rw-wasm";
 import { answer, startBrokerHost, windowHostDeps } from "./broker/host.ts";
+import type { RwDesktopGlobal } from "./host/HostApi.ts";
 import { PLACEHOLDER_ALT, PLACEHOLDER_HEIGHT, PLACEHOLDER_SRC, PLACEHOLDER_WIDTH } from "./chat/placeholder.ts";
 import { openArtifactThread } from "./embed/rail.ts";
 import { assemblySlots } from "./pages/assembly/AssemblyPage.tsx";
@@ -74,14 +75,7 @@ declare global {
     /** This window's broker host answering one op directly, as a server push would reach it (e2e probes, e.g. page 04's `plot_render`). */
     __rwBroker?: (op: BrokerOp, args: unknown) => Promise<BrokerResponse>;
     /** Set by the Electron preload (`apps/desktop/src/preload.ts`) when the desktop app spawned a server. */
-    rwDesktop?: {
-      desktop: true;
-      platform: string;
-      rpcUrl: string | null;
-      serverUrl: string | null;
-      /** Main's embedded-pane messages (`lecturn-embed:rw-to-host`, `embed/bridge.ts`). */
-      lecturn?: { onMessage(cb: (message: unknown) => void): () => void };
-    };
+    rwDesktop?: RwDesktopGlobal;
     /** `?mode=render&job=1`: runs one `rocketwright-render` job. */
     __rwRunJob?: (request: schema.RenderRequest, opts?: JobOptions) => Promise<JobReply>;
   }
