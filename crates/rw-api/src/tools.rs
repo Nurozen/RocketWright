@@ -95,6 +95,18 @@ pub struct ProjectCreateIn {
     /// Template id from `templates/` (default `minimal`).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub template: Option<String>,
+    /// `[display_units]` of the new project, e.g. `length = "cm"`; entries
+    /// overlay the template's own.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub display_units: BTreeMap<String, String>,
+    #[serde(default)]
+    pub dry_run: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize, JsonSchema)]
+pub struct ProjectRenameIn {
+    /// The new name: at most 255 bytes once trimmed.
+    pub name: String,
     #[serde(default)]
     pub dry_run: bool,
 }

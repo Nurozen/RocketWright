@@ -31,6 +31,12 @@ export const GLYPH_BODIES = {
   close: '<path d="M5.5 5.5l9 9M14.5 5.5l-9 9"/>',
   user: '<circle cx="10" cy="10" r="7.5"/><circle cx="10" cy="8.2" r="2.6"/><path d="M5.3 15.6a5.5 5.5 0 0 1 9.4 0"/>',
   stop: '<rect x="6" y="6" width="8" height="8" rx="1.2"/>',
+  /** New project. */
+  file: '<path d="M6 2.5h5.5l4 4V16a1.5 1.5 0 0 1-1.5 1.5H6A1.5 1.5 0 0 1 4.5 16V4A1.5 1.5 0 0 1 6 2.5z"/><path d="M11.5 2.5v4h4"/>',
+  /** A closed folder (Open folder). */
+  folder: '<path d="M2.5 5.5a1 1 0 0 1 1-1h4l2 2h7a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1h-13a1 1 0 0 1-1-1z"/>',
+  /** A rocket climbing to the right (Open sample rocket, Recent rows). */
+  rocket: '<path d="M16.8 3.2c-3.6.2-6.6 1.7-8.7 4.4l-2 2.7 3.6 3.6 2.7-2c2.7-2.1 4.2-5.1 4.4-8.7z"/><circle cx="12.4" cy="7.6" r="1.2"/><path d="M6.6 9.6H3.5l2.4-2.8h2.7M10.4 13.4v3.1l2.8-2.4v-2.7M5.4 12.9l-2 3.7 3.7-2"/>',
   "folder-open": '<path d="M2.5 6V4.5h5l1.5 2h8.5V9M2.5 6v9.5h12.5l2.5-6.5H5z"/>',
   cloud: '<path d="M6.5 15.5h8a3 3 0 0 0 .4-6A4.5 4.5 0 0 0 6.3 8.6 3.5 3.5 0 0 0 6.5 15.5z"/>',
   help: '<circle cx="10" cy="10" r="7.5"/><path d="M8 8a2 2 0 1 1 2.8 1.8c-.5.3-.8.7-.8 1.3v.4"/><path d="M10 14h.01"/>',

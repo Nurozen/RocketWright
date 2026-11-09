@@ -1,5 +1,6 @@
 /** Runtime checks for IF10 request params (the wire is untrusted JSON). */
-import type { JsonObject, PageId, PatchOp, schema } from "@rw/contracts";
+import { PROJECT_TEMPLATES, type JsonObject, type PageId, type PatchOp, type ProjectTemplate, type schema } from "@rw/contracts";
+import type { ProjectCreateArgs } from "../project/create.ts";
 import { RpcFail } from "./errors.ts";
 
 export const PAGE_IDS: readonly PageId[] = ["assembly", "components", "configurations", "results", "liquid", "propulsion-sim"];
@@ -31,6 +32,34 @@ export function patchOps(p: JsonObject): PatchOp[] {
     throw new RpcFail("invalid_params", "ops: expected a non-empty array of patch ops");
   }
   return ops as unknown as PatchOp[];
+}
+
+const NAME_MAX_BYTES = 255;
+
+/** A project name, which is also its folder's: one path segment, trimmed. A leading dot would hide the folder. */
+function projectName(p: JsonObject): string {
+  const name = str(p, "name").trim();
+  if (name === "") throw new RpcFail("invalid_params", "name: expected a non-empty string");
+  // eslint-disable-next-line no-control-regex
+  if (name.startsWith(".") || /[/\\\u0000-\u001f\u007f]/.test(name)) throw new RpcFail("invalid_params", "name: cannot start with a dot or contain a slash, a backslash or a control character");
+  if (Buffer.byteLength(name) > NAME_MAX_BYTES) throw new RpcFail("invalid_params", `name: at most ${NAME_MAX_BYTES} bytes`);
+  return name;
+}
+
+/** `project.create` params. `displayUnits` is read by U59, which writes it to the new project. */
+export function projectCreateArgs(p: JsonObject): ProjectCreateArgs {
+  const out: ProjectCreateArgs = { name: projectName(p) };
+  const location = optStr(p, "location");
+  if (location !== undefined) out.location = location;
+  if (p.template !== undefined && p.template !== null) {
+    if (typeof p.template !== "string" || !(PROJECT_TEMPLATES as readonly string[]).includes(p.template)) throw new RpcFail("invalid_params", `template: expected ${PROJECT_TEMPLATES.join("|")}`);
+    out.template = p.template as ProjectTemplate;
+  }
+  if (p.source !== undefined && p.source !== null) {
+    if (!isObject(p.source)) throw new RpcFail("invalid_params", "source: expected {ork}");
+    out.ork = str(p.source, "ork");
+  }
+  return out;
 }
 
 const LIB_KINDS = ["component", "material", "preset", "motor"] as const;

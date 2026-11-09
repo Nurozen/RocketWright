@@ -19,6 +19,7 @@ import { componentRef, useAppState, type AppStore, type DeepReadonly } from "../
 import { selectedComponentIds } from "../../state/slices/selection.ts";
 import type { GlbDeps } from "../../viewport/glb-source.ts";
 import { COMPARE_EVENT, type CompareEventDetail } from "../../shell/ConnectedShell.tsx";
+import { AddPartButton } from "../assembly/AddPartPopover.tsx";
 import { ComponentTreeSlot } from "../assembly/AssemblyPage.tsx";
 import { ChangedFieldsCard, ThreadHistory, useOpenThreadHistory } from "./AgentExtras.tsx";
 import { ComponentEditor, type EditorStatus } from "./ComponentEditor.tsx";
@@ -58,6 +59,7 @@ export function createComponentsUi(): ComponentsStore {
 export interface ComponentsSlots {
   content: ReactNode;
   nav: ReactNode;
+  navAdd: ReactNode;
   railFooter: ReactNode;
   agentExtra: ReactNode;
 }
@@ -66,6 +68,7 @@ export function componentsSlots(store: AppStore, client: RpcLike | null, glbDeps
   return {
     content: <ComponentsWorkspace store={store} client={client} glbDeps={glbDeps} ui={ui} />,
     nav: <ComponentTreeSlot store={store} />,
+    navAdd: <AddPartButton store={store} />,
     railFooter: <ViewChips ui={ui} />,
     agentExtra: <ComponentsAgentExtra store={store} ui={ui} />,
   };
@@ -231,6 +234,7 @@ function ComponentsWorkspace({ store, client, glbDeps, ui }: { store: AppStore; 
         onPick={(id) => store.getState().selection.select(id === null ? [] : [componentRef(id)], "viewport")}
       />
       <ComponentEditor
+        noParts={shown?.components.length === 0}
         comps={comps}
         files={files}
         units={units}

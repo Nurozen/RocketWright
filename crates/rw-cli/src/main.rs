@@ -50,6 +50,9 @@ enum Cmd {
         template: Option<String>,
         #[arg(long)]
         name: Option<String>,
+        /// `[display_units]` of the new project, e.g. `length=cm,mass=kg`.
+        #[arg(long, value_name = "KEY=UNIT", value_delimiter = ',')]
+        display_units: Vec<String>,
         #[arg(long)]
         dry_run: bool,
     },
@@ -233,6 +236,10 @@ enum Cmd {
         /// does not open the project.
         #[arg(long)]
         list_tools: bool,
+        /// With `--list-tools`: leave out `project_create`. The app's agent
+        /// creates projects with `rw_project_new` instead.
+        #[arg(long, requires = "list_tools")]
+        hide_project_create: bool,
     },
     /// Run one command by tool name with JSON arguments (forwarded to the
     /// live sidecar when one owns the project; D4). Prints the output JSON.
@@ -474,6 +481,7 @@ fn main() -> ExitCode {
             app,
             no_socket,
             list_tools,
+            hide_project_create,
         } => {
             let Some(project) = opts.project.clone() else {
                 return cmd::fail(&opts, &cmd::usage("rocketwright mcp needs --project <dir>"));
@@ -483,6 +491,7 @@ fn main() -> ExitCode {
                 app,
                 socket: !no_socket,
                 list_tools,
+                hide_project_create,
             });
         }
         Cmd::Call { label, tool, args } => return call(&opts, label, &tool, args.as_deref()),
@@ -490,8 +499,9 @@ fn main() -> ExitCode {
             dir,
             template,
             name,
+            display_units,
             dry_run,
-        } => cmd::project::init(&opts, dir, template, name, dry_run),
+        } => cmd::project::init(&opts, dir, template, name, display_units, dry_run),
         Cmd::Fmt { check, files } => cmd::project::fmt(&opts, check, files),
         Cmd::Validate { files } => cmd::project::validate(&opts, files),
         Cmd::Eval {

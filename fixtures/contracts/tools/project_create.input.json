@@ -3,6 +3,9 @@
   "type": "tools/project_create.input",
   "payload": {
     "name": "Research vehicle",
-    "template": "minimal"
+    "template": "minimal",
+    "display_units": {
+      "length": "cm"
+    }
   }
 }

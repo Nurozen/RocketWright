@@ -62,6 +62,8 @@ export interface DraftSlice {
   edit(ops: PatchOp[], label?: string): Promise<void>;
   discard(): void;
   commit(): Promise<MutationOut>;
+  /** Commits one direct edit after settling any open draft; rejects with a user-facing message. */
+  mutate(ops: readonly PatchOp[], label?: string): Promise<MutationOut | null>;
 }
 
 export type SelectionSource = "tree" | "viewport" | "inspector" | "chat" | "table" | "diagram" | "history" | "agent";

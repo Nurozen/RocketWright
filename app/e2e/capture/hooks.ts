@@ -46,6 +46,12 @@ export interface DriveContext {
   serverUrl: string | null;
   /** The mounted pane's guest, or null (no embed mounted yet). */
   guest?: () => GuestLike | null;
+  /**
+   * Waits for the pane's guest to be mounted, ready and laid out at its bounds; null
+   * once it is, otherwise why not. Surface drives call it before opening an overlay,
+   * which would otherwise snapshot a blank guest.
+   */
+  paneReady?: () => Promise<string | null>;
 }
 
 /**

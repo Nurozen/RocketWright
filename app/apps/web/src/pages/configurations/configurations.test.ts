@@ -30,15 +30,17 @@ import {
   ejectionDelayState,
   filterMotors,
   filterOptions,
+  findMotor,
   fitsMount,
   motorMounts,
+  motorName,
   motorRef,
   newConfigOps,
   nominalMount,
   renameOps,
   uniqueId,
 } from "./model.ts";
-import { criteriaFromFilters, hasCriteria, mergeCurves, thrustcurveRow } from "./thrustcurve.ts";
+import { criteriaFromFilters, hasCriteria, loadProjectMotors, mergeCurves, thrustcurveRow } from "./thrustcurve.ts";
 
 const repo = new URL("../../../../../../", import.meta.url);
 const fixture = <T,>(name: string): T => (JSON.parse(readFileSync(new URL(`fixtures/contracts/${name}.json`, repo), "utf8")) as { payload: T }).payload;
@@ -144,6 +146,105 @@ describe("motors", () => {
     expect(mergeCurves(merged, [{ ...lib, total_impulse: 9 }]).filter((c) => motorRef(c) === "lib:motors/Estes_C6.eng#C6").map((c) => c.total_impulse)).toEqual([9]);
   });
 
+  describe("the project's own motors (R0.11, R2.8)", () => {
+    const lib = { ...curve("C6", "C", 0.018, 8.8), source: { kind: "library", path: "lib/motors/Estes_C6.eng" } } as schema.ThrustCurve;
+    const info = (id: string, source: schema.MotorSource, sha256 = "s1") => ({ id, source, sha256 }) as schema.MotorInfo;
+    const LISTED = [info("generic:RW_A8G", { kind: "generic", id: "RW_A8G" }), info("lib:motors/Estes_C6.eng#C6", { kind: "library", path: "lib/motors/Estes_C6.eng" })];
+
+    /** A client answering `motor.search` with `listed` and counting `motor.show` calls. */
+    function client(listed: () => schema.MotorInfo[]) {
+      const shown: string[] = [];
+      return {
+        shown,
+        call: ((method: string, params: { id?: string }) => {
+          if (method === "motor.search") return Promise.resolve({ motors: listed() });
+          shown.push(params.id!);
+          return Promise.resolve({ curve: lib });
+        }) as never,
+      };
+    }
+
+    it("loads curves for project motors only; the built-ins come from WASM", async () => {
+      const c = client(() => LISTED);
+      expect(await loadProjectMotors(c, "p", new Map())).toEqual([lib]);
+      expect(c.shown).toEqual(["lib:motors/Estes_C6.eng#C6"]);
+    });
+
+    it("refetches a curve only when its motor is new or its file changed", async () => {
+      let listed = LISTED;
+      const c = client(() => listed);
+      const cache = new Map();
+      await loadProjectMotors(c, "p", cache);
+      await loadProjectMotors(c, "p", cache);
+      expect(c.shown).toHaveLength(1);
+      listed = [LISTED[0]!, info("lib:motors/Estes_C6.eng#C6", { kind: "library", path: "lib/motors/Estes_C6.eng" }, "s2")];
+      await loadProjectMotors(c, "p", cache);
+      expect(c.shown).toHaveLength(2);
+    });
+
+    it("a motor deleted from lib/ leaves the list on the next load", async () => {
+      let listed = LISTED;
+      const c = client(() => listed);
+      const cache = new Map();
+      expect(mergeCurves(MOTORS, await loadProjectMotors(c, "p", cache)).map(motorRef)).toContain("lib:motors/Estes_C6.eng#C6");
+      listed = [LISTED[0]!];
+      expect(mergeCurves(MOTORS, await loadProjectMotors(c, "p", cache)).map(motorRef)).not.toContain("lib:motors/Estes_C6.eng#C6");
+    });
+
+    it("finds a config's ref the way the session resolves it, and never another motor", () => {
+      const motors = mergeCurves(MOTORS, [lib]);
+      expect(findMotor(motors, "lib:motors/Estes_C6.eng#C6")).toBe(lib);
+      expect(findMotor(motors, "lib:motors/Estes_C6.eng#c6")).toBe(lib);
+      expect(findMotor(motors, "lib:motors/Estes_C6.eng")).toBe(lib);
+      expect(findMotor(motors, "lib:lib/motors/Estes_C6.eng#C6")).toBe(lib);
+      expect(findMotor(motors, "C6")).toBe(lib);
+      expect(findMotor(motors, "generic:rw_b4g")).toBe(motors[1]);
+      expect(findMotor(motors, "RW_B4G")).toBe(motors[1]);
+      for (const gone of ["lib:motors/Gone.eng#C6", "lib:motors/Estes_C6.eng#D9", "generic:RW_Z9G", "Z9", null]) expect(findMotor(motors, gone)).toBeUndefined();
+    });
+
+    it("names an assigned motor by its designation", () => {
+      expect(motorName("generic:RW_B4G")).toBe("RW_B4G");
+      expect(motorName("lib:motors/Acme_C6.eng#C6")).toBe("C6");
+      expect(motorName("lib:motors/vendor/a.eng")).toBe("a.eng");
+      expect(motorName(null)).toBe("No motor");
+    });
+  });
+
+  describe("assigning to a mount with nothing there yet (first assignment)", () => {
+    const m = MOTORS[0]!;
+    const entry = { motor: "generic:RW_A8G", delay: "3 s" };
+
+    it("adds the motors table when the config has none", () => {
+      const files = { "configs/x.rw.toml": 'name = "X"\n\n[deploy.chute]\nevent = "ejection"\n' };
+      expect(assignOps(files, "x", "mmt", m, 3, [])).toEqual([{ op: "add", path: "/configs/x/motors", value: { mmt: entry } }]);
+      expect(assignOps({}, "x", "mmt", m, 3, [])).toEqual([{ op: "add", path: "/configs/x/motors", value: { mmt: entry } }]);
+    });
+
+    it("adds the whole table after the last mount was removed: an empty table is not in the model", () => {
+      expect(assignOps({ "configs/x.rw.toml": 'name = "X"\n\n[motors]\n\n[deploy.chute]\nevent = "ejection"\n' }, "x", "mmt", m, 3, [])).toEqual([{ op: "add", path: "/configs/x/motors", value: { mmt: entry } }]);
+    });
+
+    it("sets the fields of an entry the source already holds", () => {
+      const files = { "configs/x.rw.toml": '[motors.mmt]\ndelay = "3 s"\n' };
+      expect(assignOps(files, "x", "mmt", m, 3, [])).toEqual([
+        { op: "add", path: "/configs/x/motors/mmt/motor", value: "generic:RW_A8G" },
+        { op: "add", path: "/configs/x/motors/mmt/delay", value: "3 s" },
+      ]);
+    });
+
+    it("trusts another mounted motor over a source form it cannot read", () => {
+      const files = { "configs/x.rw.toml": 'motors.other.motor = "generic:RW_B4G"\n' };
+      expect(assignOps(files, "x", "mmt", m, null, ["other"])).toEqual([{ op: "add", path: "/configs/x/motors/mmt", value: { motor: "generic:RW_A8G" } }]);
+    });
+  });
+
+  it("leaves a new configuration's mount empty when no motor fits it", () => {
+    const tooWide = [curve("RW_K1", "K", 0.098, 2000)];
+    const { ops } = newConfigOps(evaluated, tooWide);
+    expect((ops[0] as { value: { motors: Record<string, unknown> } }).value.motors).toEqual({});
+  });
+
   it("picks round axis ticks", () => {
     expect(niceTicks(12)).toEqual([0, 2.5, 5, 7.5, 10, 12.5]);
     expect(niceTicks(1.2, 5)).toEqual([0, 0.25, 0.5, 0.75, 1, 1.25]);
@@ -164,11 +265,12 @@ describe("patch ops", () => {
   });
 
   it("creates a new configuration with a fitting motor, the main chute at ejection, and a sim", () => {
-    const { id, ops } = newConfigOps(evaluated, MOTORS);
+    const mount = motorMounts(evaluated)[0]!;
+    const { id, ops } = newConfigOps(evaluated, [...MOTORS, { ...curve("RW_FIT", "C", mount.diameter, 8), length: mount.length }]);
     expect(id).toBe("new_configuration");
     const add = ops[0] as { op: string; value: { motors: Record<string, { motor: string; delay: string }>; deploy: Record<string, { event: string }> } };
     expect(add.op).toBe("add");
-    expect(Object.keys(add.value.motors)).toEqual(["motor_mount"]);
+    expect(add.value.motors["motor_mount"]?.motor).toBe("generic:RW_FIT");
     expect(add.value.deploy["parachute"]).toEqual({ event: "ejection" });
     expect(ops.some((o) => o.path === `/sims/${id}`)).toBe(true);
   });
@@ -183,11 +285,11 @@ describe("patch ops", () => {
       { op: "remove", path: "/sims/baseline" },
       { op: "remove", path: "/sims/fin_revision" },
     ]);
-    expect(assignOps("baseline", "motor_mount", MOTORS[1]!, 5, true)).toEqual([
+    expect(assignOps({}, "baseline", "motor_mount", MOTORS[1]!, 5, ["motor_mount"])).toEqual([
       { op: "replace", path: "/configs/baseline/motors/motor_mount/motor", value: "generic:RW_B4G" },
       { op: "add", path: "/configs/baseline/motors/motor_mount/delay", value: "5 s" },
     ]);
-    expect(assignOps("x", "m", MOTORS[0]!, null, false)).toEqual([{ op: "add", path: "/configs/x/motors/m", value: { motor: "generic:RW_A8G" } }]);
+    expect(assignOps({ "configs/x.rw.toml": "[motors.other]\nmotor = \"generic:RW_A8G\"\n" }, "x", "m", MOTORS[0]!, null, [])).toEqual([{ op: "add", path: "/configs/x/motors/m", value: { motor: "generic:RW_A8G" } }]);
     expect(deployOps("baseline", "chute", "apogee", true)).toEqual([{ op: "replace", path: "/configs/baseline/deploy/chute/event", value: "apogee" }]);
   });
 });
@@ -206,6 +308,10 @@ describe("recovery and stage edits (files-aware ops)", () => {
     expect(configSourceLevel(files, "c", "deploy", "chute")).toBe("none");
     expect(configSourceLevel(files, "c", "stages", "booster")).toBe("none");
     expect(configSourceLevel(files, "missing", "deploy", "chute")).toBe("none");
+    // An empty table is not in the model tree, so nothing can be added under it.
+    for (const text of ["[deploy]\n", "[deploy]\n# a comment\n\n[stages.a]\n", "deploy = {}\n", "deploy = { }\n"]) expect(configSourceLevel({ "configs/e.rw.toml": text }, "e", "deploy", "chute")).toBe("none");
+    expect(configSourceLevel({ "configs/e.rw.toml": 'deploy = { streamer = { event = "apogee" } }\n' }, "e", "deploy", "chute")).toBe("table");
+    expect(configSourceLevel({ "configs/e.rw.toml": '[deploy]\nstreamer = { event = "apogee" }\n' }, "e", "deploy", "chute")).toBe("table");
   });
 
   it("sets a field in place, adds the entry, or adds the table", () => {

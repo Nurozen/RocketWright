@@ -366,7 +366,7 @@ describe("app_seed_thread {bundle} through the test hooks (B13)", () => {
   });
 
   it("imports the bundle for the project's realpath and name, and answers with the copies in bundle order", async () => {
-    const { project: p } = await c.call("project.open", { dir: join(base, "Research vehicle") });
+    const p = await server.openProject(join(base, "Research vehicle"));
     const raw = sampleBundle();
     raw.assets[0]!.sha256 = "b".repeat(64);
     const r = await c.call("test.call", { projectId: p.projectId, op: "app_seed_thread", args: { bundle: raw as never, now: Date.parse(FIXTURE_CLOCK) } });

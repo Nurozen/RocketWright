@@ -5,12 +5,15 @@
 import { useState } from "react";
 import { Icon, type IconName } from "../../shell/Icon.tsx";
 import { PartThumb } from "../../render/PartThumb.tsx";
+import { ADD_FIRST_PART } from "../../state/empty-text.ts";
 import type { InspectorRow, InspectorView } from "./inspector-model.ts";
 
 export interface InspectorProps {
   view: InspectorView | null;
   /** Header card (M3.6): the selected part's rendered thumbnail, or its icon until one is cached. */
   thumb?: { url: string | undefined; icon: IconName } | null;
+  /** The project has no parts: there is nothing to select yet (R0.3a). */
+  noParts?: boolean;
 }
 
 export const INSPECTOR_WIDTH = 224;
@@ -40,7 +43,7 @@ function Card({ title, testid, rows }: { title: string; testid: string; rows: In
   );
 }
 
-export function Inspector({ view, thumb = null }: InspectorProps) {
+export function Inspector({ view, thumb = null, noParts = false }: InspectorProps) {
   const [open, setOpen] = useState(true);
   return (
     <aside
@@ -53,7 +56,7 @@ export function Inspector({ view, thumb = null }: InspectorProps) {
     >
       <header className="rw-inspector__head">
         <h2 className="rw-inspector__title" data-testid="insp.title">
-          {view ? view.title : "Nothing selected"}
+          {view ? view.title : noParts ? "No parts yet" : "Nothing selected"}
         </h2>
         <button
           type="button"
@@ -75,7 +78,7 @@ export function Inspector({ view, thumb = null }: InspectorProps) {
             <Card title="Clearance" testid="insp.clearance" rows={view.clearance} />
           </>
         ) : (
-          <p className="rw-inspector__empty">Select a part in the tree or the viewport.</p>
+          <p className="rw-inspector__empty">{noParts ? `${ADD_FIRST_PART}.` : "Select a part in the tree or the viewport."}</p>
         ))}
     </aside>
   );

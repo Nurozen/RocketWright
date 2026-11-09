@@ -8,6 +8,7 @@ import { type MockServer, SEED_PROJECT_ID, startMockServer } from "@rw/contracts
 import type { BrokerRequest } from "@rw/contracts";
 import { afterEach, describe, expect, it } from "vitest";
 import { createAppStore, RpcClient, type AppStore } from "../state/index.ts";
+import type { RpcLike } from "../state/rpc.ts";
 import type { ViewportController } from "../viewport/registry.ts";
 import { answer, HOST_OPS, startBrokerHost, type BrokerHostDeps } from "./host.ts";
 
@@ -29,6 +30,45 @@ function fakeViewport() {
 
 const req = <O extends BrokerRequest["op"]>(op: O, args: BrokerRequest<O>["args"]): BrokerRequest =>
   ({ requestId: `r-${op}`, projectId: "p", threadId: "t", op, args }) as BrokerRequest;
+
+describe("startBrokerHost and project ids", () => {
+  function fakeClient() {
+    const listeners = new Set<(r: BrokerRequest) => void>();
+    const respond: unknown[] = [];
+    const client = {
+      on: (_topic: string, fn: (r: BrokerRequest) => void) => {
+        listeners.add(fn);
+        return () => void listeners.delete(fn);
+      },
+      call: (method: string, params: unknown) => {
+        if (method === "broker.respond") respond.push(params);
+        return Promise.resolve({});
+      },
+    } as unknown as RpcLike;
+    return { client, respond, listeners, push: (r: BrokerRequest) => [...listeners].forEach((l) => l(r)) };
+  }
+  const select = (projectId: string): BrokerRequest => ({ requestId: `r-${projectId}`, projectId, threadId: null, op: "viewport_select", args: { refs: [] } }) as BrokerRequest;
+
+  it("refuses a request for another project rather than leaving it to time out", async () => {
+    const t = fakeClient();
+    await startBrokerHost(t.client, "mine", createAppStore(), { deps: fakeViewport().deps, backend: "webgl2" });
+    t.push(select("other"));
+    await expect.poll(() => t.respond.length).toBe(1);
+    expect(t.respond[0]).toMatchObject({ requestId: "r-other", ok: false, error: { code: "no_host" } });
+    t.push(select("mine"));
+    await expect.poll(() => t.respond.length).toBe(2);
+    expect(t.respond[1]).toMatchObject({ requestId: "r-mine", ok: true });
+  });
+
+  it("stops listening as soon as its signal aborts, before registration finishes", () => {
+    const t = fakeClient();
+    const stop = new AbortController();
+    void startBrokerHost(t.client, "mine", createAppStore(), { deps: fakeViewport().deps, backend: "webgl2", signal: stop.signal });
+    expect(t.listeners.size).toBe(1);
+    stop.abort();
+    expect(t.listeners.size).toBe(0);
+  });
+});
 
 describe("broker host ops", () => {
   it("viewport_select selects through the store", async () => {

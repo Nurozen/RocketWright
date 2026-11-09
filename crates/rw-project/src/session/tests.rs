@@ -51,6 +51,140 @@ fn tree_state(root: &Path) -> BTreeMap<String, (u64, std::time::SystemTime)> {
     out
 }
 
+/// A project with a second configuration and a deployment for `chute` in both.
+fn project_with_config_entries(tag: &str) -> TempDir {
+    let d = project(tag);
+    let baseline = d.path().join("configs/baseline.rw.toml");
+    let mut text = std::fs::read_to_string(&baseline).unwrap();
+    text.push_str("\n[deploy.chute]\nevent = \"ejection\"\n");
+    std::fs::write(&baseline, text).unwrap();
+    std::fs::write(
+        d.path().join("configs/alt~1.rw.toml"),
+        "name = \"Alt\"\n\n[motors.mount]\nmotor = \"generic:RW_C6G\"\ndelay = \"5 s\"\n\n[deploy.chute]\nevent = \"ejection\"\n",
+    )
+    .unwrap();
+    d
+}
+
+fn remove_component(s: &mut Session, id: &str, recursive: bool, dry_run: bool) -> MutationOut {
+    let cmd = Command::ComponentRemove(ComponentRemoveIn {
+        id: id.into(),
+        recursive,
+        dry_run,
+    });
+    let Response::ComponentRemove(out) = s.execute(&cmd, &ctx(Origin::Mcp)).unwrap() else {
+        panic!()
+    };
+    out
+}
+
+fn config_errors(s: &Session) -> Vec<String> {
+    s.model()
+        .diagnostics
+        .iter()
+        .chain(&s.report().diagnostics)
+        .filter(|d| d.code == "RW-E059")
+        .map(|d| d.path.clone().unwrap_or_default())
+        .collect()
+}
+
+#[test]
+fn removing_a_part_removes_its_config_entries_in_one_step() {
+    let d = project_with_config_entries("sess-rm-cascade");
+    let mut s = Session::open(d.path(), SessionOptions::writer()).unwrap();
+    assert_eq!(config_errors(&s), Vec::<String>::new());
+    let before = s.steps().unwrap().len();
+
+    // `chute` and `mount` are descendants: their entries go with `body`.
+    let out = remove_component(&mut s, "body", true, false);
+
+    assert_eq!(config_errors(&s), Vec::<String>::new());
+    assert_eq!(s.steps().unwrap().len(), before + 1);
+    let paths: Vec<&str> = out.files.iter().map(|f| f.path.as_str()).collect();
+    assert!(
+        paths.contains(&"configs/baseline.rw.toml") && paths.contains(&"configs/alt~1.rw.toml"),
+        "{paths:?}"
+    );
+    for file in ["configs/baseline.rw.toml", "configs/alt~1.rw.toml"] {
+        let text = read(&d, file);
+        assert!(
+            !text.contains("motors.mount") && !text.contains("deploy.chute"),
+            "{file}: {text}"
+        );
+    }
+    assert!(read(&d, "configs/baseline.rw.toml").contains("# Baseline flight configuration."));
+
+    drop(s);
+    let s = Session::open(d.path(), SessionOptions::writer()).unwrap();
+    assert_eq!(config_errors(&s), Vec::<String>::new());
+}
+
+#[test]
+fn removing_a_part_keeps_config_entries_of_other_parts() {
+    let d = project_with_config_entries("sess-rm-keep");
+    let mut s = Session::open(d.path(), SessionOptions::writer()).unwrap();
+
+    remove_component(&mut s, "chute", false, false);
+
+    assert_eq!(config_errors(&s), Vec::<String>::new());
+    let text = read(&d, "configs/baseline.rw.toml");
+    assert!(
+        text.contains("motors.mount") && !text.contains("deploy.chute"),
+        "{text}"
+    );
+}
+
+#[test]
+fn removing_a_part_with_no_config_entries_leaves_configs_alone() {
+    let d = project_with_config_entries("sess-rm-absent");
+    let mut s = Session::open(d.path(), SessionOptions::writer()).unwrap();
+    let before = read(&d, "configs/baseline.rw.toml");
+
+    let out = remove_component(&mut s, "fins", false, false);
+
+    assert!(
+        out.files.iter().all(|f| !f.path.starts_with("configs/")),
+        "{:?}",
+        out.files
+    );
+    assert_eq!(read(&d, "configs/baseline.rw.toml"), before);
+}
+
+#[test]
+fn removing_a_part_dry_run_writes_nothing() {
+    let d = project_with_config_entries("sess-rm-dry");
+    let mut s = Session::open(d.path(), SessionOptions::writer()).unwrap();
+    let before = tree_state(d.path());
+    let steps = s.steps().unwrap().len();
+
+    let out = remove_component(&mut s, "chute", false, true);
+
+    assert!(
+        out.files
+            .iter()
+            .any(|f| f.path == "configs/baseline.rw.toml"),
+        "{:?}",
+        out.files
+    );
+    assert_eq!(tree_state(d.path()), before);
+    assert_eq!(s.steps().unwrap().len(), steps);
+}
+
+#[test]
+fn undoing_a_part_removal_restores_its_config_entries() {
+    let d = project_with_config_entries("sess-rm-undo");
+    let mut s = Session::open(d.path(), SessionOptions::writer()).unwrap();
+    let before = read(&d, "configs/alt~1.rw.toml");
+
+    remove_component(&mut s, "body", true, false);
+    assert_ne!(read(&d, "configs/alt~1.rw.toml"), before);
+    s.history_restore("step:1", false, &ctx(Origin::Mcp))
+        .unwrap();
+
+    assert_eq!(read(&d, "configs/alt~1.rw.toml"), before);
+    assert_eq!(config_errors(&s), Vec::<String>::new());
+}
+
 #[test]
 fn open_records_an_initial_snapshot_once() {
     let d = project("sess-open");
@@ -285,6 +419,98 @@ fn invalid_patch_is_rejected_and_writes_nothing() {
     assert_eq!(e.code, ApiErrorCode::InvalidInput);
     assert!(e.message.contains("/c/nope"), "{}", e.message);
     assert_eq!(tree_state(d.path()), state);
+}
+
+/// R0.7: one step, both files, the folder and ids untouched.
+#[test]
+fn project_rename_writes_both_files_in_one_step() {
+    let d = project("sess-rename");
+    let mut s = Session::open(d.path(), SessionOptions::writer()).unwrap();
+    let c = ctx(Origin::Cli);
+    let before = s.steps().unwrap().len();
+    let ids: Vec<String> = s.model().components.iter().map(|x| x.id.clone()).collect();
+    let rename = |name: &str, dry_run| {
+        Command::ProjectRename(ProjectRenameIn {
+            name: name.into(),
+            dry_run,
+        })
+    };
+
+    let state = tree_state(d.path());
+    let Response::ProjectRename(dry) = s.execute(&rename("Solstice", true), &c).unwrap() else {
+        panic!()
+    };
+    assert!(dry.dry_run && dry.step.is_none());
+    assert_eq!(tree_state(d.path()), state, "a dry run writes nothing");
+
+    let Response::ProjectRename(out) = s.execute(&rename("  Solstice ", false), &c).unwrap() else {
+        panic!()
+    };
+    assert!(out.step.is_some());
+    let mut files: Vec<&str> = out.files.iter().map(|f| f.path.as_str()).collect();
+    files.sort_unstable();
+    assert_eq!(files, ["rocket.rw.toml", "rocketwright.toml"]);
+    assert_eq!(s.steps().unwrap().len(), before + 1, "exactly one step");
+    for file in ["rocket.rw.toml", "rocketwright.toml"] {
+        assert!(read(&d, file).contains("name = \"Solstice\""), "{file}");
+    }
+    assert_eq!(s.model().name, "Solstice");
+    let after: Vec<String> = s.model().components.iter().map(|x| x.id.clone()).collect();
+    assert_eq!(after, ids, "ids are stable");
+
+    let Response::ProjectRename(again) = s.execute(&rename("Solstice", false), &c).unwrap() else {
+        panic!()
+    };
+    assert!(again.step.is_none(), "the same name records no step");
+    assert_eq!(s.steps().unwrap().len(), before + 1);
+}
+
+#[test]
+fn project_rename_refuses_bad_names() {
+    let d = project("sess-rename-bad");
+    let mut s = Session::open(d.path(), SessionOptions::writer()).unwrap();
+    let c = ctx(Origin::Cli);
+    let state = tree_state(d.path());
+    // Four-byte characters: 64 of them is 256 bytes in 64 characters.
+    for bad in ["", "   ", &"\u{1F680}".repeat(64), "a\nb"] {
+        let e = s
+            .execute(
+                &Command::ProjectRename(ProjectRenameIn {
+                    name: bad.to_string(),
+                    dry_run: false,
+                }),
+                &c,
+            )
+            .unwrap_err();
+        assert_eq!(e.code, ApiErrorCode::InvalidInput, "{bad:?}");
+    }
+    assert_eq!(tree_state(d.path()), state);
+
+    let longest = "a".repeat(crate::create::MAX_PROJECT_NAME_BYTES);
+    let r = s.execute(
+        &Command::ProjectRename(ProjectRenameIn {
+            name: longest,
+            dry_run: false,
+        }),
+        &c,
+    );
+    assert!(r.is_ok(), "{r:?}");
+}
+
+#[test]
+fn project_rename_needs_a_writer() {
+    let d = project("sess-rename-ro");
+    let mut s = Session::open(d.path(), SessionOptions::read_only()).unwrap();
+    let e = s
+        .execute(
+            &Command::ProjectRename(ProjectRenameIn {
+                name: "Solstice".into(),
+                dry_run: false,
+            }),
+            &ctx(Origin::Cli),
+        )
+        .unwrap_err();
+    assert_eq!(e.code, ApiErrorCode::Locked);
 }
 
 #[test]

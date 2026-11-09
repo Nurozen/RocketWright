@@ -2,29 +2,32 @@
  * Design > Configurations (concept 03, M2.10): the flight configurations
  * table (radio select, Configuration, Motor, Recovery, Simulation status
  * derived from real runs), actions New / Duplicate / Rename / Delete, and
- * sub-tabs Motors (picker over the built-in generic library with its thrust
- * curve, casing, mount silhouette, delay, Assign; Search ThrustCurve, the
- * one network action, imports a downloaded motor into it), Recovery (deployment per
+ * sub-tabs Motors (picker over the built-in generic library and the project's
+ * own `lib/` and imported motors, with thrust curve, casing, mount silhouette,
+ * delay, Assign; Search ThrustCurve, the one network action, imports a
+ * downloaded motor into it), Recovery (deployment per
  * device), and Stage separation. The selected configuration is the store
  * selection (`rw:cfg/<id>`), so it persists across sub-tabs and pages.
  * Every change is a `model.patch` (I1, I2); `▶ Run configurations` runs the
  * sims that fly them.
  */
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import type { PatchOp, RwRef, schema } from "@rw/contracts";
 import { useStore } from "zustand";
 import { createStore, type StoreApi } from "zustand/vanilla";
 import { Icon } from "../../shell/Icon.tsx";
 import { StatusBadge } from "../../shell/StatusIcon.tsx";
 import { ViewportToolbar, type ViewChip } from "../../shell/ViewportToolbar.tsx";
+import { trackWrite, useDirtyField } from "../../state/dirtyFields.ts";
 import type { RpcLike } from "../../state/rpc.ts";
 import { useAppState, type AppStore, type DeepReadonly, type Units } from "../../state/index.ts";
 import { UNITS, formatLength } from "../assembly/inspector-model.ts";
+import { AddPartButton } from "../assembly/AddPartPopover.tsx";
 import { ComponentTreeSlot } from "../assembly/AssemblyPage.tsx";
 import { CasingThumb, MountSilhouette, ThrustPlot } from "./MotorGraphics.tsx";
 import { CasingView } from "./CasingView.tsx";
 import { ThrustcurvePanel } from "./ThrustcurvePanel.tsx";
-import { criteriaFromFilters, mergeCurves } from "./thrustcurve.ts";
+import { criteriaFromFilters, loadProjectMotors, mergeCurves } from "./thrustcurve.ts";
 import { thumbKey } from "../../render/thumbnails.ts";
 import {
   ALL,
@@ -51,9 +54,11 @@ import {
   duplicateOps,
   filterMotors,
   filterOptions,
+  findMotor,
   fitsMount,
   manufacturerLabel,
   motorMounts,
+  motorName,
   motorRef,
   mountLabel,
   newConfigOps,
@@ -83,10 +88,25 @@ export interface ConfigurationsUi {
   rendering: "realistic" | "flat";
   showRocket: boolean;
   showGrid: boolean;
-  library: { state: "loading" | "ready" | "error"; motors: Curve[]; error?: string };
+  library: MotorLibrary;
   error: string | null;
   /** `run` while `▶ Run configurations` starts jobs. */
   batch: "idle" | "starting";
+}
+
+/**
+ * The picker's list. `motors` is `builtIn` plus the project's own motors;
+ * `state` covers the built-in load, `project` the project's motors (absent
+ * when there is no project to ask). Only a settled `project` can say a motor
+ * is missing.
+ */
+export interface MotorLibrary {
+  state: "loading" | "ready" | "error";
+  motors: Curve[];
+  error?: string;
+  builtIn?: Curve[];
+  project?: "loading" | "ready" | "error";
+  projectError?: string;
 }
 
 export type ConfigurationsStore = StoreApi<ConfigurationsUi>;
@@ -110,6 +130,7 @@ export interface ConfigurationsSlots {
   content: ReactNode;
   toolbar: ReactNode;
   nav: ReactNode;
+  navAdd: ReactNode;
   agentExtra: ReactNode;
 }
 
@@ -118,6 +139,7 @@ export function configurationsSlots(store: AppStore, client: RpcLike | null, ui:
     content: <ConfigurationsWorkspace store={store} client={client} ui={ui} />,
     toolbar: <ConfigurationsToolbar store={store} ui={ui} />,
     nav: <ComponentTreeSlot store={store} />,
+    navAdd: <AddPartButton store={store} />,
     agentExtra: <RunConfigurations store={store} ui={ui} />,
   };
 }
@@ -133,22 +155,50 @@ function useSelectedConfig(store: AppStore, rows: readonly ConfigRow[]): ConfigR
   return rows.find((r) => r.id === id) ?? rows[0] ?? null;
 }
 
-/** Loads the built-in motor library (rw-wasm `motor_library`) once per page store. */
-function useMotorLibrary(ui: ConfigurationsStore): void {
+/**
+ * Fills the picker: the built-in library (rw-wasm `motor_library`) once per
+ * page store, then the project's own motors. Those are read again whenever
+ * the snapshot's `files` is replaced: the session refreshes it on every
+ * source edit and on a `lib/` change, so a motor dropped in, imported, or
+ * deleted shows without a reload.
+ */
+function useMotorLibrary(store: AppStore, ui: ConfigurationsStore, client: RpcLike | null, projectId: string | null): void {
   const state = useStore(ui, (s) => s.library.state);
+  const files = useAppState(store, (s) => s.project.snapshot?.files ?? null);
+  const cache = useRef(new Map<string, Curve>());
   useEffect(() => {
     if (state !== "loading") return;
     let alive = true;
     import("@rw/rw-wasm")
       .then(({ loadRwWasm }) => loadRwWasm())
       .then((rw) => {
-        if (alive) ui.setState({ library: { state: "ready", motors: rw.motorLibrary() } });
+        if (!alive) return;
+        const builtIn = rw.motorLibrary();
+        ui.setState({ library: { state: "ready", motors: builtIn, builtIn, project: client !== null && projectId !== null ? "loading" : "ready" } });
       })
       .catch((e: unknown) => alive && ui.setState({ library: { state: "error", motors: [], error: message(e) } }));
     return () => {
       alive = false;
     };
-  }, [state, ui]);
+  }, [state, ui, client, projectId]);
+  useEffect(() => {
+    if (state !== "ready" || client === null || projectId === null || files === null) return;
+    let alive = true;
+    loadProjectMotors(client, projectId, cache.current)
+      .then((curves) => {
+        if (!alive) return;
+        ui.setState((s) => {
+          const { projectError: _cleared, ...library } = s.library;
+          return { library: { ...library, motors: mergeCurves(library.builtIn ?? library.motors, curves), project: "ready" } };
+        });
+      })
+      .catch((e: unknown) => {
+        if (alive) ui.setState((s) => ({ library: { ...s.library, project: "error", projectError: message(e) } }));
+      });
+    return () => {
+      alive = false;
+    };
+  }, [state, client, projectId, files, ui]);
 }
 
 function ConfigurationsWorkspace({ store, client, ui }: { store: AppStore; client: RpcLike | null; ui: ConfigurationsStore }) {
@@ -167,14 +217,13 @@ function ConfigurationsWorkspace({ store, client, ui }: { store: AppStore; clien
   const [renaming, setRenaming] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [pending, setPending] = useState(false);
-  useMotorLibrary(ui);
+  useMotorLibrary(store, ui, client, projectId);
   const motors = useStore(ui, (s) => s.library.motors);
 
-  const patch = async (ops: PatchOp[], label: string): Promise<boolean> => {
-    if (client === null || projectId === null || ops.length === 0) return false;
+  const write = async (ops: PatchOp[], label: string): Promise<boolean> => {
     setPending(true);
     try {
-      await client.call("model.patch", { projectId, ops, label });
+      await client!.call("model.patch", { projectId: projectId!, ops, label });
       ui.setState({ error: null });
       return true;
     } catch (e) {
@@ -183,6 +232,10 @@ function ConfigurationsWorkspace({ store, client, ui }: { store: AppStore; clien
     } finally {
       setPending(false);
     }
+  };
+  const patch = (ops: PatchOp[], label: string): Promise<boolean> => {
+    if (client === null || projectId === null || ops.length === 0) return Promise.resolve(false);
+    return trackWrite(write(ops, label), (ok) => (ok ? null : (ui.getState().error ?? `Could not save: ${label}.`)));
   };
   const select = (id: string) => store.getState().selection.select([cfgRef(id)], "table");
 
@@ -327,6 +380,13 @@ function ConfigurationsWorkspace({ store, client, ui }: { store: AppStore; clien
 
 function RenameInput({ initial, onDone }: { initial: string; onDone: (name: string | null) => void }) {
   const [v, setV] = useState(initial);
+  useDirtyField({
+    dirty: () => v.trim() !== "" && v.trim() !== initial,
+    commit: () => {
+      onDone(v);
+      return null;
+    },
+  });
   return (
     <input
       className="rw-cfg__rename"
@@ -363,6 +423,9 @@ function Select({ label, value, options, onChange, testid }: { label: string; va
   );
 }
 
+/** R0.3a: why Assign is off when no part can hold a motor. */
+const ADD_MOUNT_FIRST = "Add a motor mount first";
+
 function MotorPanel({
   store,
   ui,
@@ -382,6 +445,8 @@ function MotorPanel({
   const units = useAppState(store, (s) => s.ui.units);
   const view = useAppState(store, (s) => s.ui.view);
   const lib = useStore(ui, (s) => s.library);
+  const files = useAppState(store, (s) => (s.project.snapshot?.files.files ?? EMPTY_FILES) as ConfigFiles);
+  const delayUnit = useId();
   const filters = useStore(ui, (s) => s.filters);
   const mountPick = useStore(ui, (s) => s.mountByConfig[config.id]);
   const rendering = useStore(ui, (s) => s.rendering);
@@ -391,6 +456,11 @@ function MotorPanel({
   const [tcOpen, setTcOpen] = useState(false);
   const cfg = model.configs[config.id];
   const mounts = motorMounts(model);
+  const addMountHint = (
+    <span className="rw-motor__add-mount" data-testid="motor.add-mount" title="Motors go in an inner tube marked as a motor mount. Ask the agent to add one, then assign a motor here.">
+      {ADD_MOUNT_FIRST}
+    </span>
+  );
   // The mount being edited: the one picked for this configuration, else the first (top-down) with a motor, else the first.
   const mount = mounts.find((m) => m.id === mountPick) ?? mounts.find((m) => cfg?.motors.some((a) => a.mount === m.id)) ?? mounts[0];
   const assignment = mount !== undefined ? cfg?.motors.find((a) => a.mount === mount.id) : undefined;
@@ -406,8 +476,14 @@ function MotorPanel({
   useEffect(() => {
     if (pick !== null && (pick.key !== pickKey || pick.base !== assignedRef)) ui.setState({ pick: null });
   }, [pick, pickKey, assignedRef, ui]);
-  const current = lib.motors.find((m) => motorRef(m) === shownRef) ?? list[0] ?? null;
-  const isAssigned = current !== null && motorRef(current) === assignedRef;
+  // A ref that names no known motor stays named (R0.11): the first list row would present some other motor as this configuration's.
+  const found = findMotor(lib.motors, shownRef);
+  const current = shownRef === null ? (list[0] ?? null) : (found ?? null);
+  const missing = shownRef !== null && found === undefined;
+  // The list's own spelling of the assigned ref (a config may name a motor by bare designation).
+  const assignedCurve = findMotor(lib.motors, assignedRef);
+  const assignedKey = assignedCurve !== undefined ? motorRef(assignedCurve) : assignedRef;
+  const isAssigned = current !== null && motorRef(current) === assignedKey;
   const delay = assignment?.delay ?? null;
   const [delayText, setDelayText] = useState(delay !== null ? String(delay) : "");
   useEffect(() => setDelayText(delay !== null ? String(Number(delay.toFixed(2))) : ""), [delay, config.id, mount?.id]);
@@ -417,6 +493,17 @@ function MotorPanel({
   useEffect(() => setCustom(false), [config.id, picked, mount?.id]);
   const delayState = ejectionDelayState(delay, current?.delays ?? [], custom);
   const fileDelays = delayState.source === "manufacturer";
+  // The typed delay's one write: leaving the field and leaving the project both end here.
+  const commitDelay = (): string | null => {
+    const t = delayText.trim();
+    const n = Number(t);
+    if (t === "" || !Number.isFinite(n) || n < 0 || mount === undefined) return "Ejection delay needs a number of seconds.";
+    if (delay !== null && Math.abs(n - delay) < 1e-9) return null;
+    void patch([{ op: "add", path: `/configs/${config.id}/motors/${mount.id}/delay`, value: `${n} s` }], `Set ${config.name} ejection delay`);
+    return null;
+  };
+  const delayTyped = isAssigned && !(fileDelays && delayState.listed.length > 0);
+  useDirtyField({ dirty: () => delayTyped && delayText.trim() !== (delay !== null ? String(Number(delay.toFixed(2))) : ""), commit: commitDelay });
   const listedText = delayState.listed.map((d) => Number(d.toFixed(2))).join(", ");
   const setFilter = (k: keyof MotorFilters, v: string) => ui.setState((s) => ({ filters: { ...s.filters, [k]: v } }));
   return (
@@ -460,6 +547,11 @@ function MotorPanel({
           {lib.state === "loading" && <li className="rw-motors__empty">Loading the motor library…</li>}
           {lib.state === "error" && <li className="rw-motors__empty">{lib.error}</li>}
           {lib.state === "ready" && list.length === 0 && <li className="rw-motors__empty">No motors match these filters.</li>}
+          {lib.project === "error" && (
+            <li className="rw-motors__empty" data-testid="motors.project-error">
+              The project&apos;s own motors could not be read: {lib.projectError}
+            </li>
+          )}
           {list.map((m) => {
             const ref = motorRef(m);
             const fits = fitsMount(m, mount);
@@ -472,7 +564,7 @@ function MotorPanel({
                 data-testid="motors.row"
                 data-motor={ref}
                 data-fits={fits ? "true" : "false"}
-                onClick={() => ui.setState({ pick: ref === assignedRef ? null : { key: pickKey, base: assignedRef, motor: ref } })}
+                onClick={() => ui.setState({ pick: ref === assignedKey ? null : { key: pickKey, base: assignedRef, motor: ref } })}
               >
                 <CasingThumb url={casingThumb} />
                 <span className="rw-motors__name">
@@ -481,7 +573,7 @@ function MotorPanel({
                     {diameterLabel(m.diameter)} · {manufacturerLabel(m)}
                   </span>
                 </span>
-                {ref === assignedRef ? (
+                {ref === assignedKey ? (
                   <span className="rw-motors__tag" data-testid="motors.assigned" title={`Assigned to ${config.name}${mounts.length > 1 && mount ? ` (${mountLabel(mount, model)})` : ""}`}>
                     <Icon name="check" size={16} label={`Assigned to ${config.name}`} />
                   </span>
@@ -528,6 +620,7 @@ function MotorPanel({
             <span className="rw-pill" data-testid="motor.mount-pill">
               {mount ? `${formatLength(mount.nominal, units)} mount` : "No mount"}
             </span>
+            {mounts.length === 0 && addMountHint}
             {mounts.length > 1 && mount !== undefined && (
               <span className="rw-select rw-select--native rw-motor__mount">
                 <select
@@ -544,7 +637,7 @@ function MotorPanel({
                     const motor = a?.motor ?? a?.engine ?? null;
                     return (
                       <option key={m.id} value={m.id}>
-                        {mountLabel(m, model)} · {motor === null ? "No motor" : motor.replace(/^generic:/, "")}
+                        {mountLabel(m, model)} · {motorName(motor)}
                       </option>
                     );
                   })}
@@ -565,11 +658,11 @@ function MotorPanel({
                 data-testid="motor.assign"
                 data-state="assign"
                 disabled={mount === undefined || !fitsMount(current, mount)}
-                title={mount !== undefined && !fitsMount(current, mount) ? "This motor does not fit the mount" : `Assign ${current.designation} to ${config.name}${mounts.length > 1 && mount ? ` (${mountLabel(mount, model)})` : ""}`}
+                title={mount === undefined ? ADD_MOUNT_FIRST : !fitsMount(current, mount) ? "This motor does not fit the mount" : `Assign ${current.designation} to ${config.name}${mounts.length > 1 && mount ? ` (${mountLabel(mount, model)})` : ""}`}
                 onClick={() => {
                   if (mount === undefined) return;
                   const keep = delay !== null && current.delays.some((d) => Math.abs(d - delay) < 1e-6) ? delay : (current.delays[0] ?? delay);
-                  void patch(assignOps(config.id, mount.id, current, keep, assignment !== undefined), `Assign ${current.designation} to ${config.name}${mounts.length > 1 ? ` (${mountLabel(mount, model)})` : ""}`);
+                  void patch(assignOps(files, config.id, mount.id, current, keep, (cfg?.motors ?? []).map((a) => a.mount)), `Assign ${current.designation} to ${config.name}${mounts.length > 1 ? ` (${mountLabel(mount, model)})` : ""}`);
                 }}
               >
                 Assign to configuration
@@ -578,7 +671,7 @@ function MotorPanel({
           </div>
           <div className="rw-motor__top">
             <ThrustPlot curve={current} width={showRocket ? 420 : 540} height={236} grid={showGrid} />
-            {showRocket && <MountSilhouette model={model} mount={mount} units={units} height={262} />}
+            {showRocket && model.components.length > 0 && <MountSilhouette model={model} mount={mount} units={units} height={262} />}
           </div>
           <div className="rw-motor__bottom">
             <CasingView curve={current} width={296} height={154} style={rendering} view={view} />
@@ -591,38 +684,39 @@ function MotorPanel({
                 <dt>Ejection delay</dt>
                 <dd className="rw-motor__delay-cell">
                   {fileDelays && delayState.listed.length > 0 && isAssigned ? (
-                    <span className="rw-select rw-select--native rw-motor__delay">
-                      <select
-                        aria-label="Ejection delay"
-                        data-testid="motor.delay"
-                        value={delay !== null ? String(delay) : ""}
-                        onChange={(e) => void patch([{ op: "add", path: `/configs/${config.id}/motors/${mount!.id}/delay`, value: `${e.currentTarget.value} s` }], `Set ${config.name} ejection delay`)}
-                      >
-                        {delayState.listed.map((d) => (
-                          <option key={d} value={String(d)}>
-                            {d.toFixed(1)} s
-                          </option>
-                        ))}
-                      </select>
-                      <Icon name="chevron-down" size={16} />
+                    <span className="rw-motor__delay-input">
+                      <span className="rw-select rw-select--native rw-motor__delay">
+                        <select
+                          aria-label="Ejection delay"
+                          aria-describedby={delayUnit}
+                          data-testid="motor.delay"
+                          value={delay !== null ? String(delay) : ""}
+                          onChange={(e) => void patch([{ op: "add", path: `/configs/${config.id}/motors/${mount!.id}/delay`, value: `${e.currentTarget.value} s` }], `Set ${config.name} ejection delay`)}
+                        >
+                          {delayState.listed.map((d) => (
+                            <option key={d} value={String(d)}>
+                              {d.toFixed(1)}
+                            </option>
+                          ))}
+                        </select>
+                        <Icon name="chevron-down" size={16} />
+                      </span>
+                      <span id={delayUnit}>s</span>
                     </span>
                   ) : (
                     <span className="rw-motor__delay-input">
                       <input
                         aria-label="Ejection delay"
+                        aria-describedby={delayUnit}
                         data-testid="motor.delay"
                         inputMode="decimal"
                         value={delayText}
                         disabled={!isAssigned}
                         onChange={(e) => setDelayText(e.currentTarget.value)}
                         onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
-                        onBlur={() => {
-                          const n = Number(delayText);
-                          if (!Number.isFinite(n) || n < 0 || mount === undefined || (delay !== null && Math.abs(n - delay) < 1e-9)) return;
-                          void patch([{ op: "add", path: `/configs/${config.id}/motors/${mount.id}/delay`, value: `${n} s` }], `Set ${config.name} ejection delay`);
-                        }}
+                        onBlur={() => void commitDelay()}
                       />
-                      <span>s</span>
+                      <span id={delayUnit}>s</span>
                     </span>
                   )}
                   <span
@@ -689,7 +783,19 @@ function MotorPanel({
           </div>
         </div>
       ) : (
-        <div className="rw-motor rw-motor--empty">{lib.state === "ready" ? "Choose a motor from the list." : ""}</div>
+        <div className="rw-motor rw-motor--empty">
+          {mounts.length === 0 && addMountHint}
+          {!missing && lib.state === "ready" && "Choose a motor from the list."}
+          {missing && lib.project === "error" && <span role="alert">The project&apos;s own motors could not be read, so {motorName(shownRef)} cannot be shown.</span>}
+          {missing && lib.project !== "error" && lib.state === "ready" && lib.project !== "loading" && (
+            <span className="rw-motor__missing" role="status" data-testid="motor.missing" data-motor={shownRef}>
+              <strong>Motor not found</strong>
+              <code>{shownRef}</code>
+              <span>Choose a motor from the list and assign it to {config.name}.</span>
+            </span>
+          )}
+          {missing && (lib.state === "loading" || lib.project === "loading") && "Loading the motor library…"}
+        </div>
       )}
     </div>
   );
@@ -705,11 +811,16 @@ function useConfigDiagnostics(store: AppStore, prefix: string) {
  * A unit-aware number field of a configuration table: typed text, the unit
  * after it, Enter or blur writes (`onCommit` returns a local validation
  * message, or null once the value is written), Escape restores the value.
+ * The unit is the field's accessible description, with `note` after it. `label`
+ * names it in messages and, without `labelledBy`, to assistive technology;
+ * `labelledBy` names it from visible text instead (a table's column header).
  */
 function CfgNumber({
   value,
   unit,
   label,
+  labelledBy,
+  note,
   testid,
   disabled,
   invalid,
@@ -718,11 +829,15 @@ function CfgNumber({
   value: string;
   unit: string;
   label: string;
+  labelledBy?: string;
+  note?: string;
   testid: string;
   disabled?: boolean;
   invalid?: boolean;
   onCommit: (text: string) => string | null;
 }) {
+  const unitId = useId();
+  const noteId = useId();
   const [text, setText] = useState(value);
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
@@ -730,22 +845,39 @@ function CfgNumber({
     if (!editing) setText(value);
   }, [value, editing]);
   useEffect(() => setError(null), [value]);
+  // The text a flush already wrote: the blur that follows it must not write it twice.
+  const sent = useRef<string | null>(null);
   const commit = () => {
-    if (text.trim() === value.trim() && value.trim() !== "") return;
+    if (text === sent.current || (text.trim() === value.trim() && value.trim() !== "")) return;
     setError(onCommit(text));
   };
+  useDirtyField({
+    dirty: () => disabled !== true && (error !== null || (editing && text.trim() !== value.trim())),
+    commit: () => {
+      // A blur already put the model's value back: there is nothing to write, only the refusal to pass on.
+      if (error !== null && text.trim() === value.trim()) return `${label}: ${error}`;
+      sent.current = text;
+      const problem = onCommit(text);
+      setError(problem);
+      return problem === null ? null : `${label}: ${problem}`;
+    },
+  });
   return (
     <span className="rw-cfg-num" data-invalid={error !== null || invalid ? "true" : undefined}>
       <span className="rw-motor__delay-input">
         <input
-          aria-label={label}
+          {...(labelledBy !== undefined ? { "aria-labelledby": labelledBy } : { "aria-label": label })}
+          aria-describedby={note !== undefined ? `${unitId} ${noteId}` : unitId}
           data-testid={testid}
           inputMode="decimal"
           value={text}
           disabled={disabled}
           aria-invalid={error !== null || invalid ? true : undefined}
           onFocus={() => setEditing(true)}
-          onChange={(e) => setText(e.currentTarget.value)}
+          onChange={(e) => {
+            sent.current = null;
+            setText(e.currentTarget.value);
+          }}
           onBlur={() => {
             setEditing(false);
             commit();
@@ -759,8 +891,13 @@ function CfgNumber({
             }
           }}
         />
-        <span>{unit}</span>
+        <span id={unitId}>{unit}</span>
       </span>
+      {note !== undefined && (
+        <span className="rw-cfg-num__note" id={noteId}>
+          {note}
+        </span>
+      )}
       {error !== null && (
         <span className="rw-cfg-num__error" role="alert" data-testid={`${testid}-error`}>
           {error}
@@ -778,6 +915,8 @@ function RecoveryPanel({ store, config, patch }: { store: AppStore; config: Conf
   const cfg = model.configs[config.id];
   const devices = model.components.filter((c) => c.shape.type === "parachute" || c.shape.type === "streamer");
   const alt = altitudeUnit(units);
+  const deploysHeader = useId();
+  const altitudeHeader = useId();
   return (
     <div className="rw-motors rw-recovery" data-rw-region="motor-panel" data-testid="recovery-panel" data-config={config.id}>
       <table className="rw-recovery__table">
@@ -785,8 +924,8 @@ function RecoveryPanel({ store, config, patch }: { store: AppStore; config: Conf
           <tr>
             <th>Device</th>
             <th>Size</th>
-            <th>Deploys</th>
-            <th>Altitude</th>
+            <th id={deploysHeader}>Deploys</th>
+            <th id={altitudeHeader}>Altitude</th>
             <th>Delay</th>
           </tr>
         </thead>
@@ -811,7 +950,7 @@ function RecoveryPanel({ store, config, patch }: { store: AppStore; config: Conf
                 <td>{s.diameter !== undefined ? `⌀ ${formatLength(s.diameter, units)}` : s.length !== undefined ? `${formatLength(s.length, units)} × ${formatLength(s.width ?? 0, units)}` : "—"}</td>
                 <td>
                   <span className="rw-select rw-select--native">
-                    <select data-testid="recovery.event" aria-label={`${c.name} deployment`} value={event} onChange={(e) => void patch(deployEventOps(files, config.id, c.id, e.currentTarget.value), `Deploy ${c.name} ${e.currentTarget.value}`)}>
+                    <select data-testid="recovery.event" aria-labelledby={deploysHeader} value={event} onChange={(e) => void patch(deployEventOps(files, config.id, c.id, e.currentTarget.value), `Deploy ${c.name} ${e.currentTarget.value}`)}>
                       {DEPLOY_EVENTS.map((ev) => (
                         <option key={ev} value={ev}>
                           {DEPLOY_LABEL[ev]}
@@ -822,14 +961,22 @@ function RecoveryPanel({ store, config, patch }: { store: AppStore; config: Conf
                   </span>
                 </td>
                 <td data-testid="recovery.altitude-cell">
-                  {event === "altitude" ? (
+                  {event === "altitude" || event === "ejection" ? (
                     <CfgNumber
                       label={`${c.name} deployment altitude`}
+                      labelledBy={altitudeHeader}
+                      {...(event === "ejection" ? { note: "used by the Altitude event" } : {})}
                       testid="recovery.altitude"
                       unit={alt.unit}
                       value={altitudeDisplay(d?.altitude, units)}
                       invalid={bad("altitude")}
                       onCommit={(t) => {
+                        // Optional here: it only matters once the event is Altitude.
+                        if (t.trim() === "" && event !== "altitude") {
+                          const ops = configFieldRemoveOps(files, config.id, "deploy", c.id, "altitude");
+                          if (ops.length > 0) void patch(ops, `Clear ${c.name} deployment altitude`);
+                          return null;
+                        }
                         const r = altitudeSource(t, units);
                         if ("error" in r) return r.error;
                         write("altitude", r.value, "deployment altitude");

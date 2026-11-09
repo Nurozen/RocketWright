@@ -15,7 +15,7 @@
  *   local server.
  */
 import { spawn, type ChildProcess } from "node:child_process";
-import { cpSync, existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync } from "node:fs";
 import { stripTypeScriptTypes } from "node:module";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -62,6 +62,31 @@ export function childEnv(base: NodeJS.ProcessEnv = process.env, extra: Record<st
 export function userDataOverride(env: NodeJS.ProcessEnv = process.env): string | undefined {
   const dir = env.RW_USER_DATA_DIR;
   return dir === undefined || dir === "" ? undefined : resolve(dir);
+}
+
+/**
+ * A test's stand-in for the OS Documents folder: `RW_DOCUMENTS_DIR` when set
+ * and unpackaged (a shipped app never takes it from the environment), created
+ * so a dialog can open on it. Never touches the real Documents, which macOS
+ * guards with a TCC prompt.
+ */
+export function documentsDirOverride(isPackaged: boolean, env: NodeJS.ProcessEnv = process.env): string | undefined {
+  const dir = env.RW_DOCUMENTS_DIR;
+  if (isPackaged || dir === undefined || dir === "") return undefined;
+  const full = resolve(dir);
+  mkdirSync(full, { recursive: true });
+  return full;
+}
+
+/**
+ * A bar capture's seeded Electron profile (B3: `recents.json` for Welcome and
+ * the project menu), replacing the hidden run's fresh temp one: `RW_SEEDED_PROFILE`
+ * when set and unpackaged. Never honoured by a shipped app. The harness owns the
+ * directory and removes it; the hidden run leaves it alone.
+ */
+export function seededProfileDir(isPackaged: boolean, env: NodeJS.ProcessEnv = process.env): string | undefined {
+  const dir = env.RW_SEEDED_PROFILE;
+  return isPackaged || dir === undefined || dir === "" ? undefined : resolve(dir);
 }
 
 /**
@@ -136,6 +161,8 @@ export interface SpawnServerOptions {
    * the server. Without either the server runs without Lecturn.
    */
   lecturnBaseDir?: string;
+  /** Main's Documents folder, as `RW_DOCUMENTS_DIR`: new projects default under it on the server too. */
+  documentsDir?: string;
 }
 
 /** Command and args that run `node <cli> …` with `ELECTRON_RUN_AS_NODE` unset (or, with `runAsNode`, set by the env instead). */
@@ -152,6 +179,7 @@ export function spawnServer(opts: SpawnServerOptions = {}): Promise<ServerHandle
   const bin = defaultSidecarBin(env);
   if (bin !== undefined) extra.RW_SIDECAR_BIN = bin;
   if (opts.runAsNode === true) extra.ELECTRON_RUN_AS_NODE = "1";
+  if (opts.documentsDir !== undefined) extra.RW_DOCUMENTS_DIR = opts.documentsDir;
   const { cmd, args } = serverCommand(opts.node ?? (env.RW_NODE || "node"), opts.cli ?? SERVER_CLI, opts.projects ?? [], opts.lecturnBaseDir, opts.runAsNode);
   const child = spawn(cmd, args, { env: childEnv(env, extra), stdio: ["ignore", "pipe", "pipe"] });
   const exited = new Promise<void>((r) => child.once("exit", () => r()));
@@ -234,6 +262,18 @@ export interface DevProject {
   temp: boolean;
 }
 
+/**
+ * What the app server should open (seam 1): the explicit projects, `[]` for an
+ * interactive window with none (a server with nothing open, then reopen or
+ * Welcome), or null for a hidden run with none, which stays server-free.
+ * `zeroProject` (`--zero-project`, B3 captures) makes a hidden run boot like
+ * the interactive case, so the page shows Welcome.
+ */
+export function bootProjects(explicit: readonly string[], hidden: boolean, zeroProject = false): string[] | null {
+  if (explicit.length > 0) return [...explicit];
+  return hidden && !zeroProject ? null : [];
+}
+
 /** A directory holds a project if it has a `*.toml` at its top level. */
 export function isProjectDir(dir: string): boolean {
   try {
@@ -246,8 +286,9 @@ export function isProjectDir(dir: string): boolean {
 /**
  * The `make dev` project: a fresh copy of `fixtures/research-vehicle` (so dev
  * edits never touch the committed fixture), or an empty temp project if the
- * fixture is not there yet. Temp dirs live under `/tmp`: the sidecar's Unix
- * socket path (`<dir>/.rw/sidecar.sock`) is limited to ~104 bytes on macOS.
+ * fixture is not there yet. Temp dirs live under `/tmp` to keep paths short;
+ * a path too long for the sidecar's socket still works (it falls back to a
+ * short one under the temp dir).
  */
 export function resolveDevProject(repoRoot = REPO_ROOT, tmpRoot = "/tmp"): DevProject {
   const fixture = join(repoRoot, "fixtures/research-vehicle");
@@ -266,7 +307,7 @@ export interface Backend {
   close(): Promise<void>;
 }
 
-/** The app server (when `projects` is non-null) plus the static web bundle. */
+/** The app server (when `projects` is non-null, even if empty) plus the static web bundle. */
 export async function startBackend(
   opts: { projects: string[] | null; webRoot?: string; query?: string; page?: string | undefined } & Omit<SpawnServerOptions, "projects">,
 ): Promise<Backend> {
@@ -355,6 +396,8 @@ export interface DesktopArgs {
   open: boolean;
   smoke: boolean;
   hidden: boolean;
+  /** `--zero-project`: a hidden run with a server and no project (`bootProjects`). */
+  zeroProject: boolean;
   page: string | undefined;
 }
 
@@ -369,6 +412,7 @@ export function parseDesktopArgs(argv: string[]): DesktopArgs & { rest: Record<s
       open: { type: "boolean" },
       smoke: { type: "boolean" },
       hidden: { type: "boolean" },
+      "zero-project": { type: "boolean" },
       page: { type: "string" },
     },
   });
@@ -380,6 +424,7 @@ export function parseDesktopArgs(argv: string[]): DesktopArgs & { rest: Record<s
     open: values.open === true,
     smoke: values.smoke === true,
     hidden: values.hidden === true || values.smoke === true,
+    zeroProject: values["zero-project"] === true,
     page: typeof values.page === "string" ? values.page : undefined,
     rest: values,
   };

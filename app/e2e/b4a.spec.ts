@@ -34,7 +34,7 @@ import { LecturnAdmin } from "./capture/scripted.ts";
 import { captureGuest, embedGuest, loadTurnFixture, scanPane, sendTurn } from "./embed.ts";
 import { lecturnEnv, type LecturnEnv } from "./lecturn-env.ts";
 import { killOrphans } from "./orphans.ts";
-import { seededCopy, sidecarBinary } from "./live.ts";
+import { PROJECT_NAME, seededCopy, sidecarBinary } from "./live.ts";
 
 const DESKTOP = join(REPO_ROOT, "app/apps/desktop");
 const OUT = join(barOutDir(), "e2e/b4a");
@@ -86,6 +86,8 @@ test.describe("B4(a) chat drives a simulation", () => {
     const page = await app.firstWindow();
     await page.context().tracing.start({ screenshots: true, snapshots: true });
     await expect(region(page, "workspace")).toBeVisible({ timeout: 120_000 });
+    // The folder name is what the fixtures and every capture know the project by.
+    await expect(byTestId(page, "header.project-switcher")).toHaveText(PROJECT_NAME);
 
     // Results page (04) with the seeded Baseline run Complete.
     await page.goto(new URL("?page=04", page.url()).href);

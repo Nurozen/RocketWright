@@ -31,7 +31,7 @@ describe("Lecturn registration (B8, W2.1)", () => {
       headlessTools: {
         command: BIN,
         args: ["mcp", "--project", "{workspaceRoot}"],
-        listArgs: ["mcp", "--list-tools", "--project", "{workspaceRoot}"],
+        listArgs: ["mcp", "--list-tools", "--hide-project-create", "--project", "{workspaceRoot}"],
         cwd: "{workspaceRoot}",
       },
       liveTools: true,

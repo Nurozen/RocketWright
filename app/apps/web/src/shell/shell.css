@@ -70,9 +70,12 @@ h2 {
 .rw-header {
   grid-area: header;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  /* Tabs stay centred while both sides fit; the end column never gives up its controls, the start column gives way. */
+  grid-template-columns: minmax(0, 1fr) auto minmax(min-content, 1fr);
   align-items: stretch;
   padding: 0 16px 0 20px;
+  overflow-x: clip;
+  container: rw-header / inline-size;
   background: var(--rw-bg-canvas);
   border-bottom: var(--rw-hairline) solid var(--rw-line);
 }
@@ -83,6 +86,10 @@ h2 {
   align-items: center;
   gap: 16px;
   min-width: 0;
+}
+
+.rw-header__start {
+  overflow-x: clip;
 }
 
 .rw-header__end {
@@ -104,12 +111,14 @@ h2 {
 }
 
 .rw-header__sep {
+  flex: none;
   width: var(--rw-hairline);
   height: 28px;
   background: var(--rw-line);
 }
 
 .rw-brand {
+  flex: none;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -123,6 +132,9 @@ h2 {
 }
 
 .rw-project {
+  /* Only the name gives way; the trigger keeps a clickable floor. */
+  flex: 0 1 auto;
+  min-width: 72px;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -134,13 +146,38 @@ h2 {
   white-space: nowrap;
 }
 
+.rw-project__name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .rw-save {
+  flex: none;
   display: flex;
   align-items: center;
   gap: 8px;
   color: var(--rw-text-secondary);
   font-size: var(--rw-font-size-secondary);
   white-space: nowrap;
+}
+
+/* Narrow windows: the start column sheds what it can so the name stays legible. The save icon still carries its state. */
+@container rw-header (max-width: 1319.98px) {
+  .rw-save__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+}
+
+@container rw-header (max-width: 1199.98px) {
+  .rw-brand__word {
+    display: none;
+  }
 }
 
 .rw-tabs {
@@ -206,6 +243,12 @@ h2 {
 
 .rw-button--primary .rw-icon__knock {
   stroke: var(--rw-accent-fill);
+}
+
+.rw-check-empty {
+  color: var(--rw-text-secondary);
+  font-size: var(--rw-font-size-secondary);
+  white-space: nowrap;
 }
 
 .rw-check__dot {
@@ -718,49 +761,8 @@ button:disabled {
   color: var(--rw-danger);
 }
 
-.rw-project-wrap {
-  position: relative;
-}
-
-.rw-menu {
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 0;
-  z-index: 20;
-  min-width: 220px;
-  margin: 0;
-  padding: 6px;
-  list-style: none;
-  border: var(--rw-hairline) solid var(--rw-line);
-  border-radius: var(--rw-radius);
-  background: var(--rw-panel);
-}
-
-.rw-menu__item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  height: 32px;
-  padding: 0 8px;
-  border: 0;
-  border-radius: var(--rw-radius-sm);
-  background: none;
-  text-align: left;
-}
-
-.rw-menu__item:hover,
-.rw-menu__item[aria-checked="true"] {
-  background: var(--rw-selection-row);
-}
-
-.rw-menu__gap {
-  width: 16px;
-}
-
-.rw-menu__empty {
-  padding: 8px;
-  color: var(--rw-text-secondary);
+[data-testid="header.project-menu.list"] button[aria-checked="true"] .rw-ui-menu__label {
+  font-weight: var(--rw-font-weight-strong);
 }
 
 .rw-save[data-tone="amber"] {
@@ -784,6 +786,32 @@ button:disabled {
 
 .rw-thread__busy {
   color: var(--rw-accent);
+}
+
+/* R0.3a: the Design views' prompt on a project with no parts. Sits over the view; never takes its clicks. */
+.rw-first-part {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  pointer-events: none;
+  text-align: center;
+}
+
+.rw-first-part__title {
+  margin: 0;
+  color: var(--rw-text-primary);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.rw-first-part__hint {
+  margin: 0;
+  color: var(--rw-text-secondary);
+  font-size: var(--rw-font-size-secondary);
 }
 
 .rw-rail__empty {
@@ -971,4 +999,187 @@ button:disabled {
   width: 100%;
   height: auto;
   margin-bottom: 16px;
+}
+
+/* The window with no project to show: Welcome until it lands, and startup failures. */
+/* ---- Welcome (R0.2) -------------------------------------------------------- */
+
+.rw-welcome {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+  overflow: auto;
+  padding: clamp(32px, 18vh, 186px) 24px 0;
+  background: var(--rw-bg-viewport-bottom);
+}
+
+.rw-welcome__brand {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.rw-welcome__mark {
+  display: block;
+}
+
+.rw-welcome__name {
+  margin: 0;
+  font-size: var(--rw-font-size-display);
+  font-weight: var(--rw-font-weight-strong);
+  line-height: 64px;
+}
+
+.rw-welcome__tagline {
+  margin: 28px 0 0;
+  color: var(--rw-text-secondary);
+  font-size: 26px;
+}
+
+.rw-welcome__actions {
+  display: grid;
+  grid-template-columns: repeat(3, 300px);
+  gap: 24px;
+  margin-top: 80px;
+}
+
+.rw-welcome__action {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  height: 165px;
+  border: var(--rw-hairline) solid var(--rw-line);
+  border-radius: var(--rw-radius);
+  background: var(--rw-panel);
+  color: var(--rw-text-primary);
+  font: inherit;
+  font-size: 22px;
+  cursor: pointer;
+}
+
+.rw-welcome__action:hover:not(:disabled) {
+  border-color: var(--rw-accent);
+}
+
+.rw-welcome__action:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.rw-welcome__action .rw-icon {
+  color: var(--rw-accent);
+}
+
+.rw-welcome__messages {
+  display: flex;
+  flex-direction: column;
+  flex: none;
+  gap: 8px;
+  width: 832px;
+  max-width: 100%;
+  margin-top: 16px;
+}
+
+.rw-welcome__status {
+  margin: 0;
+  color: var(--rw-text-secondary);
+  font-size: var(--rw-font-size-body);
+  text-align: center;
+}
+
+.rw-welcome__recent {
+  width: 832px;
+  max-width: 100%;
+  margin-top: 60px;
+}
+
+.rw-welcome__recent-title {
+  margin: 0 0 16px;
+  font-size: 24px;
+  font-weight: var(--rw-font-weight-strong);
+}
+
+.rw-welcome__recent-list {
+  margin: 0;
+  padding: 0;
+  border-top: var(--rw-hairline) solid var(--rw-line);
+  list-style: none;
+}
+
+.rw-welcome__recent-row {
+  display: flex;
+  align-items: center;
+  border-bottom: var(--rw-hairline) solid var(--rw-line);
+}
+
+.rw-welcome__recent-open {
+  display: grid;
+  flex: 1;
+  grid-template-columns: 56px 187px minmax(0, 1fr) auto;
+  align-items: center;
+  height: 52px;
+  padding: 0 0 0 4px;
+  border: 0;
+  background: none;
+  color: var(--rw-text-primary);
+  font: inherit;
+  font-size: 17px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.rw-welcome__recent-open:hover:not(:disabled) .rw-welcome__recent-name {
+  color: var(--rw-accent);
+}
+
+.rw-welcome__recent-open:disabled {
+  cursor: default;
+}
+
+.rw-welcome__recent-open .rw-icon {
+  color: var(--rw-accent);
+}
+
+.rw-welcome__recent-name,
+.rw-welcome__recent-path {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rw-welcome__recent-path,
+.rw-welcome__recent-age {
+  color: var(--rw-text-secondary);
+}
+
+.rw-welcome__recent-row:not([data-status="ok"]) .rw-welcome__recent-age {
+  color: var(--rw-warning);
+}
+
+.rw-welcome__version {
+  margin-top: auto;
+  padding: 40px 0 56px;
+  color: var(--rw-text-secondary);
+  font-size: 15px;
+}
+
+.rw-new-project {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.rw-new-project__offer,
+.rw-new-project__status {
+  margin: 0;
+  color: var(--rw-text-secondary);
+  font-size: var(--rw-font-size-body);
+}
+
+.rw-lifecycle {
+  padding: 24px;
+  color: var(--rw-text-secondary);
 }

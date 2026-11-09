@@ -122,10 +122,22 @@
       "output": "sha256:14857e3f24568b532a80b8ae4e45adc646e125a93bda313db5684c0e46ace8d3"
     },
     {
+      "name": "motor_show",
+      "title": "Read motor",
+      "input": "sha256:058249d549f42289d7a8b082e8a6e41ddf50e1f11fd1118231bb8549068f5cbd",
+      "output": "sha256:95ad4e9ea6d725fbd3a8389519af8a38e489a4fa063767d8a6cf409a6cfa9fd1"
+    },
+    {
       "name": "project_create",
       "title": "Create project",
-      "input": "sha256:5048d90a051a4f0491aaec31300140b3c8c87830e874abc008b80baa510706b2",
+      "input": "sha256:8765e6913ee83b0524410d2ce56a196ecc4085f87e899f3c7a29dabf5bc4b9c9",
       "output": "sha256:893bc1f1eb27219bbda7b9f70935508695213b2516e81ef343e21169ee135d6d"
+    },
+    {
+      "name": "project_rename",
+      "title": "Rename project",
+      "input": "sha256:d384168a207baf8d63cefb9c38bc1d4defd09ac3ff93bd627824dbeb239cc18d",
+      "output": "sha256:2d8f07fe70739ca01ee521edfe054c9bbd2aeebf2b5357e20070263f36129d44"
     },
     {
       "name": "project_validate",

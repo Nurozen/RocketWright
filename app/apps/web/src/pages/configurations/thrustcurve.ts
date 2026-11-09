@@ -1,11 +1,13 @@
 /**
- * Configurations > Motors > Search ThrustCurve: the pure parts. The search
- * and download are the sidecar's `thrustcurve_search` / `thrustcurve_fetch`
- * (RocketWright's only network access, and only when the user clicks); the
- * rest of the picker stays on the offline built-in library.
+ * Configurations > Motors: what the picker lists beyond the built-in library.
+ * Search ThrustCurve's search and download are the sidecar's
+ * `thrustcurve_search` / `thrustcurve_fetch` (RocketWright's only network
+ * access, and only when the user clicks); the project's own motors come from
+ * `motor.search` and `motor.show`, offline.
  */
 import type { schema } from "@rw/contracts";
 import type { DeepReadonly } from "../../state/index.ts";
+import type { RpcLike } from "../../state/rpc.ts";
 import { ALL, motorRef, type MotorFilters } from "./model.ts";
 
 type Curve = DeepReadonly<schema.ThrustCurve>;
@@ -48,4 +50,27 @@ export function thrustcurveRow(m: TcMotor): { title: string; detail: string } {
 export function mergeCurves(motors: readonly Curve[], curves: readonly Curve[]): Curve[] {
   const refs = new Set(curves.map(motorRef));
   return [...motors.filter((m) => !refs.has(motorRef(m))), ...curves];
+}
+
+/**
+ * The project's own motors, with curves: `motor.search` lists them, and
+ * `motor.show` loads each curve the picker needs (a search result has no
+ * points or propellant mass). The built-in library already comes from WASM.
+ * `cache` holds curves by id and file hash, so a refetch only asks for a
+ * motor that is new or whose file changed.
+ */
+export async function loadProjectMotors(client: Pick<RpcLike, "call">, projectId: string, cache: Map<string, Curve>): Promise<Curve[]> {
+  const { motors } = await client.call("motor.search", { projectId });
+  return Promise.all(
+    motors
+      .filter((m) => m.source.kind !== "generic")
+      .map(async (m) => {
+        const key = `${m.id}@${m.sha256}`;
+        const hit = cache.get(key);
+        if (hit !== undefined) return hit;
+        const { curve } = await client.call("motor.show", { projectId, id: m.id });
+        cache.set(key, curve);
+        return curve;
+      }),
+  );
 }

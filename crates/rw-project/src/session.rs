@@ -27,7 +27,7 @@ use rw_api::{
     ApiError, ApiErrorCode, CallCtx, Command, CompareOut, ComponentAddIn, ComponentMoveIn,
     ComponentRemoveIn, DesignCheckIn, FileChange, FileStatus, HistoryListIn, HistoryListOut,
     HistoryShowOut, LibrarySearchOut, ModelDiff, ModelGetIn, ModelGetOut, MutationOut, Origin,
-    ProjectFiles, ProjectValidateIn, Response, ValidateOut,
+    ProjectFiles, ProjectRenameIn, ProjectValidateIn, Response, ValidateOut,
 };
 use rw_check::CheckReport;
 use rw_model::diag::{self, Diagnostic};
@@ -37,7 +37,7 @@ use serde_json::Value;
 
 use crate::check::{Checker, StaticChecker, sort_diagnostics};
 pub use crate::history::compare::model_diff;
-use crate::history::compare::{breakdown_rows, component_marks, report_rows, summary_rows};
+use crate::history::compare::{breakdown_rows, component_marks, escape, report_rows, summary_rows};
 use crate::history::{History, HistoryError, Snapshot, StepMeta};
 use crate::jobs::JobQueue;
 use crate::layout::{self, sha256_hex};
@@ -500,6 +500,7 @@ impl Session {
                     .unwrap_or_else(|| ops_title(&i.ops));
                 Response::ModelPatch(self.patch(&i.ops, i.dry_run, ctx, "model_patch", title)?)
             }
+            Command::ProjectRename(i) => Response::ProjectRename(self.project_rename(i, ctx)?),
             Command::ComponentAdd(i) => Response::ComponentAdd(self.component_add(i, ctx)?),
             Command::ComponentRemove(i) => {
                 Response::ComponentRemove(self.component_remove(i, ctx)?)
@@ -754,6 +755,25 @@ impl Session {
         self.commit(next, writes, dry_run, ctx, Some(tool), title)
     }
 
+    /// One step writes the name to the manifest and the model; the folder
+    /// and every id stay as they are.
+    fn project_rename(
+        &mut self,
+        i: &ProjectRenameIn,
+        ctx: &CallCtx,
+    ) -> Result<MutationOut, ApiError> {
+        let name = crate::create::checked_project_name(&i.name)?;
+        let ops: Vec<PatchOp> = ["/project/name", "/name"]
+            .into_iter()
+            .map(|path| PatchOp::Add {
+                path: path.into(),
+                value: Value::from(name),
+            })
+            .collect();
+        let title = format!("Rename project to {name}");
+        self.patch(&ops, i.dry_run, ctx, "project_rename", title)
+    }
+
     fn component_add(
         &mut self,
         i: &ComponentAddIn,
@@ -815,6 +835,28 @@ impl Session {
         out
     }
 
+    /// Ops removing the motor assignments and deployments of `ids` from every
+    /// configuration. Only entries that exist: removing a missing key fails.
+    fn config_entry_removals(&self, ids: &[&str]) -> Vec<PatchOp> {
+        let mv = self.model_value();
+        let Some(configs) = mv.get("configs").and_then(Value::as_object) else {
+            return Vec::new();
+        };
+        let mut ops = Vec::new();
+        for (config, doc) in configs {
+            for table in ["motors", "deploy"] {
+                for id in ids {
+                    if doc.get(table).and_then(|t| t.get(*id)).is_some() {
+                        ops.push(PatchOp::Remove {
+                            path: format!("/configs/{}/{table}/{id}", escape(config)),
+                        });
+                    }
+                }
+            }
+        }
+        ops
+    }
+
     fn component_remove(
         &mut self,
         i: &ComponentRemoveIn,
@@ -840,13 +882,15 @@ impl Session {
                 "pass recursive: true to remove them too, or re-attach them first",
             ));
         }
-        let ops: Vec<PatchOp> = deps
+        let removed: Vec<&str> = deps
             .iter()
             .chain(std::iter::once(&i.id))
-            .map(|id| PatchOp::Remove {
-                path: format!("/c/{id}"),
-            })
+            .map(String::as_str)
             .collect();
+        let mut ops = self.config_entry_removals(&removed);
+        ops.extend(removed.iter().map(|id| PatchOp::Remove {
+            path: format!("/c/{id}"),
+        }));
         let title = ctx
             .label
             .clone()

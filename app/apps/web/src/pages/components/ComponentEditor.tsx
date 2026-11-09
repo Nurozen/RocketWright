@@ -10,10 +10,12 @@
  * model (a draft previewed by rw-wasm, I4); Enter or leaving the field commits
  * it through `model.patch` (I1, I2); Escape discards it.
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import type { PatchOp, schema } from "@rw/contracts";
 import { Icon } from "../../shell/Icon.tsx";
-import type { DeepReadonly, Units } from "../../state/index.ts";
+import { useDirtyField } from "../../state/dirtyFields.ts";
+import { ADD_FIRST_PART, FIRST_PART_HINT, type DeepReadonly, type Units } from "../../state/index.ts";
+import { partLabel } from "../../state/ops/parts.ts";
 import { displayUnit, fromDisplay, limitsOf, rangeError, sharedFields, tabsFor, toDisplay, toSource, type EditorTab, type FieldSpec } from "./fields.ts";
 import { FinOutlineEditor } from "./FinOutlineEditor.tsx";
 import { PartProfile } from "./PartProfile.tsx";
@@ -34,6 +36,8 @@ export interface EditorStatus {
 
 export interface ComponentEditorProps {
   comps: readonly Comp[];
+  /** The project has no parts: there is nothing to select yet (R0.3a). */
+  noParts?: boolean;
   files: SourceFilesLike;
   units: Units;
   materials: readonly string[];
@@ -69,22 +73,6 @@ export function linkTitle(param: { name: string; doc?: string } | null, expressi
   if (expression !== null) return "Computed from other values in the model; typing a number here replaces the formula.";
   return doc;
 }
-
-const KIND_LABEL: Record<string, string> = {
-  trapezoidal_fin_set: "Trapezoidal fin set",
-  elliptical_fin_set: "Elliptical fin set",
-  freeform_fin_set: "Freeform fin set",
-  tube_fin_set: "Tube fin set",
-  nose_cone: "Nose cone",
-  body_tube: "Body tube",
-  inner_tube: "Inner tube",
-  centering_ring: "Centering ring",
-  mass_component: "Mass component",
-  launch_lug: "Launch lug",
-  rail_button: "Rail button",
-  shock_cord: "Shock cord",
-};
-const kindLabel = (t: string) => KIND_LABEL[t] ?? t.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
 
 /** The evaluated value behind a field (SI number, enum text, or null). */
 export function evaluatedValue(c: Comp, key: string): number | string | null {
@@ -125,7 +113,7 @@ export function ComponentEditor(props: ComponentEditorProps) {
   if (first === undefined) {
     return (
       <section className="rw-editor" data-rw-region="editor" data-testid="editor" data-empty="true">
-        <p className="rw-editor__empty">Select a part in the tree or the view to edit it.</p>
+        <p className="rw-editor__empty">{props.noParts ? `${ADD_FIRST_PART}. ${FIRST_PART_HINT}` : "Select a part in the tree or the view to edit it."}</p>
       </section>
     );
   }
@@ -146,7 +134,7 @@ export function ComponentEditor(props: ComponentEditorProps) {
         <h2 className="rw-editor__title" data-testid="editor.title">
           {title}
         </h2>
-        <span className="rw-editor__kind">{comps.length > 1 && new Set(types).size > 1 ? "Mixed selection" : kindLabel(first.shape.type)}</span>
+        <span className="rw-editor__kind">{comps.length > 1 && new Set(types).size > 1 ? "Mixed selection" : partLabel(first.shape.type)}</span>
         <button
           type="button"
           className="rw-icon-button rw-editor__collapse"
@@ -422,9 +410,13 @@ function SpinField({
 }) {
   const [text, setText] = useState(value);
   const [editing, setEditing] = useState(false);
+  const unitId = useId();
   useEffect(() => {
     if (!editing) setText(value);
   }, [value, editing]);
+  // Valid text is in the draft from the keystroke on; only text that failed its check has nowhere to go.
+  // The error, not the text: a blur puts the model's value back, and the person still has not been told it was dropped.
+  useDirtyField({ dirty: () => error !== null && error !== "", commit: () => error });
   const bump = (dir: 1 | -1) => {
     const cur = Number(text === "" ? value || "0" : text);
     const next = Number(((Number.isFinite(cur) ? cur : 0) + dir * step).toPrecision(10));
@@ -446,6 +438,7 @@ function SpinField({
           value={text}
           placeholder={placeholder}
           aria-label={field.label}
+          aria-describedby={unit === "" ? undefined : unitId}
           aria-invalid={error ? true : undefined}
           onFocus={() => setEditing(true)}
           onChange={(e) => {
@@ -481,7 +474,9 @@ function SpinField({
           </button>
         </span>
       </span>
-      <span className="rw-field__unit">{unit}</span>
+      <span id={unitId} className="rw-field__unit">
+        {unit}
+      </span>
     </label>
   );
 }

@@ -34,6 +34,7 @@ import { META_LABEL, META_THREAD } from "../sidecar/SidecarClient.ts";
 import { SidecarSupervisor, type BackoffOptions, type SidecarConnection } from "../sidecar/SidecarSupervisor.ts";
 import { ThumbCache } from "./ThumbCache.ts";
 import { listCfdDatasets } from "./cfdRuns.ts";
+import { displayName } from "./inspect.ts";
 import { isTerminal, jobIdOf, jobUri, MIRROR_KEYS, MIRROR_RESOURCES, mirrorKeysFor, type MirrorKey } from "./mirror.ts";
 
 /** `_meta` key the sidecar reads as the call origin. */
@@ -65,6 +66,8 @@ export interface ProjectHostOptions {
 
 export interface ProjectHostEvents {
   patch(patch: ProjectPatch): void;
+  /** The project's name changed. */
+  updated?(project: ProjectInfo): void;
 }
 
 const errMessage = (e: unknown): string => (e instanceof Error ? e.message : String(e));
@@ -276,6 +279,13 @@ export class ProjectHost {
   }
 
   /** One sidecar tool call as the UI; tool errors become `api_error`. */
+  /** Writes both manifests through the sidecar; the name changes for every window at once, ahead of the file watch. */
+  async setName(name: string): Promise<ProjectInfo> {
+    await this.tool("project_rename", { name });
+    this.syncName();
+    return { ...this.info };
+  }
+
   async tool<T>(name: string, args: Record<string, unknown>, label?: string): Promise<T> {
     if (this.closed) throw new RpcFail("not_found", `project ${this.info.projectId} is closed`);
     const meta: Record<string, unknown> = { [META_ORIGIN]: "ui", [META_THREAD]: UI_THREAD };
@@ -350,6 +360,16 @@ export class ProjectHost {
       }),
     );
     if (changed.length > 0) this.emitPatch(changed.sort());
+    if (changed.includes("files") || changed.includes("evaluated")) this.syncName();
+  }
+
+  /** The manifest may have been renamed (a `/project/name` patch, an edit on disk). */
+  private syncName(): void {
+    const name = displayName(this.info.dir);
+    if (name === this.info.name) return;
+    this.info.name = name;
+    this.snap.project = { ...this.info };
+    this.events.updated?.({ ...this.info });
   }
 
   private emitPatch(keys: SnapshotKey[]): void {

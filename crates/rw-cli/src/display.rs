@@ -13,7 +13,7 @@
 use std::collections::BTreeMap;
 use std::path::Path;
 
-use rw_units::{DimKind, Unit, parse_unit};
+use rw_units::{DimKind, Unit};
 use serde_json::{Map, Value, json};
 
 /// `--units`: which units the text output uses.
@@ -50,7 +50,7 @@ pub enum Class {
 }
 
 /// The `display_units` key of the flight-distance class.
-pub const ALTITUDE: &str = "altitude";
+pub use rw_project::create::ALTITUDE;
 
 /// Default display units (keys as in `[display_units]`).
 pub const DEFAULTS: &[(&str, &str)] = &[
@@ -82,17 +82,7 @@ impl Default for Units {
 
 /// The dimension a class key stands for (`altitude` is a length).
 fn key_dim(key: &str) -> Option<DimKind> {
-    if key == ALTITUDE {
-        Some(DimKind::Length)
-    } else {
-        DimKind::from_name(key)
-    }
-}
-
-/// Parses `sym` as a unit of dimension `kind`, or `None`.
-fn unit_of(sym: &str, kind: DimKind) -> Option<Unit> {
-    let u = parse_unit(sym).ok()?;
-    (u.dim == kind.dimension()).then_some(u)
+    rw_project::create::display_kind(key)
 }
 
 impl Units {
@@ -111,7 +101,7 @@ impl Units {
                         .map(|(k, v)| (k.clone(), v.trim().to_string())),
                 );
             for (k, sym) in entries {
-                if let Some(u) = key_dim(&k).and_then(|d| unit_of(&sym, d)) {
+                if let Some(u) = rw_project::create::display_unit(&k, &sym) {
                     table.insert(k, (sym, u));
                 }
             }

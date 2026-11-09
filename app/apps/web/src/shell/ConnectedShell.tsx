@@ -21,7 +21,7 @@ import type { PageId, RwRef } from "@rw/contracts";
 import { ensurePageThread, navigatePage, newPageThread, openArtifactThread, openProviders, openThread } from "../embed/rail.ts";
 import { setPane } from "../embed/threads.ts";
 import { wirePane } from "../embed/wiring.ts";
-import { desktopPaneGlobals, onOpenProject, type PaneBridge } from "../embed/bridge.ts";
+import type { PaneBridge } from "../embed/bridge.ts";
 import { EmbedPane } from "../embed/EmbedPane.tsx";
 import { defaultCompare, versionLabel } from "../pages/compare/model.ts";
 import type { RpcLike } from "../state/rpc.ts";
@@ -29,7 +29,7 @@ import { type AppStore, useAppState } from "../state/store.ts";
 import type { ViewId } from "@rw/contracts";
 import { AppShell, type ShellHandlers } from "./AppShell.tsx";
 import { shellModelFrom } from "./connect.ts";
-import { PAGE_TABS, pageOf, type DesignTab, type ShellHistoryStep, type ShellNavRow, type ShellProject } from "./model.ts";
+import { PAGE_TABS, pageOf, type DesignTab, type ProjectMenuModel, type ShellHistoryStep, type ShellNavRow, type ShellProject } from "./model.ts";
 import { undoKey } from "./undo.ts";
 import { ViewportToolbar, type ViewChip } from "./ViewportToolbar.tsx";
 
@@ -55,6 +55,10 @@ export interface ConnectedShellProps {
   now?: () => number;
   /** Also gets the embedded pane's bridge (the shell itself drives mentions, threads and providers through it, B12). */
   onPaneBridge?: (bridge: PaneBridge | null) => void;
+  /** Show another open project; `AppRoot` owns which one is on screen. */
+  onSwitchProject?: (projectId: string) => void;
+  /** Recents and the project commands; `AppRoot` owns both. */
+  projectMenu?: ProjectMenuModel | undefined;
 }
 
 /** Shell slots a page may own; absent ones keep the shell defaults. */
@@ -62,6 +66,8 @@ export interface PageSlots {
   toolbar?: ReactNode;
   /** Body of the rail's navigation section (keeps the section head). */
   nav?: ReactNode;
+  /** Add control in the rail's navigation section head, replacing the plain "+". */
+  navAdd?: ReactNode;
   /** The whole rail navigation section (Results: Runs). */
   railNav?: ReactNode;
   /** Rows below the history steps, after any compare result (Results: run snapshots). */
@@ -99,12 +105,12 @@ const chipOf = (v: ViewId): ViewChip => (v[0]!.toUpperCase() + v.slice(1)) as Vi
 
 const message = (e: unknown): string => (e instanceof Error ? e.message : String(e));
 
-export function ConnectedShell({ store, client = null, renderPage, renderCompare, toolbarControls, pageSlots, now = Date.now, onPaneBridge }: ConnectedShellProps) {
+export function ConnectedShell({ store, client = null, renderPage, renderCompare, toolbarControls, pageSlots, now = Date.now, onPaneBridge, onSwitchProject, projectMenu }: ConnectedShellProps) {
   const s = useAppState(store, (x) => x);
-  const desktop = useMemo(() => desktopPaneGlobals(), []);
   const [clock, setClock] = useState(now());
   const [checking, setChecking] = useState(false);
   const [projects, setProjects] = useState<ShellProject[] | null>(null);
+  const [projectsError, setProjectsError] = useState<string | null>(null);
   const [reverting, setReverting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastDesign, setLastDesign] = useState<DesignTab>("assembly");
@@ -188,13 +194,17 @@ export function ConnectedShell({ store, client = null, renderPage, renderCompare
       run(client.call("check.run", { projectId }).finally(() => setChecking(false)));
     },
     onOpenProjects: () => {
-      if (client !== null) run(client.call("project.list", {}).then((r) => setProjects(r.projects.map((p) => ({ id: p.projectId, name: p.name })))));
+      projectMenu?.onOpen();
+      // Said in the menu that asked: this pane's error line is hidden behind the embed.
+      client?.call("project.list", {}).then(
+        (r) => {
+          setProjects(r.projects.map((p) => ({ id: p.projectId, name: p.name })));
+          setProjectsError(null);
+        },
+        (e: unknown) => setProjectsError(`Could not list the open projects: ${message(e)}`),
+      );
     },
-    onSwitchProject: (id) => {
-      if (client === null) return;
-      store.getState().ui.setCompare(null);
-      run(s.project.connect(client, id));
-    },
+    onSwitchProject: (id) => onSwitchProject?.(id),
     onSelectThread: (id) => run(openThread(store, id)),
     onNewThread: () => newPageThread(store),
     onSelectNav: (row: ShellNavRow) => {
@@ -257,19 +267,6 @@ export function ConnectedShell({ store, client = null, renderPage, renderCompare
   const snap = s.project.snapshot;
   const compareOpen = s.ui.compare !== null && renderCompare !== undefined;
 
-  // `rocketwright://open` (desktop): main opened a project and asks the page to show it.
-  useEffect(() => {
-    if (desktop === null || client === null) return;
-    return onOpenProject(desktop, (id) => {
-      if (store.getState().project.projectId === id) return;
-      store.getState().ui.setCompare(null);
-      store
-        .getState()
-        .project.connect(client, id)
-        .catch((e: unknown) => setError(message(e)));
-    });
-  }, [desktop, client, store]);
-
   const embed = embedded ? <EmbedPane key={projectId} projectId={projectId} client={client} onBridge={onBridge} /> : undefined;
   // Without an embed (no project yet): the page's hint, or what went wrong.
   const hint = error ?? (slots?.agentExtra !== undefined ? null : HINTS[page]);
@@ -293,6 +290,7 @@ export function ConnectedShell({ store, client = null, renderPage, renderCompare
       onTabChange={(t) => run(navigatePage(store, pageOf(t, t === "design" ? lastDesign : null)))}
       onLocalTabChange={(id) => run(navigatePage(store, id as PageId))}
       handlers={handlers}
+      projectMenu={projectMenu === undefined || projectsError === null ? projectMenu : { ...projectMenu, errors: [...projectMenu.errors, projectsError] }}
       agent={agent}
       agentEmbed={embed}
       agentExtras={slots?.agentExtra}
@@ -303,6 +301,7 @@ export function ConnectedShell({ store, client = null, renderPage, renderCompare
       historyExtra={slots?.historyExtra}
       {...(toolbar ? { toolbar } : {})}
       {...(slots?.nav !== undefined ? { navBody: slots.nav } : {})}
+      {...(slots?.navAdd !== undefined ? { navAdd: slots.navAdd } : {})}
       {...(slots?.railNav !== undefined ? { railNav: slots.railNav } : {})}
       {...(slots?.railFooter !== undefined ? { railFooter: slots.railFooter } : {})}
       page={page}

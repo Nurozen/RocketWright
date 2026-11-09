@@ -97,6 +97,10 @@ describe("inspector cards", () => {
     for (const id of ["inspector", "insp.title", "insp.attachment", "insp.mass", "insp.clearance"]) expect(html).toContain(`data-testid="${id}"`);
     expect(html).toContain('data-rw-region="inspector"');
     expect(renderToStaticMarkup(<Inspector view={null} />)).toContain("Nothing selected");
+    const noParts = renderToStaticMarkup(<Inspector view={null} noParts />);
+    expect(noParts).toContain("No parts yet");
+    expect(noParts).toContain("Add your first part");
+    expect(noParts).not.toContain("Nothing selected");
   });
 });
 

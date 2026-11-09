@@ -381,7 +381,7 @@ as `name`, `material`, `finish`, `appearance`, `instances`, `override`, and
 | `rw set <path>=<value>... [--dry-run] [--label <title>]` | change fields |
 | `rw set <path>... --unset`, `rw rm <path>` | remove fields (back to their defaults), e.g. `rw rm sims.flight.launch_into_wind`; the same strict-check output as any edit |
 | `rw add <id> '<component JSON>'` | add a component (`@file.json` reads a file) |
-| `rw rm <id> [--recursive]` | remove a component (and what attaches to it); a dotted path removes a field instead |
+| `rw rm <id> [--recursive]` | remove a component (and what attaches to it) along with its motor assignments and deployments in every configuration, as one undoable step; a dotted path removes a field instead |
 | `rw mv <id> <target>.<anchor> [--at <anchor>] [--offset <len>]` | re-attach a component |
 | `rw eval [<json pointer>]` | the evaluated model: tree, stations, anchors (`rw eval /components/0`) |
 | `rw render --view <view> [--compare <version>]` | draw `renders/<config>.<view>.png`; with `--compare`, the red/amber/green diff against that version |
@@ -528,7 +528,7 @@ name your host lists.
 | `model_get` | `rw eval` | read-only |
 | `model_patch` | `rw set` | `{"ops":[{"op":"replace","path":"/c/fins/span","value":"30 mm"}]}` (RFC 6902) |
 | `component_add` | `rw add` | `{"id":"lug2","component":{...}}` |
-| `component_remove` | `rw rm` | destructive |
+| `component_remove` | `rw rm` | destructive; also removes the part's `motors` and `deploy` entries in every configuration |
 | `design_check` | `rw check` | `{"strict":true}`, the gate after every edit |
 | `render` | `rw render` | `{"view":"profile"}` |
 | `simulate` | `rw sim` | returns `job_id` unless the run is cached |
@@ -536,6 +536,7 @@ name your host lists.
 | `job_cancel` | | |
 | `run_list`, `run_diff` | `rw diff run` | |
 | `motor_search`, `library_search` | `rw motor search`, `rw lib search` | read-only |
+| `motor_show` | `rw motor show` | `{"id":"generic:RW_C6G"}`; read-only, the specs and thrust curve |
 | `import_file` | `rw motor import` | `{"path":"/abs/K828FJ.eng","kind":"motor"}`; needs the user's approval |
 | `thrustcurve_search` | `rw motor thrustcurve search` | `{"query":"Estes C6"}`; network, read-only; only when the user asks |
 | `thrustcurve_fetch` | `rw motor thrustcurve fetch` | `{"motor":"<motor id>"}`; network; needs the user's approval, which names the host |
@@ -544,6 +545,7 @@ name your host lists.
 | `engine_design`, `engine_simulate` | `rw engine design`, `rw engine sim` | `{"engine":"demo"}`; the design lists `missing_inputs` and `RW-E22x` rule findings |
 | `cfd_import` | `rw cfd import` | `{"path":"fixtures/cfd","study":"tank"}`; writes `runs/cfd.<id>/<run>/`, `provenance` `cfd`; needs the user's approval |
 | `project_validate`, `schema_get` | `rw validate`, `rw schema` | |
+| `project_rename` | | `{"name":"Solstice"}`; one step, both files; runs read as outdated afterwards |
 | `import_file`, `export_file` | `rw import ork`, `rw motor import`, `rw export` | need the user's approval |
 
 App-only tools (they act on the live window the user sees):

@@ -12,7 +12,7 @@
  * the stage separation event and delay (R6.5, REV2-web).
  */
 import { expect, test, type Page } from "@playwright/test";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { join } from "node:path";
@@ -38,9 +38,10 @@ test.beforeAll(() => {
 /** Specs on their own project (aux-project.ts) open it themselves. */
 const MULTI = "multi-stage editing (two-stage fixture)";
 const TC = "Search ThrustCurve (local mock of thrustcurve.org)";
+const LIB = "the project's own motors";
 
 test.beforeEach(async ({ page }, info) => {
-  if (info.titlePath.includes(MULTI) || info.titlePath.includes(TC)) return;
+  if (info.titlePath.includes(MULTI) || info.titlePath.includes(TC) || info.titlePath.includes(LIB)) return;
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(String(e)));
   await page.goto(`${WEB}?rpc=${encodeURIComponent(RPC)}&http=${encodeURIComponent(HTTP)}&page=03`);
@@ -291,6 +292,108 @@ test("altitude, delay, and timer deployments are editable and validated", async 
   await action(page, "delete").click();
   await page.getByTestId("configs.confirm").click();
   await expect(page.getByTestId("configs.row")).toHaveCount(3);
+});
+
+test("recovery and delay controls are named by what they show, scoped by the row's part (D27)", async ({ page }) => {
+  const delay = page.getByLabel("Ejection delay", { exact: true });
+  await expect(delay).toHaveAccessibleName("Ejection delay");
+  await expect(delay).toHaveAccessibleDescription("s");
+
+  await subtab(page, "Recovery").click();
+  await expect(page.getByRole("columnheader", { name: "Deploys", exact: true })).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: "Altitude", exact: true })).toBeVisible();
+  // The parachute row deploys at ejection: the altitude applies only to the Altitude event, and says so.
+  const chute = page.getByRole("row", { name: /Parachute/ });
+  const deploys = chute.getByRole("combobox", { name: "Deploys", exact: true });
+  await expect(deploys).toHaveValue("ejection");
+  await expect(deploys.locator("option:checked")).toHaveText("Ejection");
+  const altitude = chute.getByLabel("Altitude", { exact: true });
+  await expect(altitude).toHaveAccessibleName("Altitude");
+  await expect(altitude).toHaveAccessibleDescription("m used by the Altitude event");
+  await expect(chute).toContainText("used by the Altitude event");
+  // The streamer stays stowed: no altitude to set.
+  await expect(page.getByRole("row", { name: /Streamer/ }).getByLabel("Altitude", { exact: true })).toHaveCount(0);
+});
+
+test.describe(LIB, () => {
+  let aux: AuxProject;
+  const REF = "lib:motors/Acme_C6.eng#C6";
+  const ENG = "; synthetic test curve\nC6 18 70 0-3-5 0.0110 0.0240 Acme\n   0.050 6.000\n   0.200 12.000\n   0.400 6.000\n   1.500 4.500\n   1.800 0.000\n";
+  const lib = () => join(aux.dir, "lib/motors/Acme_C6.eng");
+  const cfg = (id: string) => join(aux.dir, "configs", `${id}.rw.toml`);
+
+  test.beforeAll(async () => {
+    aux = await auxProject(join(REPO, "fixtures/simple"), "Simple");
+  });
+  test.afterAll(async () => {
+    await aux?.stop();
+  });
+
+  const open = async (page: Page) => {
+    await page.goto(`${WEB}?rpc=${encodeURIComponent(aux.rpc)}&http=${encodeURIComponent(aux.http)}&page=03`);
+    await page.waitForFunction(() => (window as { __rwShell?: { status: string } }).__rwShell?.status === "ready");
+    await expect(page.getByTestId("configs.row")).toHaveCount(2, { timeout: 30_000 });
+    await expect(page.getByTestId("motors.list")).toHaveAttribute("data-state", "ready", { timeout: 30_000 });
+  };
+
+  test("a motor dropped in lib/ is listed, assigned, kept across a reload, and named when it goes missing", async ({ page }) => {
+    await open(page);
+    await expect(motorRow(page, REF)).toHaveCount(0);
+
+    // Appears without a reload when the file lands.
+    mkdirSync(join(aux.dir, "lib/motors"), { recursive: true });
+    writeFileSync(lib(), ENG);
+    await expect(motorRow(page, REF)).toHaveCount(1);
+    await motorRow(page, REF).click();
+    await expect(page.getByTestId("motor.detail")).toHaveAttribute("data-motor", REF);
+    await expect(page.getByTestId("motor.thrust-curve")).toHaveAttribute("data-points", /^[3-9]|\d\d/);
+    await page.getByTestId("motor.assign").click();
+    await expect(page.getByTestId("motor.assign")).toHaveAttribute("data-state", "assigned");
+    await expect.poll(() => readFileSync(cfg("b4"), "utf8")).toContain(`motor = "${REF}"`);
+    await expect(row(page, "b4").getByTestId("configs.motor")).toHaveText("C6");
+
+    // Reload: the curve comes back from the sidecar and the assignment still shows.
+    await page.reload();
+    await page.waitForFunction(() => (window as { __rwShell?: { status: string } }).__rwShell?.status === "ready");
+    await expect(motorRow(page, REF).getByTestId("motors.assigned")).toHaveCount(1, { timeout: 30_000 });
+    await expect(page.getByTestId("motor.detail")).toHaveAttribute("data-motor", REF);
+    await expect(page.getByTestId("motor.title")).toHaveText("C6");
+    await expect(page.getByTestId("motor.assign")).toHaveAttribute("data-state", "assigned");
+    await expect(page.getByTestId("motor.missing")).toHaveCount(0);
+
+    // The file goes away: the configuration's motor is named as missing, never replaced by the first row.
+    rmSync(lib());
+    await expect(page.getByTestId("motor.missing")).toContainText("Motor not found");
+    await expect(page.getByTestId("motor.missing")).toContainText(REF);
+    await expect(page.getByTestId("motor.detail")).toHaveCount(0);
+    await expect(motorRow(page, REF)).toHaveCount(0);
+  });
+
+  test("assigns the first motor to a configuration with no motors table, then sets its delay", async ({ page }) => {
+    await open(page);
+    await row(page, "c6").click();
+
+    // No [motors] table at all.
+    writeFileSync(cfg("c6"), 'name = "C6"\n\n[deploy.chute]\nevent = "ejection"\n');
+    await expect(row(page, "c6").getByTestId("configs.motor")).toHaveText("No motor");
+    await motorRow(page, "generic:RW_C6G").click();
+    await page.getByRole("button", { name: "Assign to configuration", exact: true }).click();
+    await expect.poll(() => readFileSync(cfg("c6"), "utf8")).toMatch(/\[motors\.mount\][^[]*motor = "generic:RW_C6G"/);
+    await expect(page.getByTestId("motor.assign")).toHaveAttribute("data-state", "assigned");
+
+    // Assign then delay: the listed delays write the configuration.
+    const delay = page.getByLabel("Ejection delay", { exact: true });
+    await expect(delay).toHaveAccessibleDescription("s");
+    await delay.selectOption({ label: "5.0" });
+    await expect.poll(() => readFileSync(cfg("c6"), "utf8")).toMatch(/\[motors\.mount\][^[]*delay = "5 s"/);
+
+    // The last mount removed, an empty table left behind.
+    writeFileSync(cfg("c6"), 'name = "C6"\n\n[motors]\n\n[deploy.chute]\nevent = "ejection"\n');
+    await expect(row(page, "c6").getByTestId("configs.motor")).toHaveText("No motor");
+    await motorRow(page, "generic:RW_B4G").click();
+    await page.getByRole("button", { name: "Assign to configuration", exact: true }).click();
+    await expect.poll(() => readFileSync(cfg("c6"), "utf8")).toMatch(/\[motors\.mount\][^[]*motor = "generic:RW_B4G"/);
+  });
 });
 
 test.describe(MULTI, () => {

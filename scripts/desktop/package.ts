@@ -25,7 +25,6 @@
  *                                      @lecturn/embed (the kit's pnpm settings and patches)
  *
  * Beside the archive (Contents/Resources on macOS): bin/rocketwright,
- * fixtures/research-vehicle (the sample a window opens without --project),
  * NOTICE.md. Natives (*.node, *.dylib, *.so*, node-pty's spawn-helper) are
  * unpacked into app.asar.unpacked, as vendor/lecturn/lecturn-pack.json asks.
  *
@@ -222,10 +221,6 @@ for (const [from, to] of copies) cpSync(join(ROOT, from), join(stage, to), { rec
 mkdirSync(join(resources, "bin"), { recursive: true });
 cpSync(rwBin, join(resources, "bin/rocketwright"));
 chmodSync(join(resources, "bin/rocketwright"), 0o755);
-cpSync(join(ROOT, "fixtures/research-vehicle"), join(resources, "fixtures/research-vehicle"), {
-  recursive: true,
-  filter: (src) => !src.split(/[\\/]/).includes(".rw"),
-});
 for (const f of ["LICENSE", "NOTICE.md"]) if (existsSync(join(ROOT, f))) cpSync(join(ROOT, f), join(resources, f));
 
 // ---- electron-builder ----------------------------------------------------------------------
@@ -280,7 +275,11 @@ if (platform === "mac") {
     identity: signed ? undefined : "-",
     hardenedRuntime: signed,
     notarize: signed ? undefined : false,
-    extendInfo: { LSApplicationCategoryType: "public.app-category.education" },
+    extendInfo: {
+      LSApplicationCategoryType: "public.app-category.education",
+      // New projects default to ~/Documents/RocketWright; macOS shows this when it asks for access.
+      NSDocumentsFolderUsageDescription: "RocketWright keeps your rocket projects in your Documents folder.",
+    },
   };
   config["dmg"] = { title: `${PRODUCT} \${version}` };
 } else {
@@ -318,7 +317,7 @@ const entries = asar.listPackage(join(unpacked, "app.asar"), { isPack: false });
 for (const need of [PACKAGED_MAIN, PACKAGED_SERVER_CLI, "app/apps/web/dist/index.html", "node_modules/lecturn/dist/bin.mjs", "node_modules/@lecturn/embed/package.json"]) {
   if (!entries.some((e) => e.replaceAll("\\", "/") === `/${need}`)) die(`app.asar lacks ${need}`);
 }
-for (const need of ["bin/rocketwright", "fixtures/research-vehicle/rocket.rw.toml"]) if (!existsSync(join(unpacked, need))) die(`resources lack ${need}`);
+for (const need of ["bin/rocketwright"]) if (!existsSync(join(unpacked, need))) die(`resources lack ${need}`);
 const sdk = [...entries.filter((e) => /\/node_modules\/@cursor\/sdk(-[^/]+)?(\/|$)/.test(e.replaceAll("\\", "/"))), ...cursorSdkDirs(unpacked)];
 if (EXCLUDE_CURSOR_SDK && sdk.length > 0) die(`@cursor/sdk is in the package: ${sdk.slice(0, 3).join(", ")}`);
 

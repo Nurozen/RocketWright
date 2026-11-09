@@ -1,0 +1,120 @@
+{
+  "s-welcome": {
+    "title": "Welcome",
+    "boot": "zero-project",
+    "mockup": "01-welcome.png",
+    "existing": "design-assembly.png",
+    "ready": "[data-testid=\"welcome\"]",
+    "overlay": null,
+    "pane": "absent",
+    "checks": [
+      "Logo and tagline are centered near the top of the window.",
+      "Three action cards sit in a row: New project, Open folder, Open sample rocket.",
+      "A Recent list shows each project's name and path with a relative time or a status, and a missing project is marked and can be removed.",
+      "A version footer sits at the bottom."
+    ]
+  },
+  "s-new-project": {
+    "title": "New project",
+    "boot": "zero-project",
+    "mockup": "02-new-project.png",
+    "existing": "design-fins.png",
+    "ready": "[data-testid=\"welcome\"]",
+    "overlay": "[role=\"dialog\"]",
+    "pane": "absent",
+    "checks": [
+      "A modal dialog is centered over a dimmed Welcome screen.",
+      "It has a Name field and a Location field with Choose and a preview of the resulting path.",
+      "Template choices are shown as cards (Empty, Minimal, Simple rocket).",
+      "Cancel and Create project close the dialog's footer."
+    ]
+  },
+  "s-project-menu": {
+    "title": "Project menu",
+    "boot": "project",
+    "mockup": "03-project-menu.png",
+    "existing": "design-assembly.png",
+    "ready": "[data-testid=\"header.project-switcher\"]",
+    "overlay": "[data-testid=\"header.project-menu.list\"]",
+    "pane": "visible",
+    "checks": [
+      "A dropdown hangs under the header's project control on the Design page.",
+      "The current project is listed first, with a check mark.",
+      "A Recent section lists other projects, with a missing one marked.",
+      "New project, Open folder, Open sample rocket, Rename project and Close project follow, separated from the lists."
+    ]
+  },
+  "s-add-part": {
+    "title": "Add part",
+    "boot": "project",
+    "mockup": "04-add-part.png",
+    "existing": "design-fins.png",
+    "ready": null,
+    "overlay": null,
+    "pane": null,
+    "checks": [
+      "A popover opens from the Components plus button.",
+      "It has Part types and Parts library tabs and an Attach to dropdown.",
+      "Part types form an icon grid, four columns wide."
+    ]
+  },
+  "s-context-menu": {
+    "title": "Tree context menu",
+    "boot": "project",
+    "mockup": "04-add-part.png",
+    "existing": "design-fins.png",
+    "ready": null,
+    "overlay": null,
+    "pane": null,
+    "checks": [
+      "A context menu opens on a part tree row.",
+      "It offers Rename, Duplicate, Move to and Delete.",
+      "Delete is drawn in the danger colour."
+    ]
+  },
+  "s-sim-conditions": {
+    "title": "Simulation conditions",
+    "boot": "project",
+    "mockup": "05-sim-conditions.png",
+    "existing": "results.png",
+    "ready": null,
+    "overlay": null,
+    "pane": null,
+    "checks": [
+      "A side sheet on Results is titled Simulation conditions with the simulation's name.",
+      "Groups cover Launch, Site, Wind, Atmosphere and Solver, with two-column fields that carry units.",
+      "Revert and Save and run are the sheet's actions.",
+      "The sim's row reads Not run and offers a Run button."
+    ]
+  },
+  "s-check-issues": {
+    "title": "Check issues",
+    "boot": "project",
+    "mockup": "06-check-issues.png",
+    "existing": "design-assembly.png",
+    "ready": null,
+    "overlay": null,
+    "pane": null,
+    "checks": [
+      "A panel is anchored under Check model.",
+      "Errors and Warnings are separate groups.",
+      "Each row has an icon, a code, a message, the part, and Go to part.",
+      "Run check again is offered, and the part is outlined in teal in the viewport."
+    ]
+  },
+  "s-liquid-editor": {
+    "title": "Liquid engine editor",
+    "boot": "project",
+    "mockup": "07-liquid-editor.png",
+    "existing": "liquid-propulsion.png",
+    "ready": null,
+    "overlay": null,
+    "pane": null,
+    "checks": [
+      "Propulsion's Properties tab shows cards for Propellants, Chamber, Nozzle and Tanks, with editable fields.",
+      "New engine and Duplicate are available.",
+      "An edited engine reads Modified, needs recompute, in amber.",
+      "A result strip shows Isp, chamber and throat diameter next to Compute."
+    ]
+  }
+}

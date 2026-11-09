@@ -205,6 +205,8 @@ commands! {
         "Create a project from a template (rw init).";
     ProjectValidate = "project_validate" (ProjectValidateIn) -> ValidateOut, mcp: true, ToolHints::READ, Approval::Never,
         "Schema-only validation of project files (rw validate).";
+    ProjectRename = "project_rename" (ProjectRenameIn) -> MutationOut, mcp: true, ToolHints::MUTATE, Approval::Never,
+        "Set the project name in rocketwright.toml and rocket.rw.toml, in one step.";
     Fmt = "fmt" (FmtIn) -> FmtOut, mcp: false, ToolHints::FORMAT, Approval::Never,
         "Canonical formatting (rw fmt); CLI only, writes are automatic over MCP.";
     ModelGet = "model_get" (ModelGetIn) -> ModelGetOut, mcp: true, ToolHints::READ, Approval::Never,
@@ -227,7 +229,7 @@ commands! {
         "Show one library item (rw lib show).";
     MotorSearch = "motor_search" (MotorSearchIn) -> MotorSearchOut, mcp: true, ToolHints::READ, Approval::Never,
         "Search motors by class, diameter, impulse (rw motor search).";
-    MotorShow = "motor_show" (MotorShowIn) -> MotorShowOut, mcp: false, ToolHints::READ, Approval::Never,
+    MotorShow = "motor_show" (MotorShowIn) -> MotorShowOut, mcp: true, ToolHints::READ, Approval::Never,
         "Show one motor and its curve (rw motor show).";
     Simulate = "simulate" (SimulateIn) -> SimulateOut, mcp: true, ToolHints::ACT, Approval::Conditional,
         "Run a sim; returns a cache hit or a job id (rw sim).";

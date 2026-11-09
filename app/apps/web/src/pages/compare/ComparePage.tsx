@@ -110,6 +110,8 @@ export function ComparePage({ store, client, glbDeps }: ComparePageProps) {
       .finally(() => setReverting(false));
   };
   const status = error !== null ? "error" : current === null ? "loading" : "ready";
+  // Two empty models: a table of zeros would read as measurements of a rocket (R0.3a).
+  const nothingToCompare = current !== null && current.old.components.length === 0 && current.new.components.length === 0;
 
   const picker = (which: "old" | "new", value: string) => (
     <label className="rw-cmp__pick">
@@ -169,41 +171,45 @@ export function ComparePage({ store, client, glbDeps }: ComparePageProps) {
             </p>
           )}
           {runs && <RunComparePanel view={runs} />}
-          <section className="rw-cmp__section" aria-label="Metrics">
-            <h3 className="rw-cmp__section-title">Metrics</h3>
-            <table className="rw-cmp__metrics" data-testid="compare.metrics">
-              <colgroup>
-                <col className="rw-cmp__col-metric" />
-                <col className="rw-cmp__col-value" />
-                <col className="rw-cmp__col-value" />
-                <col className="rw-cmp__col-delta" />
-              </colgroup>
-              <thead>
-                <tr>
-                  <th scope="col">Metric</th>
-                  <th scope="col">Old</th>
-                  <th scope="col">New</th>
-                  <th scope="col">Δ</th>
-                </tr>
-              </thead>
-              <tbody>
-                {metrics.map((r) => (
-                  <tr key={r.key} data-metric={r.key} data-tone={r.tone}>
-                    <th scope="row" title={r.key}>
-                      {r.label}
-                    </th>
-                    <td>{r.old}</td>
-                    <td>{r.new}</td>
-                    <td className="rw-cmp__delta">{r.delta}</td>
+          {!nothingToCompare && (
+            <section className="rw-cmp__section" aria-label="Metrics">
+              <h3 className="rw-cmp__section-title">Metrics</h3>
+              <table className="rw-cmp__metrics" data-testid="compare.metrics">
+                <colgroup>
+                  <col className="rw-cmp__col-metric" />
+                  <col className="rw-cmp__col-value" />
+                  <col className="rw-cmp__col-value" />
+                  <col className="rw-cmp__col-delta" />
+                </colgroup>
+                <thead>
+                  <tr>
+                    <th scope="col">Metric</th>
+                    <th scope="col">Old</th>
+                    <th scope="col">New</th>
+                    <th scope="col">Δ</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </section>
+                </thead>
+                <tbody>
+                  {metrics.map((r) => (
+                    <tr key={r.key} data-metric={r.key} data-tone={r.tone}>
+                      <th scope="row" title={r.key}>
+                        {r.label}
+                      </th>
+                      <td>{r.old}</td>
+                      <td>{r.new}</td>
+                      <td className="rw-cmp__delta">{r.delta}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </section>
+          )}
           <section className="rw-cmp__section" aria-label="Components">
             <h3 className="rw-cmp__section-title">Components</h3>
             {changes.length === 0 ? (
-              <p className="rw-cmp__empty">{current ? "No component differs." : "Comparing…"}</p>
+              <p className="rw-cmp__empty" data-testid="compare.empty">
+                {current === null ? "Comparing…" : nothingToCompare ? "Nothing to compare yet. Add parts to create a design version to compare." : "No component differs."}
+              </p>
             ) : (
               <ul className="rw-cmp__changes" data-testid="compare.changes">
                 {changes.map((c) => (

@@ -384,6 +384,53 @@ fn reaped_owner_drains_while_a_relay_and_job_remain() {
     assert_eq!(again["cached"], true, "{again}");
 }
 
+/// D9: the flag only removes `project_create` from the printed list, and it
+/// is meaningless (a usage error) without `--list-tools`.
+#[test]
+fn hide_project_create_narrows_only_the_printed_list() {
+    let p = TempProject::new();
+    let list = |extra: &[&str]| -> Vec<Value> {
+        let o = Command::new(BIN)
+            .args(["mcp", "--list-tools"])
+            .args(extra)
+            .arg("--project")
+            .arg(&p.0)
+            .output()
+            .unwrap();
+        assert_eq!(
+            o.status.code(),
+            Some(0),
+            "{}",
+            String::from_utf8_lossy(&o.stderr)
+        );
+        let v: Value = serde_json::from_slice(&o.stdout).unwrap();
+        v["tools"].as_array().unwrap().clone()
+    };
+    let mut all = list(&[]);
+    let hidden = list(&["--hide-project-create"]);
+    assert_eq!(all.len(), hidden.len() + 1);
+    let at = all
+        .iter()
+        .position(|t| t["name"] == "project_create")
+        .expect("the standalone list keeps project_create");
+    all.remove(at);
+    assert_eq!(all, hidden, "nothing else changes");
+    assert!(!p.0.join(".rw").exists(), "--list-tools wrote .rw/");
+
+    let o = Command::new(BIN)
+        .args(["mcp", "--hide-project-create", "--project"])
+        .arg(&p.0)
+        .stdin(Stdio::null())
+        .output()
+        .unwrap();
+    assert_eq!(o.status.code(), Some(2), "needs --list-tools");
+    assert!(
+        String::from_utf8_lossy(&o.stderr).contains("--list-tools"),
+        "{}",
+        String::from_utf8_lossy(&o.stderr)
+    );
+}
+
 #[test]
 fn list_tools_takes_no_lock() {
     let p = TempProject::new();

@@ -8,7 +8,10 @@
  *   sidecar (`RW_SIDECAR_BIN`, Makefile `RW_PLAIN_BIN`), so both share one
  *   lock protocol: Lecturn's call path is `rocketwright mcp --project <root>`
  *   (an owner or a relay, D4), and it refreshes definitions only through the
- *   lock-free `listArgs` (`mcp --list-tools`, decision 11).
+ *   lock-free `listArgs` (`mcp --list-tools`, decision 11). `listArgs` hides
+ *   `project_create`: the app's agent creates projects with `rw_project_new`.
+ *   Only `listArgs` carries the flag; the sidecar refuses a Lecturn call to
+ *   that tool on its own, for a paired server still holding an older listing.
  * - `embedOrigins`: any loopback port (D9). Plain-web dev and `vite preview`
  *   bind port 0, and a changed origin would need re-approval.
  * - `gatedTools: []`: every gate is app-decided (`_meta["lecturn/approval-required"]`, W1.3).
@@ -104,7 +107,7 @@ export function rocketwrightRegistration(opts: RegistrationOptions = {}): AppReg
     headlessTools: {
       command,
       args: ["mcp", "--project", "{workspaceRoot}"],
-      listArgs: ["mcp", "--list-tools", "--project", "{workspaceRoot}"],
+      listArgs: ["mcp", "--list-tools", "--hide-project-create", "--project", "{workspaceRoot}"],
       cwd: "{workspaceRoot}",
     },
     liveTools: true,

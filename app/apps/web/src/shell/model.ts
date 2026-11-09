@@ -4,7 +4,7 @@
  * its RPC mirror (IF10 `ProjectSnapshot`, `ThreadInfo`, history) onto this
  * shape. `PLACEHOLDER_SHELL` is the static stand-in used without a server.
  */
-import type { PageId, RwRef } from "@rw/contracts";
+import type { DesktopCommand, PageId, RecentProject, RwRef } from "@rw/contracts";
 import type { StatusView } from "../state/status.ts";
 import type { IconName } from "./Icon.tsx";
 
@@ -38,6 +38,23 @@ export type BarPage = keyof typeof BAR_PAGES;
 
 export function isBarPage(v: string | null): v is BarPage {
   return v !== null && Object.hasOwn(BAR_PAGES, v);
+}
+
+/** B3 surface id (`?surface=`, tests/bar/surfaces.json) → the bar page the window starts on. */
+export const BAR_SURFACES = {
+  "s-welcome": "01",
+  "s-new-project": "01",
+  "s-project-menu": "01",
+  "s-add-part": "02",
+  "s-context-menu": "02",
+  "s-sim-conditions": "04",
+  "s-check-issues": "01",
+  "s-liquid-editor": "05",
+} as const satisfies Record<string, BarPage>;
+export type BarSurface = keyof typeof BAR_SURFACES;
+
+export function isBarSurface(v: string | null): v is BarSurface {
+  return v !== null && Object.hasOwn(BAR_SURFACES, v);
 }
 
 /** State page (`ui.page`, IF11 PageId) → header tab and Design local tab. */
@@ -119,11 +136,22 @@ export interface ShellHistoryStep {
   origin?: string;
 }
 
-export type CheckStatus = "unknown" | "running" | "ok" | "issues" | "errors" | "outdated";
+export type CheckStatus = "unknown" | "running" | "ok" | "issues" | "errors" | "outdated" | "empty";
 
 export interface ShellProject {
   id: string;
   name: string;
+}
+
+/** What the header's project menu shows beyond the open projects, and what it does. */
+export interface ProjectMenuModel {
+  recents: readonly RecentProject[];
+  /** Why part of the menu could not be filled, shown in the menu itself. */
+  errors: readonly string[];
+  /** The menu opened: refresh what it shows. */
+  onOpen: () => void;
+  onCommand: (command: DesktopCommand) => void;
+  onRemoveRecent: (dir: string) => void;
 }
 
 export interface ShellModel {

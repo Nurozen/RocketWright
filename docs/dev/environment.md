@@ -67,7 +67,8 @@ with a message naming the missing file:
   `tests/oracle/*.json` come from the same harness.
 - **Bar reference material** (`make bar*`, `pnpm bar:calibrate`,
   `pnpm bar:packet`): the concept exemplar PNGs and the embed mockups
-  (`RW_BAR_EXEMPLARS`, `RW_BAR_EMBED_ASSETS`); see `bar-tooling.md`.
+  (`RW_BAR_EXEMPLARS`, `RW_BAR_EMBED_ASSETS`, `RW_USABILITY_BAR`); see
+  `bar-tooling.md`.
 
 ## Vendored Lecturn (plan B7)
 
@@ -154,6 +155,12 @@ child connects only when it has a Lecturn base dir:
   (`app/e2e/lecturn-env.ts`), so no run writes under the real
   `~/Library/Application Support/Electron`; hidden runs always use a fresh
   temp profile, removed on exit.
+- `RW_SEEDED_PROFILE`: a surface capture's Electron profile (holding its
+  seeded `recents.json`), replacing a hidden run's temp profile. Unpackaged
+  only; the harness owns the directory and removes it.
+- `RW_DOCUMENTS_DIR`: stands in for the OS Documents folder, for native
+  dialogs and the server's default project location. Unpackaged runs only;
+  a shipped app ignores it. E2E uses a short `/tmp` path (socket limit).
 - `LECTURN_HOME`: where a user's own Lecturn server would be found (the
   helper's default is `~/.lecturn`).
 - `RW_NODE`: the Node that runs the Lecturn sidecar (default: the child's
@@ -329,7 +336,8 @@ the web bundle, then runs:
   report against the seeded runs' `summary.json`/`series.csv`. Writes
   `dist/e2e/page04/`. `RW_E2E_SKIP_BUILD=1` reuses `apps/web/dist`.
 All need a GUI session (Electron). Seeded copies live under `/tmp` (not macOS's
-long `$TMPDIR`) so `.rw/sidecar.sock` stays under the 104-byte socket path limit.
+long `$TMPDIR`), which keeps `.rw/sidecar.sock` at its usual place; a path over
+the 104-byte socket limit would still work through the sidecar's short fallback.
 
 `make seed-fixture DEST=<dir>` runs `fixtures/research-vehicle/seed.sh` (real
 `rw` commands under `RW_CLOCK`: steps 01 Initial concept, 02 Assembly layout,
@@ -454,8 +462,7 @@ the URL from the server, the preload, or `rpc=` plus `#token=`.
 
 - Project: a fresh `/tmp/rw-dev-*` copy of `fixtures/research-vehicle` (an
   empty temp project until the fixture lands); `PROJECT=<dir>` opens a
-  project in place. Temp projects live under `/tmp` because the sidecar's
-  Unix socket path is limited to about 104 bytes on macOS.
+  project in place. Temp projects live under `/tmp` to keep paths short.
 - `BROWSER=1`: no Electron. `node src/backend.ts --browser` prints
   `RW_APP_URL=…` for an ordinary browser; `OPEN=1` opens it.
 - `SMOKE=1`: a hidden window waits for the shell and checks that the header

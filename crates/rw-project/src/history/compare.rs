@@ -236,7 +236,7 @@ pub fn model_diff(a_name: &str, a: &Value, b_name: &str, b: &Value) -> ModelDiff
     }
 }
 
-fn escape(k: &str) -> String {
+pub(crate) fn escape(k: &str) -> String {
     k.replace('~', "~0").replace('/', "~1")
 }
 

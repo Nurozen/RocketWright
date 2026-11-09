@@ -7,7 +7,7 @@
  * `ConnectedShell` feeds it from the store; `ShellApp` from a static model.
  */
 import type { ReactNode } from "react";
-import type { ShellNavRow, ShellHistoryStep } from "./model.ts";
+import type { ProjectMenuModel, ShellNavRow, ShellHistoryStep } from "./model.ts";
 import { AgentPane } from "./AgentPane.tsx";
 import { Header } from "./Header.tsx";
 import { HistoryStrip } from "./HistoryStrip.tsx";
@@ -43,6 +43,8 @@ export interface AppShellProps {
   onTabChange?: (tab: TopTab) => void;
   onLocalTabChange?: (id: string) => void;
   handlers?: ShellHandlers;
+  /** The header's project menu (the live window; the static shell has none). */
+  projectMenu?: ProjectMenuModel | undefined;
   /** Page content inside the workspace. */
   children?: ReactNode;
   /** Row between the workspace and the history strip (the viewport toolbar). */
@@ -64,6 +66,8 @@ export interface AppShellProps {
   headStepId?: string | null;
   /** Page-owned body of the rail's navigation section (the 01 Components tree). */
   navBody?: ReactNode;
+  /** Page-owned add control in the rail's navigation section head (the Components "+"). */
+  navAdd?: ReactNode;
   /** Page-owned left rail section replacing `model.nav` (Results: Runs). */
   railNav?: ReactNode;
   /** Page-owned rail footer (02: view chips). */
@@ -79,6 +83,7 @@ export function AppShell({
   onTabChange,
   onLocalTabChange,
   handlers = {},
+  projectMenu,
   children,
   toolbar,
   agent,
@@ -91,6 +96,7 @@ export function AppShell({
   reverting = false,
   headStepId = null,
   navBody,
+  navAdd,
   railNav,
   railFooter,
   page,
@@ -108,6 +114,7 @@ export function AppShell({
         check={model.check}
         projects={model.projects ?? []}
         projectId={model.projectId ?? null}
+        projectMenu={projectMenu}
         {...(onTabChange ? { onTabChange } : {})}
         {...(h.onCheckModel ? { onCheckModel: h.onCheckModel } : {})}
         {...(h.onOpenProjects ? { onOpenProjects: h.onOpenProjects } : {})}
@@ -128,6 +135,7 @@ export function AppShell({
         {...(h.onToggleNav ? { onToggleNav: h.onToggleNav } : {})}
         {...(h.onOpenNavThread ? { onOpenNavThread: h.onOpenNavThread } : {})}
         {...(navBody !== undefined ? { navBody } : {})}
+        {...(navAdd !== undefined ? { navAdd } : {})}
         {...(railNav ? { navSlot: railNav } : {})}
         {...(railFooter !== undefined ? { footer: railFooter } : {})}
       />

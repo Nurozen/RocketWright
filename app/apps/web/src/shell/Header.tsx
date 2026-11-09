@@ -2,10 +2,12 @@
  * Header (concepts.md §3): mark + wordmark, project switcher, save state,
  * centred tabs, Check model with its status, settings, help.
  */
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { Menu } from "../ui/Menu.tsx";
 import { BRAND } from "./brand.ts";
 import { Icon } from "./Icon.tsx";
-import { stepLabel, TOP_TABS, type CheckStatus, type ShellHistoryStep, type ShellProject, type TopTab } from "./model.ts";
+import { stepLabel, TOP_TABS, type CheckStatus, type ProjectMenuModel, type ShellHistoryStep, type ShellProject, type TopTab } from "./model.ts";
+import { projectMenuEntries } from "./projectMenu.ts";
 
 export interface HeaderProps {
   projectName: string;
@@ -20,6 +22,8 @@ export interface HeaderProps {
   /** The switcher opened (refresh the project list). */
   onOpenProjects?: () => void;
   onSwitchProject?: (projectId: string) => void;
+  /** Recent, New, Open, Rename and Close; absent (the static shell) leaves only the open projects. */
+  projectMenu?: ProjectMenuModel | undefined;
   /** Undo/redo targets (history steps); absent hides the controls. */
   undo?: { undo: ShellHistoryStep | null; redo: ShellHistoryStep | null };
   /** A restore is in flight (both disabled). */
@@ -56,6 +60,8 @@ export function checkTitle({ status, issues, label }: HeaderProps["check"]): str
       return "The last check ran on an older model revision";
     case "running":
       return "Checking model…";
+    case "empty":
+      return label ?? "Add parts to begin";
     default:
       return "Model not checked yet";
   }
@@ -87,6 +93,7 @@ export function Header({
   onCheckModel,
   onOpenProjects,
   onSwitchProject,
+  projectMenu,
   undo,
   undoBusy = false,
   onUndo,
@@ -94,6 +101,7 @@ export function Header({
   onOpenSettings,
 }: HeaderProps) {
   const [menu, setMenu] = useState(false);
+  const switcher = useRef<HTMLButtonElement>(null);
   return (
     <header className="rw-header" data-rw-region="header" data-testid="header">
       <div className="rw-header__start">
@@ -104,48 +112,35 @@ export function Header({
           </span>
         </div>
         <span className="rw-header__sep" aria-hidden />
-        <div className="rw-project-wrap">
-          <button
-            type="button"
-            className="rw-project"
-            data-testid="header.project-switcher"
-            aria-haspopup="menu"
-            aria-expanded={menu}
-            onClick={() => {
-              if (!menu) onOpenProjects?.();
-              setMenu(!menu);
-            }}
-          >
-            <span>{projectName}</span>
-            <Icon name="chevron-down" size={16} />
-          </button>
-          {menu && (
-            <ul className="rw-menu" role="menu" aria-label="Projects" data-testid="header.project-menu">
-              {projects.length === 0 && <li className="rw-menu__empty">No other projects open</li>}
-              {projects.map((p) => (
-                <li key={p.id} role="none">
-                  <button
-                    type="button"
-                    role="menuitemradio"
-                    aria-checked={p.id === projectId}
-                    className="rw-menu__item"
-                    data-project-id={p.id}
-                    onClick={() => {
-                      setMenu(false);
-                      if (p.id !== projectId) onSwitchProject?.(p.id);
-                    }}
-                  >
-                    {p.id === projectId ? <Icon name="check" size={16} /> : <span className="rw-menu__gap" />}
-                    {p.name}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-        <span className="rw-save" data-testid="header.save-state" data-tone={saveTone}>
+        <button
+          ref={switcher}
+          type="button"
+          className="rw-project"
+          data-testid="header.project-switcher"
+          title={projectName}
+          aria-haspopup="menu"
+          aria-expanded={menu}
+          onClick={() => {
+            if (!menu) onOpenProjects?.();
+            setMenu(!menu);
+          }}
+        >
+          <span className="rw-project__name" data-testid="header.project-name">
+            {projectName}
+          </span>
+          <Icon name="chevron-down" size={16} />
+        </button>
+        <Menu
+          open={menu}
+          anchor={switcher.current}
+          onClose={() => setMenu(false)}
+          label="Projects"
+          testId="header.project-menu"
+          items={projectMenuEntries({ projects, projectId, projectName, menu: projectMenu, onSwitch: (id) => onSwitchProject?.(id) })}
+        />
+        <span className="rw-save" data-testid="header.save-state" data-tone={saveTone} title={saveState}>
           {saveTone === "amber" ? <Icon name="status-dot" size={18} className="rw-save__dot" /> : <Icon name="cloud" size={18} />}
-          {saveState}
+          <span className="rw-save__label">{saveState}</span>
         </span>
       </div>
       <nav className="rw-tabs" role="tablist" aria-label="Workspace">
@@ -192,32 +187,39 @@ export function Header({
             <span className="rw-header__sep" aria-hidden />
           </>
         )}
-        <button
-          type="button"
-          className="rw-button rw-button--primary"
-          data-testid="header.check-model"
-          data-check-status={check.status}
-          title={checkTitle(check)}
-          aria-busy={check.status === "running" || undefined}
-          disabled={check.status === "running"}
-          onClick={onCheckModel}
-        >
-          {check.status === "running" ? (
-            <Icon name="spinner" size={18} className="rw-spin" />
-          ) : (
-            <Icon name="check-disc" size={18} className="rw-check__icon" />
-          )}
-          Check model
-          {checkCount(check) !== null && (
-            <span className="rw-badge" data-tone={check.status === "errors" ? "danger" : "amber"} data-testid="header.check-count">
-              {checkCount(check)}
-            </span>
-          )}
-          {check.status === "outdated" && <span className="rw-check__dot" data-testid="header.check-outdated" aria-hidden />}
-          <span className="rw-visually-hidden" data-testid="header.check-status">
+        {check.status === "empty" ? (
+          // R0.3a: no parts to check yet. Neutral text, not a button whose name would promise a check or an add.
+          <span className="rw-check-empty" role="status" data-testid="header.check-model" data-check-status="empty">
             {checkTitle(check)}
           </span>
-        </button>
+        ) : (
+          <button
+            type="button"
+            className="rw-button rw-button--primary"
+            data-testid="header.check-model"
+            data-check-status={check.status}
+            title={checkTitle(check)}
+            aria-busy={check.status === "running" || undefined}
+            disabled={check.status === "running"}
+            onClick={onCheckModel}
+          >
+            {check.status === "running" ? (
+              <Icon name="spinner" size={18} className="rw-spin" />
+            ) : (
+              <Icon name="check-disc" size={18} className="rw-check__icon" />
+            )}
+            Check model
+            {checkCount(check) !== null && (
+              <span className="rw-badge" data-tone={check.status === "errors" ? "danger" : "amber"} data-testid="header.check-count">
+                {checkCount(check)}
+              </span>
+            )}
+            {check.status === "outdated" && <span className="rw-check__dot" data-testid="header.check-outdated" aria-hidden />}
+            <span className="rw-visually-hidden" data-testid="header.check-status">
+              {checkTitle(check)}
+            </span>
+          </button>
+        )}
         <span className="rw-header__sep" aria-hidden />
         <SettingsButton {...(onOpenSettings ? { onClick: onOpenSettings } : {})} />
         <button type="button" className="rw-icon-button" data-testid="header.help" aria-label="Help">

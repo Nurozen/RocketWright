@@ -635,3 +635,71 @@
 .rw-inspector__thumb[data-source="icon"] {
   color: var(--rw-text-secondary);
 }
+
+/* ---- add part palette ---------------------------------------------------- */
+
+.rw-add-part__popover {
+  width: 460px;
+}
+
+.rw-add-part {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 4px 16px 16px;
+}
+
+.rw-add-part__note {
+  margin: 0;
+  color: var(--rw-text-secondary);
+}
+
+.rw-add-part__attach {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.rw-add-part__attach .rw-select {
+  flex: 1;
+  min-width: 0;
+}
+
+.rw-add-part__attach select {
+  width: 100%;
+}
+
+.rw-add-part__grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.rw-add-part__tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-height: 76px;
+  padding: 10px 4px 8px;
+  border: var(--rw-hairline) solid var(--rw-line);
+  border-radius: var(--rw-radius-sm);
+  background: none;
+  color: var(--rw-text-primary);
+  font: inherit;
+  font-size: var(--rw-font-size-secondary);
+  line-height: 1.2;
+  text-align: center;
+  cursor: pointer;
+}
+
+.rw-add-part__tile:hover:not(:disabled) {
+  border-color: var(--rw-accent);
+  background: var(--rw-accent-fill);
+}
+
+.rw-add-part__tile:disabled {
+  color: var(--rw-text-secondary);
+  opacity: 0.5;
+  cursor: not-allowed;
+}

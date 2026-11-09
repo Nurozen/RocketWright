@@ -553,6 +553,34 @@ fn rw_bare(cwd: &Path) -> Command {
 /// D3: `rw init` lists what it would replace, changes nothing (dry run or
 /// not), and exits 1 with a conflict; unrelated files are no obstacle.
 #[test]
+fn init_writes_display_units() {
+    let t = TempProject::new();
+    let dir = t.0.join("units");
+    let o = rw_bare(&t.0)
+        .arg("init")
+        .arg(&dir)
+        .args(["--display-units", "length=cm,mass=kg", "--json"])
+        .output()
+        .unwrap();
+    assert_eq!(o.status.code(), Some(0), "{}", stdout(&o));
+    let manifest = std::fs::read_to_string(dir.join("rocketwright.toml")).unwrap();
+    assert!(manifest.contains("length = \"cm\""), "{manifest}");
+    assert!(manifest.contains("mass = \"kg\""), "{manifest}");
+
+    for bad in ["length", "=cm", "length=furlongs"] {
+        let target = t.0.join("bad");
+        let o = rw_bare(&t.0)
+            .arg("init")
+            .arg(&target)
+            .args(["--display-units", bad])
+            .output()
+            .unwrap();
+        assert_ne!(o.status.code(), Some(0), "{bad}");
+        assert!(!target.exists(), "{bad}");
+    }
+}
+
+#[test]
 fn init_refuses_files_it_would_replace() {
     let t = TempProject::new();
     let dir = t.0.join("mine");

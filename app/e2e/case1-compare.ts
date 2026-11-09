@@ -24,7 +24,8 @@ export interface Diff {
 
 export interface Case1Actual {
   model: EvaluatedModel;
-  check: CheckReport;
+  /** Absent only while the model is partial: `rw check` exits 1 on one with no motor, and nothing reads it then. */
+  check?: CheckReport;
 }
 
 /** 0.01 mm, for lengths and positions (D23). */
@@ -237,6 +238,9 @@ function everyEnabled(enabled: ReadonlySet<string>, all: ReadonlySet<string>, pr
   return true;
 }
 
+/** Dry mass and the static numbers mean something only once every part and material is driven. */
+const wholeModelEnabled = (enabled: ReadonlySet<string>, all: ReadonlySet<string>) => everyEnabled(enabled, all, ["c.", "materials."]);
+
 /**
  * D23's comparison, over the fields whose script rows are enabled. The whole
  * model is required before dry mass or the static numbers are scored.
@@ -262,11 +266,15 @@ export function compareCase1(plan: Case1Plan, actual: Case1Actual, enabled: Read
     if (positionEnabled(part, plan, enabled, all)) comparePosition(part.id, part, a, diffs);
   }
   compareMaterials(plan, actual.model, enabled, diffs);
-  if (everyEnabled(enabled, all, ["c.", "materials."])) {
-    if (Math.abs(actual.check.mass.dry - plan.dryMass) > DRY_MASS_TOL_KG + EPS) diffs.push({ part: "rocket", field: "dry mass", expected: plan.dryMass, actual: actual.check.mass.dry });
+  if (!wholeModelEnabled(enabled, all)) return diffs;
+  const { check } = actual;
+  if (check === undefined) {
+    diffs.push({ part: "rocket", field: "check", expected: "a check report", actual: "none" });
+    return diffs;
   }
+  if (Math.abs(check.mass.dry - plan.dryMass) > DRY_MASS_TOL_KG + EPS) diffs.push({ part: "rocket", field: "dry mass", expected: plan.dryMass, actual: check.mass.dry });
   if (everyEnabled(enabled, all, ["c.", "materials.", "config."])) {
-    for (const r of staticOracleRows(actual.check, oracle)) {
+    for (const r of staticOracleRows(check, oracle)) {
       if (!r.pass) diffs.push({ part: "rocket", field: r.key, expected: `${r.golden} within ${r.tolerance}`, actual: r.value });
     }
   }
@@ -488,6 +496,39 @@ export function createPostQuitReader(bin: string, project: string): PostQuitRead
     check: () => run<CheckReport>(["check", "--json"]),
     runSummary: (id) => run<RunSummaryRecord>(["run", "summary", id, "--json"]),
   };
+}
+
+// ---- the whole post-quit verdict -----------------------------------------------
+
+export interface RebuildInput {
+  plan: Case1Plan;
+  project: string;
+  reader: PostQuitReader;
+  /** The keys of the rows the enabled stages cover. */
+  enabled: ReadonlySet<string>;
+  /** Set once the `run` stage is enabled: then the app's own run is scored too. */
+  run?: Omit<RunScoreInput, "project" | "reader">;
+  oracle?: Oracle;
+}
+
+export interface RebuildVerdict {
+  model: EvaluatedModel;
+  diffs: Diff[];
+  /** Run-scoring failures (D29). */
+  problems: string[];
+}
+
+/** Everything scored after the final quit. The run goes first: `scoreRun` must list `runs/` before any `rw` call. */
+export function judgeRebuild(input: RebuildInput): RebuildVerdict {
+  const { plan, project, reader, enabled, run } = input;
+  const oracle = input.oracle ?? loadOracle();
+  const problems = run === undefined ? [] : scoreRun({ ...run, project, reader, oracle }).problems;
+  const model = reader.model();
+  // Read only when it is scored: a partial model has no motor, so `rw check` exits 1 on it (D18).
+  const actual: Case1Actual = wholeModelEnabled(enabled, allRowKeys()) ? { model, check: reader.check() } : { model };
+  const { mapping } = matchParts(plan, model, enabled);
+  const diffs = [...compareCase1(plan, actual, enabled, oracle), ...comparePersisted(project, enabled, mapping), ...compareEvaluatedConditions(plan, model, enabled, mapping)];
+  return { model, diffs, problems };
 }
 
 // ---- run scoring ---------------------------------------------------------------

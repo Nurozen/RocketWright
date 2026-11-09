@@ -2,12 +2,15 @@
  * Electron 44 main process (M1.52, R6.1). Serves the web bundle over
  * http://127.0.0.1 (never file://, which breaks the WASM fetch) and opens it.
  *
- * - `--project <dir>` (repeatable) or `--dev-project` (`make dev`: a copy of
- *   `fixtures/research-vehicle`, else an empty temp project) spawns the app
- *   server (`apps/server/src/rpc/cli.ts`, through `env -u
- *   ELECTRON_RUN_AS_NODE node`, `backend.ts`) and points the page at it: the
- *   query carries `rpc=`/`http=`, and the preload (`preload.ts`) exposes the
- *   same URLs as `window.rwDesktop` for navigations that drop the query.
+ * - An interactive run always spawns the app server (`apps/server/src/rpc/cli.ts`,
+ *   through `env -u ELECTRON_RUN_AS_NODE node`, `backend.ts`) and points the
+ *   page at it: the query carries `rpc=`/`http=`, and the preload
+ *   (`preload.ts`) exposes the same URLs as `window.rwDesktop` for navigations
+ *   that drop the query. `--project <dir>` (repeatable) or `--dev-project`
+ *   (`make dev`: a copy of `fixtures/research-vehicle`, else an empty temp
+ *   project) opens those; with neither (R0.1) it starts with no project,
+ *   reopens the last one before the window exists (`reopen.ts`), and the page
+ *   shows Welcome if nothing reopened.
  *   Main also holds its own RPC socket on the server (`mainRpc.ts`, D2): the
  *   open projects (`project.list`, then `project.opened` pushes) and, from B8,
  *   `embed.target` for the chat pane.
@@ -44,6 +47,10 @@
  *   interactive runs (dev: `RW_REGISTER_PROTOCOL=1`) register the scheme and
  *   take the single-instance lock; a link opens the project (`project.open`)
  *   and then the thread in the pane. Hidden runs never do.
+ * - `--zero-project` (B3 surface captures): a hidden run that boots a server
+ *   with no project open, as an interactive launch with none does, so the
+ *   page shows Welcome. `RW_SEEDED_PROFILE` (unpackaged) is the profile to use
+ *   instead of a fresh temp one: its `recents.json` supplies Recents.
  * - `--hidden`: the same hidden window without a PNG (captures that only
  *   measure). `--smoke` (`make dev SMOKE=1`) = `--hidden --ready __rwShell
  *   --query page=01` plus a check that the header shows the opened project.
@@ -54,11 +61,12 @@
  *
  * Packaged (`make package`, `packaged.ts`): this file is bundled to
  * `main.mjs` in place, the server runs bundled under Electron as Node with
- * the shipped `rocketwright`, and no `--project` opens a copy of the sample.
+ * the shipped `rocketwright`, and `--dev-project` does nothing: a release
+ * build never opens a `/tmp` copy.
  */
 import { mountEmbedView, captureEmbedView, type EmbedBridge, type EmbedTarget as HelperEmbedTarget } from "@lecturn/embed/electron";
-import { embedThemeInput, PANE_MAIN_CHANNEL, type EmbedTarget, type LecturnHostThemeJson, type LecturnStatus, type LecturnThemeJson, type PaneMainMessage } from "@rw/contracts";
-import { app, BrowserWindow, ipcMain, nativeImage, systemPreferences } from "electron";
+import { embedThemeInput, PANE_MAIN_CHANNEL, type DesktopBoot, type EmbedTarget, type LecturnHostThemeJson, type LecturnStatus, type LecturnThemeJson, type PaneMainMessage } from "@rw/contracts";
+import { app, BrowserWindow, dialog, ipcMain, nativeImage, systemPreferences } from "electron";
 import { mkdirSync, readFileSync, rmSync } from "node:fs";
 import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -67,12 +75,17 @@ import { pathToFileURL } from "node:url";
 import { parseArgs } from "node:util";
 import { capturePageDpr1, countForeground, debuggerSessions, emulateDpr1, installFreezeClock, pngSize } from "./capture.ts";
 import { waitGuestSized } from "./guestSize.ts";
-import { captureComposite, createPaneController, droppedCapture, isGuestUrl, type EmbedBridgeLike, type MountArgs, type PaneController } from "./lecturn.ts";
+import { openHiddenWindow } from "./hiddenWindow.ts";
+import { captureComposite, createPaneController, droppedCapture, GUEST_WEB_PREFERENCES, isGuestUrl, type EmbedBridgeLike, type MountArgs, type PaneController } from "./lecturn.ts";
 import { connectMainRpc, type MainRpc } from "./mainRpc.ts";
-import { buildPreload, desktopArg, lecturnBaseDirFor, parseDesktopArgs, REPO_ROOT, resolveDevProject, startBackend, userDataOverride, waitForHttp, type Backend, type DevProject } from "./backend.ts";
+import { bootProjects, buildPreload, desktopArg, documentsDirOverride, lecturnBaseDirFor, parseDesktopArgs, REPO_ROOT, resolveDevProject, seededProfileDir, startBackend, userDataOverride, waitForHttp, type Backend, type DevProject } from "./backend.ts";
+import { registerDesktopServices } from "./nativeDialogs.ts";
 import { packagedLayout, packagedServerOptions, userArgv } from "./packaged.ts";
 import { installProtocol, linkInArgv, linkQueue, openFromLink, parseOpenUrl } from "./protocol.ts";
 import { once, shutdownOnQuit } from "./quit.ts";
+import { createRecents } from "./recents.ts";
+import { reopenLast } from "./reopen.ts";
+import { classifyPane, PANE_DOM_VIEW_SCRIPT, SNAPSHOT_SHOWN_SCRIPT, waitOverlaySnapshot, type PaneDomView } from "./surfacePane.ts";
 
 const packaged = app.isPackaged ? packagedLayout(process.resourcesPath) : null;
 const argv = userArgv(process.argv, process.defaultApp);
@@ -110,6 +123,8 @@ const readyGlobal = str(args.ready) ?? (desk.smoke ? "__rwShell" : "__rwProbe");
 if (!/^[A-Za-z_$][\w$]*$/.test(readyGlobal)) throw new Error(`--ready: not an identifier: ${readyGlobal}`);
 const measureModule = str(args.measure);
 const driveModule = str(args.drive);
+/** `?surface=` of a B3 capture (`--query surface=s-welcome`), else null. */
+const surfaceId = new URLSearchParams(query).get("surface");
 const pagePath = str(args["page-path"]);
 const freezeClockArg = str(args["freeze-clock"]);
 const freezeClock = freezeClockArg === undefined ? undefined : Number(freezeClockArg);
@@ -193,6 +208,20 @@ interface DriveContext {
   rpcUrl: string | null;
   serverUrl: string | null;
   guest: () => GuestLike | null;
+  /** The pane's guest mounted, ready and laid out at its bounds; null once it is, otherwise why not. */
+  paneReady: () => Promise<string | null>;
+}
+
+/** Waits for the pane to mount and its guest to be ready and sized (bounded by the run's timeout). Returns why it is not, or null. */
+async function paneReady(pane: PaneController | null): Promise<string | null> {
+  if (pane === null) return "no agent pane in this window";
+  const deadline = Date.now() + timeoutMs;
+  while (pane.mounted === null) {
+    if (Date.now() > deadline) return "the agent pane never mounted its guest";
+    await new Promise((r) => setTimeout(r, 100));
+  }
+  if (!(await pane.whenReady(Math.max(0, deadline - Date.now())))) return "the agent pane's guest never sent lecturn/ready";
+  return guestSized(pane);
 }
 
 const callText = (fn: { toString(): string }, arg: unknown): string => `(${fn.toString()})(${JSON.stringify(arg)})`;
@@ -239,7 +268,7 @@ function guestOf(pane: PaneController | null): GuestLike | null {
 async function runDrive(path: string, win: BrowserWindow, backend: Backend, pane: PaneController | null): Promise<unknown> {
   const mod = (await import(pathToFileURL(resolve(path)).href)) as { default?: (ctx: DriveContext) => Promise<unknown> };
   if (typeof mod.default !== "function") throw new Error(`--drive ${path}: no default export function`);
-  return mod.default({ page: pageLike(win), rpcUrl: backend.server?.rpcUrl ?? null, serverUrl: backend.server?.serverUrl ?? null, guest: () => guestOf(pane) });
+  return mod.default({ page: pageLike(win), rpcUrl: backend.server?.rpcUrl ?? null, serverUrl: backend.server?.serverUrl ?? null, guest: () => guestOf(pane), paneReady: () => paneReady(pane) });
 }
 
 type PageProbe = { status: "pending" } | { status: "ready"; probe: unknown } | { status: "error"; error: string };
@@ -322,7 +351,7 @@ function startPane(win: BrowserWindow, rpc: MainRpc | null): PaneController | nu
       switcher: false,
       ...(a.composerPlaceholder !== undefined ? { composerPlaceholder: a.composerPlaceholder } : {}),
       onDescribeRefs: a.onDescribeRefs,
-      webPreferences: { backgroundThrottling: false },
+      webPreferences: GUEST_WEB_PREFERENCES,
       ...(freezeClock !== undefined ? { freezeClock } : {}),
     });
   return createPaneController({
@@ -336,51 +365,40 @@ function startPane(win: BrowserWindow, rpc: MainRpc | null): PaneController | nu
   });
 }
 
-/** Attempts at opening the hidden window before giving up. */
-const OPEN_ATTEMPTS = 4;
-
-/**
- * Creates the hidden window at DPR 1 and loads the app, retrying with a fresh
- * window when a load fails. Under load, Electron 44 intermittently rejects the
- * very first navigation (`ERR_FAILED (-2) loading 'about:blank'`) before the
- * renderer is up; a new window then loads fine. The app origin is polled until
- * it answers before each attempt.
- */
-async function openHiddenWindow(backend: Backend, preload: string | undefined, consoleLines: string[], deadline: number): Promise<BrowserWindow> {
-  let lastError: unknown;
-  for (let attempt = 1; attempt <= OPEN_ATTEMPTS; attempt++) {
-    await waitForHttp(backend.url, deadline);
-    const win = new BrowserWindow({ show: false, width, height, useContentSize: true, webPreferences: webPreferences(preload, backend) });
-    win.webContents.on("console-message", (e) => consoleLines.push(`[${e.level}] ${e.message}`));
-    win.webContents.on("preload-error", (_e, path, err) => consoleLines.push(`[preload-error] ${path}: ${err.message}`));
-    try {
-      // DPR 1 from the first frame, so the canvas renders at the capture size.
-      // CDP commands before the first navigation crash Electron 44's main
-      // process (SIGSEGV), so emulate on about:blank; the override persists.
-      await win.loadURL("about:blank");
-      await emulateDpr1(win.webContents, width, height);
-      if (freezeClock !== undefined) await installFreezeClock(debuggerSessions.session(win.webContents), freezeClock);
-      await win.loadURL(backend.url);
-      return win;
-    } catch (e) {
-      lastError = e;
-      process.stderr.write(`hidden window load failed (attempt ${attempt}/${OPEN_ATTEMPTS}): ${e instanceof Error ? e.message : String(e)}\n`);
-      win.destroy();
-      if (Date.now() > deadline) break;
-      await new Promise((r) => setTimeout(r, 250 * attempt));
-    }
-  }
-  throw lastError instanceof Error ? lastError : new Error(String(lastError));
-}
+/** The window `rwDesktop` calls are accepted from (`nativeDialogs.ts`); a hidden retry replaces it. */
+let appWindow: BrowserWindow | null = null;
 
 /** The hidden window: load, wait for `readyGlobal`, optionally measure and capture (`out`), print the probe JSON. */
 async function renderHidden(backend: Backend, preload: string | undefined, out: string | undefined, rpc: MainRpc | null, onPane: (pane: PaneController | null) => void): Promise<number> {
   app.dock?.hide();
   const deadline = Date.now() + timeoutMs;
   const consoleLines: string[] = [];
-  const win = await openHiddenWindow(backend, preload, consoleLines, deadline);
-  const pane = startPane(win, rpc);
-  onPane(pane);
+  const { win, pane } = await openHiddenWindow<BrowserWindow, PaneController>({
+    url: backend.url,
+    deadline,
+    waitForServer: () => waitForHttp(backend.url, deadline),
+    createWindow: () => {
+      const w = new BrowserWindow({ show: false, width, height, useContentSize: true, webPreferences: webPreferences(preload, backend) });
+      appWindow = w;
+      w.webContents.on("console-message", (e) => consoleLines.push(`[${e.level}] ${e.message}`));
+      w.webContents.on("preload-error", (_e, path, err) => consoleLines.push(`[preload-error] ${path}: ${err.message}`));
+      return w;
+    },
+    prepare: async (w) => {
+      // DPR 1 from the first frame, so the canvas renders at the capture size.
+      // CDP commands before the first navigation crash Electron 44's main
+      // process (SIGSEGV), so emulate on about:blank; the override persists.
+      await w.loadURL("about:blank");
+      await emulateDpr1(w.webContents, width, height);
+      if (freezeClock !== undefined) await installFreezeClock(debuggerSessions.session(w.webContents), freezeClock);
+    },
+    startPane: (w) => {
+      const p = startPane(w, rpc);
+      onPane(p);
+      return p;
+    },
+    log: (line) => process.stderr.write(`${line}\n`),
+  });
   const page = await waitForProbe(win);
 
   const result: Record<string, unknown> = {
@@ -405,8 +423,18 @@ async function renderHidden(backend: Backend, preload: string | undefined, out: 
       code = 1;
     }
   }
+  // B3: a surface capture says where the pane is. Only an overlay over it needs the page's guest snapshot, and then no guest blit on top.
+  const paneCase = surfaceId !== null && page.status === "ready" && result.driveError === undefined ? classifyPane((await win.webContents.executeJavaScript(PANE_DOM_VIEW_SCRIPT)) as PaneDomView) : null;
+  if (paneCase !== null) result.surfacePane = paneCase;
+  if (paneCase === "overlay") {
+    const why = await waitOverlaySnapshot(async () => (await win.webContents.executeJavaScript(SNAPSHOT_SHOWN_SCRIPT)) as boolean, deadline);
+    if (why !== null) {
+      result.lecturnError = why;
+      code = 1;
+    }
+  }
   // D15: a page that shows the embed is measured and captured only once its guest is ready.
-  const wantsPane = page.status === "ready" && pane !== null && (out !== undefined || measureModule !== undefined) && ((await win.webContents.executeJavaScript(`document.querySelector('[data-testid="agent.embed"]') !== null`)) as boolean);
+  const wantsPane = page.status === "ready" && pane !== null && (out !== undefined || measureModule !== undefined) && (paneCase === null ? ((await win.webContents.executeJavaScript(`document.querySelector('[data-testid="agent.embed"]') !== null`)) as boolean) : paneCase === "visible");
   if (wantsPane && pane !== null) {
     const ready = await pane.whenReady(Math.max(0, deadline - Date.now()));
     if (!ready) {
@@ -476,9 +504,11 @@ async function main(): Promise<void> {
     // to reopen windows, which hangs a headless render. Spawners also pass
     // `-ApplePersistenceIgnoreState YES`; this covers direct launches.
     if (process.platform === "darwin") systemPreferences.registerDefaults({ ApplePersistenceIgnoreState: "YES" });
-    // Isolated profile: never share or lock the user's Electron profile (removed on exit).
-    tempUserData = await mkdtemp(join(tmpdir(), "rw-render-"));
-    app.setPath("userData", tempUserData);
+    // Isolated profile: never share or lock the user's Electron profile. A bar capture's
+    // seeded profile (Recents) belongs to the harness, which removes it; only our temp one goes on exit.
+    const seeded = seededProfileDir(app.isPackaged);
+    if (seeded === undefined) tempUserData = await mkdtemp(join(tmpdir(), "rw-render-"));
+    app.setPath("userData", seeded ?? tempUserData!);
   } else {
     // Harness windows run on a temp profile (RW_USER_DATA_DIR, `app/e2e/lecturn-env.ts`):
     // nothing writes under the real Electron userData.
@@ -513,12 +543,11 @@ async function main(): Promise<void> {
     const link = cold === null ? null : parseOpenUrl(cold);
     if (link !== null) links.push(link);
   }
-  // A packaged window with no --project opens the shipped sample, as `make dev` does.
-  const sample = packaged !== null && !hidden;
-  const dev: DevProject | null = desk.projects.length === 0 && (desk.devProject || sample) ? resolveDevProject(packaged?.samplesRoot) : null;
+  // `make dev` only: a release never opens a `/tmp` copy, and ships no fixture to copy.
+  const dev: DevProject | null = desk.projects.length === 0 && desk.devProject && packaged === null ? resolveDevProject() : null;
   if (dev !== null) process.stderr.write(`dev project (${dev.source}): ${dev.dir}\n`);
-  const projects = dev !== null ? [dev.dir] : desk.projects;
-  const live = projects.length > 0;
+  const projects = bootProjects(dev !== null ? [dev.dir] : desk.projects, hidden, desk.zeroProject);
+  const live = projects !== null;
   // The preload only matters with a server; the spike render path stays preload-free.
   const scratch = live ? await mkdtemp(join(tmpdir(), "rw-desktop-")) : undefined;
   const preload = scratch !== undefined ? join(scratch, "preload.cjs") : undefined;
@@ -545,12 +574,14 @@ async function main(): Promise<void> {
   // else <userData>/lecturn (hidden runs get a fresh temp userData above).
   // The arg names the dir the child really uses (CPW2B).
   const lecturnBaseDir = lecturnBaseDirFor(app.getPath("userData"));
+  const documents = (): string => documentsDirOverride(app.isPackaged) ?? app.getPath("documents");
   const backend = await startBackend({
-    projects: live ? projects : null,
+    projects,
     webRoot,
     query,
     page: pagePath,
     lecturnBaseDir,
+    documentsDir: documents(),
     log: (c) => process.stderr.write(c),
     ...(packaged !== null ? packagedServerOptions(packaged, process.execPath) : {}),
   });
@@ -562,6 +593,23 @@ async function main(): Promise<void> {
   // D2: main's own socket on the child; B8/B10 use it for `embed.target` and per-project mounts.
   let pane: PaneController | null = null;
   const mainRpc = await startMainRpc(backend, hidden, (status) => pane?.onStatus(status));
+  let boot: DesktopBoot = { activeProjectId: null, notice: null };
+  const recents = createRecents({
+    file: join(app.getPath("userData"), "recents.json"),
+    excluded: projects ?? [],
+    readOnly: hidden,
+    openDirs: () => mainRpc?.projects().map((p) => p.dir) ?? [],
+    log: (line) => process.stderr.write(`${line}\n`),
+  });
+  registerDesktopServices<BrowserWindow>({
+    ipc: ipcMain,
+    dialog,
+    window: () => appWindow,
+    documents,
+    boot: () => boot,
+    headless: hidden,
+    recents,
+  });
   const shutdown = once(async (code: number): Promise<void> => {
     pane?.destroy();
     mainRpc?.close();
@@ -582,7 +630,18 @@ async function main(): Promise<void> {
     return;
   }
   backend.server?.child.once("exit", (c, sig) => process.stderr.write(`app server exited (${sig ?? c})\n`));
+  // R0.1: settled before the window exists, so no window shows Welcome and then swaps it for the project.
+  if (mainRpc !== null && projects !== null && projects.length === 0) {
+    const rpc = mainRpc;
+    boot = await reopenLast({
+      pickLastActive: () => recents.pickLastActive(),
+      openProject: async (dir) => (await rpc.call("project.open", { dir })).project,
+      linkPending: () => links.pending(),
+      log: (line) => process.stderr.write(`${line}\n`),
+    });
+  }
   const win = new BrowserWindow({ width, height, useContentSize: true, webPreferences: webPreferences(preload, backend) });
+  appWindow = win;
   pane = startPane(win, mainRpc);
   focusWindow = () => {
     if (win.isDestroyed()) return;

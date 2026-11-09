@@ -470,6 +470,14 @@ fn real_session_tool_bodies() {
             .iter()
             .any(|m| m["id"] == "generic:RW_C6G")
     );
+    let shown = ok(&mut s, "motor_show", json!({"id": "generic:RW_C6G"}));
+    assert_eq!(shown["info"]["id"], "generic:RW_C6G");
+    assert!(
+        shown["curve"]["points"]
+            .as_array()
+            .is_some_and(|p| !p.is_empty()),
+        "{shown}"
+    );
     let schema = ok(&mut s, "schema_get", json!({"name": "check-delta"}));
     assert_eq!(
         schema["schema"]["$id"],
@@ -501,6 +509,12 @@ fn real_session_tool_bodies() {
         "{added}"
     );
     ok(&mut s, "component_remove", json!({"id": "ballast"}));
+    let renamed = ok(&mut s, "project_rename", json!({"name": "Solstice"}));
+    assert_eq!(
+        renamed["files"].as_array().map(Vec::len),
+        Some(2),
+        "{renamed}"
+    );
     let runs = ok(&mut s, "run_list", json!({}));
     assert_eq!(runs["runs"][0]["status"], "outdated", "edits outdate runs");
 

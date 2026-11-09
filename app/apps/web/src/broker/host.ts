@@ -128,13 +128,16 @@ export async function startBrokerHost(
   client: RpcLike,
   projectId: string,
   store: AppStore,
-  opts: { hostId?: string; deps?: BrokerHostDeps; backend?: BrokerCapabilities["backend"] } = {},
+  opts: { hostId?: string; deps?: BrokerHostDeps; backend?: BrokerCapabilities["backend"]; signal?: AbortSignal } = {},
 ): Promise<() => void> {
   const deps = opts.deps ?? defaults;
+  const respond = (r: BrokerResponse) => void client.call("broker.respond", r).catch(() => undefined);
   const off = client.on("broker.request", (req) => {
-    if (req.projectId !== projectId) return;
-    void answer(req, store, deps).then((r) => client.call("broker.respond", r).catch(() => undefined));
+    // Silence would leave the agent waiting out the broker's timeout for a project this window has moved away from.
+    if (req.projectId !== projectId) return respond({ requestId: req.requestId, ok: false, error: { code: "no_host", message: `this window is not showing project ${req.projectId}` } });
+    void answer(req, store, deps).then(respond);
   });
+  opts.signal?.addEventListener("abort", off, { once: true });
   const hostId = opts.hostId ?? `web-${Math.random().toString(36).slice(2, 10)}`;
   try {
     await client.call("broker.hostRegister", { projectId, hostId, capabilities: { ops: [...HOST_OPS], backend: opts.backend ?? detectBackend() } });

@@ -33,7 +33,16 @@ function fakeDesktopPreload(): void {
   const w = window as unknown as Record<string, unknown>;
   w["__paneIpc"] = sent;
   w["lecturnEmbedIpc"] = { send: (channel: string, payload: unknown) => void sent.push([channel, payload]) };
-  w["rwDesktop"] = { desktop: true, platform: "test", rpcUrl: null, serverUrl: null, lecturn: { onMessage: () => () => undefined } };
+  w["rwDesktop"] = {
+    desktop: true,
+    platform: "test",
+    rpcUrl: null,
+    serverUrl: null,
+    lecturn: { onMessage: () => () => undefined },
+    boot: () => Promise.resolve({ activeProjectId: null, notice: null }),
+    setActiveProject: () => Promise.resolve(),
+    onCommand: () => () => undefined,
+  };
 }
 
 async function measure(page: Page): Promise<{ reported: Rect | null; slot: Rect; pane: Rect; footer: Rect | null; viewportHeight: number }> {

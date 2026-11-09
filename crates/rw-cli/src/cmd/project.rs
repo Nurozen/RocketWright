@@ -1,19 +1,36 @@
 //! `rw init`, `rw fmt`, `rw validate`, `rw eval`, `rw schema`.
 
+use std::collections::BTreeMap;
 use std::path::PathBuf;
 
-use rw_api::ProjectCreateIn;
+use rw_api::{ApiError, ProjectCreateIn};
 use serde_json::{Value, json};
 
 use super::{CmdResult, Opts, Outcome, creation_outcome, diag_lines, usage};
 use crate::display::{Class, display_tree, field_class};
 
-/// `rw init [dir] [--template <name>] [--name <name>] [--dry-run]`.
+/// `key=unit` pairs from `--display-units`, later entries winning.
+fn parse_display_units(pairs: &[String]) -> Result<BTreeMap<String, String>, ApiError> {
+    pairs
+        .iter()
+        .map(|pair| match pair.split_once('=') {
+            Some((key, unit)) if !key.trim().is_empty() && !unit.trim().is_empty() => {
+                Ok((key.trim().to_string(), unit.trim().to_string()))
+            }
+            _ => Err(usage(format!(
+                "--display-units: expected KEY=UNIT, got `{pair}`"
+            ))),
+        })
+        .collect()
+}
+
+/// `rw init [dir] [--template <name>] [--name <name>] [--display-units <key=unit,...>] [--dry-run]`.
 pub fn init(
     opts: &Opts,
     dir: Option<PathBuf>,
     template: Option<String>,
     name: Option<String>,
+    display_units: Vec<String>,
     dry_run: bool,
 ) -> CmdResult {
     let dir = dir
@@ -22,6 +39,7 @@ pub fn init(
     let i = ProjectCreateIn {
         name,
         template,
+        display_units: parse_display_units(&display_units)?,
         dry_run,
     };
     let ctx = crate::forward::cli_ctx(Some("rw init".into()));
