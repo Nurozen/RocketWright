@@ -23,7 +23,7 @@ test.describe("B1 rebuild case 1", () => {
     await stopCase1Run(run);
   });
 
-  test("a person makes a project, quits, and finds it again", async () => {
+  test("a person makes a project, adds and edits parts, quits, and finds it again", async () => {
     // Two cold starts of the app, its sidecar and Lecturn's.
     test.setTimeout(360_000);
     run = await startCase1Run(PROJECT_NAME);
@@ -33,6 +33,7 @@ test.describe("B1 rebuild case 1", () => {
       page: run.page,
       expect,
       lifecycle: run.lifecycle,
+      projectName: PROJECT_NAME,
       statuses,
       added: new Set(),
       timeouts: { row: 15_000, launch: 120_000, run: 180_000 },
@@ -44,7 +45,5 @@ test.describe("B1 rebuild case 1", () => {
     } finally {
       writeProgress(buildProgress(rows, statuses, B1_STAGES));
     }
-    // A Design tab alone would pass on any project: this must be the one made above.
-    await expect(ctx.page.getByRole("button", { name: PROJECT_NAME })).toBeVisible({ timeout: ctx.timeouts.row });
   });
 });
