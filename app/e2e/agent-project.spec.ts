@@ -18,7 +18,7 @@
  */
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from "@playwright/test";
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, realpathSync, rmSync } from "node:fs";
 import { createRequire } from "node:module";
 import { join } from "node:path";
 import { LecturnAdminSession, RUNTIME_MODE_LABEL, type AdminProjection, type RuntimeMode } from "../../scripts/bar/lecturn-admin.ts";
@@ -56,7 +56,8 @@ class ProjectRun {
   app!: ElectronApplication;
   page!: Page;
   readonly dialogs = new DialogQueues();
-  readonly base = mkdtempSync(join(SCRATCH, "rw-b2-"));
+  // Real path: the consent dialog names the folder a project really lands in, and /tmp is a symlink on macOS.
+  readonly base = realpathSync(mkdtempSync(join(SCRATCH, "rw-b2-")));
   readonly documents = join(this.base, "docs");
   readonly caller = join(this.base, CALLER_PROJECT);
   readonly env: Record<string, string> = {};
