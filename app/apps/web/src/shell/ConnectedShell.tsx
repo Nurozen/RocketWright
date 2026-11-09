@@ -35,6 +35,7 @@ import { AppShell, type ShellHandlers } from "./AppShell.tsx";
 import { checkIssuesOf, type CheckPanelModel } from "./CheckIssuesPanel.tsx";
 import type { CommandHandlers } from "./commands.ts";
 import { shellModelFrom } from "./connect.ts";
+import { TagVersionDialog } from "./TagVersionDialog.tsx";
 import { isTopTab, PAGE_TABS, pageOf, type DesignTab, type TopTab, type ProjectMenuModel, type ShellHistoryStep, type ShellNavRow, type ShellProject } from "./model.ts";
 import { undoKey } from "./undo.ts";
 import { ViewportToolbar, type ViewChip } from "./ViewportToolbar.tsx";
@@ -123,6 +124,8 @@ export function ConnectedShell({ store, client = null, renderPage, renderCompare
   const [projects, setProjects] = useState<ShellProject[] | null>(null);
   const [projectsError, setProjectsError] = useState<string | null>(null);
   const [reverting, setReverting] = useState(false);
+  /** The step the Tag dialog names, captured on open so later steps cannot change its target. */
+  const [tagging, setTagging] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [lastDesign, setLastDesign] = useState<DesignTab>("assembly");
 
@@ -253,6 +256,7 @@ export function ConnectedShell({ store, client = null, renderPage, renderCompare
       if (version === null || version === model.shownStepId) return;
       restore(version);
     },
+    ...(client !== null && projectId !== null ? { onTag: () => setTagging(model.currentStepId) } : {}),
     onUndo: () => {
       const t = model.undo?.undo;
       if (t) restore(t.id);
@@ -360,6 +364,7 @@ export function ConnectedShell({ store, client = null, renderPage, renderCompare
       agentExtras={agentExtras}
       compareOpen={compareOpen}
       reverting={reverting}
+      tagLabel={model.currentStepId !== null ? `Tag ${versionLabel(model.currentStepId, snap)}…` : null}
       revertLabel={model.currentStepId !== null && model.currentStepId !== model.shownStepId ? `Revert to ${versionLabel(model.currentStepId, snap)}` : null}
       headStepId={model.headStepId}
       historyExtra={slots?.historyExtra}
@@ -372,6 +377,9 @@ export function ConnectedShell({ store, client = null, renderPage, renderCompare
     >
       {compareOpen ? renderCompare() : renderPage?.(page)}
       <PartDialogs store={store} />
+      {tagging !== null && client !== null && projectId !== null && (
+        <TagVersionDialog versionLabel={versionLabel(tagging, snap)} onTag={(name) => client.call("history.tag", { projectId, name, version: tagging })} onClose={() => setTagging(null)} />
+      )}
     </AppShell>
   );
 }

@@ -832,3 +832,41 @@
 .rw-part-dialog p {
   margin: 0;
 }
+
+/* ---- 2D drawing ---------------------------------------------------------- */
+
+.rw-drawing-open {
+  flex: none;
+}
+
+.rw-drawing__stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 280px;
+  border: var(--rw-hairline) solid var(--rw-line);
+  border-radius: var(--rw-radius-sm);
+  overflow: auto;
+}
+
+.rw-drawing__picture {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+.rw-drawing__problem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 16px;
+  text-align: center;
+}
+
+.rw-drawing__file {
+  margin: 0;
+  color: var(--rw-text-secondary);
+  font-size: var(--rw-font-size-secondary);
+  overflow-wrap: anywhere;
+}

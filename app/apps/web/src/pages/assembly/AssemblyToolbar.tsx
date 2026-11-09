@@ -24,6 +24,8 @@ export interface AssemblyToolbarProps {
   onShowInternals(on: boolean): void;
   onShadows(on: boolean): void;
   onUnits(units: Units): void;
+  /** Opens the 2D drawing; absent (the button disabled) with no project connected. */
+  onDrawing?: (() => void) | undefined;
 }
 
 const chipToView = (chip: ViewChip): ViewId => VIEW_IDS.find((v) => VIEW_LABELS[v] === chip) ?? "iso";
@@ -87,6 +89,9 @@ export function AssemblyToolbar(p: AssemblyToolbarProps) {
         <input type="checkbox" data-testid="toolbar.shadows" checked={p.shadows} onChange={(e) => p.onShadows(e.currentTarget.checked)} />
         <span>Shadows</span>
       </label>
+      <button type="button" className="rw-button rw-button--quiet rw-drawing-open" data-testid="toolbar.drawing" disabled={p.onDrawing === undefined} onClick={p.onDrawing}>
+        2D drawing
+      </button>
       <span className="rw-toolbar__sep" aria-hidden />
     </ViewportToolbar>
   );

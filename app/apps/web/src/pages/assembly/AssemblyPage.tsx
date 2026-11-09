@@ -14,8 +14,10 @@ import { Menu, MenuButton } from "../../ui/Menu.tsx";
 import { AssemblyViewport } from "../../viewport/AssemblyViewport.tsx";
 import type { EngineState, FitMargin } from "../../viewport/engine.ts";
 import type { GlbDeps } from "../../viewport/glb-source.ts";
+import type { RpcLike } from "../../state/rpc.ts";
 import { AddPartButton } from "./AddPartPopover.tsx";
 import { AssemblyToolbar } from "./AssemblyToolbar.tsx";
+import { DrawingDialog } from "./DrawingDialog.tsx";
 import { thumbKey } from "../../render/thumbnails.ts";
 import { ComponentTree, iconFor, treeRows } from "./ComponentTree.tsx";
 import { INSPECTOR_WIDTH, Inspector } from "./Inspector.tsx";
@@ -30,10 +32,10 @@ export interface AssemblySlots {
   navAdd: ReactNode;
 }
 
-export function assemblySlots(store: AppStore, glbDeps: GlbDeps): AssemblySlots {
+export function assemblySlots(store: AppStore, glbDeps: GlbDeps, client: RpcLike | null = null, httpBase = ""): AssemblySlots {
   return {
     content: <AssemblyWorkspace store={store} glbDeps={glbDeps} />,
-    toolbar: <AssemblyToolbarSlot store={store} />,
+    toolbar: <AssemblyToolbarSlot store={store} client={client} httpBase={httpBase} />,
     nav: <ComponentTreeSlot store={store} />,
     navAdd: <AddPartButton store={store} />,
   };
@@ -125,24 +127,30 @@ export function AssemblyWorkspace({ store, glbDeps }: { store: AppStore; glbDeps
   );
 }
 
-export function AssemblyToolbarSlot({ store }: { store: AppStore }) {
+export function AssemblyToolbarSlot({ store, client = null, httpBase = "" }: { store: AppStore; client?: RpcLike | null; httpBase?: string }) {
   const ui = useAppState(store, (s) => s.ui);
+  const projectId = useAppState(store, (s) => s.project.projectId);
+  const [drawing, setDrawing] = useState(false);
   const set = (v: Parameters<typeof ui.setView>[0]) => store.getState().ui.setView(v);
   return (
-    <AssemblyToolbar
-      view={ui.view}
-      explode={ui.explode}
-      section={ui.section}
-      showInternals={ui.showInternals}
-      shadows={ui.shadows}
-      units={ui.units}
-      onView={(view: ViewId) => set({ view })}
-      onExplode={(explode, animate) => set({ explode, animate: animate === true })}
-      onSection={(section) => set({ section })}
-      onShowInternals={(showInternals) => set({ showInternals })}
-      onShadows={(shadows) => set({ shadows })}
-      onUnits={(u: Units) => store.getState().ui.setUnits(u)}
-    />
+    <>
+      <AssemblyToolbar
+        view={ui.view}
+        explode={ui.explode}
+        section={ui.section}
+        showInternals={ui.showInternals}
+        shadows={ui.shadows}
+        units={ui.units}
+        onView={(view: ViewId) => set({ view })}
+        onExplode={(explode, animate) => set({ explode, animate: animate === true })}
+        onSection={(section) => set({ section })}
+        onShowInternals={(showInternals) => set({ showInternals })}
+        onShadows={(shadows) => set({ shadows })}
+        onUnits={(u: Units) => store.getState().ui.setUnits(u)}
+        onDrawing={client !== null && projectId !== null ? () => setDrawing(true) : undefined}
+      />
+      {drawing && client !== null && projectId !== null && <DrawingDialog client={client} projectId={projectId} httpBase={httpBase} onClose={() => setDrawing(false)} />}
+    </>
   );
 }
 

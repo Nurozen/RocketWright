@@ -44,7 +44,7 @@ import { randomBytes, timingSafeEqual } from "node:crypto";
 import { createReadStream, existsSync, realpathSync, statSync } from "node:fs";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
-import { basename, join, resolve } from "node:path";
+import { basename, join, resolve, sep } from "node:path";
 import type { Duplex } from "node:stream";
 import {
   RPC_METHODS,
@@ -168,6 +168,8 @@ function notYet(method: RpcMethod): never {
 const RUN_FILE_RE = /^\/api\/projects\/([^/]+)\/runs\/([^/]+)\/([^/]+)\/(series\.csv|events\.json|engine\.json|visual\.json|cfd\.json)$/;
 const RUN_FILE_TYPE: Record<string, string> = { "series.csv": "text/csv; charset=utf-8", "events.json": "application/json", "engine.json": "application/json", "visual.json": "application/json", "cfd.json": "application/json" };
 const SAFE_SEGMENT = /^[A-Za-z0-9._-]+$/;
+/** PNG only: the drawing's SVG could run script if opened as a page on this origin. */
+const RENDER_FILE_RE = /^\/api\/projects\/([^/]+)\/renders\/([^/]+\.png)$/;
 
 /** `realpath`, or `path` itself when it cannot be resolved. */
 function realpathOr(path: string): string {
@@ -407,7 +409,35 @@ export class AppServer {
     if (path === LIVE_MCP_PATH) return this.liveHandler(req, res);
     const m = RUN_FILE_RE.exec(path);
     if (m !== null && req.method === "GET") return this.runFile(req, res, m[1]!, m[2]!, m[3]!, m[4]!);
+    const r = RENDER_FILE_RE.exec(path);
+    if (r !== null && req.method === "GET") return this.renderFile(res, r[1]!, r[2]!);
     res.writeHead(404, { "content-type": "text/plain" }).end("not found");
+  }
+
+  /**
+   * A drawing `render` wrote under the project's `renders/`. The sidecar's
+   * tool result names the file but the host keeps only its structured part,
+   * so the window loads the picture from here. An `<img>` needs no CORS grant.
+   */
+  private renderFile(res: ServerResponse, rawProject: string, rawName: string): void {
+    const notFound = () => void res.writeHead(404, { "content-type": "text/plain" }).end("not found");
+    let projectId: string;
+    let name: string;
+    try {
+      projectId = decodeURIComponent(rawProject);
+      name = decodeURIComponent(rawName);
+    } catch {
+      return notFound();
+    }
+    const p = this.projects.get(projectId);
+    if (p === undefined || !SAFE_SEGMENT.test(name)) return notFound();
+    // The realpath check keeps a symlink in `renders/` from reaching outside the folder.
+    const real = realpathOr(join(p.info.dir, "renders", name));
+    if (!real.startsWith(`${join(realpathOr(p.info.dir), "renders")}${sep}`) || statSync(real, { throwIfNoEntry: false })?.isFile() !== true) return notFound();
+    res.writeHead(200, { "content-type": "image/png", "cache-control": "no-store", "x-content-type-options": "nosniff" });
+    createReadStream(real)
+      .on("error", () => res.destroy())
+      .pipe(res);
   }
 
   /**
