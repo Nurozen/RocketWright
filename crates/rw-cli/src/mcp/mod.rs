@@ -18,7 +18,10 @@
 //! whose own stdio client disconnects drains: it keeps serving while relays
 //! are attached or jobs run, then exits. A `--no-socket` owner cannot be
 //! relayed to; later instances exit 2 with `RW-E007 locked-by <pid>`.
-//! `--list-tools` prints the tool list and exits without taking the lock.
+//! `--list-tools` prints the tool list and exits without taking the lock;
+//! `--hide-project-create` leaves `project_create` out of that list, for the
+//! registration the app gives Lecturn (the tool itself stays for CLI and
+//! standalone MCP, and [`approval`] refuses it on any call Lecturn proxies).
 //!
 //! Tool bodies: [`dispatch`] turns every call into an `rw_api::Command` (I2)
 //! and runs it on the session. Commands whose rows have not landed answer
@@ -70,13 +73,15 @@ pub struct McpOptions {
     pub socket: bool,
     /// Print the `tools/list` result and exit (no lock, no session).
     pub list_tools: bool,
+    /// Leave `project_create` out of that printed list.
+    pub hide_project_create: bool,
 }
 
 /// Runs the sidecar until stdin closes (and, as owner, until it drained).
 /// Exit codes: 0 clean, 2 usage/I-O/lock.
 pub fn main(opts: McpOptions) -> ExitCode {
     if opts.list_tools {
-        return list_tools();
+        return list_tools(opts.hide_project_create);
     }
     let rt = match tokio::runtime::Builder::new_multi_thread()
         .enable_all()
@@ -101,8 +106,13 @@ pub fn main(opts: McpOptions) -> ExitCode {
 }
 
 /// `--list-tools`: the `tools/list` result as one JSON line on stdout.
-fn list_tools() -> ExitCode {
-    let r = ListToolsResult::with_all_items(catalog::tools().to_vec());
+fn list_tools(hide_project_create: bool) -> ExitCode {
+    let tools = catalog::tools()
+        .iter()
+        .filter(|t| !hide_project_create || t.name != approval::PROJECT_CREATE)
+        .cloned()
+        .collect();
+    let r = ListToolsResult::with_all_items(tools);
     match serde_json::to_string(&r) {
         Ok(s) => {
             println!("{s}");

@@ -20,7 +20,13 @@
 //!   default().t_max`), uncheckable or over 60 s;
 //! - `simulate` with `mc > 100` never asks: Monte Carlo is not implemented,
 //!   so it answers `not_implemented` before any gate, approved or not
-//!   (decision 4).
+//!   (decision 4);
+//! - `project_create` never runs for a Lecturn call, approved or not: the
+//!   workspace root is bound to the thread, so the app's agent uses
+//!   `rw_project_new`. The app registers `--hide-project-create` on
+//!   `listArgs`, but a paired Lecturn server keeps its stored registration
+//!   until the next re-pair and can still list and call the tool. This
+//!   refusal covers that window, and needs no flag on the call path.
 //!
 //! Durations use the core grammar (`rw_units::parse_for`). A bare number or
 //! a unitless string counts as seconds, as in the old `policy.ts`, so it is
@@ -29,6 +35,9 @@
 use rw_api::{ApiError, ApiErrorCode, Approval, CommandDef};
 use rw_units::{DimKind, parse_for, parse_parts};
 use serde_json::Value;
+
+/// The tool hidden from the app's agent and refused on any Lecturn call.
+pub const PROJECT_CREATE: &str = "project_create";
 
 /// `simulate` above this many Monte Carlo samples is a large job.
 pub const LARGE_MC_SAMPLES: f64 = 100.0;
@@ -50,8 +59,11 @@ pub enum Gate {
 }
 
 /// The gate for a call carrying `lecturn/approval` meta `approval`; `None`
-/// runs it. Monte Carlo is refused even when approved.
+/// runs it. `project_create` and Monte Carlo are refused even when approved.
 pub fn gate(def: &CommandDef, args: &Value, approval: &Value) -> Option<Gate> {
+    if def.name == PROJECT_CREATE {
+        return Some(Gate::Refuse(project_create_refused()));
+    }
     if let Some(e) = monte_carlo(def, args) {
         return Some(Gate::Refuse(e));
     }
@@ -59,6 +71,23 @@ pub fn gate(def: &CommandDef, args: &Value, approval: &Value) -> Option<Gate> {
         return None;
     }
     reason(def, args).map(Gate::Ask)
+}
+
+/// The refusal a Lecturn call to `project_create` gets, dry run included.
+pub fn project_create_refused() -> ApiError {
+    ApiError {
+        code: ApiErrorCode::Conflict,
+        message: "rw_project_create is not available in the RocketWright app; \
+                  create projects with rw_project_new"
+            .to_owned(),
+        hint: Some(
+            "nothing ran; rw_project_new asks the user and opens the new project \
+             in the window, and rw_project_open opens an existing folder"
+                .into(),
+        ),
+        diagnostics: Vec::new(),
+        outcome: None,
+    }
 }
 
 /// `simulate` with `mc > 100`: `not_implemented`, as the session answers

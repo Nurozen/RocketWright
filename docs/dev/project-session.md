@@ -62,7 +62,10 @@ ops -> `TomlStore::preview` -> eval (+library) -> `Checker` -> dry run returns
   `RW_TEST_EXIT_AFTER=<tool>` make the owner exit around a call. An owner whose stdio client leaves drains: it serves while
   relays are attached or jobs run, then exits. A `--no-socket` owner makes
   later instances exit 2 (`RW-E007`). `--list-tools` prints `tools/list` and
-  exits without the lock. Socket paths over 103 bytes fall back to
+  exits without the lock; `--hide-project-create` drops `project_create` from
+  that list (the app's Lecturn registration passes it, on `listArgs` only). A
+  call carrying `_meta["lecturn/approval"]` is refused for `project_create`
+  whatever the flag, because a paired server can hold an older registration. Socket paths over 103 bytes fall back to
   `$TMPDIR/rw-<hash12>.sock`, recorded in the lock. `RW_MCP_TRACE=1` logs the
   role on stderr. A directory without `rocketwright.toml` gets no session:
   contract-fixture doubles only (the app's offline tests). The server tests

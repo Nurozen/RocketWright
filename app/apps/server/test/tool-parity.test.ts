@@ -125,6 +125,9 @@ describe("tool parity: headless rocketwright mcp vs the app's sidecar (B4)", () 
     const tools = (await headless.listTools()).map(parity).sort(byName);
     const g = golden(tools);
     expect(tools.map((t) => t.name)).toEqual(g.tools.map((t) => t.name));
+    // This is `tools/list` with no `--hide-project-create`: that flag is only
+    // on the registration's `listArgs`, so the golden keeps the standalone set.
+    expect(g.tools.map((t) => t.name)).toContain("project_create");
     expect(tools.map(goldenRow)).toEqual(g.tools);
     expect(g.tools.filter((t) => t.appOnly === true).map((t) => t.name)).toEqual([...APP_ONLY_TOOLS].sort());
     // The headless server never lists window tools.
