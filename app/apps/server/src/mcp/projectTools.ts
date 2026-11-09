@@ -130,7 +130,7 @@ function definition(name: ProjectTool, title: string, description: string, prope
 const REQUEST_ARG = {
   type: "string",
   maxLength: PROJECT_TOOL_REQUEST_MAX,
-  description: `Only the work left to do after this step, in at most ${PROJECT_TOOL_REQUEST_MAX_LINES} lines; it becomes the new thread's first message. Leave it out when nothing is left.`,
+  description: `Only the work the person asked for that is left after this step, in their terms, with no checks, fixes or steps of your own, in at most ${PROJECT_TOOL_REQUEST_MAX_LINES} lines; it becomes the new thread's first message. Leave it out when nothing is left.`,
 } as const;
 
 const AFTER =
