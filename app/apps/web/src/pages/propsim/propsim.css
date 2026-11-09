@@ -776,6 +776,12 @@
   margin-top: 16px;
 }
 
+.rw-cfd__pick {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
 /* Simulate rail extras (M5.5): Trajectory and Stability analysis from the flight runs; Thermal analysis empty state. */
 .rw-analysis__body {
   display: flex;

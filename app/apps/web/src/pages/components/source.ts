@@ -147,12 +147,25 @@ function opensMultiline(raw: string): string | null {
 
 function parseFile(text: string, into: SourceTable): void {
   let current: SourceTable | null = into;
+  const elements = new Map<string, number>();
   const lines = text.split(/\r?\n/);
   for (let n = 0; n < lines.length; n++) {
     const line = lines[n]!;
     if (/^\s*(#.*)?$/.test(line)) continue;
     if (/^\s*\[\[/.test(line)) {
-      current = null; // an array of tables: nothing the editor reads
+      // Each element of an array of tables reads as a table keyed by its position (`feed.edge.0`).
+      const elementCursor = new Cursor(line);
+      elementCursor.eat("[");
+      elementCursor.eat("[");
+      const path = elementCursor.key();
+      if (path === null || !elementCursor.eat("]") || !elementCursor.eat("]")) {
+        current = null;
+        continue;
+      }
+      const name = path.join(".");
+      const index = elements.get(name) ?? 0;
+      elements.set(name, index + 1);
+      current = descend(into, [...path, String(index)]);
       continue;
     }
     const headerCursor = new Cursor(line);

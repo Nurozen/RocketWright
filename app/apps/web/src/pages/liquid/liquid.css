@@ -677,3 +677,65 @@
   align-items: flex-start;
   gap: 12px;
 }
+
+.rw-liq-editor__grid > [data-group="Feed graph"] {
+  grid-column: 1 / -1;
+}
+
+.rw-liq-feed__section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.rw-liq-feed__head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.rw-liq-feed__title {
+  margin: 0;
+  font-size: var(--rw-font-size-body);
+  font-weight: var(--rw-font-weight-strong);
+}
+
+.rw-liq-feed__add {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.rw-liq-feed__row {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 8px 24px;
+}
+
+.rw-liq-feed__waypoints .rw-liq-feed__row {
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+}
+
+.rw-liq-feed__waypoints {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-left: 14px;
+  border-left: var(--rw-hairline) solid var(--rw-line);
+}
+
+.rw-liq-feed__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.rw-liq-feed__diagnostics {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  color: var(--rw-danger);
+}

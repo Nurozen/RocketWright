@@ -4,9 +4,9 @@
  * Pure, and no arithmetic on engine results: values come from the evaluated
  * model and the engine's own source file.
  *
- * The feed graph's structure is not here (nodes, lines and their geometry are
- * edited as a table of their own); each tank's volume, pressure and pressurant
- * are, because the Tanks card is where a person sets them.
+ * The feed graph's structure is not here (`feedOps.ts` edits its nodes and
+ * connections); each tank's volume, pressure and pressurant are, because the
+ * Tanks card is where a person sets them.
  */
 import type { PatchOp, schema } from "@rw/contracts";
 import type { ThermoPair } from "@rw/rw-wasm";
@@ -35,6 +35,10 @@ export interface EngineField {
   read?: (e: DeepReadonly<schema.EvalEngine>) => number | string | null | undefined;
   /** Fields only one of which counts: writing this one removes the others, so the value typed is the value used. */
   supersedes?: readonly string[];
+  /** Any value is meaningful: a station or a radial offset may be zero or negative. */
+  signed?: boolean;
+  /** Whether the file holds this value, for values the source reader cannot see (array elements). */
+  present?: boolean;
   doc?: string;
 }
 
@@ -153,23 +157,23 @@ export function parseFieldText(f: EngineField, text: string, units: Units): Pars
   if (t.startsWith("=")) return t.length > 1 ? { value: t } : { error: `${f.label} needs a formula after =.` };
   const n = Number(t);
   if (!Number.isFinite(n)) return { error: `${f.label} needs a number.` };
-  if (n <= 0) return { error: `${f.label} must be greater than 0.` };
+  if (n <= 0 && f.signed !== true) return { error: `${f.label} must be greater than 0.` };
   return { value: toSource(n, f.dim, units) };
 }
 
 // ---- writes ----------------------------------------------------------------------------
 
 const pointer = (s: string) => s.replace(/~/g, "~0").replace(/\//g, "~1");
-const pathOf = (engineId: string, key: string) => `/engines/${pointer(engineId)}/${key.split(".").map(pointer).join("/")}`;
+export const pathOf = (engineId: string, key: string) => `/engines/${pointer(engineId)}/${key.split(".").map(pointer).join("/")}`;
 
 /** The ops of one field's new value; empty when there is nothing to do (clearing a value that is not written). */
 export function fieldOps(engineId: string, f: EngineField, value: SourceScalar | null, source: EngineSource): PatchOp[] {
   const path = pathOf(engineId, f.key);
-  const written = source.written(f.key) !== undefined;
+  const written = f.present ?? source.written(f.key) !== undefined;
   if (value === null) return written ? [{ op: "remove", path }] : [];
   const ops: PatchOp[] = [{ op: written ? "replace" : "add", path, value: value as never }];
   for (const other of f.supersedes ?? []) {
-    if (source.written(other) !== undefined) ops.push({ op: "remove", path: pathOf(engineId, other) });
+    if (source.written(other) !== undefined || source.hasTable(other)) ops.push({ op: "remove", path: pathOf(engineId, other) });
   }
   return ops;
 }
