@@ -1239,6 +1239,17 @@ button:disabled {
   color: var(--rw-text-secondary);
 }
 
+.rw-lifecycle__detail {
+  max-height: 50vh;
+  overflow: auto;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.rw-page-error {
+  padding: 16px;
+}
+
 /* ---- quick start --------------------------------------------------------- */
 
 .rw-quick-start {

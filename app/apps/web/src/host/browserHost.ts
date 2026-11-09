@@ -22,6 +22,10 @@ export function createBrowserHost(prompt: PathPrompt): HostApi {
   return {
     kind: "browser",
     boot: () => Promise.resolve({ activeProjectId: null, notice: null }),
+    relaunch: () => {
+      window.location.reload();
+      return Promise.resolve();
+    },
     pickFolder: (options) => prompt(request("folder", "Choose a folder", options)),
     pickFile: (options) => prompt(request("file", "Choose a file", options)),
     saveAs: (options) => prompt(request("save", "Save as", options)),

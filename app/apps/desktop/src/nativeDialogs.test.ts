@@ -21,6 +21,7 @@ function setup(opts: { headless?: boolean; window?: FakeWindow | null; exportFil
     showOpenDialog: vi.fn<DialogLike<FakeWindow>["showOpenDialog"]>(() => Promise.resolve({ canceled: false, filePaths: ["/picked"] })),
     showSaveDialog: vi.fn<DialogLike<FakeWindow>["showSaveDialog"]>(() => Promise.resolve({ canceled: false, filePath: "/saved" })),
   };
+  const relaunch = vi.fn<() => void>();
   const recents: Recents = {
     list: vi.fn<Recents["list"]>(() => Promise.resolve([{ dir: "/a", name: "A", lastOpened: "t", status: "ok" }])),
     see: vi.fn<Recents["see"]>(() => Promise.resolve()),
@@ -40,6 +41,7 @@ function setup(opts: { headless?: boolean; window?: FakeWindow | null; exportFil
     },
     recents,
     boot: () => boot.value,
+    relaunch,
     ...(opts.headless !== undefined ? { headless: opts.headless } : {}),
     ...(opts.exportFile !== undefined ? { exportFile: opts.exportFile } : {}),
   });
@@ -49,11 +51,11 @@ function setup(opts: { headless?: boolean; window?: FakeWindow | null; exportFil
     return Promise.resolve().then(() => handler({ sender: win.webContents }, ...args));
   };
   const callAs = (sender: unknown, channel: string, ...args: unknown[]): Promise<unknown> => Promise.resolve().then(() => handlers.get(channel)!({ sender }, ...args));
-  return { handlers, win, dialog, recents, boot, documentsCalls, setDocuments: (d: string) => (documents = d), call, callAs, dispose };
+  return { handlers, win, dialog, recents, boot, relaunch, documentsCalls, setDocuments: (d: string) => (documents = d), call, callAs, dispose };
 }
 
 const c = DESKTOP_INVOKE_CHANNELS;
-const OWNED = [c.boot, c.pickFolder, c.pickFile, c.saveAs, c.exportFile, c.recents, c.removeRecent, c.setActiveProject];
+const OWNED = [c.boot, c.pickFolder, c.pickFile, c.saveAs, c.exportFile, c.recents, c.removeRecent, c.setActiveProject, c.relaunch];
 
 describe("sender check", () => {
   it("registers the services it owns and removes them", () => {
@@ -77,6 +79,14 @@ describe("sender check", () => {
     await expect(setup({ window: null }).callAs({}, c.boot)).rejects.toThrow("not the app window");
     const gone = setup({ window: { webContents: {}, isDestroyed: () => true } });
     await expect(gone.callAs(gone.win.webContents, c.boot)).rejects.toThrow("not the app window");
+  });
+});
+
+describe("relaunch", () => {
+  it("relaunches when the app window asks", async () => {
+    const t = setup();
+    await t.call(c.relaunch);
+    expect(t.relaunch).toHaveBeenCalledOnce();
   });
 });
 

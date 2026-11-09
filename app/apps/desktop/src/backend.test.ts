@@ -354,6 +354,29 @@ describe("browser mode against the real app server", () => {
   }, 60_000);
 });
 
+describe("startBackend with a server that will not start", () => {
+  const web = (): string => {
+    const dir = temp("rw-web-");
+    writeFileSync(join(dir, "index.html"), "<!doctype html><div id=root></div>");
+    return dir;
+  };
+
+  it("keeps the page up and says why, when asked to", async () => {
+    const b = await startBackend({ projects: [], webRoot: web(), node: "/usr/bin/false", keepWebOnServerFailure: true, log: () => undefined });
+    try {
+      expect(b.server).toBeNull();
+      expect(b.startupError).toContain("before announcing its URLs");
+      expect((await fetch(b.url)).status).toBe(200);
+    } finally {
+      await b.close();
+    }
+  });
+
+  it("rejects otherwise, and leaves no web server behind", async () => {
+    await expect(startBackend({ projects: [], webRoot: web(), node: "/usr/bin/false", log: () => undefined })).rejects.toThrow("before announcing its URLs");
+  });
+});
+
 describe("waitForHttp", () => {
   it("retries until the origin answers, then resolves", async () => {
     let calls = 0;

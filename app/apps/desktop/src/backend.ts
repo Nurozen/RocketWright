@@ -36,6 +36,8 @@ export const DESKTOP_ARG = "--rw-desktop=";
 export interface DesktopConfig {
   rpcUrl: string | null;
   serverUrl: string | null;
+  /** Why the app server did not start; the page shows it (R3.3). */
+  startupError?: string | null;
 }
 
 /**
@@ -311,26 +313,43 @@ export interface Backend {
   /** Static web origin, http://127.0.0.1:<port>. */
   origin: string;
   server: ServerHandle | null;
+  /** Set only with `keepWebOnServerFailure`: the server did not start, and the page says why. */
+  startupError: string | null;
   url: string;
   close(): Promise<void>;
 }
 
 /** The app server (when `projects` is non-null, even if empty) plus the static web bundle. */
 export async function startBackend(
-  opts: { projects: string[] | null; webRoot?: string; query?: string; page?: string | undefined } & Omit<SpawnServerOptions, "projects">,
+  opts: {
+    projects: string[] | null;
+    webRoot?: string;
+    query?: string;
+    page?: string | undefined;
+    /** A server that will not start leaves the page up, to say so (the interactive window), rather than rejecting. */
+    keepWebOnServerFailure?: boolean;
+  } & Omit<SpawnServerOptions, "projects">,
 ): Promise<Backend> {
-  const { projects, webRoot, query, page, ...spawnOpts } = opts;
-  const server = projects === null ? null : await spawnServer({ ...spawnOpts, projects });
-  let web;
-  try {
-    web = await serveStatic(webRoot ?? WEB_DIST);
-  } catch (e) {
-    await server?.stop();
-    throw e;
+  const { projects, webRoot, query, page, keepWebOnServerFailure = false, ...spawnOpts } = opts;
+  // The page first: it is what reports a server that fails.
+  const web = await serveStatic(webRoot ?? WEB_DIST);
+  let server: ServerHandle | null = null;
+  let startupError: string | null = null;
+  if (projects !== null) {
+    try {
+      server = await spawnServer({ ...spawnOpts, projects });
+    } catch (e) {
+      if (!keepWebOnServerFailure) {
+        await web.close();
+        throw e;
+      }
+      startupError = e instanceof Error ? e.message : String(e);
+    }
   }
   return {
     origin: web.origin,
     server,
+    startupError,
     url: appUrl(web.origin, server, query, page),
     close: async () => {
       await Promise.all([web.close(), server?.stop()]);

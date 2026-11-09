@@ -311,7 +311,7 @@ function webPreferences(preload: string | undefined, backend: Backend): Electron
   if (preload !== undefined) {
     prefs.preload = preload;
     const s = backend.server;
-    prefs.additionalArguments = [desktopArg({ rpcUrl: s?.rpcUrl ?? null, serverUrl: s?.serverUrl ?? null })];
+    prefs.additionalArguments = [desktopArg({ rpcUrl: s?.rpcUrl ?? null, serverUrl: s?.serverUrl ?? null, startupError: backend.startupError })];
   }
   return prefs;
 }
@@ -591,8 +591,10 @@ async function main(): Promise<void> {
     lecturnBaseDir,
     documentsDir: documents(),
     log: (c) => process.stderr.write(c),
+    keepWebOnServerFailure: !hidden,
     ...(packaged !== null ? packagedServerOptions(packaged, process.execPath) : {}),
   });
+  if (backend.startupError !== null) process.stderr.write(`app server did not start: ${backend.startupError}\n`);
   // Never orphan the server, even on a hard exit.
   process.once("exit", () => {
     backend.server?.child.kill("SIGKILL");
@@ -645,6 +647,10 @@ async function main(): Promise<void> {
     boot: () => boot,
     headless: hidden,
     recents,
+    relaunch: () => {
+      app.relaunch();
+      void shutdown(0);
+    },
     ...(mainRpc === null
       ? {}
       : {
@@ -766,6 +772,9 @@ async function startMainRpc(backend: Backend, quiet: boolean, hooks: Pick<MainRp
 }
 
 main().catch((e: unknown) => {
-  process.stderr.write(`${e instanceof Error ? (e.stack ?? e.message) : String(e)}\n`);
+  const text = e instanceof Error ? (e.stack ?? e.message) : String(e);
+  process.stderr.write(`${text}\n`);
+  // Nothing left to show a window with (a packaged app has no terminal to read); a dev run has stderr, and a modal would hang a harness.
+  if (app.isPackaged) dialog.showErrorBox("RocketWright could not start", text);
   app.exit(1);
 });

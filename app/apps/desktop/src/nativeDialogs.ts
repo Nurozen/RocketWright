@@ -62,6 +62,8 @@ export interface DesktopServices<W extends WindowLike> {
   exportFile?: (request: ExportFileRequest, path: string) => Promise<schema.ExportOut>;
   /** A hidden run: no dialog can be answered, so every picker reads as cancelled. */
   headless?: boolean;
+  /** Starts a new instance of the app and ends this one (R3.3, D19). */
+  relaunch: () => void;
 }
 
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null;
@@ -156,6 +158,7 @@ export function registerDesktopServices<W extends WindowLike>(deps: DesktopServi
     return recents.remove(dir);
   });
   handle(c.setActiveProject, (_win, project) => recents.see(activeProject(project)));
+  handle(c.relaunch, () => deps.relaunch());
   return () => {
     for (const channel of channels) ipc.removeHandler(channel);
   };

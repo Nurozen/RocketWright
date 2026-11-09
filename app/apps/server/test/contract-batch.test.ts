@@ -7,7 +7,6 @@
 import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import type { RpcMethod } from "@rw/contracts";
 import { TestClient, makeValidator } from "@rw/contracts/mock/harness";
 import { AppServer } from "../src/rpc/AppServer.ts";
 import { sidecarBin, tempProject } from "./helpers/harness.ts";
@@ -121,13 +120,10 @@ describe("contract batch (U13)", () => {
     expect(await c.request("run.delete", { projectId } as never)).toMatchObject({ ok: false, error: { code: "invalid_params" } });
   });
 
-  it("the unimplemented methods answer internal until their steps land", async () => {
-    const stubs: [RpcMethod, Record<string, unknown>][] = [
-      ["project.restartSidecar", { projectId }],
-    ];
-    for (const [method, params] of stubs) {
-      expect(await c.request(method, params as never), method).toMatchObject({ ok: false, error: { code: "internal" } });
-    }
+  it("project.restartSidecar leaves a healthy sidecar alone and validates its params", async () => {
+    expect(await c.call("project.restartSidecar", { projectId })).toEqual({});
+    expect((await c.call("project.list", {})).projects.map((p) => p.projectId)).toContain(projectId);
+    expect(await c.request("project.restartSidecar", {} as never)).toMatchObject({ ok: false, error: { code: "invalid_params" } });
   });
 
   it("every frame matched the IF10 schemas", () => {

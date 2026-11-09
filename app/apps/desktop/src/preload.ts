@@ -31,7 +31,7 @@
   const { contextBridge, ipcRenderer, webUtils } = require("electron") as typeof import("electron");
   const PREFIX = "--rw-desktop=";
   const arg = process.argv.find((a: string) => a.startsWith(PREFIX));
-  let config: { rpcUrl?: unknown; serverUrl?: unknown } = {};
+  let config: { rpcUrl?: unknown; serverUrl?: unknown; startupError?: unknown } = {};
   if (arg !== undefined) {
     try {
       config = JSON.parse(decodeURIComponent(arg.slice(PREFIX.length))) as typeof config;
@@ -68,6 +68,7 @@
     platform: process.platform,
     rpcUrl: url(config.rpcUrl),
     serverUrl: url(config.serverUrl),
+    startupError: typeof config.startupError === "string" ? config.startupError : null,
     versions: { electron: process.versions.electron, chrome: process.versions.chrome },
     boot: () => ipcRenderer.invoke(INVOKE.boot),
     pickFolder: (options: unknown) => ipcRenderer.invoke(INVOKE.pickFolder, options),

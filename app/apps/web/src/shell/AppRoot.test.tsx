@@ -16,6 +16,7 @@ import type { RpcLike } from "../state/rpc.ts";
 import type { AppStore } from "../state/store.ts";
 import { registerDirtyField, resetDirtyFields, trackWrite } from "../state/dirtyFields.ts";
 import { AppRoot, type AppRootProps } from "./AppRoot.tsx";
+import { RECONNECT_DELAYS_MS } from "./connection.ts";
 import type { ConnectedShellProps } from "./ConnectedShell.tsx";
 
 const shells = vi.hoisted(() => {
@@ -99,6 +100,7 @@ function fakeHost(over: Partial<HostApi> = {}) {
       return () => void commands.splice(commands.indexOf(l), 1);
     },
     pathForFile: () => null,
+    relaunch: vi.fn<HostApi["relaunch"]>(() => Promise.resolve()),
     ...over,
   };
   return { host, active, send: (c: DesktopCommand) => commands.forEach((l) => l(c)) };
@@ -111,6 +113,7 @@ let el: HTMLElement;
 
 const shown = () => shells.mounted.at(-1) as ConnectedShellProps | undefined;
 const storeOf = (s: ConnectedShellProps | undefined): AppStore => s!.store;
+const buttonNamed = (name: string) => [...document.querySelectorAll("button")].find((b) => b.textContent === name);
 const settled = () => act(async () => void (await new Promise((r) => setTimeout(r, 0))));
 
 async function mount(t: ReturnType<typeof fakeClient>, h: ReturnType<typeof fakeHost>, over: Partial<AppRootProps> = {}) {
@@ -199,11 +202,100 @@ describe("what the window shows at launch", () => {
     expect(el.querySelector('[data-testid="welcome"]')?.textContent).toContain("not_found: no such project");
   });
 
-  it("an empty window whose connection drops is fatal", async () => {
+  it("offers Relaunch when startup fails, and it asks the host", async () => {
+    const h = fakeHost();
+    await mount(fakeClient([]), h, { connect: () => Promise.reject(new Error("no hello")) });
+    await act(async () => buttonNamed("Relaunch")!.click());
+    expect(h.host.relaunch).toHaveBeenCalledOnce();
+  });
+});
+
+describe("losing the connection", () => {
+  const banner = (id: string) => document.querySelector(`[data-testid="${id}"]`);
+  const advance = (ms: number) => act(async () => void (await vi.advanceTimersByTimeAsync(ms)));
+
+  afterEach(() => vi.useRealTimers());
+
+  async function lost(reason = "socket closed") {
+    const first = fakeClient(["a"]);
+    const again = fakeClient(["a"]);
+    const next = vi.fn<NonNullable<AppRootProps["connect"]>>(() => Promise.resolve(again.client));
+    let isFirst = true;
+    const h = fakeHost();
+    await mount(first, h, { connect: (url) => (isFirst ? ((isFirst = false), Promise.resolve(first.client)) : next(url)) });
+    vi.useFakeTimers();
+    await act(async () => first.lose(reason));
+    return { first, again, next, h };
+  }
+
+  it("says so, reconnects with backoff, and resubscribes the same project on the new socket", async () => {
+    const { again, next } = await lost();
+    expect(banner("connection.reconnecting")?.textContent).toContain("Reconnecting");
+    expect(next).not.toHaveBeenCalled();
+    await advance(RECONNECT_DELAYS_MS[0]!);
+    expect(next).toHaveBeenCalledOnce();
+    expect(banner("connection.reconnecting")).toBeNull();
+    expect(again.calls.map((c) => c.method)).toContain("project.subscribe");
+  });
+
+  it("keeps the project on screen and its draft through a reconnect", async () => {
+    const { first } = await lost();
+    const store = storeOf(shown());
+    const snapshot = store.getState().project.snapshot;
+    expect(snapshot).not.toBeNull();
+    store.setState((s) => ({ draft: { ...s.draft, ops: [{ op: "replace", path: "/c/a", value: "1" }] } }));
+    await advance(RECONNECT_DELAYS_MS[0]!);
+    expect(storeOf(shown())).toBe(store);
+    expect(store.getState().project.snapshot).toBe(snapshot);
+    expect(store.getState().draft.ops).toEqual([{ op: "replace", path: "/c/a", value: "1" }]);
+    expect(store.getState().project.connection).toBe("open");
+    expect(first.calls.filter((c) => c.method === "project.subscribe")).toHaveLength(1);
+  });
+
+  it("shows Relaunch once every retry has failed, and it asks the host", async () => {
+    const { next, h } = await lost();
+    next.mockImplementation(() => Promise.reject(new Error("refused")));
+    for (const delay of RECONNECT_DELAYS_MS) {
+      expect(banner("connection.lost")).toBeNull();
+      await advance(delay);
+    }
+    expect(next).toHaveBeenCalledTimes(RECONNECT_DELAYS_MS.length);
+    expect(banner("connection.lost")?.textContent).toContain("The app server has stopped");
+    expect(banner("connection.reconnecting")).toBeNull();
+    await act(async () => buttonNamed("Relaunch")!.click());
+    expect(h.host.relaunch).toHaveBeenCalledOnce();
+  });
+
+  it("offers Reload rather than Relaunch in a browser", async () => {
+    const t = fakeClient(["a"]);
+    await mount(t, fakeHost({ kind: "browser" }), { connect: () => (t.calls.length === 0 ? Promise.resolve(t.client) : Promise.reject(new Error("refused"))) });
+    vi.useFakeTimers();
+    await act(async () => t.lose("socket closed"));
+    for (const delay of RECONNECT_DELAYS_MS) await advance(delay);
+    expect(buttonNamed("Reload")).toBeDefined();
+    expect(buttonNamed("Relaunch")).toBeUndefined();
+  });
+
+  it("keeps Welcome through a dropped socket instead of ending the window", async () => {
     const t = fakeClient([]);
     await mount(t, fakeHost());
+    vi.useFakeTimers();
     await act(async () => t.lose("socket closed"));
-    expect(el.querySelector('[data-testid="fatal"]')?.textContent).toContain("socket closed");
+    expect(el.querySelector('[data-testid="welcome"]')).not.toBeNull();
+    expect(el.querySelector('[data-testid="fatal"]')).toBeNull();
+    expect(banner("connection.reconnecting")).not.toBeNull();
+  });
+});
+
+describe("a stopped engine", () => {
+  it("offers Restart on a failed sidecar and calls project.restartSidecar", async () => {
+    const t = fakeClient(["a"]);
+    await mount(t, fakeHost());
+    const store = storeOf(shown());
+    expect(document.querySelector('[data-testid="sidecar.failed"]')).toBeNull();
+    await act(async () => store.setState((s) => ({ project: { ...s.project, snapshot: { ...s.project.snapshot!, sidecar: { state: "failed", version: null } } } })));
+    await act(async () => buttonNamed("Restart engine")!.click());
+    expect(t.calls.filter((c) => c.method === "project.restartSidecar")).toEqual([{ method: "project.restartSidecar", params: { projectId: "a" } }]);
   });
 });
 

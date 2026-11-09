@@ -28,10 +28,13 @@ export function createProjectSlice(ctx: SliceCtx): ProjectSlice {
     error: null,
 
     async connect(client: RpcLike, projectId: string): Promise<void> {
-      ctx.get().project.disconnect();
+      // The same project over a new socket (D19): the mirror stays up and drafts stay put until the fresh snapshot lands; a real change underneath marks them stale.
+      const resuming = ctx.projectId === projectId && ctx.client !== client && ctx.get().project.snapshot !== null;
+      if (resuming) for (const fn of ctx.cleanup.splice(0)) fn();
+      else ctx.get().project.disconnect();
       ctx.client = client;
       ctx.projectId = projectId;
-      ctx.patch("project", { projectId, connection: "connecting", hello: client.hello, error: null });
+      ctx.patch("project", { projectId, connection: "connecting", hello: client.hello, error: null, ...(resuming ? { subscriptionId: null } : {}) });
 
       const mine = (sid: string): boolean => sid === ctx.get().project.subscriptionId;
       ctx.cleanup.push(
@@ -46,7 +49,7 @@ export function createProjectSlice(ctx: SliceCtx): ProjectSlice {
         }),
       );
 
-      const wasm = loadWasm(client.hello.coreVersion, wrapLoad(ctx));
+      const wasm = resuming && ctx.core !== null ? null : loadWasm(client.hello.coreVersion, wrapLoad(ctx));
       try {
         const sub = await client.call("project.subscribe", { projectId });
         if (ctx.client !== client) return;
@@ -57,6 +60,7 @@ export function createProjectSlice(ctx: SliceCtx): ProjectSlice {
         // The caller decides what a project that will not open means: `ProjectSurface` falls back to Welcome.
         throw e;
       }
+      if (wasm === null) return;
       const handle = await wasm;
       if (ctx.client !== client) return;
       // Prefer the sidecar's own version once the mirror reports it.

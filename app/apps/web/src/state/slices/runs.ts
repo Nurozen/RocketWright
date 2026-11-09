@@ -38,6 +38,10 @@ export function createRunsSlice(ctx: SliceCtx): RunsSlice {
       }
     },
 
+    dismissError() {
+      ctx.patch("runs", { error: null });
+    },
+
     async cancel(jobId) {
       const { client, projectId } = ctx.conn();
       try {

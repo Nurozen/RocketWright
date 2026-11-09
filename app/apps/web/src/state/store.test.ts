@@ -211,6 +211,33 @@ describe("project: read-only mirror", () => {
 describe("draft: WASM preview + sidecar dry run", () => {
   const span: PatchOp = { op: "replace", path: "/c/fins/span", value: "90 mm" };
 
+  it("keeps the mirror and the draft through a same-project reconnect", async () => {
+    const { srv, store, client } = await setup();
+    await store.getState().draft.edit([span], "Fin span 90 mm");
+    const snapshot = store.getState().project.snapshot;
+    client.close();
+    expect(store.getState().project.connection).toBe("closed");
+    const next = await connect(srv);
+    const reconnected = store.getState().project.connect(next, P);
+    expect(store.getState().project.snapshot).toBe(snapshot);
+    expect(store.getState().draft.ops).toEqual([span]);
+    await reconnected;
+    expect(store.getState().project).toMatchObject({ connection: "open", projectId: P });
+    expect(store.getState().project.subscriptionId).not.toBeNull();
+    expect(store.getState().draft).toMatchObject({ ops: [span], stale: false, label: "Fin span 90 mm" });
+    expect(store.getState().draft.engine).toEqual({ state: "ready", coreVersion: CORE, preview: true });
+  });
+
+  it("after a full disconnect, connecting starts from an empty mirror", async () => {
+    const { srv, store, client } = await setup();
+    client.close();
+    const next = await connect(srv);
+    store.getState().project.disconnect();
+    expect(store.getState().project.snapshot).toBeNull();
+    await store.getState().project.connect(next, P);
+    expect(store.getState().project.snapshot).not.toBeNull();
+  });
+
   it("previews through the version-matched core, then commits through model.patch", async () => {
     const core = fakeCore();
     const { store, srv } = await setup({}, core);

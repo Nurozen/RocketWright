@@ -86,6 +86,25 @@ describe("electron host", () => {
   });
 });
 
+describe("relaunch", () => {
+  it("goes to main on the desktop", async () => {
+    const { bridge, calls } = fakeBridge();
+    await createElectronHost(bridge).relaunch();
+    expect(calls).toEqual([["relaunch"]]);
+  });
+
+  it("reloads the page in a browser", async () => {
+    const reload = vi.fn<() => void>();
+    vi.stubGlobal("window", { location: { reload } });
+    try {
+      await createBrowserHost(vi.fn<PathPrompt>()).relaunch();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+    expect(reload).toHaveBeenCalledOnce();
+  });
+});
+
 describe("browser host", () => {
   it("has no recents, no reopen and no dropped paths", async () => {
     const prompt = vi.fn<PathPrompt>();
