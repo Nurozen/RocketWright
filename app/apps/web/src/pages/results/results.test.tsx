@@ -436,13 +436,14 @@ describe("static markup", () => {
     for (const id of ["results.run-selected", "results.plot-menu", "results.export-csv", "runs.table-header"]) expect(testIds(page, id), id).toHaveLength(1);
     expect(testIds(page, "plot.tab")).toEqual(["Altitude", "Velocity", "Acceleration", "Stability"]);
     expect(page).toMatch(/data-testid="plot\.tab" data-tab="altitude" aria-selected="true"/);
-    // One row per sim that has a run; never-run Recovery test stays in the rail only.
-    expect(testIds(page, "runs.table-row")).toHaveLength(3);
-    expect(page).not.toMatch(/data-testid="runs\.table-row" data-sim="recovery_test"/);
-    expect(testIds(page, "runs.row-menu")).toHaveLength(3);
+    // One row per flight sim; never-run Recovery test reads Not run and offers Run (R2.7).
+    expect(testIds(page, "runs.table-row")).toHaveLength(4);
+    expect(page).toMatch(/data-testid="runs\.table-row" data-sim="recovery_test" data-status="not_run"/);
+    expect(testIds(page, "runs.row-menu")).toHaveLength(4);
     expect(page).toMatch(/data-testid="runs\.table-row" data-sim="baseline" data-status="complete" data-series="a" aria-selected="true"/);
     expect(page).toMatch(/data-testid="runs\.table-row" data-sim="higher_altitude" data-status="complete" data-series="b"/);
-    expect(testIds(page, "runs.apogee")).toEqual(["612", "700", "—"]);
+    // A Not run row holds its Run button where the numbers would be.
+    expect(testIds(page, "runs.apogee")).toEqual(["612", "700", "—", ""]);
   });
 
   it("shows the banner, the details footer, and the trajectory title", () => {

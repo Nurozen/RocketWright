@@ -4,8 +4,8 @@
  * current model, Fin revision Outdated by step 03, Recovery test Not run),
  * Baseline and Higher altitude overlaid (teal, sand) with Baseline selected
  * (the run the rail, table, and details describe), and the "Flight
- * comparison" thread open in the pane. The run table lists runs only; never-run Recovery test is in
- * the Runs rail.
+ * comparison" thread open in the pane. Never-run Recovery test reads Not run in the table, with
+ * its Run button.
  *
  * A desktop `--drive` module (`make bar-visual PAGES=04`). The runs are the
  * seed's real runs (no `sim.run` here); the overlay, page, and thread go

@@ -106,6 +106,11 @@ export function createDraftSlice(ctx: SliceCtx): DraftSlice {
       return committing;
     },
 
+    dryRun(ops: readonly PatchOp[]): Promise<MutationOut> {
+      const { client, projectId } = ctx.conn();
+      return client.call("model.patch", { projectId, ops: [...ops], dry_run: true });
+    },
+
     mutate: createMutate(ctx),
     removeComponent: createRemoveComponent(ctx),
   };

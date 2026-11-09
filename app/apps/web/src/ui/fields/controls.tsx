@@ -73,6 +73,7 @@ export function SelectField({
   field,
   value,
   options,
+  labels,
   placeholder,
   title,
   byAgent,
@@ -82,6 +83,8 @@ export function SelectField({
   field: ControlField;
   value: string;
   options: readonly string[];
+  /** Visible text for options whose source spelling is not it (`ussa1976`). */
+  labels?: Readonly<Record<string, string>> | undefined;
   placeholder: string | null;
   title: string | undefined;
   byAgent: boolean;
@@ -105,7 +108,7 @@ export function SelectField({
           {placeholder !== null && <option value="">{placeholder}</option>}
           {options.map((o) => (
             <option key={o} value={o}>
-              {o.replace(/_/g, " ")}
+              {labels?.[o] ?? o.replace(/_/g, " ")}
             </option>
           ))}
         </select>
@@ -126,6 +129,7 @@ export function SpinField({
   title,
   byAgent,
   error,
+  disabled,
   onChange,
   onCommit,
   onDiscard,
@@ -140,6 +144,7 @@ export function SpinField({
   title: string | undefined;
   byAgent: boolean;
   error: string | null;
+  disabled?: boolean | undefined;
   onChange: (text: string) => void;
   onCommit: () => void;
   onDiscard: () => void;
@@ -173,6 +178,7 @@ export function SpinField({
           inputMode="decimal"
           value={text}
           placeholder={placeholder}
+          disabled={disabled}
           aria-label={field.label}
           aria-describedby={unit === "" ? undefined : unitId}
           aria-invalid={error ? true : undefined}
@@ -202,10 +208,10 @@ export function SpinField({
           }}
         />
         <span className="rw-spinbox__arrows">
-          <button type="button" tabIndex={-1} aria-label={`Increase ${field.label}`} data-testid="editor.spin-up" onMouseDown={(e) => e.preventDefault()} onClick={() => bump(1)}>
+          <button type="button" tabIndex={-1} aria-label={`Increase ${field.label}`} data-testid="editor.spin-up" disabled={disabled} onMouseDown={(e) => e.preventDefault()} onClick={() => bump(1)}>
             <Icon name="chevron-up" size={12} />
           </button>
-          <button type="button" tabIndex={-1} aria-label={`Decrease ${field.label}`} data-testid="editor.spin-down" onMouseDown={(e) => e.preventDefault()} onClick={() => bump(-1)}>
+          <button type="button" tabIndex={-1} aria-label={`Decrease ${field.label}`} data-testid="editor.spin-down" disabled={disabled} onMouseDown={(e) => e.preventDefault()} onClick={() => bump(-1)}>
             <Icon name="chevron-down" size={12} />
           </button>
         </span>

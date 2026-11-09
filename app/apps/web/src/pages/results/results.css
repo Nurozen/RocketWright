@@ -757,6 +757,88 @@
   font-size: var(--rw-font-size-body);
 }
 
+/* ---- simulation conditions sheet (R2.5) ----------------------------------- */
+
+.rw-simcond .rw-field-group {
+  padding-bottom: 14px;
+  margin-bottom: 14px;
+  border-bottom: var(--rw-hairline) solid var(--rw-line);
+}
+
+.rw-simcond .rw-field-group:last-child {
+  margin-bottom: 0;
+  border-bottom: 0;
+}
+
+.rw-simcond .rw-field-group__title {
+  margin: 0 0 8px;
+  color: var(--rw-text-primary);
+  font-size: var(--rw-font-size-pane-title);
+  font-weight: var(--rw-font-weight-strong);
+}
+
+.rw-simcond__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 16px;
+}
+
+.rw-simcond__cell {
+  min-width: 0;
+}
+
+/* Label above the value, the unit inside its right edge. */
+.rw-simcond .rw-field {
+  position: relative;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 4px;
+}
+
+.rw-simcond .rw-field__select {
+  grid-column: 1;
+  width: 100%;
+}
+
+/* Fixed by the chosen atmosphere: read, not edited. */
+.rw-simcond .rw-spinbox__input:disabled {
+  color: var(--rw-text-secondary);
+}
+
+.rw-simcond .rw-field__unit {
+  position: absolute;
+  right: 10px;
+  bottom: 7px;
+  pointer-events: none;
+}
+
+.rw-simcond .rw-spinbox__input {
+  padding-right: 44px;
+}
+
+.rw-simcond .rw-spinbox__arrows {
+  display: none;
+}
+
+.rw-simcond__cell[data-invalid="true"] .rw-spinbox {
+  border-color: var(--rw-danger);
+}
+
+.rw-simcond__error {
+  margin: 4px 0 0;
+  color: var(--rw-danger);
+  font-size: var(--rw-font-size-secondary);
+}
+
+.rw-simcond__action {
+  flex: 1;
+  justify-content: center;
+}
+
+.rw-simcond__run {
+  flex: 2;
+  justify-content: center;
+}
+
 .rw-snap__meta {
   padding-left: 20px;
   color: var(--rw-text-secondary);
