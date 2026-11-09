@@ -160,6 +160,21 @@ describe("what the window shows at launch", () => {
     expect(h.active).toEqual([null]);
   });
 
+  it("in a browser, asks for paths in a typed prompt at the window's root", async () => {
+    const t = fakeClient([]);
+    await mount(t, fakeHost(), { host: undefined });
+    const open = [...el.querySelectorAll("button")].find((b) => b.textContent === "Open folder…")!;
+    await act(async () => open.click());
+    await settled();
+    const prompt = document.querySelector<HTMLElement>('[data-testid="path-prompt"]');
+    expect(prompt?.textContent).toContain("Open folder");
+    const cancel = [...prompt!.querySelectorAll("button")].find((b) => b.textContent === "Cancel")!;
+    await act(async () => cancel.click());
+    await settled();
+    expect(document.querySelector('[data-testid="path-prompt"]')).toBeNull();
+    expect(el.querySelector('[data-testid="welcome"]')).not.toBeNull();
+  });
+
   it("reports the window as ready", async () => {
     const onOutcome = vi.fn<NonNullable<AppRootProps["onOutcome"]>>();
     await mount(fakeClient([]), fakeHost(), { onOutcome });
