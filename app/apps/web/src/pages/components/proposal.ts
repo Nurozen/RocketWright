@@ -15,7 +15,8 @@
  */
 import type { CheckReport, CompareOut, EvaluatedModel, PatchOp, schema } from "@rw/contracts";
 import type { DeepReadonly } from "../../state/index.ts";
-import { editorFields, fieldLabel, type FieldSpec } from "./fields.ts";
+import { changeLabel, editorFields, fieldLabel, type FieldSpec } from "../../ui/fields/index.ts";
+import { evaluatedValue } from "./fieldOps.ts";
 
 type Model = DeepReadonly<EvaluatedModel>;
 type Comp = DeepReadonly<schema.EvalComponent>;
@@ -67,16 +68,10 @@ export function reverseOps(changed: readonly DeepReadonly<schema.FieldChange>[])
   return ops;
 }
 
-function shapeValue(c: Comp, key: string): number | string | null {
-  const parts = key.split(".");
-  if (parts[0] === "override") {
-    const v = (c.override as Record<string, unknown> | null | undefined)?.[parts[1]!];
-    return typeof v === "number" ? v : null;
-  }
-  if (parts[0] === "appearance") return c.appearance?.preset ?? null;
-  if (key === "material") return c.material ?? null;
-  const v = (c.shape as Record<string, unknown>)[key];
-  return typeof v === "number" || typeof v === "string" ? v : null;
+/** A field's value as the Changed fields card shows it. */
+function shownValue(c: Comp, key: string): number | string | null {
+  const v = evaluatedValue(c, key);
+  return typeof v === "boolean" ? (v ? "Yes" : "No") : v;
 }
 
 /** Editor fields whose evaluated value differs between `base` and `cur` (old → new). */
@@ -85,11 +80,11 @@ export function changedFields(base: Comp | undefined, cur: Comp | undefined): Ch
   const specs: FieldSpec[] = editorFields(cur.shape.type);
   const out: ChangedField[] = [];
   for (const f of specs) {
-    const a = shapeValue(base, f.key);
-    const b = shapeValue(cur, f.key);
+    const a = shownValue(base, f.key);
+    const b = shownValue(cur, f.key);
     const same = typeof a === "number" && typeof b === "number" ? Math.abs(a - b) <= 1e-12 * Math.max(1, Math.abs(a)) : a === b;
     if (same) continue;
-    out.push({ key: f.key, label: f.label, ...(f.dim !== undefined ? { dim: f.dim } : {}), old: a, new: b });
+    out.push({ key: f.key, label: changeLabel(f), ...(f.dim !== undefined ? { dim: f.dim } : {}), old: a, new: b });
   }
   if (out.length === 0 && (base.x_fore !== cur.x_fore || base.x_aft !== cur.x_aft)) {
     out.push({ key: "x_fore", label: fieldLabel("position"), dim: "length", old: base.x_fore, new: cur.x_fore });

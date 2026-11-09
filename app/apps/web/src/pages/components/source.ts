@@ -6,65 +6,244 @@
  * that editing Span should edit `params.fin_span`.
  *
  * A deliberately small reader over the mirror's `files` (I1: the UI never
- * writes them): `[c.<id>]` / `[params.<name>]` tables and their
- * `key = "string" | number | true/false` lines. Inline tables and arrays are
- * skipped (the editor never needs them). Every write still goes through
- * `model.patch` on the id-keyed model (I2).
+ * writes them): tables, dotted keys, and inline tables, read token by token
+ * so an expression's commas stay inside its string. Arrays and multi-line
+ * values are skipped (the editor reads none here). Every write still goes
+ * through `model.patch` on the id-keyed model (I2).
  */
 
 export type SourceScalar = string | number | boolean;
 export type SourceFilesLike = Readonly<Record<string, string | undefined>>;
 
-/** `[a.b]` or `[a."b"]` header → `["a", "b"]`; null for other lines. */
-function header(line: string): string[] | null {
-  const m = /^\s*\[([^[\]]+)\]\s*(#.*)?$/.exec(line);
-  if (m === null) return null;
-  return m[1]!.split(".").map((s) => s.trim().replace(/^"(.*)"$/, "$1"));
+/** A table's values; arrays read as `null` (present, not editable here). */
+type SourceValue = SourceScalar | SourceTable | null;
+interface SourceTable {
+  [key: string]: SourceValue;
 }
 
-/** One `key = value` scalar line, or null. */
-function scalarLine(line: string): [string, SourceScalar] | null {
-  const m = /^\s*([A-Za-z0-9_-]+)\s*=\s*(.+?)\s*$/.exec(line);
-  if (m === null) return null;
-  const key = m[1]!;
-  let raw = m[2]!;
-  if (raw.startsWith('"')) {
-    const s = /^"((?:[^"\\]|\\.)*)"/.exec(raw);
-    return s === null ? null : [key, s[1]!.replace(/\\"/g, '"').replace(/\\\\/g, "\\")];
-  }
-  if (raw.startsWith("'")) {
-    const s = /^'([^']*)'/.exec(raw);
-    return s === null ? null : [key, s[1]!];
-  }
-  raw = raw.replace(/\s+#.*$/, "");
-  if (raw === "true" || raw === "false") return [key, raw === "true"];
-  if (/^[-+]?(\d[\d_]*)(\.\d+)?([eE][-+]?\d+)?$/.test(raw)) return [key, Number(raw.replace(/_/g, ""))];
-  return null;
-}
+const isTable = (v: SourceValue | undefined): v is SourceTable => typeof v === "object" && v !== null;
 
-/** Scalar keys of the table `[path...]` across every source file (later files win). */
-export function tableScalars(files: SourceFilesLike, path: readonly string[]): Record<string, SourceScalar> {
-  const out: Record<string, SourceScalar> = {};
-  for (const name of Object.keys(files).sort()) {
-    if (!name.endsWith(".toml")) continue;
-    const text = files[name] ?? "";
-    let inTable = false;
-    for (const line of text.split(/\r?\n/)) {
-      const h = header(line);
-      if (h !== null) {
-        inTable = h.length === path.length && h.every((p, i) => p === path[i]);
-        continue;
+/** A cursor over one TOML value: strings are read whole, so an expression's commas and braces are just text. */
+class Cursor {
+  i = 0;
+  constructor(readonly text: string) {}
+  ws() {
+    while (this.text[this.i] === " " || this.text[this.i] === "\t") this.i++;
+  }
+  eat(c: string): boolean {
+    this.ws();
+    if (this.text[this.i] !== c) return false;
+    this.i++;
+    return true;
+  }
+  /** A basic or literal string; null when it does not close on this line. */
+  string(): string | null {
+    const quote = this.text[this.i];
+    let out = "";
+    for (let j = this.i + 1; j < this.text.length; j++) {
+      const c = this.text[j]!;
+      if (c === quote) {
+        this.i = j + 1;
+        return out;
       }
-      if (/^\s*\[\[/.test(line)) {
-        inTable = false;
-        continue;
+      if (quote === '"' && c === "\\") {
+        const next = this.text[++j];
+        out += next === "n" ? "\n" : next === "t" ? "\t" : (next ?? "");
+      } else out += c;
+    }
+    return null;
+  }
+  /** `a.b."c"`; null when the text there is no key. */
+  key(): string[] | null {
+    const out: string[] = [];
+    do {
+      this.ws();
+      const c = this.text[this.i];
+      if (c === '"' || c === "'") {
+        const s = this.string();
+        if (s === null) return null;
+        out.push(s);
+      } else {
+        const m = /^[A-Za-z0-9_-]+/.exec(this.text.slice(this.i));
+        if (m === null) return null;
+        out.push(m[0]);
+        this.i += m[0].length;
       }
-      if (!inTable) continue;
-      const kv = scalarLine(line);
-      if (kv !== null) out[kv[0]] = kv[1];
+    } while (this.eat("."));
+    return out;
+  }
+  /** One value; undefined when it is malformed or runs past this line. */
+  value(): SourceValue | undefined {
+    this.ws();
+    const c = this.text[this.i];
+    if (c === '"' || c === "'") return this.string() ?? undefined;
+    if (c === "{") return this.inlineTable();
+    if (c === "[") return this.array() ? null : undefined;
+    const m = /^[^\s,}\]#]+/.exec(this.text.slice(this.i));
+    if (m === null) return undefined;
+    this.i += m[0].length;
+    if (m[0] === "true" || m[0] === "false") return m[0] === "true";
+    if (/^[-+]?(\d[\d_]*)(\.\d+)?([eE][-+]?\d+)?$/.test(m[0])) return Number(m[0].replace(/_/g, ""));
+    return null;
+  }
+  private inlineTable(): SourceTable | undefined {
+    const out: SourceTable = {};
+    this.i++;
+    if (this.eat("}")) return out;
+    for (;;) {
+      const key = this.key();
+      if (key === null || !this.eat("=")) return undefined;
+      const v = this.value();
+      if (v === undefined) return undefined;
+      assign(out, key, v);
+      if (this.eat("}")) return out;
+      if (!this.eat(",")) return undefined;
     }
   }
+  /** Consumes a whole array; false when it does not close on this line. */
+  private array(): boolean {
+    this.i++;
+    for (;;) {
+      if (this.eat("]")) return true;
+      if (this.value() === undefined) return false;
+      if (!this.eat(",") && !this.eat("]")) return false;
+      if (this.text[this.i - 1] === "]") return true;
+    }
+  }
+}
+
+/** The table at `path` under `table`, created where missing. */
+function descend(table: SourceTable, path: readonly string[]): SourceTable {
+  let cur = table;
+  for (const k of path) {
+    const next: SourceValue | undefined = cur[k];
+    if (isTable(next)) cur = next;
+    else cur = cur[k] = {};
+  }
+  return cur;
+}
+
+function assign(table: SourceTable, key: readonly string[], value: SourceValue): void {
+  const cur = descend(table, key.slice(0, -1));
+  const leaf = key.at(-1)!;
+  const old = cur[leaf];
+  if (isTable(old) && isTable(value)) merge(old, value);
+  else cur[leaf] = value;
+}
+
+/** Later keys win, leaf by leaf. */
+function merge(into: SourceTable, from: SourceTable): void {
+  for (const [k, v] of Object.entries(from)) assign(into, [k], v);
+}
+
+/** Does this value leave a multi-line array or string open? Returns the text that closes it, or null. */
+function opensMultiline(raw: string): string | null {
+  const t = raw.trimStart();
+  for (const q of ['"""', "'''"]) {
+    if (t.startsWith(q)) return t.indexOf(q, 3) === -1 ? q : null;
+  }
+  return t.startsWith("[") ? "]" : null;
+}
+
+function parseFile(text: string, into: SourceTable): void {
+  let current: SourceTable | null = into;
+  const lines = text.split(/\r?\n/);
+  for (let n = 0; n < lines.length; n++) {
+    const line = lines[n]!;
+    if (/^\s*(#.*)?$/.test(line)) continue;
+    if (/^\s*\[\[/.test(line)) {
+      current = null; // an array of tables: nothing the editor reads
+      continue;
+    }
+    const headerCursor = new Cursor(line);
+    if (headerCursor.eat("[")) {
+      const path = headerCursor.key();
+      if (path === null || !headerCursor.eat("]")) {
+        current = null;
+        continue;
+      }
+      current = descend(into, path);
+      continue;
+    }
+    if (current === null) continue;
+    const cursor = new Cursor(line);
+    const key = cursor.key();
+    if (key === null || !cursor.eat("=")) continue;
+    const start = cursor.i;
+    const value = cursor.value();
+    if (value !== undefined) {
+      assign(current, key, value);
+      continue;
+    }
+    // A value that runs over several lines: skip to where it closes, so its body is not read as keys or headers.
+    const closer = opensMultiline(line.slice(start));
+    if (closer === null) continue;
+    if (closer === "]") {
+      let depth = 0;
+      for (let m = n; m < lines.length; m++) {
+        depth += bracketDelta(m === n ? line.slice(start) : lines[m]!);
+        n = m;
+        if (depth <= 0) break;
+      }
+    } else {
+      while (n + 1 < lines.length && !lines[++n]!.includes(closer));
+    }
+    assign(current, key, null);
+  }
+}
+
+/** Net `[` minus `]` on a line, outside strings and comments. */
+function bracketDelta(line: string): number {
+  let depth = 0;
+  let quote: string | null = null;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i]!;
+    if (quote !== null) {
+      if (c === "\\" && quote === '"') i++;
+      else if (c === quote) quote = null;
+    } else if (c === '"' || c === "'") quote = c;
+    else if (c === "#") break;
+    else if (c === "[") depth++;
+    else if (c === "]") depth--;
+  }
+  return depth;
+}
+
+const parsed = new WeakMap<object, SourceTable>();
+
+/** Every `.toml` source merged into one tree, in file-name order (later files win). */
+function sourceTree(files: SourceFilesLike): SourceTable {
+  const cached = parsed.get(files);
+  if (cached !== undefined) return cached;
+  const tree: SourceTable = {};
+  for (const name of Object.keys(files).sort()) {
+    if (name.endsWith(".toml")) parseFile(files[name] ?? "", tree);
+  }
+  parsed.set(files, tree);
+  return tree;
+}
+
+function tableAt(files: SourceFilesLike, path: readonly string[]): SourceTable | undefined {
+  let cur: SourceValue | undefined = sourceTree(files);
+  for (const k of path) {
+    if (!isTable(cur)) return undefined;
+    cur = cur[k];
+  }
+  return isTable(cur) ? cur : undefined;
+}
+
+/** Scalar keys of the table at `path`, whichever way it is written (`[a.b]`, inline, dotted keys). */
+export function tableScalars(files: SourceFilesLike, path: readonly string[]): Record<string, SourceScalar> {
+  const out: Record<string, SourceScalar> = {};
+  for (const [k, v] of Object.entries(tableAt(files, path) ?? {})) {
+    if (typeof v === "string" || typeof v === "number" || typeof v === "boolean") out[k] = v;
+  }
   return out;
+}
+
+/** The component has this nested table in its sources. */
+export function sourceHasTable(files: SourceFilesLike, id: string, sub: readonly string[]): boolean {
+  return tableAt(files, ["c", id, ...sub]) !== undefined;
 }
 
 /** Top-level scalar fields of `[c.<id>]`. */
@@ -119,37 +298,11 @@ export interface FieldTarget {
  */
 export function fieldTarget(files: SourceFilesLike, id: string, field: string): FieldTarget {
   const parts = field.split(".");
-  const table = parts.length > 1 ? tableScalarsNested(files, id, parts.slice(0, -1)) : componentSource(files, id);
+  const table = tableScalars(files, ["c", id, ...parts.slice(0, -1)]);
   const written = table[parts.at(-1)!];
   const name = paramRef(written);
   const param = name !== null ? paramSource(files, name) : null;
   if (param !== null) return { path: `/params/${name}/value`, param, written, expression: null };
   const expression = typeof written === "string" && /^\s*=/.test(written) ? written : null;
   return { path: `/c/${id}/${parts.join("/")}`, param: null, written, expression };
-}
-
-/** Scalars of a nested table: `[c.<id>.<sub>]` or the inline table `sub = { k = v }` on the component. */
-function tableScalarsNested(files: SourceFilesLike, id: string, sub: readonly string[]): Record<string, SourceScalar> {
-  const t = tableScalars(files, ["c", id, ...sub]);
-  if (Object.keys(t).length > 0 || sub.length !== 1) return t;
-  // Inline table on the component line: `override = { mass = "20 g" }`.
-  for (const name of Object.keys(files).sort()) {
-    const text = files[name] ?? "";
-    let inTable = false;
-    for (const line of text.split(/\r?\n/)) {
-      const h = header(line);
-      if (h !== null) {
-        inTable = h.length === 2 && h[0] === "c" && h[1] === id;
-        continue;
-      }
-      if (!inTable) continue;
-      const m = new RegExp(`^\\s*${sub[0]}\\s*=\\s*\\{(.*)\\}\\s*$`).exec(line);
-      if (m === null) continue;
-      for (const part of m[1]!.split(",")) {
-        const kv = scalarLine(part);
-        if (kv !== null) t[kv[0]] = kv[1];
-      }
-    }
-  }
-  return t;
 }

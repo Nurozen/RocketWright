@@ -9,6 +9,7 @@
 import { SCHEMA_META } from "@rw/contracts";
 import rocketSchema from "../../../../../../schema/rocket.json";
 import type { Units } from "../../state/index.ts";
+import { displayUnit, parseLiteral, toDisplay } from "./units.ts";
 
 export const EDITOR_TABS = ["Geometry", "Material", "Appearance", "Mass override"] as const;
 export type EditorTab = (typeof EDITOR_TABS)[number];
@@ -34,7 +35,27 @@ export interface FieldSpec {
   /** `x-expr`: accepts `=` expressions. */
   expr: boolean;
   doc?: string;
+  /** The nested group this field lives in (`shoulder`); the key is then `<parent>.<leaf>`. */
+  parent?: string;
 }
+
+/** A nested optional table a part edits as one unit: all of it exists, or only its Add button does. */
+export interface FieldGroup {
+  key: string;
+  /** Visible heading, and the group's accessible name. */
+  heading: string;
+  /** The button that writes the whole group. */
+  add: string;
+  fields: FieldSpec[];
+}
+
+/** Nested tables the editor groups, by source key. Each one's required members are all fields it can render. */
+const GROUP_HEADINGS: Record<string, string> = {
+  shoulder: "Shoulder",
+  fore_shoulder: "Fore shoulder",
+  aft_shoulder: "Aft shoulder",
+  tab: "Fin tab",
+};
 
 type JsonSchema = {
   type?: string | string[];
@@ -53,6 +74,11 @@ type JsonSchema = {
 };
 
 const DEFS = (rocketSchema as { $defs: Record<string, JsonSchema> }).$defs;
+
+/** Whether `key` is stored on the component itself rather than its shape (`override`, `material`, `attach`). */
+export function isComponentField(key: string): boolean {
+  return DEFS["Component"]?.properties?.[key] !== undefined;
+}
 
 /** Field labels the plain humanized key would get wrong. */
 const LABELS: Record<string, string> = {
@@ -128,9 +154,10 @@ export function typeDef(type: string): string | null {
 
 /**
  * Editor fields for a component kind, by tab. Geometry: the kind's own
- * scalar fields (required first, schema order; `count` last), nested groups
- * (fin tab, shoulder) left to later steps. Material: `material`, `finish`.
- * Appearance: the PBR preset. Mass override: `override.mass`, `override.cg`.
+ * scalar fields (required first, schema order; `count` last), then the fields
+ * of its nested groups (`shoulder`, `tab`) with `parent` set; `groupsOf` frames
+ * those. Material: `material`, `finish`. Appearance: the PBR preset. Mass
+ * override: `override.mass`, `override.cg`.
  */
 export function editorFields(type: string): FieldSpec[] {
   const ref = typeDef(type);
@@ -140,14 +167,24 @@ export function editorFields(type: string): FieldSpec[] {
     const group = def["x-ui-group"] ?? SCHEMA_META[ref!]?.uiGroup ?? "Geometry";
     const req = new Set(def.required ?? []);
     const geo: FieldSpec[] = [];
+    const nested: FieldSpec[] = [];
     for (const [key, raw] of Object.entries(def.properties)) {
-      if (raw["x-ui-group"] !== undefined && raw["x-ui-group"] !== group) continue; // nested groups (Tab, Shoulder, Packed, …)
+      if (GROUP_HEADINGS[key] !== undefined) {
+        const sub = unwrap(raw);
+        const required = new Set(sub.required ?? []);
+        for (const [leaf, rawLeaf] of Object.entries(sub.properties ?? {})) {
+          const f = spec(`${key}.${leaf}`, rawLeaf, "Geometry", GROUP_HEADINGS[key]!, required.has(leaf), type);
+          if (f !== null) nested.push({ ...f, parent: key });
+        }
+        continue;
+      }
+      if (raw["x-ui-group"] !== undefined && raw["x-ui-group"] !== group) continue; // groups the editor does not show yet (Packed, Motor)
       const f = spec(key, raw, "Geometry", group, req.has(key), type);
       if (f !== null) geo.push(f);
     }
     // Required fields first (schema order), counts after the dimensions (concept 02: Fin count last).
     const rank = (f: FieldSpec) => (f.required ? 0 : 2) + (f.kind === "integer" ? 1 : 0);
-    out.push(...geo.map((f, i) => [f, i] as const).sort((a, b) => rank(a[0]) - rank(b[0]) || a[1] - b[1]).map(([f]) => f));
+    out.push(...geo.map((f, i) => [f, i] as const).sort((a, b) => rank(a[0]) - rank(b[0]) || a[1] - b[1]).map(([f]) => f), ...nested);
   }
   const comp = DEFS["Component"]?.properties ?? {};
   const finish = comp["finish"];
@@ -166,6 +203,25 @@ export function editorFields(type: string): FieldSpec[] {
   return out;
 }
 
+/** The nested groups among `fields`, in field order. */
+export function groupsOf(fields: readonly FieldSpec[]): FieldGroup[] {
+  const groups = new Map<string, FieldGroup>();
+  for (const f of fields) {
+    if (f.parent === undefined) continue;
+    const heading = GROUP_HEADINGS[f.parent] ?? fieldLabel(f.parent);
+    const group = groups.get(f.parent) ?? { key: f.parent, heading, add: `Add ${heading.toLowerCase()}`, fields: [] };
+    group.fields.push(f);
+    groups.set(f.parent, group);
+  }
+  return [...groups.values()];
+}
+
+/** The name a change to `f` goes by outside its group, where the group heading is not in sight. */
+export function changeLabel(f: FieldSpec): string {
+  if (f.parent === undefined) return f.label;
+  return `${GROUP_HEADINGS[f.parent] ?? fieldLabel(f.parent)} ${f.label.toLowerCase()}`;
+}
+
 /** Tabs a selection can edit: a mixed-kind selection edits only Appearance (concepts.md §4.2). */
 export function tabsFor(types: readonly string[]): EditorTab[] {
   if (types.length === 0) return [];
@@ -181,82 +237,6 @@ export function sharedFields(types: readonly string[]): FieldSpec[] {
   return mixed ? fields.filter((f) => f.tab === "Appearance") : fields;
 }
 
-// ---- units ---------------------------------------------------------------------
-
-const LENGTH: Record<Units, { per: number; digits: number }> = {
-  mm: { per: 1000, digits: 1 },
-  cm: { per: 100, digits: 2 },
-  m: { per: 1, digits: 4 },
-  in: { per: 1 / 0.0254, digits: 3 },
-};
-
-/** Display unit, SI → display factor, and decimals for a dimension. */
-export function displayUnit(dim: string | undefined, units: Units): { unit: string; per: number; digits: number } {
-  switch (dim) {
-    case "length":
-      return { unit: units, ...LENGTH[units] };
-    case "mass":
-      return { unit: "g", per: 1000, digits: 1 };
-    case "angle":
-      return { unit: "deg", per: 180 / Math.PI, digits: 1 };
-    case "time":
-      return { unit: "s", per: 1, digits: 2 };
-    case "area":
-      return { unit: units === "in" ? "in²" : "cm²", per: units === "in" ? 1 / 0.0254 ** 2 : 1e4, digits: 2 };
-    default:
-      return { unit: "", per: 1, digits: 3 };
-  }
-}
-
-export function trimNum(s: string): string {
-  return s.includes(".") ? s.replace(/0+$/, "").replace(/\.$/, "") : s;
-}
-
-/** SI → the number shown in the field (`0.09` m → `90` in mm). */
-export function toDisplay(si: number | null | undefined, dim: string | undefined, units: Units): string {
-  if (si == null || !Number.isFinite(si)) return "";
-  const u = displayUnit(dim, units);
-  return trimNum((si * u.per).toFixed(u.digits));
-}
-
-/** A typed display number → the source literal (`"90 mm"`), or a number for unitless fields. */
-export function toSource(display: number, dim: string | undefined, units: Units): string | number {
-  const u = displayUnit(dim, units);
-  if (u.unit === "") return display;
-  return `${trimNum(display.toFixed(Math.max(u.digits, 3)))} ${u.unit}`;
-}
-
-/** Display number → SI. */
-export function fromDisplay(display: number, dim: string | undefined, units: Units): number {
-  return display / displayUnit(dim, units).per;
-}
-
-const SOURCE_UNITS: Record<string, number> = {
-  m: 1,
-  cm: 0.01,
-  mm: 0.001,
-  in: 0.0254,
-  ft: 0.3048,
-  g: 0.001,
-  kg: 1,
-  deg: Math.PI / 180,
-  rad: 1,
-  s: 1,
-  ms: 0.001,
-};
-
-/** `"120 mm"` → 0.12 (simple literals only; expressions → null). */
-export function parseLiteral(v: string | number | boolean | undefined): number | null {
-  if (typeof v === "number") return v;
-  if (typeof v !== "string") return null;
-  const m = /^\s*([-+]?\d*\.?\d+(?:[eE][-+]?\d+)?)\s*([A-Za-z]+)?\s*$/.exec(v);
-  if (m === null) return null;
-  const n = Number(m[1]);
-  if (m[2] === undefined) return n;
-  const k = SOURCE_UNITS[m[2]];
-  return k === undefined ? null : n * k;
-}
-
 export interface Limits {
   /** SI limits (quantities) or plain numbers. */
   min?: number;
@@ -270,7 +250,7 @@ export interface Limits {
 /** Limits of a field: the param's `min`/`max`/`step` when the field references one, else the schema's. */
 export function limitsOf(f: FieldSpec, param: { min?: string; max?: string; step?: string } | null, units: Units): Limits {
   const u = displayUnit(f.dim, units);
-  const step = f.kind === "integer" ? 1 : u.unit === "mm" || u.unit === "g" || u.unit === "deg" ? 1 : u.unit === "cm" ? 0.1 : u.unit === "in" ? 0.05 : u.unit === "m" ? 0.001 : 0.01;
+  const step = f.kind === "integer" ? 1 : (u.step ?? (u.unit === "mm" || u.unit === "g" || u.unit === "deg" ? 1 : u.unit === "cm" ? 0.1 : u.unit === "in" ? 0.05 : u.unit === "m" ? 0.001 : 0.01));
   if (param !== null) {
     const min = parseLiteral(param.min);
     const max = parseLiteral(param.max);
@@ -283,8 +263,8 @@ export function limitsOf(f: FieldSpec, param: { min?: string; max?: string; step
   const out: Limits = { step, source: f.min !== undefined || f.max !== undefined ? "schema" : "none" };
   if (f.min !== undefined) out.min = f.min;
   if (f.max !== undefined) out.max = f.max;
-  // Physical sizes are never negative.
-  if (out.min === undefined && f.kind === "quantity" && f.dim !== "angle") out.min = 0;
+  // Physical sizes are never negative; an offset is a signed distance.
+  if (out.min === undefined && f.kind === "quantity" && f.dim !== "angle" && f.key.split(".").at(-1) !== "offset") out.min = 0;
   return out;
 }
 
@@ -298,6 +278,7 @@ export function rangeError(si: number, f: FieldSpec, lim: Limits, units: Units):
   if (f.kind === "integer" && !Number.isInteger(si)) return `${f.label} must be a whole number.`;
   if (lim.min !== undefined && si < lim.min - 1e-12) return `${f.label} must be at least ${show(lim.min)}.`;
   if (lim.max !== undefined && si > lim.max + 1e-12) return `${f.label} must be at most ${show(lim.max)}.`;
-  if (lim.min === 0 && si === 0 && f.required && f.kind === "quantity") return `${f.label} must be greater than 0.`;
+  // A nested required field may legitimately be 0 (a fin tab with no height); the engine's checks judge it.
+  if (lim.min === 0 && si === 0 && f.required && f.parent === undefined && f.kind === "quantity") return `${f.label} must be greater than 0.`;
   return null;
 }
