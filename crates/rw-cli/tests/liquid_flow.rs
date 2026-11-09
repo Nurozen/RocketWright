@@ -35,13 +35,12 @@ fn rw_at(bin: Option<&Path>, project: &Path, args: &[&str], env: &[(&str, &str)]
     for (k, v) in env {
         c.env(k, v);
     }
-    let o = c
-        .arg("--project")
+    c.arg("--project")
         .arg(project)
         .args(args)
-        .current_dir(repo_root())
-        .output()
-        .unwrap();
+        .current_dir(repo_root());
+    // `bin` may be a copy made a moment ago (the relocated-binary case).
+    let o = retry_text_busy(|| c.output()).unwrap();
     (
         o.status.code().unwrap_or(-1),
         String::from_utf8_lossy(&o.stdout).into_owned() + &String::from_utf8_lossy(&o.stderr),

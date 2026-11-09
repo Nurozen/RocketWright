@@ -17,6 +17,23 @@ use serde_json::{Value, json};
 pub const TIMEOUT: Duration = Duration::from_secs(20);
 static SEQ: AtomicU32 = AtomicU32::new(0);
 
+/// Runs `spawn` again while the kernel refuses the exec with ETXTBSY, for a
+/// binary this process has just written. Any process a sibling test forks
+/// while the write is open holds the write descriptor until its own exec, so
+/// the file can read as busy briefly after the write has closed. Every other
+/// outcome is returned as it is.
+pub fn retry_text_busy<T>(mut spawn: impl FnMut() -> std::io::Result<T>) -> std::io::Result<T> {
+    for _ in 0..30 {
+        match spawn() {
+            Err(e) if e.kind() == std::io::ErrorKind::ExecutableFileBusy => {
+                std::thread::sleep(Duration::from_millis(100));
+            }
+            other => return other,
+        }
+    }
+    spawn()
+}
+
 /// Copies a directory tree.
 pub fn copy_dir(from: &Path, to: &Path) {
     std::fs::create_dir_all(to).unwrap();
