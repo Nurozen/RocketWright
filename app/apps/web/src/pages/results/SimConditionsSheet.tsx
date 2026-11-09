@@ -12,6 +12,7 @@ import { trackWrite, useDirtyField } from "../../state/dirtyFields.ts";
 import type { DeepReadonly } from "../../state/index.ts";
 import { deleteSimOps, duplicateSimOps, newSimOps, renameSimOps } from "../../state/ops/sims.ts";
 import { useAppState, type AppStore } from "../../state/store.ts";
+import { DiagnosticText, diagnosticPlainText } from "../../ui/DiagnosticText.tsx";
 import { Banner } from "../../ui/Banner.tsx";
 import { FieldGroupFrame, SelectField, SpinField } from "../../ui/fields/index.ts";
 import { MenuButton } from "../../ui/Menu.tsx";
@@ -133,7 +134,7 @@ function Sheet({ app, sim }: { app: AppStore; sim: EvalSim }) {
         if (reason !== undefined) {
           setRefused(found.fields);
           if (found.other.length > 0) setFailure(found.other.join(" "));
-          return reason;
+          return diagnosticPlainText(reason);
         }
         await st.draft.mutate(ops, `Edit conditions of ${sim.name}`);
       }
@@ -211,7 +212,7 @@ function Sheet({ app, sim }: { app: AppStore; sim: EvalSim }) {
         )}
         {error !== null && (
           <p className="rw-simcond__error" role="alert" data-field={f.key}>
-            {error}
+            <DiagnosticText text={error} />
           </p>
         )}
       </div>
@@ -255,7 +256,7 @@ function Sheet({ app, sim }: { app: AppStore; sim: EvalSim }) {
       >
         {failure !== null && (
           <Banner tone="danger" onDismiss={() => setFailure(null)} testId="sim-conditions.error">
-            {failure}
+            <DiagnosticText text={failure} />
           </Banner>
         )}
         {SIM_GROUPS.map((group) => (

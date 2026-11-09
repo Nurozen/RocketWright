@@ -97,6 +97,9 @@ describe("inspector cards", () => {
     for (const id of ["inspector", "insp.title", "insp.attachment", "insp.mass", "insp.clearance"]) expect(html).toContain(`data-testid="${id}"`);
     expect(html).toContain('data-rw-region="inspector"');
     expect(renderToStaticMarkup(<Inspector view={null} />)).toContain("Nothing selected");
+    const quoted = renderToStaticMarkup(<Inspector view={{ id: "nose", title: "Nose", attachment: [], mass: [], clearance: [{ key: "diag:RW-E150", label: "RW-E150", value: "The shoulder of `nose` is wide", severity: "error", pass: false }] } as never} />);
+    expect(quoted).toContain('<code class="rw-diag-code">nose</code>');
+    expect(quoted).not.toContain("`nose`");
     const noParts = renderToStaticMarkup(<Inspector view={null} noParts />);
     expect(noParts).toContain("No parts yet");
     expect(noParts).toContain("Add your first part");

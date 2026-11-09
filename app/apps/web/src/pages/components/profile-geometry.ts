@@ -304,6 +304,8 @@ export interface ProfileOverlay {
   fins: FinOutline[];
   /** The same fin set in the previous revision (amber ghost). */
   ghost: FinOutline[];
+  /** Every fin in the view (selected or not, and the ghost): what marker labels keep clear of. */
+  finBlocks: [number, number][][];
   /** Upper fin tip (px) of the proposal and of the ghost, for their labels. */
   finTip: [number, number] | null;
   ghostTip: [number, number] | null;
@@ -361,6 +363,7 @@ export function profileOverlay(
   const fins = sel !== undefined && isFinSet(sel) ? finOutlines(sel, frame, view) : [];
   const prev = sel !== undefined && base !== null ? base.components.find((c) => c.id === sel.id) : undefined;
   const ghost = prev !== undefined && isFinSet(prev) ? finOutlines(prev, frame, view) : [];
+  const finBlocks = [...model.components.filter((c) => isFinSet(c)).flatMap((c) => finOutlines(c, frame, view)), ...ghost].map((o) => o.points);
   return {
     frame,
     joints: airframeJoints(model, frame, view),
@@ -370,11 +373,36 @@ export function profileOverlay(
     dims,
     fins,
     ghost,
+    finBlocks,
     finTip: topPoint(fins),
     ghostTip: topPoint(ghost),
     stability: check?.stability.liftoff ?? null,
     length,
   };
+}
+
+/** Half a marker label's width plus a gap, and the spacing that keeps the CG and CP labels apart. */
+const LABEL_CLEAR = 44;
+const LABEL_OFFSET = 48;
+const LABEL_SPACING = 84;
+/** Below `labelY`, the bottom of a marker label's two lines. */
+const LABEL_BOTTOM = 26;
+
+/**
+ * Where the CG and CP labels sit: above the body, moved forward off any fin
+ * tall enough to reach them, and apart from each other.
+ */
+export function markerLabels(o: Pick<ProfileOverlay, "markers" | "finBlocks" | "bodyTop">): { labelY: number; cgX: number; cpX: number } {
+  const labelY = Math.max(18, o.bodyTop - 70);
+  const reaching = o.finBlocks.filter((points) => Math.min(...points.map((p) => p[1])) <= labelY + LABEL_BOTTOM).flat();
+  const finX0 = reaching.length > 0 ? Math.min(...reaching.map((p) => p[0])) : Infinity;
+  const finX1 = reaching.length > 0 ? Math.max(...reaching.map((p) => p[0])) : -Infinity;
+  const clear = (x: number) => (x > finX0 - LABEL_CLEAR && x < finX1 + LABEL_CLEAR ? finX0 - LABEL_OFFSET : x);
+  const cg = o.markers.find((m) => m.kind === "cg");
+  const cp = o.markers.find((m) => m.kind === "cp");
+  const cpX = cp !== undefined ? clear(cp.x) : 0;
+  const cgX = cg !== undefined ? Math.min(clear(cg.x), cp !== undefined ? cpX - LABEL_SPACING : Infinity) : 0;
+  return { labelY, cgX, cpX };
 }
 
 /** Station in mm (`467 mm`), rounded. */

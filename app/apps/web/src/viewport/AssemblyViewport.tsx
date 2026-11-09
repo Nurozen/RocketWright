@@ -150,6 +150,8 @@ const POOL_BACKGROUND = poolCss();
 
 /** Width reserved at the selected label's far end for the `@` button. */
 const MENTION_SLOT = 26;
+/** Average advance of the label font: the text fills its slot and stops short of the `@` chip. */
+const LABEL_CHAR_WIDTH = 7.6;
 
 interface Overlay {
   labels: PlacedLabel[];
@@ -542,7 +544,7 @@ function computeOverlay(engine: ViewportEngine, state: EngineState, names: Reado
   if (normal[0] < 0 || (normal[0] === 0 && normal[1] > 0)) normal = [-normal[0], -normal[1]];
   const { w, h } = engine.viewSize();
   // The meshed assembly spreads its labels evenly along the diagonal on one side (concept 01).
-  const labels = layoutLabels(anchors, { width: w, height: h, normal, avoid: occludersFor(w, h, inset), obstacles: engine.partFootprints(16), spread: assembly ? "even" : "alternate" });
+  const labels = layoutLabels(anchors, { width: w, height: h, charWidth: LABEL_CHAR_WIDTH, normal, avoid: occludersFor(w, h, inset), obstacles: engine.partFootprints(16), spread: assembly ? "even" : "alternate" });
   return { labels, gizmo: gizmoAxes(engine.basis(), GIZMO_SIZE), axis: engine.axisGaps(), anim: engine.explodeAnimState(), pool: pool ? engine.poolOnScreen() : null };
 }
 

@@ -7,6 +7,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { PatchOp, schema } from "@rw/contracts";
 import { Icon } from "../../shell/Icon.tsx";
+import { DiagnosticText, diagnosticPlainText } from "../../ui/DiagnosticText.tsx";
 import { trackWrite, useDirtyField } from "../../state/dirtyFields.ts";
 import type { DeepReadonly, Units } from "../../state/index.ts";
 import { addMaterialOps, setMaterialOps } from "../../state/ops/materials.ts";
@@ -260,8 +261,8 @@ export function MaterialsPanel({ materials, files, units, diagnostics, library, 
                   </li>
                 ))}
                 {formDiagnostics.map((d, i) => (
-                  <li key={`${d.code}-${i}`} data-severity={d.severity} data-code={d.code} title={d.hint ?? d.code}>
-                    <Icon name="alert" size={14} /> {d.message}
+                  <li key={`${d.code}-${i}`} data-severity={d.severity} data-code={d.code} title={diagnosticPlainText(d.hint ?? d.code)}>
+                    <Icon name="alert" size={14} /> <DiagnosticText text={d.message} />
                   </li>
                 ))}
               </ul>

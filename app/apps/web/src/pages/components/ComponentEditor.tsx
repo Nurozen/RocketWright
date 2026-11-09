@@ -13,6 +13,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import type { PatchOp, schema } from "@rw/contracts";
 import { Icon } from "../../shell/Icon.tsx";
+import { DiagnosticText, diagnosticPlainText } from "../../ui/DiagnosticText.tsx";
 import { ADD_FIRST_PART, FIRST_PART_HINT, type DeepReadonly, type Units } from "../../state/index.ts";
 import { partLabel } from "../../state/ops/parts.ts";
 import { BoolField, displayUnit, FieldGroupFrame, fromDisplay, groupsOf, limitsOf, parseLiteral, rangeError, SelectField, sharedFields, SpinField, tabsFor, TextField, toDisplay, toSource, type EditorTab, type FieldDiagnostic, type FieldSpec } from "../../ui/fields/index.ts";
@@ -285,8 +286,8 @@ export function ComponentEditor(props: ComponentEditorProps) {
                         </li>
                       ))}
                     {diags.map((d, i) => (
-                      <li key={`${d.code}-${i}`} data-severity={d.severity} data-code={d.code} title={d.hint ?? d.code}>
-                        <Icon name="alert" size={14} /> {d.message}
+                      <li key={`${d.code}-${i}`} data-severity={d.severity} data-code={d.code} title={diagnosticPlainText(d.hint ?? d.code)}>
+                        <Icon name="alert" size={14} /> <DiagnosticText text={d.message} />
                       </li>
                     ))}
                   </ul>

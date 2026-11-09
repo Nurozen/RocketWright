@@ -16,6 +16,7 @@ import type { PatchOp, RwRef, schema } from "@rw/contracts";
 import { useStore } from "zustand";
 import { createStore, type StoreApi } from "zustand/vanilla";
 import { Icon } from "../../shell/Icon.tsx";
+import { DiagnosticText, diagnosticPlainText } from "../../ui/DiagnosticText.tsx";
 import { StatusBadge } from "../../shell/StatusIcon.tsx";
 import { ViewportToolbar, type ViewChip } from "../../shell/ViewportToolbar.tsx";
 import { trackWrite, useDirtyField } from "../../state/dirtyFields.ts";
@@ -1019,9 +1020,14 @@ function RecoveryPanel({ store, config, patch }: { store: AppStore; config: Conf
       {diags.length > 0 && (
         <ul className="rw-cfg__diags" data-testid="recovery.validation">
           {diags.map((d, i) => (
-            <li key={`${d.code}-${i}`} data-code={d.code} data-severity={d.severity} title={d.hint ?? d.code}>
-              <Icon name="alert" size={14} /> {d.message}
-              {d.hint ? ` (${d.hint})` : ""}
+            <li key={`${d.code}-${i}`} data-code={d.code} data-severity={d.severity} title={diagnosticPlainText(d.hint ?? d.code)}>
+              <Icon name="alert" size={14} /> <DiagnosticText text={d.message} />
+              {d.hint ? (
+                <>
+                  {" ("}
+                  <DiagnosticText text={d.hint} />)
+                </>
+              ) : null}
             </li>
           ))}
         </ul>
@@ -1111,7 +1117,7 @@ function StagePanel({ store, config, patch }: { store: AppStore; config: ConfigR
         <ul className="rw-cfg__diags" data-testid="stage.validation">
           {diags.map((d, i) => (
             <li key={`${d.code}-${i}`} data-code={d.code} data-severity={d.severity}>
-              <Icon name="alert" size={14} /> {d.message}
+              <Icon name="alert" size={14} /> <DiagnosticText text={d.message} />
             </li>
           ))}
         </ul>

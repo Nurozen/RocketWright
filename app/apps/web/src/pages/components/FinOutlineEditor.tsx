@@ -14,6 +14,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { PatchOp, schema } from "@rw/contracts";
 import { Icon } from "../../shell/Icon.tsx";
+import { DiagnosticText, diagnosticPlainText } from "../../ui/DiagnosticText.tsx";
 import type { DeepReadonly, Units } from "../../state/index.ts";
 import { displayUnit, fromDisplay, toDisplay } from "../../ui/fields/index.ts";
 import { canRemove, fromPx, insertPoint, movePoint, outlineFrame, outlineProblem, outlineSource, removePoint, snapPoint, toPx, type OutlineFrame, type Pt } from "./outline.ts";
@@ -232,8 +233,8 @@ export function FinOutlineEditor({ comp, units, diagnostics, onEdit, onCommit, o
             </li>
           )}
           {e061.map((d, i) => (
-            <li key={`e061-${i}`} data-severity={d.severity} data-code={d.code} title={d.hint ?? d.code}>
-              <Icon name="alert" size={14} /> {d.message}
+            <li key={`e061-${i}`} data-severity={d.severity} data-code={d.code} title={diagnosticPlainText(d.hint ?? d.code)}>
+              <Icon name="alert" size={14} /> <DiagnosticText text={d.message} />
             </li>
           ))}
         </ul>
