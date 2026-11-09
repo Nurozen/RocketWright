@@ -174,10 +174,12 @@ const SURFACES = [
     async open(page: Page): Promise<void> {
       await page.getByRole("tab", exact("Configurations")).click();
       await page.getByRole("tab", exact("Recovery")).click();
-      await page.getByLabel(/deployment$/).selectOption({ label: "At altitude (descent)" });
-      await expect(page.getByLabel(/deployment altitude$/)).toBeVisible();
+      await page.getByTestId("recovery.event").selectOption("altitude");
+      // The altitude field also shows for an Ejection event, so only the row proves the write landed.
+      await expect(page.getByTestId("recovery.row")).toHaveAttribute("data-event", "altitude");
+      await expect(page.getByTestId("recovery.altitude")).toBeVisible();
     },
-    field: (page: Page) => page.getByLabel(/deployment altitude$/),
+    field: (page: Page) => page.getByTestId("recovery.altitude"),
     value: "321",
     saved: "321 m",
   },
