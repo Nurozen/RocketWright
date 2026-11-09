@@ -10,6 +10,7 @@ import { navigatePage } from "../embed/rail.ts";
 import { pageOfRef } from "./entities.ts";
 import { rowKey } from "./selectors.ts";
 import type { AppStore } from "./store.ts";
+import type { SelectionSource } from "./types.ts";
 
 /** Selects the run and shows Results with it overlaid (the product reveal-run path, not a test hook). */
 export async function revealRun(store: AppStore, ref: RwRef): Promise<void> {
@@ -34,8 +35,10 @@ export async function revealRun(store: AppStore, ref: RwRef): Promise<void> {
  *   opens that study's section view on the Visual flow tier instead;
  * - `rw:step/<n>` (and `rw:rev/<n>`): opens history at that step (the strip
  *   selects it).
+ *
+ * `source` says who asked (a chip by default; the Check model panel's Go to part passes its own).
  */
-export async function openRef(store: AppStore, ref: RwRef): Promise<void> {
+export async function openRef(store: AppStore, ref: RwRef, source: SelectionSource = "chat"): Promise<void> {
   const parsed = parseRef(ref);
   if (!("ok" in parsed)) return;
   const kind = parsed.ok.kind;
@@ -43,7 +46,7 @@ export async function openRef(store: AppStore, ref: RwRef): Promise<void> {
   if (kind === "run" || kind === "sim") return revealRun(store, ref);
   const s = store.getState();
   if (kind === "c" && s.ui.hidden.includes(parsed.ok.id)) s.ui.toggleHidden(parsed.ok.id);
-  s.selection.select([ref], kind === "step" || kind === "rev" ? "history" : "chat");
+  s.selection.select([ref], kind === "step" || kind === "rev" ? "history" : source);
   const page = pageOfRef(ref);
   if (page !== null && !(page === "assembly" && (s.ui.page === "components" || s.ui.page === "configurations")) && s.ui.page !== page) {
     await navigatePage(store, page);

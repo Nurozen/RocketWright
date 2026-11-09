@@ -84,6 +84,16 @@ describe("openRef (B12, state/navigation.ts)", () => {
     expect(store.getState().ui.page).toBe("components");
   });
 
+  it("records who asked: a chip by default, the caller's source otherwise, and history for a step", async () => {
+    const { store } = await setup();
+    await openRef(store, "rw:c/fins");
+    expect(store.getState().selection.source).toBe("chat");
+    await openRef(store, "rw:c/nose", "check");
+    expect(store.getState().selection).toMatchObject({ refs: ["rw:c/nose"], source: "check" });
+    await openRef(store, "rw:step/2", "check");
+    expect(store.getState().selection.source).toBe("history");
+  });
+
   it("rw:run/<id> opens Results with the run plotted; rw:step/<n> selects the history step", async () => {
     const { store } = await setup();
     const entry = store.getState().project.snapshot!.runs.runs.find((r) => r.run_id != null && r.superseded_by == null)!;

@@ -66,7 +66,7 @@ export interface DraftSlice {
   mutate(ops: readonly PatchOp[], label?: string): Promise<MutationOut | null>;
 }
 
-export type SelectionSource = "tree" | "viewport" | "inspector" | "chat" | "table" | "diagram" | "history" | "agent";
+export type SelectionSource = "tree" | "viewport" | "inspector" | "chat" | "table" | "diagram" | "history" | "agent" | "check";
 
 /** One selection model shared by tree, viewport, inspector, tables, and chat chips (C §5.1). */
 export interface SelectionSlice {

@@ -92,9 +92,9 @@
     "boot": "project",
     "mockup": "06-check-issues.png",
     "existing": "design-assembly.png",
-    "ready": null,
-    "overlay": null,
-    "pane": null,
+    "ready": "[data-testid=\"header.check-model\"]",
+    "overlay": "[data-testid=\"header.check-issues\"]",
+    "pane": "overlay",
     "checks": [
       "A panel is anchored under Check model.",
       "Errors and Warnings are separate groups.",
