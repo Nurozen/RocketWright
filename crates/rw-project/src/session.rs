@@ -27,7 +27,7 @@ use rw_api::{
     ApiError, ApiErrorCode, CallCtx, Command, CompareOut, ComponentAddIn, ComponentMoveIn,
     ComponentRemoveIn, DesignCheckIn, FileChange, FileStatus, HistoryListIn, HistoryListOut,
     HistoryShowOut, LibrarySearchOut, ModelDiff, ModelGetIn, ModelGetOut, MutationOut, Origin,
-    ProjectFiles, ProjectValidateIn, Response, ValidateOut,
+    ProjectFiles, ProjectRenameIn, ProjectValidateIn, Response, ValidateOut,
 };
 use rw_check::CheckReport;
 use rw_model::diag::{self, Diagnostic};
@@ -500,6 +500,7 @@ impl Session {
                     .unwrap_or_else(|| ops_title(&i.ops));
                 Response::ModelPatch(self.patch(&i.ops, i.dry_run, ctx, "model_patch", title)?)
             }
+            Command::ProjectRename(i) => Response::ProjectRename(self.project_rename(i, ctx)?),
             Command::ComponentAdd(i) => Response::ComponentAdd(self.component_add(i, ctx)?),
             Command::ComponentRemove(i) => {
                 Response::ComponentRemove(self.component_remove(i, ctx)?)
@@ -752,6 +753,25 @@ impl Session {
         let writes: Vec<(String, Option<String>)> =
             changes.into_iter().map(|c| (c.path, c.text)).collect();
         self.commit(next, writes, dry_run, ctx, Some(tool), title)
+    }
+
+    /// One step writes the name to the manifest and the model; the folder
+    /// and every id stay as they are.
+    fn project_rename(
+        &mut self,
+        i: &ProjectRenameIn,
+        ctx: &CallCtx,
+    ) -> Result<MutationOut, ApiError> {
+        let name = crate::create::checked_project_name(&i.name)?;
+        let ops: Vec<PatchOp> = ["/project/name", "/name"]
+            .into_iter()
+            .map(|path| PatchOp::Add {
+                path: path.into(),
+                value: Value::from(name),
+            })
+            .collect();
+        let title = format!("Rename project to {name}");
+        self.patch(&ops, i.dry_run, ctx, "project_rename", title)
     }
 
     fn component_add(

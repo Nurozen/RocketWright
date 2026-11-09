@@ -2139,6 +2139,18 @@ export const SCHEMA_REGISTRY = [
     "tsName": "ValidateOut"
   },
   {
+    "name": "tools/project_rename.input",
+    "file": "tools/project_rename.input.json",
+    "iface": "IF8",
+    "tsName": "ProjectRenameIn"
+  },
+  {
+    "name": "tools/project_rename.output",
+    "file": "tools/project_rename.output.json",
+    "iface": "IF8",
+    "tsName": "MutationOut"
+  },
+  {
     "name": "tools/model_get.input",
     "file": "tools/model_get.input.json",
     "iface": "IF8",
@@ -2233,6 +2245,18 @@ export const SCHEMA_REGISTRY = [
     "file": "tools/motor_search.output.json",
     "iface": "IF8",
     "tsName": "MotorSearchOut"
+  },
+  {
+    "name": "tools/motor_show.input",
+    "file": "tools/motor_show.input.json",
+    "iface": "IF8",
+    "tsName": "MotorShowIn"
+  },
+  {
+    "name": "tools/motor_show.output",
+    "file": "tools/motor_show.output.json",
+    "iface": "IF8",
+    "tsName": "MotorShowOut"
   },
   {
     "name": "tools/simulate.input",
@@ -2493,6 +2517,19 @@ export const MCP_TOOL_CATALOG = [
     }
   },
   {
+    "name": "project_rename",
+    "input": "tools/project_rename.input",
+    "output": "tools/project_rename.output",
+    "approval": "never",
+    "hints": {
+      "read_only": false,
+      "destructive": false,
+      "idempotent": false,
+      "open_world": false,
+      "mutating": true
+    }
+  },
+  {
     "name": "model_get",
     "input": "tools/model_get.input",
     "output": "tools/model_get.output",
@@ -2587,6 +2624,19 @@ export const MCP_TOOL_CATALOG = [
     "name": "motor_search",
     "input": "tools/motor_search.input",
     "output": "tools/motor_search.output",
+    "approval": "never",
+    "hints": {
+      "read_only": true,
+      "destructive": false,
+      "idempotent": true,
+      "open_world": false,
+      "mutating": false
+    }
+  },
+  {
+    "name": "motor_show",
+    "input": "tools/motor_show.input",
+    "output": "tools/motor_show.output",
     "approval": "never",
     "hints": {
       "read_only": true,

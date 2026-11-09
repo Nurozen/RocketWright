@@ -51,6 +51,7 @@ const EXPECTED: &[&str] = &[
 const MCP_TOOLS: &[&str] = &[
     "project_create",
     "project_validate",
+    "project_rename",
     "model_get",
     "model_patch",
     "component_add",
@@ -59,6 +60,7 @@ const MCP_TOOLS: &[&str] = &[
     "render",
     "library_search",
     "motor_search",
+    "motor_show",
     "simulate",
     "job_status",
     "job_cancel",

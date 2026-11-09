@@ -1,0 +1,14 @@
+{
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "id"
+  ],
+  "title": "MotorShowIn",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rocketwright.dev/schema/1/tools/motor_show.input.json"
+}

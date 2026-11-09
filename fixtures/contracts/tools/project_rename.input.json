@@ -1,0 +1,7 @@
+{
+  "provenance": "contract-fixture",
+  "type": "tools/project_rename.input",
+  "payload": {
+    "name": "Solstice"
+  }
+}

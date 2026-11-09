@@ -39,6 +39,23 @@
       "properties": {
         "command": {
           "type": "string",
+          "const": "project_rename"
+        },
+        "input": {
+          "$ref": "#/$defs/ProjectRenameIn"
+        }
+      },
+      "required": [
+        "command",
+        "input"
+      ],
+      "description": "Set the project name in rocketwright.toml and rocket.rw.toml, in one step."
+    },
+    {
+      "type": "object",
+      "properties": {
+        "command": {
+          "type": "string",
           "const": "fmt"
         },
         "input": {
@@ -583,6 +600,13 @@
           ],
           "description": "Template id from `templates/` (default `minimal`)."
         },
+        "display_units": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "`[display_units]` of the new project, e.g. `length = \"cm\"`; entries\noverlay the template's own."
+        },
         "dry_run": {
           "type": "boolean",
           "default": false
@@ -601,6 +625,22 @@
           "default": []
         }
       }
+    },
+    "ProjectRenameIn": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The new name: at most 255 bytes once trimmed."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "name"
+      ]
     },
     "FmtIn": {
       "type": "object",

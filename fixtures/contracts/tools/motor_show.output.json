@@ -1,0 +1,71 @@
+{
+  "provenance": "contract-fixture",
+  "type": "tools/motor_show.output",
+  "payload": {
+    "info": {
+      "id": "generic:RW_C6G",
+      "designation": "RW_C6G",
+      "manufacturer": "RocketWright",
+      "class": "C",
+      "diameter": 0.018,
+      "length": 0.07,
+      "total_impulse": 9.599960000000001,
+      "burn_time": 1.6,
+      "average_thrust": 5.999975,
+      "delays": [
+        3.0,
+        5.0,
+        7.0
+      ],
+      "total_mass": 0.024236999999999998,
+      "source": {
+        "kind": "generic",
+        "id": "RW_C6G"
+      },
+      "sha256": "025d61aa8d954cbb564b70b0f03a2add19e7495f043028ccdf120c0309b4c92b"
+    },
+    "curve": {
+      "designation": "RW_C6G",
+      "manufacturer": "RocketWright",
+      "class": "C",
+      "diameter": 0.018,
+      "length": 0.07,
+      "delays": [
+        3.0,
+        5.0,
+        7.0
+      ],
+      "prop_mass": 0.012237,
+      "total_mass": 0.024236999999999998,
+      "total_impulse": 9.599960000000001,
+      "burn_time": 1.6,
+      "average_thrust": 5.999975,
+      "max_thrust": 16.107,
+      "points": [
+        {
+          "t": 0.0,
+          "thrust": 0.0,
+          "mass": 0.024236999999999998,
+          "cg": 0.035
+        },
+        {
+          "t": 0.8,
+          "thrust": 5.219,
+          "mass": 0.016282,
+          "cg": 0.035
+        },
+        {
+          "t": 1.6,
+          "thrust": 0.0,
+          "mass": 0.012,
+          "cg": 0.035
+        }
+      ],
+      "sha256": "025d61aa8d954cbb564b70b0f03a2add19e7495f043028ccdf120c0309b4c92b",
+      "source": {
+        "kind": "generic",
+        "id": "RW_C6G"
+      }
+    }
+  }
+}

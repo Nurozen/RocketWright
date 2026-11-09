@@ -536,6 +536,7 @@ name your host lists.
 | `job_cancel` | | |
 | `run_list`, `run_diff` | `rw diff run` | |
 | `motor_search`, `library_search` | `rw motor search`, `rw lib search` | read-only |
+| `motor_show` | `rw motor show` | `{"id":"generic:RW_C6G"}`; read-only, the specs and thrust curve |
 | `import_file` | `rw motor import` | `{"path":"/abs/K828FJ.eng","kind":"motor"}`; needs the user's approval |
 | `thrustcurve_search` | `rw motor thrustcurve search` | `{"query":"Estes C6"}`; network, read-only; only when the user asks |
 | `thrustcurve_fetch` | `rw motor thrustcurve fetch` | `{"motor":"<motor id>"}`; network; needs the user's approval, which names the host |
@@ -544,6 +545,7 @@ name your host lists.
 | `engine_design`, `engine_simulate` | `rw engine design`, `rw engine sim` | `{"engine":"demo"}`; the design lists `missing_inputs` and `RW-E22x` rule findings |
 | `cfd_import` | `rw cfd import` | `{"path":"fixtures/cfd","study":"tank"}`; writes `runs/cfd.<id>/<run>/`, `provenance` `cfd`; needs the user's approval |
 | `project_validate`, `schema_get` | `rw validate`, `rw schema` | |
+| `project_rename` | | `{"name":"Solstice"}`; one step, both files; runs read as outdated afterwards |
 | `import_file`, `export_file` | `rw import ork`, `rw motor import`, `rw export` | need the user's approval |
 
 App-only tools (they act on the live window the user sees):

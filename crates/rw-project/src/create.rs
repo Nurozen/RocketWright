@@ -6,12 +6,15 @@
 //! the empty model to the new one. A folder may hold other files; creating
 //! a project refuses rather than replace any of them (D3).
 
+use std::collections::BTreeMap;
 use std::path::Path;
 
 use rw_api::{
     ApiError, ApiErrorCode, CallCtx, FileChange, FileStatus, ImportOut, MutationOut,
     ProjectCreateIn,
 };
+
+use rw_units::{DimKind, Unit, parse_unit};
 
 use crate::lock::ProjectLock;
 use crate::session::{LockMode, Session, SessionOptions, locked_error};
@@ -27,6 +30,51 @@ pub const GITIGNORE: &str = ".rw/\n";
 
 /// A template's main model file, which `--name` renames with the manifest.
 const ROCKET_FILE: &str = "rocket.rw.toml";
+
+/// The longest project name, in bytes (R0.7).
+pub const MAX_PROJECT_NAME_BYTES: usize = 255;
+
+/// The `[display_units]` key of the flight-distance class.
+pub const ALTITUDE: &str = "altitude";
+
+/// The dimension a `[display_units]` key names.
+pub fn display_kind(key: &str) -> Option<DimKind> {
+    if key == ALTITUDE {
+        Some(DimKind::Length)
+    } else {
+        DimKind::from_name(key)
+    }
+}
+
+/// `sym` as the display unit of `key`, or `None` when the key is unknown,
+/// the symbol does not parse, or its dimension is wrong.
+pub fn display_unit(key: &str, sym: &str) -> Option<Unit> {
+    let kind = display_kind(key)?;
+    let unit = parse_unit(sym).ok()?;
+    (unit.dim == kind.dimension()).then_some(unit)
+}
+
+/// `name` trimmed, or `invalid_input` when it is empty, over
+/// [`MAX_PROJECT_NAME_BYTES`], or holds a control character.
+pub fn checked_project_name(name: &str) -> Result<&str, ApiError> {
+    let invalid = |message: String| err(ApiErrorCode::InvalidInput, message, None);
+    let name = name.trim();
+    if name.is_empty() {
+        return Err(invalid("a project name cannot be empty".into()));
+    }
+    if name.len() > MAX_PROJECT_NAME_BYTES {
+        return Err(invalid(format!(
+            "a project name is at most {MAX_PROJECT_NAME_BYTES} bytes; this one is {}",
+            name.len()
+        )));
+    }
+    if name.chars().any(char::is_control) {
+        return Err(invalid(
+            "a project name cannot hold control characters".into(),
+        ));
+    }
+    Ok(name)
+}
 
 fn err(code: ApiErrorCode, message: impl Into<String>, hint: Option<String>) -> ApiError {
     ApiError {
@@ -210,8 +258,50 @@ fn renamed_manifest(text: &str, name: &str) -> String {
     }
 }
 
+/// Overlays `units` on a manifest's `[display_units]`, keeping its comments.
+/// The caller has checked the entries and that `text` parses.
+fn with_display_units(text: &str, units: &BTreeMap<String, String>) -> String {
+    let Ok(mut doc) = text.parse::<toml_edit::DocumentMut>() else {
+        return text.to_string();
+    };
+    if let Some(table) = doc
+        .entry("display_units")
+        .or_insert_with(toml_edit::table)
+        .as_table_mut()
+    {
+        for (key, sym) in units {
+            table.insert(key, toml_edit::value(sym.trim()));
+        }
+    }
+    doc.to_string()
+}
+
+/// `invalid_input` naming the first `[display_units]` entry that no reader
+/// would honour; they would otherwise be silently ignored.
+fn check_display_units(units: &BTreeMap<String, String>) -> Result<(), ApiError> {
+    for (key, sym) in units {
+        if display_kind(key).is_none() {
+            return Err(err(
+                ApiErrorCode::InvalidInput,
+                format!("`{key}` is not a display unit key"),
+                Some("keys are dimension names (length, mass, velocity, ...) or altitude".into()),
+            ));
+        }
+        if display_unit(key, sym.trim()).is_none() {
+            return Err(err(
+                ApiErrorCode::InvalidInput,
+                format!("`{sym}` is not a unit of `{key}`"),
+                None,
+            ));
+        }
+    }
+    Ok(())
+}
+
 /// The files `project_create` writes (project-relative path, text).
 pub fn project_files(i: &ProjectCreateIn) -> Result<Vec<(String, String)>, ApiError> {
+    let name = i.name.as_deref().map(checked_project_name).transpose()?;
+    check_display_units(&i.display_units)?;
     let t = i.template.as_deref().unwrap_or(DEFAULT_TEMPLATE);
     let files = template(t).ok_or_else(|| {
         err(
@@ -226,9 +316,14 @@ pub fn project_files(i: &ProjectCreateIn) -> Result<Vec<(String, String)>, ApiEr
         .map(|(p, s)| {
             // The name lives in both files; a project must never read "Rocket"
             // in one place and its real name in the other.
-            let text = match (&i.name, p) {
+            let text = match (name, p) {
                 (Some(n), layout::MANIFEST | ROCKET_FILE) => renamed_manifest(s, n),
                 _ => s.to_string(),
+            };
+            let text = if p == layout::MANIFEST && !i.display_units.is_empty() {
+                with_display_units(&text, &i.display_units)
+            } else {
+                text
             };
             (p.to_string(), text)
         })
@@ -416,6 +511,7 @@ mod tests {
             name: Some("Alpha".into()),
             template: Some("simple-rocket".into()),
             dry_run: true,
+            ..ProjectCreateIn::default()
         };
         let dry = create_project(&dir, &i, &ctx()).unwrap();
         assert!(dry.dry_run && dry.step.is_none());
@@ -449,6 +545,99 @@ mod tests {
                 .unwrap_err()
                 .code,
             ApiErrorCode::NotFound
+        );
+    }
+
+    /// R3.4: creation writes `[display_units]` in the one step.
+    #[test]
+    fn creation_writes_display_units() {
+        let d = TempDir::new("create-units");
+        let dir = d.path().join("p");
+        let units = |pairs: &[(&str, &str)]| -> BTreeMap<String, String> {
+            pairs
+                .iter()
+                .map(|(k, v)| ((*k).to_string(), (*v).to_string()))
+                .collect()
+        };
+        let i = ProjectCreateIn {
+            display_units: units(&[("length", " cm "), ("mass", "kg")]),
+            ..ProjectCreateIn::default()
+        };
+        let out = create_project(&dir, &i, &ctx()).unwrap();
+        assert_eq!(out.step.as_deref(), Some("step:1"), "no follow-up edit");
+        let manifest = std::fs::read_to_string(dir.join("rocketwright.toml")).unwrap();
+        assert!(manifest.contains("[display_units]"), "{manifest}");
+        assert!(manifest.contains("length = \"cm\""), "{manifest}");
+        assert!(manifest.contains("mass = \"kg\""), "{manifest}");
+        // The written manifest is already canonical.
+        let mut s = Session::open(&dir, SessionOptions::read_only()).unwrap();
+        let rw_api::Response::Fmt(fmt) = s
+            .execute(
+                &rw_api::Command::Fmt(rw_api::FmtIn {
+                    check: true,
+                    files: Vec::new(),
+                }),
+                &ctx(),
+            )
+            .unwrap()
+        else {
+            panic!()
+        };
+        assert!(fmt.changed.is_empty(), "{:?}", fmt.changed);
+
+        // A template's own entries survive unless overlaid.
+        let dir = d.path().join("q");
+        let i = ProjectCreateIn {
+            template: Some("simple-rocket".into()),
+            display_units: units(&[("mass", "kg")]),
+            ..ProjectCreateIn::default()
+        };
+        create_project(&dir, &i, &ctx()).unwrap();
+        let manifest = std::fs::read_to_string(dir.join("rocketwright.toml")).unwrap();
+        assert_eq!(manifest.matches("[display_units]").count(), 1, "{manifest}");
+        assert!(manifest.contains("mass = \"kg\""), "{manifest}");
+        assert!(manifest.contains("length ="), "{manifest}");
+
+        for bad in [
+            units(&[("colour", "mm")]),
+            units(&[("length", "furlongs")]),
+            units(&[("length", "kg")]),
+        ] {
+            let target = d.path().join("bad");
+            let i = ProjectCreateIn {
+                display_units: bad,
+                ..ProjectCreateIn::default()
+            };
+            let e = create_project(&target, &i, &ctx()).unwrap_err();
+            assert_eq!(e.code, ApiErrorCode::InvalidInput);
+            assert!(!target.exists(), "refused before writing");
+        }
+    }
+
+    /// R0.7: a created name obeys the rename limits.
+    #[test]
+    fn creation_refuses_bad_names() {
+        let d = TempDir::new("create-name");
+        for bad in ["", " ", "a\u{7}b", &"n".repeat(256)] {
+            let target = d.path().join("p");
+            let i = ProjectCreateIn {
+                name: Some(bad.to_string()),
+                ..ProjectCreateIn::default()
+            };
+            let e = create_project(&target, &i, &ctx()).unwrap_err();
+            assert_eq!(e.code, ApiErrorCode::InvalidInput, "{bad:?}");
+            assert!(!target.exists());
+        }
+        let i = ProjectCreateIn {
+            name: Some(" Alpha ".into()),
+            ..ProjectCreateIn::default()
+        };
+        let dir = d.path().join("trimmed");
+        create_project(&dir, &i, &ctx()).unwrap();
+        assert!(
+            std::fs::read_to_string(dir.join("rocketwright.toml"))
+                .unwrap()
+                .contains("name = \"Alpha\"")
         );
     }
 
@@ -620,6 +809,7 @@ mod tests {
             name: Some("Solstice".into()),
             template: Some("minimum".into()),
             dry_run: false,
+            ..ProjectCreateIn::default()
         };
         create_project(&dir, &i, &ctx()).unwrap();
         let manifest = std::fs::read_to_string(dir.join(layout::MANIFEST)).unwrap();

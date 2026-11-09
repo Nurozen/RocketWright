@@ -19,6 +19,7 @@ pub const MAX_SUMMARY: usize = 120;
 pub const TITLES: &[(&str, &str)] = &[
     ("project_create", "Create project"),
     ("project_validate", "Validate project"),
+    ("project_rename", "Rename project"),
     ("model_get", "Read model"),
     ("model_patch", "Edit model"),
     ("component_add", "Add component"),
@@ -27,6 +28,7 @@ pub const TITLES: &[(&str, &str)] = &[
     ("render", "Render view"),
     ("library_search", "Search library"),
     ("motor_search", "Find motors"),
+    ("motor_show", "Read motor"),
     ("simulate", "Run simulation"),
     ("job_status", "Check run"),
     ("job_cancel", "Cancel run"),
@@ -269,6 +271,14 @@ fn success(name: &str, args: &Value, out: &Value) -> String {
             let fields = count(len(args, "ops"), "field", "fields");
             mutation(out, format!("{fields} changed"), &fields)
         }
+        "project_rename" => {
+            let name = text(args, "name").unwrap_or("project");
+            mutation(
+                out,
+                format!("Renamed to {name}"),
+                &format!("rename to {name}"),
+            )
+        }
         "component_add" => {
             let id = text(args, "id").unwrap_or("component");
             mutation(out, format!("Added {id}"), &format!("add {id}"))
@@ -298,6 +308,11 @@ fn success(name: &str, args: &Value, out: &Value) -> String {
         "render" => text(out, "view").map_or_else(|| "Rendered".into(), view),
         "library_search" => count(len(out, "items"), "item", "items"),
         "motor_search" => count(len(out, "motors"), "candidate", "candidates"),
+        "motor_show" => out
+            .get("info")
+            .and_then(|info| text(info, "designation"))
+            .unwrap_or("Motor")
+            .to_string(),
         "simulate" => simulate_summary(args, out),
         "engine_simulate" => {
             let s = run_state(
@@ -573,6 +588,30 @@ mod tests {
                 none.clone(),
                 json!({"motors": [{}, {}, {}]}),
                 "3 candidates",
+            ),
+            (
+                "motor_show",
+                none.clone(),
+                json!({"info": {"designation": "C6"}, "curve": {}}),
+                "C6",
+            ),
+            (
+                "project_rename",
+                json!({"name": "Solstice"}),
+                mutation_out(Some("step:3"), false, 0),
+                "Renamed to Solstice",
+            ),
+            (
+                "project_rename",
+                json!({"name": "Solstice"}),
+                mutation_out(None, true, 0),
+                "Dry run · rename to Solstice",
+            ),
+            (
+                "project_rename",
+                json!({"name": "Solstice"}),
+                mutation_out(None, false, 0),
+                "No change",
             ),
             (
                 "simulate",
