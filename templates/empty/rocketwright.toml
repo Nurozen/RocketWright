@@ -1,0 +1,4 @@
+# A project with no parts yet (`rw init --template empty`).
+format = 1
+name = "Rocket"
+default_config = "default"

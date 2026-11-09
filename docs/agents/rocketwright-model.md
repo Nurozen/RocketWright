@@ -372,7 +372,7 @@ as `name`, `material`, `finish`, `appearance`, `instances`, `override`, and
 
 | Command | Use it to |
 |---|---|
-| `rw init --template simple-rocket [dir]` | start a project in the working directory (or in `dir` when you are asked for one); `minimum` is the other template |
+| `rw init --template simple-rocket [dir]` | start a project in the working directory (or in `dir` when you are asked for one); the other templates are `minimum`, `sample` (a larger worked example), and `empty` (no parts; `rw check` reports `RW-E100` until you add some) |
 | `rw check --strict` | check the design (the gate) |
 | `rw check --strict --json` | the full report: `status`, `diagnostics`, `dims` (`length`, `max_diameter`, `length_cal`, `fineness`, ...), `mass` (with the mass breakdown `mass.components[]`: `component`, `mass`, `cg`, `override`), `aero` (with the per-component terms `aero.terms[]`: `component`, `cna`, `cp`, `model`), `stability`, `motor`, `clearance`, `assertions`, `report` |
 | `rw check --strict --set <path>=<value>` | a what-if: check with overrides, writing nothing (repeat `--set`; the paths are the `rw set` paths) |

@@ -42,7 +42,7 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Cmd {
-    /// Create a project from a template (minimum, simple-rocket).
+    /// Create a project from a template (empty, minimum, sample, simple-rocket).
     Init {
         /// Directory (default: --project or the working directory).
         dir: Option<PathBuf>,

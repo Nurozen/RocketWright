@@ -637,6 +637,27 @@ fn init_under_an_unwritable_parent_fails_cleanly() {
     assert!(!dir.exists());
 }
 
+/// `empty` fails the strict check by design. `rw init` still exits 0, because
+/// the project exists, and the check's status stays in `--json`.
+#[test]
+fn init_empty_exits_zero_and_keeps_the_check_status() {
+    let t = TempProject::new();
+    let dir = t.0.join("blank");
+    let o = rw_bare(&t.0)
+        .args(["init", "--template", "empty", "--json"])
+        .arg(&dir)
+        .output()
+        .unwrap();
+    assert!(o.status.success(), "{}", stdout(&o));
+    let v = json_out(&o);
+    assert!(
+        v["check_strict_status"].is_string() && v["check_strict_status"] != "clean",
+        "{v}"
+    );
+    let o = run(&dir, &["check", "--strict"], 1);
+    assert!(stdout(&o).contains("RW-E100"), "{}", stdout(&o));
+}
+
 #[test]
 fn exit_code_matrix() {
     let simple = TempProject::fixture("fixtures/simple");

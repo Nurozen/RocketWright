@@ -400,7 +400,10 @@ mod tests {
 
     #[test]
     fn templates_are_embedded() {
-        assert_eq!(template_names(), ["minimum", "simple-rocket"]);
+        assert_eq!(
+            template_names(),
+            ["empty", "minimum", "sample", "simple-rocket"]
+        );
         assert!(template("minimal").is_some());
         assert!(template("nope").is_none());
     }
@@ -627,9 +630,33 @@ mod tests {
         assert!(!rocket.contains("\"Rocket\""), "{rocket}");
     }
 
+    /// `empty` opens with no parts, one configuration and no simulation, and
+    /// the check still says there is nothing to fly yet (RW-E100).
+    #[test]
+    fn the_empty_template_opens_with_nothing_to_fly() {
+        let d = TempDir::new("create-empty");
+        let dir = d.path().join("p");
+        let i = ProjectCreateIn {
+            template: Some("empty".into()),
+            ..ProjectCreateIn::default()
+        };
+        create_project(&dir, &i, &ctx()).unwrap();
+        let s = Session::open(&dir, SessionOptions::read_only()).unwrap();
+        assert!(s.model().components.is_empty());
+        assert!(s.model().sims.is_empty());
+        assert_eq!(s.model().configs.len(), 1);
+        let (_, r) = s.evaluated(Some("default")).unwrap();
+        assert!(
+            r.diagnostics.iter().any(|d| d.code == "RW-E100"),
+            "{:?}",
+            r.diagnostics
+        );
+    }
+
     #[test]
     fn every_template_checks_clean_in_every_configuration() {
-        for t in template_names() {
+        // `empty` has no rocket to check yet; its own test pins what it reports.
+        for t in template_names().into_iter().filter(|t| *t != "empty") {
             let d = TempDir::new("create-tpl");
             let dir = d.path().join("p");
             let i = ProjectCreateIn {
