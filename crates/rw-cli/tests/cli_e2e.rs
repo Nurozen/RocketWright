@@ -615,6 +615,59 @@ fn init_refuses_files_it_would_replace() {
     assert_eq!(std::fs::read(dir.join("notes.txt")).unwrap(), b"keep\n");
 }
 
+/// R3.4: `rw import ork` writes the display units in the project it creates, in its one step.
+#[test]
+fn import_ork_writes_display_units_in_a_new_project() {
+    let t = TempProject::new();
+    let src = t.0.join("bird.ork");
+    std::fs::write(&src, include_str!("../../rw-ork/tests/data/simple.ork.xml")).unwrap();
+    let dir = t.0.join("imported");
+    let o = rw_bare(&t.0)
+        .args(["import", "ork"])
+        .arg(&src)
+        .arg(&dir)
+        .args(["--display-units", "length=in", "--json"])
+        .output()
+        .unwrap();
+    let v: Value = serde_json::from_str(&stdout(&o)).unwrap();
+    assert_eq!(v["step"], "step:1", "{}", stdout(&o));
+    let manifest = std::fs::read_to_string(dir.join("rocketwright.toml")).unwrap();
+    assert!(manifest.contains("length = \"in\""), "{manifest}");
+    assert!(manifest.contains("mass = \"g\""), "{manifest}");
+
+    // A bad unit is refused before anything is written.
+    let bad = t.0.join("bad");
+    let o = rw_bare(&t.0)
+        .args(["import", "ork"])
+        .arg(&src)
+        .arg(&bad)
+        .args(["--display-units", "length=furlongs"])
+        .output()
+        .unwrap();
+    assert_ne!(o.status.code(), Some(0));
+    assert!(!bad.join("rocketwright.toml").exists());
+
+    // Over an existing project the file's units stay the project's, so the flag is refused.
+    let o = rw_bare(&t.0)
+        .args(["import", "ork"])
+        .arg(&src)
+        .arg(&dir)
+        .args(["--display-units", "length=cm", "--json"])
+        .output()
+        .unwrap();
+    assert_eq!(
+        o.status.code(),
+        Some(2),
+        "{}",
+        String::from_utf8_lossy(&o.stderr)
+    );
+    assert!(
+        std::fs::read_to_string(dir.join("rocketwright.toml"))
+            .unwrap()
+            .contains("length = \"in\"")
+    );
+}
+
 /// D3 for `rw import ork` into a folder that is not yet a project.
 #[test]
 fn import_ork_refuses_files_it_would_replace() {

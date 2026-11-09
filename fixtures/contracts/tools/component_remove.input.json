@@ -3,6 +3,9 @@
   "type": "tools/component_remove.input",
   "payload": {
     "id": "lug",
+    "also": [
+      "ring_lower"
+    ],
     "recursive": false
   }
 }

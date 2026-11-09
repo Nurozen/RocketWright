@@ -10,7 +10,7 @@ use super::{CmdResult, Opts, Outcome, creation_outcome, diag_lines, usage};
 use crate::display::{Class, display_tree, field_class};
 
 /// `key=unit` pairs from `--display-units`, later entries winning.
-fn parse_display_units(pairs: &[String]) -> Result<BTreeMap<String, String>, ApiError> {
+pub(super) fn parse_display_units(pairs: &[String]) -> Result<BTreeMap<String, String>, ApiError> {
     pairs
         .iter()
         .map(|pair| match pair.split_once('=') {

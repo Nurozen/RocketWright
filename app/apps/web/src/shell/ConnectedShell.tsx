@@ -25,7 +25,7 @@ import type { PaneBridge } from "../embed/bridge.ts";
 import { EmbedPane } from "../embed/EmbedPane.tsx";
 import { StartChatPrompt } from "../embed/StartChatPrompt.tsx";
 import { defaultCompare, versionLabel } from "../pages/compare/model.ts";
-import { deleteKeyTarget, isPartDeleteKey, overlayOpen } from "../pages/assembly/partOps.ts";
+import { deleteAlso, deleteKeyTarget, isPartDeleteKey, overlayOpen } from "../pages/assembly/partOps.ts";
 import { PartDialogs } from "../pages/assembly/PartActions.tsx";
 import { RpcCallError, type RpcLike } from "../state/rpc.ts";
 import { openRef } from "../state/navigation.ts";
@@ -328,10 +328,12 @@ export function ConnectedShell({ store, client = null, renderPage, renderCompare
         return;
       }
       if (!isPartDeleteKey(e) || overlayOpen(document)) return;
-      const id = deleteKeyTarget(store.getState());
+      const state = store.getState();
+      const id = deleteKeyTarget(state);
       if (id === null) return;
       e.preventDefault();
-      store.getState().ui.setPartDialog({ kind: "delete", id });
+      const also = deleteAlso(state, id);
+      state.ui.setPartDialog(also.length > 0 ? { kind: "delete", id, also } : { kind: "delete", id });
     };
     window.addEventListener("keydown", on);
     return () => window.removeEventListener("keydown", on);

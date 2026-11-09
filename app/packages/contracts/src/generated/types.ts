@@ -855,7 +855,11 @@ export interface ComponentMoveIn {
 export interface ComponentRemoveIn {
   id: string;
   /**
-   * Also remove components attached to it (otherwise they error).
+   * More components to remove in the same step (one undo).
+   */
+  also?: string[];
+  /**
+   * Also remove components attached to any of them (otherwise they error).
    */
   recursive?: boolean;
   dry_run?: boolean;

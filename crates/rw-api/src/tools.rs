@@ -200,7 +200,10 @@ pub struct ComponentAddIn {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct ComponentRemoveIn {
     pub id: String,
-    /// Also remove components attached to it (otherwise they error).
+    /// More components to remove in the same step (one undo).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub also: Vec<String>,
+    /// Also remove components attached to any of them (otherwise they error).
     #[serde(default)]
     pub recursive: bool,
     #[serde(default)]

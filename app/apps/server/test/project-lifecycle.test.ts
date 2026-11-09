@@ -93,6 +93,20 @@ describe("project lifecycle (U14)", () => {
     await c.call("project.close", { projectId: project.projectId });
   });
 
+  it("a project from an .ork takes the default units in its one step (R3.4)", async () => {
+    const location = freshLocation("ork-units");
+    const src = join(base, "bird.ork");
+    writeFileSync(src, readFileSync(join(import.meta.dirname, "../../../../crates/rw-ork/tests/data/simple.ork.xml")));
+    const { project } = await c.call("project.create", { name: "Ork inch", location, source: { ork: src }, displayUnits: { length: "in" } });
+    const manifest = readFileSync(join(project.dir, "rocketwright.toml"), "utf8");
+    expect(manifest).toMatch(/^\[display_units\][\s\S]*^length = "in"$/m);
+    expect(manifest).toMatch(/^mass = "g"$/m);
+    const { snapshot, subscriptionId } = await c.call("project.subscribe", { projectId: project.projectId });
+    expect(snapshot.history.steps.map((s) => s.title)).toEqual([expect.stringMatching(/^Import /)]);
+    await c.call("project.unsubscribe", { subscriptionId });
+    await c.call("project.close", { projectId: project.projectId });
+  });
+
   it("creates without a table's value when no units are given", async () => {
     const location = freshLocation("no-units");
     const { project } = await c.call("project.create", { name: "Plain", location, template: "empty" });

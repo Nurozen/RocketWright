@@ -5,7 +5,8 @@
 //! `tokio::io::duplex` into an [`RwServer`]. Owner, client and promotion
 //! therefore share one path. Lines pass through unchanged, except that the
 //! client's `initialize` names the relay (`clientInfo.name` =
-//! [`RELAY_CLIENT`]) so the owner treats the connection as `Origin::Mcp`.
+//! [`RELAY_CLIENT`], the real client in `clientInfo.title`) so the owner
+//! treats the connection as `Origin::Mcp` and can tell who is attached.
 //!
 //! The pump records the client's `initialize` params, `notifications/
 //! initialized`, the subscribed URIs and the in-flight request ids.
@@ -61,7 +62,7 @@ use tokio::io::{AsyncBufReadExt, AsyncRead, AsyncWrite, AsyncWriteExt, BufReader
 use tokio::sync::mpsc;
 use tokio::task::JoinHandle;
 
-use super::server::RELAY_CLIENT;
+use super::server::{AGENT_CLIENT, RELAY_CLIENT, client_name};
 use super::{Hub, McpOptions, RwServer, meta, socket};
 
 /// Prefix of the JSON-RPC ids of requests the relay itself sends upstream
@@ -178,7 +179,11 @@ impl Owner {
         tokio::spawn(async move {
             let (r, w) = tokio::io::split(server);
             if let Ok(service) = srv.serve((r, w)).await {
+                if let Some(info) = service.peer().peer_info() {
+                    hub.client_attached(conn, client_name(&info.client_info));
+                }
                 let _ = service.waiting().await;
+                hub.client_detached(conn);
             }
             hub.drop_conn(conn);
         });
@@ -237,7 +242,15 @@ async fn connect_socket(path: &Path) -> std::io::Result<(Reader, Writer)> {
 }
 
 /// Becomes the owner or a relay of `project` (module docs).
-async fn elect(project: &Path, opts: &McpOptions) -> anyhow::Result<(Role, Reader, Writer)> {
+///
+/// `agent_client` is true when the client this front serves is a Lecturn
+/// agent's tool process; a promotion publishes that at once, so the project
+/// never reads as held by the agent's own relay while the app just closed it.
+async fn elect(
+    project: &Path,
+    opts: &McpOptions,
+    agent_client: bool,
+) -> anyhow::Result<(Role, Reader, Writer)> {
     let start = Instant::now();
     let mut delay = BACKOFF_MIN;
     let record = opts.socket.then(|| socket::socket_path(project));
@@ -245,27 +258,32 @@ async fn elect(project: &Path, opts: &McpOptions) -> anyhow::Result<(Role, Reade
     let mut bind_failed = false;
     loop {
         let why = match rw_project::ProjectLock::acquire(project, record.as_deref()) {
-            Ok(lock) => match Owner::start(project, opts, lock) {
-                Ok(owner) => {
-                    trace("owner");
-                    let (r, w) = owner.connect();
-                    return Ok((Role::Owner(owner), r, w));
+            Ok(lock) => {
+                if agent_client {
+                    let _ = rw_project::lock::publish_agent_only(project, true);
                 }
-                Err(Ok(e)) => {
-                    if !bind_failed {
-                        eprintln!(
-                            "rocketwright mcp: cannot bind {}: {e}; released the lock, retrying",
-                            socket::socket_path(project).display()
-                        );
-                        bind_failed = true;
+                match Owner::start(project, opts, lock) {
+                    Ok(owner) => {
+                        trace("owner");
+                        let (r, w) = owner.connect();
+                        return Ok((Role::Owner(owner), r, w));
                     }
-                    format!(
-                        "cannot bind {}: {e}",
-                        socket::socket_path(project).display()
-                    )
+                    Err(Ok(e)) => {
+                        if !bind_failed {
+                            eprintln!(
+                                "rocketwright mcp: cannot bind {}: {e}; released the lock, retrying",
+                                socket::socket_path(project).display()
+                            );
+                            bind_failed = true;
+                        }
+                        format!(
+                            "cannot bind {}: {e}",
+                            socket::socket_path(project).display()
+                        )
+                    }
+                    Err(Err(e)) => return Err(e),
                 }
-                Err(Err(e)) => return Err(e),
-            },
+            }
             Err(LockError::Locked(info)) => {
                 let Some(sock) = info.socket.clone() else {
                     return Err(locked_by(
@@ -424,7 +442,15 @@ impl State {
                         .entry("clientInfo")
                         .or_insert_with(|| json!({"version": "0"}));
                     if let Some(o) = info.as_object_mut() {
+                        let real = o
+                            .get("name")
+                            .and_then(Value::as_str)
+                            .filter(|n| *n != RELAY_CLIENT)
+                            .map(str::to_owned);
                         o.insert("name".into(), json!(RELAY_CLIENT));
+                        if let Some(real) = real {
+                            o.insert("title".into(), json!(real));
+                        }
                     }
                     changed = true;
                 }
@@ -482,6 +508,15 @@ impl State {
             self.inflight.remove(&id_key(id));
         }
         Some(line)
+    }
+
+    /// True when the client this relay serves is a Lecturn agent's tool process.
+    fn agent_client(&self) -> bool {
+        self.init
+            .as_ref()
+            .and_then(|p| p.pointer("/clientInfo/title"))
+            .and_then(Value::as_str)
+            == Some(AGENT_CLIENT)
     }
 
     /// True once the current upstream has sent anything.
@@ -627,7 +662,7 @@ where
     R: AsyncRead + Unpin + Send + 'static,
     W: AsyncWrite + Unpin,
 {
-    let (mut role, r, mut up) = elect(&project, &opts).await?;
+    let (mut role, r, mut up) = elect(&project, &opts, false).await?;
     let (ctx, mut client) = mpsc::unbounded_channel::<String>();
     tokio::spawn(async move {
         let mut lines = BufReader::new(input).lines();
@@ -703,7 +738,8 @@ where
                         let (r, w) = match &role {
                             Role::Owner(o) => o.connect(),
                             Role::Relay(_) => {
-                                let (new_role, r, w) = elect(&project, &opts).await?;
+                                let (new_role, r, w) =
+                                    elect(&project, &opts, state.agent_client()).await?;
                                 role = new_role;
                                 (r, w)
                             }
@@ -760,7 +796,9 @@ mod tests {
             r#"{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"lecturn","version":"1"}}}"#.into(),
         );
         assert_eq!(v(&out)["params"]["clientInfo"]["name"], RELAY_CLIENT);
+        assert_eq!(v(&out)["params"]["clientInfo"]["title"], "lecturn");
         assert_eq!(v(&out)["params"]["clientInfo"]["version"], "1");
+        assert!(st.agent_client());
         assert_eq!(v(&out)["id"], 1);
         st.from_client(r#"{"jsonrpc":"2.0","method":"notifications/initialized"}"#.into());
         let line = r#"{"jsonrpc":"2.0","id":1,"result":{}}"#.to_string();

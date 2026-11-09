@@ -45,7 +45,7 @@ export interface ProjectCreateArgs {
   location?: string;
   template?: ProjectTemplate;
   ork?: string;
-  /** The default-units preference (R3.4); `rw init` only, since `rw import ork` has no such flag and the file's own units apply. */
+  /** The default-units preference (R3.4): `rw init` and `rw import ork` both take it in the one creating step. */
   displayUnits?: DisplayUnits;
   /** The folder is exactly `location/name`: a name already taken is refused, never renumbered (the agent's consent named this path). */
   exact?: boolean;
@@ -77,7 +77,7 @@ function absolutePath(key: string, path: string): string {
 const UNIT_KEY = /^[a-z_]+$/;
 const UNIT_SYMBOL = /^[^,=\p{Cc}]+$/u;
 
-/** `rw init`'s flag for these units, in sorted key order; no flag for none. */
+/** The `--display-units` flag `rw init` and `rw import ork` share, in sorted key order; no flag for none. */
 export function displayUnitsFlag(units: DisplayUnits | undefined): string[] {
   if (units === undefined) return [];
   const entries = Object.entries(units).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
@@ -180,7 +180,7 @@ export class ProjectCreator {
     if (state === "project") throw new RpcFail("conflict", `${target} already holds a project`);
     if (state === "file") throw new RpcFail("conflict", `${target} is a file, so a project cannot be created there`);
     // `--name=` so that a name starting with `-` is not read as a flag.
-    const args = ork === undefined ? ["init", target, `--name=${name}`, ...(template === undefined ? [] : [`--template=${template}`]), ...units, "--json"] : ["import", "ork", ork, target, "--json"];
+    const args = ork === undefined ? ["init", target, `--name=${name}`, ...(template === undefined ? [] : [`--template=${template}`]), ...units, "--json"] : ["import", "ork", ork, target, ...units, "--json"];
     const run = await runRw(this.bin, args);
     if (!created(run)) throw failureOf(run);
     return true;

@@ -73,8 +73,8 @@ export interface DraftSlice {
   dryRun(ops: readonly PatchOp[]): Promise<MutationOut>;
   /** Commits one direct edit after settling any open draft; rejects with a user-facing message. */
   mutate(ops: readonly PatchOp[], label?: string): Promise<MutationOut | null>;
-  /** Deletes a part, what is attached to it, and their motor and deploy entries, as one step; settles any open draft first. */
-  removeComponent(id: string, label: string): Promise<MutationOut>;
+  /** Deletes a part (and `also` any more parts), what is attached to them, and their motor and deploy entries, as one step; settles any open draft first. */
+  removeComponent(id: string, label: string, also?: readonly string[]): Promise<MutationOut>;
 }
 
 export type SelectionSource = "tree" | "viewport" | "inspector" | "chat" | "table" | "diagram" | "history" | "agent" | "check";
@@ -140,7 +140,7 @@ export interface UiSlice {
 }
 
 /** Held in the store because the tree, the inspector and the Delete key all open the same dialogs. */
-export type PartDialog = { kind: "rename"; id: string } | { kind: "delete"; id: string } | { kind: "error"; title: string; message: string };
+export type PartDialog = { kind: "rename"; id: string } | { kind: "delete"; id: string; also?: readonly string[] } | { kind: "error"; title: string; message: string };
 
 /** Old and New of the Compare view. */
 export interface CompareSelection {

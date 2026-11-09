@@ -14,7 +14,7 @@ import { Banner } from "../../ui/Banner.tsx";
 import type { MenuEntry } from "../../ui/Menu.tsx";
 import { Modal } from "../../ui/Modal.tsx";
 import { TextField } from "../../ui/TextField.tsx";
-import { attachedParts, deletePart, duplicatePart, movePart, moveTargets, renamePart } from "./partOps.ts";
+import { attachedParts, deleteAlso, deletePart, duplicatePart, movePart, moveTargets, removalPartsOf, renamePart } from "./partOps.ts";
 
 type Part = DeepReadonly<schema.EvalComponent>;
 
@@ -39,7 +39,16 @@ export function partMenuItems(store: AppStore, components: readonly Part[], id: 
       submenu: targets.map((t) => ({ id: t.id, label: t.label, onSelect: () => report(store, "Could not move the part", movePart(store, id, t)) })),
     },
     { kind: "divider", id: "divider" },
-    { id: "delete", label: "Delete", icon: <Icon name="trash" size={16} />, danger: true, onSelect: () => ui().setPartDialog({ kind: "delete", id }) },
+    {
+      id: "delete",
+      label: "Delete",
+      icon: <Icon name="trash" size={16} />,
+      danger: true,
+      onSelect: () => {
+        const also = deleteAlso(store.getState(), id);
+        ui().setPartDialog(also.length > 0 ? { kind: "delete", id, also } : { kind: "delete", id });
+      },
+    },
   ];
 }
 
@@ -102,17 +111,20 @@ function RenamePartDialog({ store, part, onClose }: { store: AppStore; part: Par
   );
 }
 
-function DeletePartDialog({ store, part, components, onClose }: { store: AppStore; part: Part; components: readonly Part[]; onClose: () => void }) {
+function DeletePartDialog({ store, part, also, components, onClose }: { store: AppStore; part: Part; also: readonly string[]; components: readonly Part[]; onClose: () => void }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
-  const attached = attachedParts(components, part.id);
+  // The agent can delete one of these while the dialog is open.
+  const others = also.filter((id) => id !== part.id && components.some((c) => c.id === id));
+  const many = others.length > 0;
+  const attached = many ? removalPartsOf(components, [part.id, ...others]) : attachedParts(components, part.id);
 
   const confirm = () => {
     if (saving) return;
     setSaving(true);
     setError(null);
-    deletePart(store, part.id).then(onClose, (err: unknown) => {
+    deletePart(store, part.id, others).then(onClose, (err: unknown) => {
       setSaving(false);
       setError(errorText(err));
     });
@@ -122,7 +134,7 @@ function DeletePartDialog({ store, part, components, onClose }: { store: AppStor
     <Modal
       open
       onClose={onClose}
-      title={`Delete ${part.name}?`}
+      title={many ? `Delete ${others.length + 1} parts?` : `Delete ${part.name}?`}
       testId="delete-part"
       className="rw-part-dialog"
       initialFocus={cancelRef}
@@ -141,15 +153,15 @@ function DeletePartDialog({ store, part, components, onClose }: { store: AppStor
     >
       {attached.length > 0 && (
         <>
-          <p>These parts are attached to it and are deleted with it:</p>
-          <ul className="rw-part-dialog__list" aria-label="Parts deleted with it">
+          <p>{many ? "These parts are deleted, with anything attached to them:" : "These parts are attached to it and are deleted with it:"}</p>
+          <ul className="rw-part-dialog__list" aria-label={many ? "Parts to delete" : "Parts deleted with it"}>
             {attached.map((c) => (
               <li key={c.id}>{c.name}</li>
             ))}
           </ul>
         </>
       )}
-      <p>{attached.length > 0 ? "Their" : "Its"} motor assignments and deploy settings are removed from every configuration. Undo brings everything back.</p>
+      <p>{many || attached.length > 0 ? "Their" : "Its"} motor assignments and deploy settings are removed from every configuration. Undo brings everything back.</p>
       {error !== null && (
         <Banner tone="danger" testId="delete-part.error">
           {error}
@@ -191,5 +203,5 @@ export function PartDialogs({ store }: { store: AppStore }) {
     );
   }
   if (dialog.kind === "rename") return <RenamePartDialog key={part!.id} store={store} part={part!} onClose={close} />;
-  return <DeletePartDialog key={part!.id} store={store} part={part!} components={components ?? []} onClose={close} />;
+  return <DeletePartDialog key={part!.id} store={store} part={part!} also={dialog.also ?? []} components={components ?? []} onClose={close} />;
 }

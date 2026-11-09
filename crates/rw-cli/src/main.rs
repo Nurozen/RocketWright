@@ -324,6 +324,9 @@ enum ImportCmd {
         file: String,
         /// Target directory (default: --project, else the working directory).
         dir: Option<PathBuf>,
+        /// `[display_units]` of a project this import creates, e.g. `length=cm,mass=kg`.
+        #[arg(long, value_name = "KEY=UNIT", value_delimiter = ',')]
+        display_units: Vec<String>,
         #[arg(long)]
         dry_run: bool,
     },
@@ -647,9 +650,12 @@ fn main() -> ExitCode {
             LibCmd::Show { id } => cmd::library::lib_show(&opts, &id),
         },
         Cmd::Import { what } => match what {
-            ImportCmd::Ork { file, dir, dry_run } => {
-                cmd::interop::import_ork(&opts, &file, dir, dry_run)
-            }
+            ImportCmd::Ork {
+                file,
+                dir,
+                display_units,
+                dry_run,
+            } => cmd::interop::import_ork(&opts, &file, dir, display_units, dry_run),
         },
         Cmd::Export {
             format,
