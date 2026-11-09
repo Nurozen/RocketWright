@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { serverCommand, spawnServer } from "./backend.ts";
+import { harnessModule, serverCommand, spawnServer } from "./backend.ts";
 import { packagedLayout, packagedServerOptions, userArgv } from "./packaged.ts";
 
 describe("packaged app", () => {
@@ -14,6 +14,18 @@ describe("packaged app", () => {
       sidecarBin: "/Applications/RocketWright.app/Contents/Resources/bin/rocketwright",
     });
     expect(packagedLayout("C:\\RW\\resources", "C:\\RW\\resources\\app.asar", "win32").sidecarBin).toMatch(/rocketwright\.exe$/);
+  });
+
+  it("does not let the environment turn on test hooks in a shipped app", () => {
+    const opts = packagedServerOptions(layout, "/x/RocketWright", { PATH: "/usr/bin", RW_TEST_HOOKS: "1", RW_TEST_SIM_DELAY_MS: "5" });
+    expect(opts.env).not.toHaveProperty("RW_TEST_HOOKS");
+    expect(opts.env).not.toHaveProperty("RW_TEST_SIM_DELAY_MS");
+    expect(opts.env?.PATH).toBe("/usr/bin");
+  });
+
+  it("ignores --drive and --measure when packaged, and keeps them unpackaged", () => {
+    expect(harnessModule(true, "/tmp/evil.mjs")).toBeUndefined();
+    expect(harnessModule(false, "/tmp/drive.mjs")).toBe("/tmp/drive.mjs");
   });
 
   it("reads user arguments after the script in a checkout run and after the executable when packaged", () => {

@@ -17,6 +17,19 @@ export type DisplayUnits = Record<string, string>;
 
 /** D13: `request` longer than this is refused, never truncated (native dialogs promise no scrolling). */
 export const PROJECT_TOOL_REQUEST_MAX = 2000;
+/** The same for line count: blank lines would otherwise push the rest of the request out of the dialog. */
+export const PROJECT_TOOL_REQUEST_MAX_LINES = 40;
+
+/**
+ * Code points that change what a dialog shows without being shown themselves:
+ * controls, text-direction marks, and everything Unicode calls default-ignorable
+ * (zero-width characters, variation selectors, tag characters).
+ */
+const DIALOG_INVISIBLE = String.raw`\p{Bidi_Control}|\p{Default_Ignorable_Code_Point}|[\u2028\u2029]`;
+/** Refused in a name or path: anything here could make the path on screen differ from the path acted on. */
+export const DIALOG_UNSAFE_NAME = new RegExp(String.raw`\p{Cc}|${DIALOG_INVISIBLE}`, "u");
+/** Refused or stripped in `request`, where a newline is real content. */
+export const DIALOG_UNSAFE_TEXT = new RegExp(String.raw`[^\P{Cc}\n]|${DIALOG_INVISIBLE}`, "u");
 
 export interface ProjectNewArgs {
   /** One safe path segment: the project's name and its folder's. */
@@ -60,10 +73,16 @@ export interface HostRequest {
   request?: string;
 }
 
+/** Why a request was not accepted; only `cancelled` means the person said no. */
+export const HOST_DECLINES = ["cancelled", "timeout", "unavailable", "refused"] as const;
+export type HostDecline = (typeof HOST_DECLINES)[number];
+
 /** `host.respond`: the user's answer. `displayUnits` is the default-units preference, on an accepted `project_new` (U59). */
 export interface HostResponse {
   requestId: string;
   accepted: boolean;
+  /** Set when `accepted` is false; absent reads as `cancelled`. */
+  declined?: HostDecline;
   displayUnits?: DisplayUnits;
 }
 

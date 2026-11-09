@@ -47,6 +47,8 @@ import type { AddressInfo } from "node:net";
 import { basename, join, resolve, sep } from "node:path";
 import type { Duplex } from "node:stream";
 import {
+  HOST_DECLINES,
+  type HostDecline,
   RPC_METHODS,
   RPC_PATH,
   RPC_VERSION,
@@ -813,7 +815,9 @@ export class AppServer {
       if (displayUnits !== undefined && (!isObject(displayUnits) || !Object.values(displayUnits).every((u) => typeof u === "string"))) {
         throw new RpcFail("invalid_params", "displayUnits: expected an object of strings");
       }
-      const answer = { requestId, accepted: params.accepted, ...(displayUnits === undefined ? {} : { displayUnits: displayUnits as Record<string, string> }) };
+      const declined = params.declined;
+      if (declined !== undefined && !(HOST_DECLINES as readonly unknown[]).includes(declined)) throw new RpcFail("invalid_params", "declined: not a known reason");
+      const answer = { requestId, accepted: params.accepted, ...(declined === undefined ? {} : { declined: declined as HostDecline }), ...(displayUnits === undefined ? {} : { displayUnits: displayUnits as Record<string, string> }) };
       if (!this.hostChannel.respond(answer)) throw new RpcFail("not_found", `no pending host request ${requestId}`);
       return {};
     },

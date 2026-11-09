@@ -13,8 +13,10 @@
  *   never stop a project opening.
  */
 import type { RecentEntry, RecentProject, RecentsFile, RecentStatus } from "@rw/contracts";
+import { execFile } from "node:child_process";
 import type { Stats } from "node:fs";
 import { mkdir, readFile, realpath, rename, rm, stat, writeFile } from "node:fs/promises";
+import { connect } from "node:net";
 import { dirname, isAbsolute, join, resolve } from "node:path";
 
 const MAX_RECENTS = 30;
@@ -34,6 +36,10 @@ export interface RecentsOptions {
   openDirs?: () => readonly string[];
   now?: () => Date;
   pidAlive?: (pid: number) => boolean;
+  /** Test seam: whether the owner's recorded socket answers. */
+  socketAnswers?: (path: string) => Promise<boolean>;
+  /** Test seam: when `pid`'s process started, or null when that cannot be told. */
+  pidStartedAt?: (pid: number) => Promise<Date | null>;
   log?: (line: string) => void;
   /** Test seam for a mount that never answers. */
   stat?: (path: string) => Promise<Pick<Stats, "isFile">>;
@@ -103,13 +109,63 @@ async function canon(dir: string): Promise<string> {
   }
 }
 
-async function lockOwner(dir: string): Promise<number | null> {
+/** `{pid, socket?, started}` of `.rw/lock`, when the file holds one. */
+interface LockRecord {
+  pid: number;
+  socket: string | undefined;
+  started: string | undefined;
+}
+
+async function lockRecord(dir: string): Promise<LockRecord | null> {
   try {
-    const { pid } = JSON.parse(await readFile(join(dir, LOCK_FILE), "utf8")) as { pid?: unknown };
-    return typeof pid === "number" ? pid : null;
+    const { pid, socket, started } = JSON.parse(await readFile(join(dir, LOCK_FILE), "utf8")) as { pid?: unknown; socket?: unknown; started?: unknown };
+    if (typeof pid !== "number") return null;
+    return { pid, socket: typeof socket === "string" ? socket : undefined, started: typeof started === "string" ? started : undefined };
   } catch {
     return null;
   }
+}
+
+/** The owner's socket accepts a connection; a crashed owner leaves a socket file that refuses one. A socket that stalls reads as held. */
+function socketAnswers(path: string, timeoutMs = 300): Promise<boolean> {
+  return new Promise((ok) => {
+    const s = connect(path);
+    const done = (held: boolean): void => {
+      clearTimeout(timer);
+      s.destroy();
+      ok(held);
+    };
+    const timer = setTimeout(() => done(true), timeoutMs);
+    s.once("connect", () => done(true));
+    s.once("error", () => done(false));
+  });
+}
+
+/** When `pid`'s process started, from `ps`; null when that cannot be told. */
+function pidStartedAt(pid: number): Promise<Date | null> {
+  return new Promise((ok) => {
+    execFile("ps", ["-o", "lstart=", "-p", String(pid)], (err, stdout) => {
+      const date = err === null ? new Date(stdout.trim()) : null;
+      ok(date !== null && !Number.isNaN(date.getTime()) ? date : null);
+    });
+  });
+}
+
+/**
+ * Whether a recorded owner really holds the lock. The record outlives a crash
+ * and its pid can be reused, so a live pid alone proves nothing. Node has no
+ * flock, so this asks what a real owner would still be doing: answering on its
+ * socket, or, with no socket recorded, having started no later than the record.
+ * What cannot be told reads as held, so a project in use never reads as free.
+ */
+async function reallyHeld(record: LockRecord, seams: Required<Pick<RecentsOptions, "pidAlive" | "socketAnswers" | "pidStartedAt">>): Promise<boolean> {
+  if (!seams.pidAlive(record.pid)) return false;
+  if (record.socket !== undefined) return seams.socketAnswers(record.socket);
+  const written = record.started === undefined ? Number.NaN : Date.parse(record.started);
+  if (Number.isNaN(written)) return true;
+  const started = await seams.pidStartedAt(record.pid);
+  // Whole seconds on both sides of this comparison, so allow the same second.
+  return started === null || started.getTime() <= written + 1000;
 }
 
 /**
@@ -119,7 +175,7 @@ async function lockOwner(dir: string): Promise<number | null> {
  * was). Any other failure leaves the project intact, so it reads `denied` and
  * never invites removing it.
  */
-async function probeStatus(dir: string, openHere: ReadonlySet<string>, alive: (pid: number) => boolean, statFile: NonNullable<RecentsOptions["stat"]>): Promise<RecentStatus> {
+async function probeStatus(dir: string, openHere: ReadonlySet<string>, seams: Required<Pick<RecentsOptions, "pidAlive" | "socketAnswers" | "pidStartedAt">>, statFile: NonNullable<RecentsOptions["stat"]>): Promise<RecentStatus> {
   let found = false;
   for (const manifest of MANIFESTS) {
     try {
@@ -132,13 +188,13 @@ async function probeStatus(dir: string, openHere: ReadonlySet<string>, alive: (p
   }
   if (!found) return "missing";
   if (openHere.has(dir)) return "ok";
-  const owner = await lockOwner(dir);
-  return owner !== null && alive(owner) ? "locked" : "ok";
+  const record = await lockRecord(dir);
+  return record !== null && (await reallyHeld(record, seams)) ? "locked" : "ok";
 }
 
 export function createRecents(options: RecentsOptions): Recents {
   const { file, excluded, readOnly = false, openDirs = () => [], now = () => new Date(), log = () => undefined } = options;
-  const alive = options.pidAlive ?? pidAlive;
+  const seams = { pidAlive: options.pidAlive ?? pidAlive, socketAnswers: options.socketAnswers ?? socketAnswers, pidStartedAt: options.pidStartedAt ?? pidStartedAt };
   // Read-modify-write runs one at a time: page calls overlap, and the last one sent must win.
   let queue: Promise<unknown> = Promise.resolve();
   const enqueue = <T>(op: () => Promise<T>): Promise<T> => {
@@ -194,7 +250,7 @@ export function createRecents(options: RecentsOptions): Recents {
     let running = probing.get(dir);
     if (running === undefined) {
       running = takeSlot()
-        .then(() => probeStatus(dir, openHere, alive, statFile).finally(freeSlot))
+        .then(() => probeStatus(dir, openHere, seams, statFile).finally(freeSlot))
         .finally(() => probing.delete(dir));
       probing.set(dir, running);
     }

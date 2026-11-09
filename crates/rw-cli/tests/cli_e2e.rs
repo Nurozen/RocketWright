@@ -1041,6 +1041,8 @@ fn accepted_substitution_and_deploy_event_clear_the_strict_check() {
     );
     let o = run(&dir, &["check", "--strict"], 1);
     assert!(stdout(&o).contains("RW-W103"), "{}", stdout(&o));
+    // The imported file gives the lug no material; give it one so only the motor is left to clear.
+    run(&dir, &["set", "c.launch_lug.material=\"cardboard\""], 1);
     let o = run(
         &dir,
         &[

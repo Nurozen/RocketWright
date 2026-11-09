@@ -83,6 +83,7 @@ failed `[[assert]]`, and with `--strict` also on any warning.
 | `RW-W001` | `unknown-field` | warning | A key is not part of the schema and is ignored. |
 | `RW-W002` | `joint-count-missing` | warning | A shear-pin or screw joint has no `count`. |
 | `RW-W003` | `lib-unrecorded` | warning | A file under `lib/` has no sha256 in `rocketwright.toml [lib]`. |
+| `RW-W004` | `material-missing` | warning | A component that draws its mass from a material names none, so it has no mass in checks or flights. |
 | `RW-W010` | `import-approximated` | warning | An imported file holds something RocketWright cannot represent exactly; it was approximated or skipped (the message says which). |
 | `RW-W101` | `motor-unresolved` | warning | A configured motor was not resolved to a thrust curve, so it is missing from mass and motor checks. |
 | `RW-W102` | `low-thrust-to-weight` | warning | The liftoff thrust-to-weight ratio is below 5. |

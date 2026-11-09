@@ -73,7 +73,7 @@ import { mountEmbedView, captureEmbedView, type EmbedBridge, type EmbedTarget as
 import { DESKTOP_COMMAND_CHANNEL, embedThemeInput, PANE_MAIN_CHANNEL, type DesktopBoot, type EmbedTarget, type ExportFileRequest, type LecturnHostThemeJson, type LecturnThemeJson, type PaneMainMessage } from "@rw/contracts";
 import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, screen, shell, systemPreferences, webContents } from "electron";
 import { mkdirSync, readFileSync, rmSync } from "node:fs";
-import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, realpath, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -84,7 +84,7 @@ import { openHiddenWindow } from "./hiddenWindow.ts";
 import { captureComposite, createPaneController, droppedCapture, GUEST_WEB_PREFERENCES, isGuestUrl, type EmbedBridgeLike, type MountArgs, type PaneController } from "./lecturn.ts";
 import { connectMainRpc, type MainRpc, type MainRpcOptions } from "./mainRpc.ts";
 import { APP_NAME, createMenuController, linkAction, type MenuController } from "./menu.ts";
-import { bootProjects, buildPreload, desktopArg, documentsDirOverride, lecturnBaseDirFor, parseDesktopArgs, REPO_ROOT, resolveDevProject, seededProfileDir, startBackend, userDataOverride, waitForHttp, type Backend, type DevProject } from "./backend.ts";
+import { bootProjects, buildPreload, desktopArg, documentsDirOverride, harnessModule, lecturnBaseDirFor, parseDesktopArgs, REPO_ROOT, resolveDevProject, seededProfileDir, startBackend, userDataOverride, waitForHttp, type Backend, type DevProject } from "./backend.ts";
 import { createConsentDialogs, registerDesktopServices } from "./nativeDialogs.ts";
 import { packagedLayout, packagedServerOptions, userArgv } from "./packaged.ts";
 import { createPreferences, restorableBounds } from "./preferences.ts";
@@ -128,8 +128,9 @@ const query = str(args.query) ?? (desk.smoke ? `page=${desk.page ?? "01"}` : ren
 /** Window global the page publishes `{status}` on when ready. */
 const readyGlobal = str(args.ready) ?? (desk.smoke ? "__rwShell" : "__rwProbe");
 if (!/^[A-Za-z_$][\w$]*$/.test(readyGlobal)) throw new Error(`--ready: not an identifier: ${readyGlobal}`);
-const measureModule = str(args.measure);
-const driveModule = str(args.drive);
+// Both run a file in main: a shipped app ignores them (`harnessModule`).
+const measureModule = harnessModule(app.isPackaged, str(args.measure));
+const driveModule = harnessModule(app.isPackaged, str(args.drive));
 /** `?surface=` of a B3 capture (`--query surface=s-welcome`), else null. */
 const surfaceId = new URLSearchParams(query).get("surface");
 const pagePath = str(args["page-path"]);
@@ -534,11 +535,17 @@ async function main(): Promise<void> {
   // reach them, and take no lock (parallel dev and e2e windows stay possible).
   const links = linkQueue();
   let focusWindow: (() => void) | null = null;
+  const showLinkFailure = (detail: string): void => {
+    process.stderr.write(`protocol: ${detail}\n`);
+    if (appWindow === null || appWindow.isDestroyed()) return;
+    void dialog.showMessageBox(appWindow, { type: "error", title: "RocketWright", message: "That link could not be opened", detail, buttons: ["OK"], noLink: true });
+  };
   if (!hidden && (app.isPackaged || process.env["RW_REGISTER_PROTOCOL"] === "1")) {
     const first = installProtocol({
       app,
       register: true,
       onOpen: (link) => links.push(link),
+      onInvalid: (raw) => showLinkFailure(`This link could not be understood: ${raw.slice(0, 200)}`),
       focus: () => focusWindow?.(),
       log: (line) => process.stderr.write(`${line}\n`),
     });
@@ -773,8 +780,12 @@ async function main(): Promise<void> {
   if (rpc !== null) {
     links.ready((link) => {
       void openFromLink(link, {
+        realpath: (dir) => realpath(dir),
+        known: async (dir) => rpc.projects().some((p) => p.dir === dir) || (await recents.list()).some((r) => r.dir === dir),
+        confirm: (dir) => consent.askOpenLink(dir),
         openProject: async (dir) => (await rpc.call("project.open", { dir })).project,
         activateProject,
+        showFailure: showLinkFailure,
         log: (line) => process.stderr.write(`${line}\n`),
       });
     });

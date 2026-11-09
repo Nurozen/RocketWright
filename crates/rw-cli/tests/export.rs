@@ -317,7 +317,9 @@ fn export_outside_the_project_needs_allow_outside() {
         "{}",
         String::from_utf8_lossy(&o.stderr)
     );
-    assert!(String::from_utf8_lossy(&o.stderr).contains("outside the project"));
+    let stderr = String::from_utf8_lossy(&o.stderr);
+    assert!(stderr.contains("outside the project"), "{stderr}");
+    assert!(stderr.contains("--allow-outside"), "{stderr}");
     assert!(!target.exists());
     let o = rw(&p.0)
         .args(["export", "glb", "../escape.glb"])

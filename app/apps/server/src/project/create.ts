@@ -47,6 +47,8 @@ export interface ProjectCreateArgs {
   ork?: string;
   /** The default-units preference (R3.4); `rw init` only, since `rw import ork` has no such flag and the file's own units apply. */
   displayUnits?: DisplayUnits;
+  /** The folder is exactly `location/name`: a name already taken is refused, never renumbered (the agent's consent named this path). */
+  exact?: boolean;
 }
 
 interface RwOutput {
@@ -161,7 +163,7 @@ export class ProjectCreator {
     const location = absolutePath("location", req.location ?? defaultProjectLocation());
     const ork = req.ork === undefined ? undefined : absolutePath("source.ork", req.ork);
     const units = displayUnitsFlag(req.displayUnits);
-    const dedupe = req.template === "sample" && req.name === SAMPLE_PROJECT_NAME;
+    const dedupe = req.exact !== true && req.template === "sample" && req.name === SAMPLE_PROJECT_NAME;
     for (let n = 1; ; n++) {
       const name = n === 1 ? req.name : `${req.name} ${n}`;
       const target = join(location, name);

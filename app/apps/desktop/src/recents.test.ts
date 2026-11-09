@@ -1,5 +1,6 @@
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { stat } from "node:fs/promises";
+import { createServer } from "node:net";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import type { RecentsFile } from "@rw/contracts";
@@ -254,6 +255,38 @@ describe("status", () => {
     expect(await store(file, { pidAlive: () => true, openDirs: () => [a] }).list()).toMatchObject([{ dir: a, status: "ok", open: true }]);
     writeFileSync(join(a, ".rw/lock"), "garbage");
     expect(await status({ pidAlive: () => true })).toBe("ok");
+  });
+
+  it("does not read a dead owner's record as locked just because its pid was reused", async () => {
+    const dir = root();
+    const file = join(dir, "recents.json");
+    const a = project(dir, "a");
+    mkdirSync(join(a, ".rw"));
+    await store(file).see({ dir: a, name: "A" });
+    const lock = (body: unknown): void => writeFileSync(join(a, ".rw/lock"), JSON.stringify(body));
+    const status = async (opts: Partial<RecentsOptions>): Promise<string | undefined> => (await store(file, opts).list())[0]?.status;
+
+    // A socket that refuses the connection: the owner is gone, whoever has its pid now.
+    lock({ pid: 4242, socket: join(dir, "dead.sock"), started: "2026-01-01T00:00:00Z" });
+    expect(await status({ pidAlive: () => true })).toBe("ok");
+
+    // A real listener: held.
+    const sock = join(dir, "live.sock");
+    const server = createServer();
+    await new Promise<void>((ok) => server.listen(sock, ok));
+    try {
+      lock({ pid: 4242, socket: sock, started: "2026-01-01T00:00:00Z" });
+      expect(await status({ pidAlive: () => true })).toBe("locked");
+    } finally {
+      await new Promise<void>((ok) => server.close(() => ok()));
+    }
+
+    // No socket recorded: a pid that started after the record cannot be the owner.
+    lock({ pid: 4242, started: "2026-01-01T00:00:00Z" });
+    expect(await status({ pidAlive: () => true, pidStartedAt: async () => new Date("2026-06-01T00:00:00Z") })).toBe("ok");
+    expect(await status({ pidAlive: () => true, pidStartedAt: async () => new Date("2025-06-01T00:00:00Z") })).toBe("locked");
+    // Cannot tell: a project in use must not read as free.
+    expect(await status({ pidAlive: () => true, pidStartedAt: async () => null })).toBe("locked");
   });
 
   it("checks a pid without signalling it", () => {

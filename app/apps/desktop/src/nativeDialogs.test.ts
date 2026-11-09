@@ -366,15 +366,15 @@ describe("consent dialog", () => {
       expect(t.order).toEqual(["focus", "box"]);
     });
 
-    it.each(["/work/a\u202eb", "/work/a\nb", "/work/a\u2066b"])("refuses a path that would not read as what it is: %j", async (path) => {
+    it.each(["/work/a\u202eb", "/work/a\nb", "/work/a\u2066b", "/work/a\u200bb", "/work/a\u{e0041}b"])("refuses a path that would not read as what it is: %j", async (path) => {
       const t = consent();
-      await expect(t.ask({ ...OPEN, path })).resolves.toEqual({ accepted: false });
+      await expect(t.ask({ ...OPEN, path })).resolves.toEqual({ accepted: false, declined: "refused" });
       expect(t.showMessageBox).not.toHaveBeenCalled();
     });
 
     it("refuses a name that would not read as what it is", async () => {
       const t = consent();
-      await expect(t.ask({ ...NEW, name: "a\u202eb" })).resolves.toEqual({ accepted: false });
+      await expect(t.ask({ ...NEW, name: "a\u202eb" })).resolves.toEqual({ accepted: false, declined: "refused" });
       expect(t.showMessageBox).not.toHaveBeenCalled();
     });
   });
@@ -395,7 +395,7 @@ describe("consent dialog", () => {
     ])("refuses on %s", async (_name, result) => {
       const t = consent();
       t.showMessageBox.mockResolvedValueOnce(result);
-      await expect(t.ask(NEW)).resolves.toEqual({ accepted: false });
+      await expect(t.ask(NEW)).resolves.toEqual({ accepted: false, declined: "cancelled" });
     });
 
     it("lets a failing dialog reject, for the channel to answer as a refusal, and still shows the next", async () => {
@@ -441,7 +441,7 @@ describe("consent dialog", () => {
       const refused = t.ask(NEW);
       await settle();
       t.boxes[0]!.answer(CONSENT_CANCEL_BUTTON);
-      await expect(refused).resolves.toEqual({ accepted: false });
+      await expect(refused).resolves.toEqual({ accepted: false, declined: "cancelled" });
       const opened = t.ask(OPEN);
       await settle();
       t.boxes[1]!.answer(CONSENT_ACCEPT_BUTTON);
@@ -449,17 +449,85 @@ describe("consent dialog", () => {
     });
   });
 
+  describe("what it refuses to show", () => {
+    it.each([
+      ["a zero-width character", "add\u200b a nose"],
+      ["a Unicode tag character", "add\u{e0041} a nose"],
+      ["a text-direction mark", "add\u202e a nose"],
+      ["too many lines", "x\n".repeat(50)],
+    ])("refuses a request holding %s", async (_label, request) => {
+      const t = consent();
+      await expect(t.ask({ ...NEW, request })).resolves.toEqual({ accepted: false, declined: "refused" });
+      expect(t.showMessageBox).not.toHaveBeenCalled();
+    });
+
+    it("keeps a request's newlines and backticks", async () => {
+      const t = consent();
+      void t.ask({ ...NEW, request: "first\n```\nsecond\n```" });
+      await settle();
+      expect(t.boxes[0]!.options.detail).toContain("first\n```\nsecond\n```");
+    });
+  });
+
+  describe("why it did not go ahead", () => {
+    it("says the deadline passed, and the socket going away reads as a timeout too", async () => {
+      const t = consent();
+      const answer = t.ask(NEW);
+      await settle();
+      await vi.advanceTimersByTimeAsync(CONSENT_DEADLINE_MS);
+      await expect(answer).resolves.toEqual({ accepted: false, declined: "timeout" });
+      const u = consent();
+      const leaving = new AbortController();
+      const second = u.ask(NEW, leaving.signal);
+      await settle();
+      leaving.abort();
+      await expect(second).resolves.toEqual({ accepted: false, declined: "timeout" });
+    });
+
+    it("says the app is closing when the box is closed by shutdown", async () => {
+      const t = consent();
+      const answer = t.ask(NEW);
+      await settle();
+      t.dialogs.close();
+      await expect(answer).resolves.toEqual({ accepted: false, declined: "unavailable" });
+      await expect(t.ask(OPEN)).resolves.toEqual({ accepted: false, declined: "unavailable" });
+    });
+  });
+
+  describe("a link's folder", () => {
+    it("names the real folder, cancels by default, and answers yes or no", async () => {
+      const t = consent();
+      const yes = t.dialogs.askOpenLink("/real/rv");
+      await settle();
+      expect(t.boxes[0]!.options).toMatchObject({ message: "A link wants to open a project", buttons: ["Cancel", "Open project"], defaultId: CONSENT_CANCEL_BUTTON, cancelId: CONSENT_CANCEL_BUTTON });
+      expect(t.boxes[0]!.options.detail).toContain("/real/rv");
+      t.boxes[0]!.answer(CONSENT_ACCEPT_BUTTON);
+      await expect(yes).resolves.toEqual({ accepted: true });
+      const no = t.dialogs.askOpenLink("/real/rv");
+      await settle();
+      t.boxes[1]!.answer(CONSENT_CANCEL_BUTTON);
+      await expect(no).resolves.toEqual({ accepted: false, declined: "cancelled" });
+    });
+
+    it("refuses a folder name it could not show truthfully, and answers on a hidden run", async () => {
+      const t = consent();
+      await expect(t.dialogs.askOpenLink("/real/a\u200bb")).resolves.toEqual({ accepted: false, declined: "refused" });
+      expect(t.showMessageBox).not.toHaveBeenCalled();
+      await expect(consent({ headless: true }).dialogs.askOpenLink("/real/rv")).resolves.toEqual({ accepted: false, declined: "unavailable" });
+    });
+  });
+
   describe("no one to ask", () => {
     it("refuses on a hidden run without a dialog", async () => {
       const t = consent({ headless: true });
-      await expect(t.ask(NEW)).resolves.toEqual({ accepted: false });
+      await expect(t.ask(NEW)).resolves.toEqual({ accepted: false, declined: "unavailable" });
       expect(t.showMessageBox).not.toHaveBeenCalled();
     });
 
     it("refuses before the window exists and after it is destroyed", async () => {
       for (const window of [null, { webContents: {}, isDestroyed: () => true }]) {
         const t = consent({ window });
-        await expect(t.ask(NEW)).resolves.toEqual({ accepted: false });
+        await expect(t.ask(NEW)).resolves.toEqual({ accepted: false, declined: "unavailable" });
         expect(t.showMessageBox).not.toHaveBeenCalled();
         expect(t.order).toEqual([]);
       }
@@ -475,7 +543,7 @@ describe("consent dialog", () => {
       expect(t.boxes).toHaveLength(1);
       expect(t.boxes[0]!.options.detail).toContain("solstice");
       t.boxes[0]!.answer(CONSENT_CANCEL_BUTTON);
-      await expect(first).resolves.toEqual({ accepted: false });
+      await expect(first).resolves.toEqual({ accepted: false, declined: "cancelled" });
       await settle();
       expect(t.boxes).toHaveLength(2);
       expect(t.boxes[1]!.options.detail).toBe("Folder: /work/rocket");
@@ -491,7 +559,7 @@ describe("consent dialog", () => {
       const third = t.ask(OPEN);
       await settle();
       leaving.abort();
-      await expect(dropped).resolves.toEqual({ accepted: false });
+      await expect(dropped).resolves.toEqual({ accepted: false, declined: "timeout" });
       await settle();
       expect(t.boxes).toHaveLength(1);
       t.boxes[0]!.answer(CONSENT_CANCEL_BUTTON);
@@ -516,7 +584,7 @@ describe("consent dialog", () => {
       expect(signal.aborted).toBe(false);
       await vi.advanceTimersByTimeAsync(1);
       expect(signal.aborted).toBe(true);
-      await expect(answer).resolves.toEqual({ accepted: false });
+      await expect(answer).resolves.toEqual({ accepted: false, declined: "timeout" });
     });
 
     it("answers on time even if the box ignores its signal, and holds the next box", async () => {
@@ -525,8 +593,8 @@ describe("consent dialog", () => {
       const next = t.ask(OPEN);
       await settle();
       await vi.advanceTimersByTimeAsync(CONSENT_DEADLINE_MS);
-      await expect(stuck).resolves.toEqual({ accepted: false });
-      await expect(next).resolves.toEqual({ accepted: false });
+      await expect(stuck).resolves.toEqual({ accepted: false, declined: "timeout" });
+      await expect(next).resolves.toEqual({ accepted: false, declined: "timeout" });
       expect(t.boxes).toHaveLength(1);
     });
 
@@ -536,7 +604,7 @@ describe("consent dialog", () => {
       await settle();
       await vi.advanceTimersByTimeAsync(CONSENT_DEADLINE_MS);
       t.boxes[0]!.answer(CONSENT_ACCEPT_BUTTON);
-      await expect(answer).resolves.toEqual({ accepted: false });
+      await expect(answer).resolves.toEqual({ accepted: false, declined: "timeout" });
     });
 
     it("counts from arrival, not from when the box opens", async () => {
@@ -545,11 +613,11 @@ describe("consent dialog", () => {
       await vi.advanceTimersByTimeAsync(CONSENT_DEADLINE_MS / 2);
       const second = t.ask(OPEN);
       await vi.advanceTimersByTimeAsync(CONSENT_DEADLINE_MS / 2);
-      await expect(first).resolves.toEqual({ accepted: false });
+      await expect(first).resolves.toEqual({ accepted: false, declined: "timeout" });
       await settle();
       expect(t.boxes).toHaveLength(2);
       await vi.advanceTimersByTimeAsync(CONSENT_DEADLINE_MS / 2);
-      await expect(second).resolves.toEqual({ accepted: false });
+      await expect(second).resolves.toEqual({ accepted: false, declined: "timeout" });
     });
 
     it("skips a queued request whose deadline passed while it waited", async () => {
@@ -572,13 +640,13 @@ describe("consent dialog", () => {
       await settle();
       t.socket.abort();
       expect(t.boxes[0]!.options.signal.aborted).toBe(true);
-      await expect(answer).resolves.toEqual({ accepted: false });
+      await expect(answer).resolves.toEqual({ accepted: false, declined: "timeout" });
     });
 
     it("never opens a box for a signal already aborted", async () => {
       const t = consent();
       t.socket.abort();
-      await expect(t.ask(NEW)).resolves.toEqual({ accepted: false });
+      await expect(t.ask(NEW)).resolves.toEqual({ accepted: false, declined: "timeout" });
       await settle();
       expect(t.showMessageBox).not.toHaveBeenCalled();
     });
@@ -590,9 +658,9 @@ describe("consent dialog", () => {
       await settle();
       t.dialogs.close();
       expect(t.boxes[0]!.options.signal.aborted).toBe(true);
-      await expect(open).resolves.toEqual({ accepted: false });
-      await expect(waiting).resolves.toEqual({ accepted: false });
-      await expect(t.ask(OPEN)).resolves.toEqual({ accepted: false });
+      await expect(open).resolves.toEqual({ accepted: false, declined: "unavailable" });
+      await expect(waiting).resolves.toEqual({ accepted: false, declined: "unavailable" });
+      await expect(t.ask(OPEN)).resolves.toEqual({ accepted: false, declined: "unavailable" });
       await settle();
       expect(t.showMessageBox).toHaveBeenCalledOnce();
       expect(vi.getTimerCount()).toBe(0);

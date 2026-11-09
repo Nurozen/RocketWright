@@ -219,7 +219,7 @@ fn export_outside_the_project_needs_allow_outside() {
         let r = export(&mut s, serde_json::json!({"format": "glb", "path": path}));
         let e = r.expect_err(&path);
         assert_eq!(e.code, rw_api::ApiErrorCode::InvalidInput, "{path}: {e:?}");
-        assert!(e.hint.unwrap_or_default().contains("allow_outside"));
+        assert!(e.hint.unwrap_or_default().contains("File > Export"));
     }
     assert!(!d.path().join("escape.glb").exists());
     assert!(!d.path().join("escape2.glb").exists());
