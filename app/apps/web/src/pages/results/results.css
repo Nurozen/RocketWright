@@ -357,26 +357,38 @@
 }
 
 /* Nine tabs stay on one row (the mockup's strip): they tighten as the page narrows, and past
-   that the strip scrolls. The two shadows show which end still has tabs past it. */
-.rw-plot-tabs {
+   that the ones that do not fit move into the More menu. They stay laid out, out of the flow
+   and out of the accessibility tree, so PlotTabs can still measure them. */
+.rw-plot-bar {
   position: relative;
   display: flex;
   flex: none;
   min-height: 32px;
   padding-left: 2px;
   border-bottom: var(--rw-hairline) solid var(--rw-line);
-  overflow-x: auto;
-  overflow-y: hidden;
-  scrollbar-width: none;
-  background:
-    linear-gradient(to right, var(--rw-bg-canvas) 40%, transparent) left / 28px 100% no-repeat local,
-    linear-gradient(to left, var(--rw-bg-canvas) 40%, transparent) right / 28px 100% no-repeat local,
-    radial-gradient(farthest-side at left, var(--rw-line), transparent) left / 10px 100% no-repeat scroll,
-    radial-gradient(farthest-side at right, var(--rw-line), transparent) right / 10px 100% no-repeat scroll;
+  overflow: hidden;
 }
 
-.rw-plot-tabs::-webkit-scrollbar {
-  display: none;
+.rw-plot-tabs {
+  display: flex;
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.rw-plot-tab[data-overflow],
+.rw-plot-more[data-overflow="none"] {
+  position: absolute;
+  visibility: hidden;
+}
+
+.rw-plot-more {
+  flex: none;
+}
+
+.rw-plot-more__button {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
 }
 
 .rw-plot-tab {
