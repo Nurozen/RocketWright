@@ -4,9 +4,11 @@
 //! - `schema/<name>.json` for every registry entry (`schema/tools/<tool>.input.json`, ...),
 //!   pretty-printed with a trailing newline;
 //! - `schema/index.json`: name, file, interface, Rust type, and TS name per entry
-//!   (the TS generator in `app/packages/contracts/scripts/gen.ts` reads it);
-//! - `schema/testdata/{refs,units,exprs,patches}.json`: shared vectors for the
-//!   Rust parsers (M1.20, M1.21, M1.23) and their TS counterparts.
+//!   (the TS generator in `app/packages/contracts/scripts/gen.ts` reads it),
+//!   plus the tool and resource lists and the `containment` rule table;
+//! - `schema/testdata/{refs,units,exprs,patches,containment}.json`: shared
+//!   vectors for the Rust parsers (M1.20, M1.21, M1.23), the containment
+//!   table (R2.1), and their TS counterparts.
 //!
 //! Every vector's `schema_valid` flag is checked against the published
 //! schema it belongs to before anything is written, so the vectors and the
@@ -92,6 +94,37 @@ pub fn ts_name(rust_type: &str) -> String {
         .to_string()
 }
 
+/// `rw_model::containment` as data, so the UI offers the placements the
+/// model accepts without a WASM call. Rule order and type order are the Rust
+/// ones. `schema/testdata/containment.json` pins what the table means.
+fn containment_table() -> Value {
+    use rw_model::ComponentType as T;
+    use rw_model::containment::{RULES, can_be_root, natural_kind};
+
+    let names = |types: &[T]| types.iter().map(|t| t.name()).collect::<Vec<_>>();
+    let rules: Vec<Value> = RULES
+        .iter()
+        .map(|r| {
+            json!({
+                "kind": r.kind,
+                "parents": names(r.parents),
+                "children": names(r.children),
+            })
+        })
+        .collect();
+    let natural: serde_json::Map<String, Value> = T::ALL
+        .iter()
+        .map(|&t| (t.name().to_string(), json!(natural_kind(t))))
+        .collect();
+    let roots: Vec<T> = T::ALL.iter().copied().filter(|&t| can_be_root(t)).collect();
+    json!({
+        "kinds": names(T::ALL),
+        "roots": names(&roots),
+        "natural_kind": natural,
+        "rules": rules,
+    })
+}
+
 /// Every generated file, in memory.
 pub fn generate() -> Result<Files, String> {
     let mut files = Files::new();
@@ -135,6 +168,7 @@ pub fn generate() -> Result<Files, String> {
             "entries": index,
             "tools": tools,
             "resources": resources,
+            "containment": containment_table(),
         })),
     );
     for (name, doc) in testdata::all()? {
