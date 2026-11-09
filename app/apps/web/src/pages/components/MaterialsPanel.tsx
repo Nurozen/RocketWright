@@ -2,7 +2,9 @@
  * Design > Components > Materials (R2.4): the project's materials and the
  * library's beside one form. A person never presses Save: a new material is
  * created when it has a name and a density and focus leaves a field, and every
- * later change commits the same way, each as one history step.
+ * later change commits the same way, each as one history step. Because a
+ * mistyped name is created at once, a name can be changed afterwards (every
+ * part follows it) and a material no part uses can be deleted.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { PatchOp, schema } from "@rw/contracts";
@@ -10,12 +12,12 @@ import { Icon } from "../../shell/Icon.tsx";
 import { DiagnosticText, diagnosticPlainText } from "../../ui/DiagnosticText.tsx";
 import { trackWrite, useDirtyField } from "../../state/dirtyFields.ts";
 import type { DeepReadonly, Units } from "../../state/index.ts";
-import { addMaterialOps, setMaterialOps } from "../../state/ops/materials.ts";
+import { addMaterialOps, deleteMaterialOps, renameMaterialOps, setMaterialOps } from "../../state/ops/materials.ts";
 import { Banner } from "../../ui/Banner.tsx";
 import { displayUnit, SpinField } from "../../ui/fields/index.ts";
 import { TextField } from "../../ui/TextField.tsx";
-import { blankForm, buildMaterial, DENSITY_FIELDS, densitySummary, displayName, formFromEval, formFromLiterals, isDirty, libraryKey, libraryMaterial, validateForm, type DensityKey, type FormErrors, type MaterialForm } from "./materialFields.ts";
-import { sourceMaterialIds, tableScalars, type SourceFilesLike } from "./source.ts";
+import { blankForm, buildMaterial, DENSITY_FIELDS, densitySummary, displayName, formFromEval, formFromLiterals, isDirty, libraryKey, libraryMaterial, renamedTo, validateForm, type DensityKey, type FormErrors, type MaterialForm } from "./materialFields.ts";
+import { materialUses, sourceMaterialIds, tableScalars, type SourceFilesLike } from "./source.ts";
 
 type LibItem = DeepReadonly<schema.LibItem>;
 
@@ -37,6 +39,7 @@ export interface MaterialsPanelProps {
 }
 
 const NEEDS_NAME_AND_DENSITY = "Give the material a name and at least one density to create it.";
+const STILL_SAVING = "This material is still saving. Try the new name again in a moment.";
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
 export function MaterialsPanel({ materials, files, units, diagnostics, library, onOpenLibrary, onMutate }: MaterialsPanelProps) {
@@ -52,6 +55,7 @@ export function MaterialsPanel({ materials, files, units, diagnostics, library, 
   const pending = useRef(new Set<string>());
   // Writes reach the model in the order they were made: an edit must not overtake the add it edits.
   const queue = useRef<Promise<unknown>>(Promise.resolve());
+  const formPane = useRef<HTMLDivElement>(null);
 
   const setForm = (next: MaterialForm | null) => {
     formRef.current = next;
@@ -60,6 +64,12 @@ export function MaterialsPanel({ materials, files, units, diagnostics, library, 
   const taken = () => new Set([...projectIds, ...pending.current]);
 
   useEffect(() => onOpenLibrary(), []);
+
+  // Stacked in a narrow window the form sits below the lists: bring it into view when one opens.
+  const openedSession = form?.session ?? null;
+  useEffect(() => {
+    if (openedSession !== null) formPane.current?.scrollIntoView?.({ block: "nearest" });
+  }, [openedSession]);
 
   // The model moved (an undo, the agent): follow it, unless the person is mid-edit.
   useEffect(() => {
@@ -108,6 +118,22 @@ export function MaterialsPanel({ materials, files, units, diagnostics, library, 
     const id = f.id;
     const material = buildMaterial(f, tableScalars(files, ["materials", id]), units);
     if (material === null) return "A material needs at least one density.";
+    const to = renamedTo(f);
+    if (to !== null) {
+      // Until the snapshot has this entry, `files` cannot say which parts name it.
+      if (!projectIds.includes(id)) {
+        setErrors({ name: STILL_SAVING });
+        return STILL_SAVING;
+      }
+      pending.current.add(to);
+      setForm({ ...f, id: to, name: displayName(to), baseline: { ...f.values } });
+      const paths = materialUses(files, id).map((u) => u.path);
+      write(renameMaterialOps(id, to, material, paths), `Rename material ${displayName(id)} to ${displayName(to)}`, () => {
+        pending.current.delete(to);
+        if (formRef.current?.session === f.session) setForm(f);
+      });
+      return null;
+    }
     setForm({ ...f, baseline: { ...f.values } });
     write(setMaterialOps(id, material), `Edit material ${displayName(id)}`, () => {
       const cur = formRef.current;
@@ -154,10 +180,24 @@ export function MaterialsPanel({ materials, files, units, diagnostics, library, 
     });
   };
 
+  const remove = () => {
+    const f = formRef.current;
+    if (f === null || f.id === null) return;
+    setFailure(null);
+    setErrors({});
+    setForm(null);
+    write(deleteMaterialOps(f.id), `Delete material ${displayName(f.id)}`, () => {
+      if (formRef.current === null) setForm(f);
+    });
+  };
+
   const needle = query.trim().toLowerCase();
   const items = needle === "" ? library.items : library.items.filter((i) => i.name.toLowerCase().includes(needle));
   const formDiagnostics = form?.id == null ? [] : diagnostics.filter((d) => d.path === `/materials/${form.id}` || (d.path ?? "").startsWith(`/materials/${form.id}/`));
   const messages = Object.entries(errors).filter(([k]) => k !== "name");
+  const usedBy = form?.id == null ? [] : [...new Set(materialUses(files, form.id).map((u) => u.label))];
+  // Not in the snapshot yet (just created or renamed): `files` cannot say who uses it.
+  const settled = form?.id != null && projectIds.includes(form.id);
 
   return (
     <div className="rw-mats" data-testid="materials">
@@ -191,7 +231,7 @@ export function MaterialsPanel({ materials, files, units, diagnostics, library, 
         {library.state === "error" && <p className="rw-mats__empty">{library.error ?? "The library is unavailable."}</p>}
         {library.state === "ready" && items.length === 0 && <p className="rw-mats__empty">No library material matches.</p>}
         {library.state === "ready" && items.length > 0 && (
-          <ul className="rw-mats__list" data-testid="materials.library">
+          <ul className="rw-mats__list rw-mats__list--library" data-testid="materials.library">
             {items.map((i) => (
               <li key={i.id}>
                 <button type="button" className="rw-mats__row" data-testid="materials.library-item" data-id={i.id} title={`Copy into this project · ${i.source}`} onClick={() => copy(i)}>
@@ -204,7 +244,7 @@ export function MaterialsPanel({ materials, files, units, diagnostics, library, 
           </ul>
         )}
       </div>
-      <div className="rw-mats__form">
+      <div className="rw-mats__form" ref={formPane}>
         {failure !== null && (
           <Banner tone="danger" onDismiss={() => setFailure(null)} testId="materials.error">
             {failure}
@@ -219,9 +259,8 @@ export function MaterialsPanel({ materials, files, units, diagnostics, library, 
               label="Name"
               layout="inline"
               value={form.name}
-              disabled={form.id !== null}
               error={errors.name}
-              hint={form.id !== null ? "Parts refer to a material by its name, so it stays fixed once created." : "Created as soon as it has a name and a density."}
+              hint={form.id !== null ? "Renaming updates every part that uses it. Renaming or deleting a material outdates the runs you have flown." : "Created as soon as it has a name and a density."}
               onChange={(name) => edit({ ...formRef.current!, name })}
               onBlur={() => void save()}
               onKeyDown={(e) => {
@@ -266,6 +305,19 @@ export function MaterialsPanel({ materials, files, units, diagnostics, library, 
                   </li>
                 ))}
               </ul>
+            )}
+            {form.id !== null && (
+              <div className="rw-mats__actions">
+                <button type="button" className="rw-button" data-testid="materials.delete" disabled={!settled || usedBy.length > 0} onClick={remove}>
+                  <Icon name="trash" size={18} />
+                  Delete material
+                </button>
+                {usedBy.length > 0 && (
+                  <p className="rw-mats__used" data-testid="materials.used-by">
+                    Used by {usedBy.join(", ")}. Pick another material there to delete this one.
+                  </p>
+                )}
+              </div>
             )}
           </>
         )}

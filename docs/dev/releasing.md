@@ -87,7 +87,7 @@ app, `VERSION=x.y.z` sets the version, and `SIGNED=1` signs and notarizes.
   `/tmp` copy. Open another project with `open -a RocketWright --args
   --project ~/my-rocket` or a `rocketwright://open?workspace=<dir>` link.
 - The script fails unless the archive has both bundles, the web bundle and
-  the Lecturn packages, the resources have the binary and the sample, and
+  the Lecturn packages, the resources have the binary, and
   (with the switch on) no `@cursor/sdk` is anywhere in the package.
 
 Smoke-test a local build without touching `~/.lecturn` or your Electron
