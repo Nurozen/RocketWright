@@ -7,7 +7,7 @@ import { runInNewContext } from "node:vm";
 import { describe, expect, it } from "vitest";
 import {
   DESKTOP_COMMAND_CHANNEL,
-  DESKTOP_FLUSH_CHANNEL,
+  DESKTOP_DIRTY_CHECK_CHANNEL, DESKTOP_FLUSH_CHANNEL,
   DESKTOP_INVOKE_CHANNELS,
   EMBED_HOST_BRIDGE_CHANNEL,
   EMBED_PANE_RECT_CHANNEL,
@@ -65,7 +65,7 @@ describe("preload channels match @rw/contracts", () => {
   it("exposes no desktop method that is not in the contract", () => {
     const { desktop } = load();
     const services = Object.keys(desktop).filter((k) => typeof desktop[k] === "function");
-    expect(services.sort()).toEqual([...Object.keys(DESKTOP_INVOKE_CHANNELS), "onCommand", "onFlush", "pathForFile"].sort());
+    expect(services.sort()).toEqual([...Object.keys(DESKTOP_INVOKE_CHANNELS), "onCommand", "onDirtyCheck", "onFlush", "pathForFile"].sort());
   });
 
   it("receives native menu commands on the contract channel and stops on unsubscribe", () => {
@@ -88,6 +88,17 @@ describe("preload channels match @rw/contracts", () => {
     expect(seen).toEqual([7]);
     off();
     expect(listeners.get(DESKTOP_FLUSH_CHANNEL)).toEqual([]);
+  });
+
+  it("receives dirty checks on the contract channel and stops on unsubscribe", () => {
+    const { desktop, listeners } = load();
+    const seen: unknown[] = [];
+    const off = (desktop.onDirtyCheck as (cb: (id: unknown) => void) => () => void)((id) => seen.push(id));
+    expect([...listeners.keys()]).toEqual([DESKTOP_DIRTY_CHECK_CHANNEL]);
+    listeners.get(DESKTOP_DIRTY_CHECK_CHANNEL)![0]!(null, 9);
+    expect(seen).toEqual([9]);
+    off();
+    expect(listeners.get(DESKTOP_DIRTY_CHECK_CHANNEL)).toEqual([]);
   });
 
   it("resolves a dropped file's path through webUtils", () => {

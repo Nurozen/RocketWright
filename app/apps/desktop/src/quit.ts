@@ -18,15 +18,19 @@ export function once<A extends unknown[]>(fn: (...args: A) => Promise<void>): (.
 }
 
 /**
- * Asking before typed work is lost (R3.7). Main keeps the page's last answer
- * rather than asking at quit, so a quit that has nothing to lose does not wait
- * on the page; only Save and quit does, for the same flush Close runs. The
- * prompt runs before `shutdown`, because `once` latches: Keep editing could
- * not undo a shutdown that had started. SIGINT and SIGTERM stay prompt-free.
+ * Asking before typed work is lost (R3.7). The page reports whether it holds
+ * typed work, but that report trails the keystroke by a timer and a busy
+ * renderer can hold it back, so main's copy saying clean is not enough to end
+ * the app: main asks the page once more, briefly (`checkPage`). Main's copy
+ * saying dirty needs no second opinion. A page that cannot answer in time does
+ * not hold the quit open. The prompt runs before `shutdown`, because `once`
+ * latches: Keep editing could not undo a shutdown that had started. SIGINT and
+ * SIGTERM stay prompt-free.
  *
  * Two doors: `before-quit` (Cmd+Q, the dock, Playwright's close) and the
  * window's `close` (the red button, Cmd-Shift-W), which never passes through
- * `before-quit`. Clean, a close just goes on to `window-all-closed`.
+ * `before-quit`. Clean, a close is issued again and goes on to
+ * `window-all-closed`.
  */
 export interface QuitEvents {
   on(event: "before-quit", listener: (e: PreventableEvent) => void): unknown;
@@ -84,6 +88,10 @@ export function quitSaveFailedPrompt(problems: readonly string[]) {
 
 export interface QuitGuardDeps {
   isDirty: () => boolean;
+  /** Whether the page holds typed work right now: main's copy can be behind the keystroke. */
+  checkPage: () => Promise<boolean>;
+  /** Closes the window again once a held close has been cleared. */
+  closeWindow: () => void;
   /** Asks the person what to do with the edit. */
   ask: () => Promise<QuitChoice>;
   /** The same save Close runs; resolves to what could not be saved, empty when all of it was. */
@@ -104,7 +112,10 @@ const errorText = (e: unknown): string => (e instanceof Error ? e.message : Stri
 /** Holds every quit, then shuts down, asking first when the page has typed work. */
 export function guardQuit(app: QuitEvents, deps: QuitGuardDeps): QuitGuard {
   let asking = false;
+  let checking = false;
   let leaving = false;
+  /** Lets through the one close main issues itself after the page said it was clean. */
+  let closeCleared = false;
 
   const leave = (): void => {
     leaving = true;
@@ -128,24 +139,41 @@ export function guardQuit(app: QuitEvents, deps: QuitGuardDeps): QuitGuard {
       });
   };
 
+  /** Asks about typed work if there is any, by main's copy or the page's own word; otherwise goes on. */
+  const askIfUnsaved = (clean: () => void): void => {
+    if (deps.isDirty()) return ask();
+    checking = true;
+    void deps
+      .checkPage()
+      .catch(() => false)
+      .then((dirty) => {
+        checking = false;
+        // Main's copy is read again: the page's report may have landed during the wait.
+        if (dirty || deps.isDirty()) ask();
+        else clean();
+      });
+  };
+
   app.on("before-quit", (e) => {
     // Held in every case: only `shutdown` may end the app, and it ends with `app.exit`.
     e.preventDefault();
-    if (leaving || asking) return;
-    if (deps.isDirty()) ask();
-    else leave();
+    if (leaving || asking || checking) return;
+    askIfUnsaved(leave);
   });
 
   return {
     onWindowClose: (e) => {
       if (leaving) return;
-      if (asking) {
-        e.preventDefault();
+      if (closeCleared) {
+        closeCleared = false;
         return;
       }
-      if (!deps.isDirty()) return;
       e.preventDefault();
-      ask();
+      if (asking || checking) return;
+      askIfUnsaved(() => {
+        closeCleared = true;
+        deps.closeWindow();
+      });
     },
   };
 }
@@ -166,26 +194,67 @@ export interface PageFlush {
   pageGone(): void;
 }
 
-/** Main's half of the page's save: ask, then wait for the answer, its absence reading as a failure. */
-export function createPageFlush({ send }: PageFlushDeps): PageFlush {
+interface PageRequests<T> {
+  request(): Promise<T>;
+  done(id: number, answer: T): void;
+  pageGone(): void;
+}
+
+/** One question to the page at a time per id: asks, then waits for the answer or for `timedOut`. */
+function createPageRequests<T>(send: (id: number) => boolean, timeoutMs: number, answers: { timedOut: T; noPage: T; gone: T }): PageRequests<T> {
   let nextId = 1;
-  const pending = new Map<number, (problems: string[]) => void>();
+  const pending = new Map<number, (answer: T) => void>();
   return {
-    flush: () =>
+    request: () =>
       new Promise((resolve) => {
         const id = nextId++;
-        const timer = setTimeout(() => finish(["The save did not finish in time. It may still complete."]), PAGE_FLUSH_TIMEOUT_MS);
-        const finish = (problems: string[]): void => {
+        const timer = setTimeout(() => finish(answers.timedOut), timeoutMs);
+        const finish = (answer: T): void => {
           clearTimeout(timer);
           pending.delete(id);
-          resolve(problems);
+          resolve(answer);
         };
         pending.set(id, finish);
-        if (!send(id)) finish(["The window that held the edit is gone."]);
+        if (!send(id)) finish(answers.noPage);
       }),
-    done: ({ id, problems }) => pending.get(id)?.(problems),
+    done: (id, answer) => pending.get(id)?.(answer),
     pageGone: () => {
-      for (const finish of [...pending.values()]) finish(["The window that held the edit went away."]);
+      for (const finish of [...pending.values()]) finish(answers.gone);
     },
+  };
+}
+
+/** Main's half of the page's save: ask, then wait for the answer, its absence reading as a failure. */
+export function createPageFlush({ send }: PageFlushDeps): PageFlush {
+  const requests = createPageRequests<string[]>(send, PAGE_FLUSH_TIMEOUT_MS, {
+    timedOut: ["The save did not finish in time. It may still complete."],
+    noPage: ["The window that held the edit is gone."],
+    gone: ["The window that held the edit went away."],
+  });
+  return {
+    flush: () => requests.request(),
+    done: ({ id, problems }) => requests.done(id, problems),
+    pageGone: () => requests.pageGone(),
+  };
+}
+
+/** Plenty for a page that is merely busy; a wedged one must still let the person quit. */
+export const PAGE_DIRTY_CHECK_TIMEOUT_MS = 3_000;
+
+export interface PageDirtyCheck {
+  check(): Promise<boolean>;
+  /** The page's answer (`rw-desktop:dirty-answer`). */
+  done(result: { id: number; dirty: boolean }): void;
+  /** The page crashed or navigated: nothing will answer. */
+  pageGone(): void;
+}
+
+/** Asks the page whether it holds typed work. No answer reads as clean, so a page that cannot reply does not hold a quit open. */
+export function createPageDirtyCheck({ send }: PageFlushDeps): PageDirtyCheck {
+  const requests = createPageRequests<boolean>(send, PAGE_DIRTY_CHECK_TIMEOUT_MS, { timedOut: false, noPage: false, gone: false });
+  return {
+    check: () => requests.request(),
+    done: ({ id, dirty }) => requests.done(id, dirty),
+    pageGone: () => requests.pageGone(),
   };
 }

@@ -139,6 +139,7 @@ test("a long Recent path keeps a gutter before the time and the status, and Miss
         openProviders: done(undefined),
         onCommand: () => () => {},
         onFlush: () => () => {},
+        onDirtyCheck: () => () => {},
         pathForFile: () => "",
       },
     });

@@ -28,6 +28,8 @@ import { RenameProjectDialog } from "./RenameProjectDialog.tsx";
 export interface SurfaceHandle {
   /** Saves typed work; returns what could not be saved. */
   flush(): Promise<string[]>;
+  /** Typed text, an open draft, or a write still on its way. */
+  hasUnsavedWork(): boolean;
   /** What the Export dialog can offer for this project. */
   exportChoices(): ExportChoices;
   disconnect(): void;
