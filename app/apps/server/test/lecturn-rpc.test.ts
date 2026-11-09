@@ -59,7 +59,7 @@ describe("app server Lecturn RPC (B8)", () => {
   });
 
   it("registers an opened project's workspace by realpath and answers embed calls", async () => {
-    project = (await c.call("project.open", { dir })).project;
+    project = await server.openProject(dir);
     const lecturnId = fake.idFor(real);
     const target = await c.call("embed.target", { projectId: project.projectId, threadId: "th-1" });
     expect(target.url).toBe(`http://127.0.0.1:9/embed/env-a/${lecturnId}/th-1`);

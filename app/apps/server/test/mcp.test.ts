@@ -90,7 +90,7 @@ describe("broker tools over the real app server and WS RPC (M1.46)", () => {
   it("a live viewport_select reaches the registered window as broker.request and returns its answer", async () => {
     const host = await TestClient.connect(server.rpcUrl, validator);
     try {
-      const { project } = await host.call("project.open", { dir });
+      const project = await server.openProject(dir);
       await host.call("broker.hostRegister", { projectId: project.projectId, hostId: "win", capabilities: { ops: [...AGENT_OPS], backend: "webgpu" } });
       const c = await connect(server.liveMcpUrl, server.liveBearer.token);
       try {
