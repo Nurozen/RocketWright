@@ -73,6 +73,22 @@
   outline: none;
 }
 
+/* Half under the panel's edge: the two outer sides carry the border, and the panel's own border is covered where they meet. */
+.rw-ui-popover__caret {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: var(--rw-ui-z);
+  width: 10px;
+  height: 10px;
+  margin: -5px 0 0 -5px;
+  border-bottom: var(--rw-hairline) solid var(--rw-ui-edge);
+  border-left: var(--rw-hairline) solid var(--rw-ui-edge);
+  background: var(--rw-panel);
+  transform: rotate(45deg);
+  pointer-events: none;
+}
+
 .rw-ui-popover__head {
   display: flex;
   align-items: center;

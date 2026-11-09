@@ -176,7 +176,7 @@ export function AddPartButton({ store }: { store: AppStore }) {
     <>
       <button
         type="button"
-        className="rw-icon-button"
+        className="rw-icon-button rw-add-part__plus"
         aria-label="Add part"
         aria-haspopup="dialog"
         aria-expanded={anchor !== null}
@@ -188,7 +188,7 @@ export function AddPartButton({ store }: { store: AppStore }) {
       >
         <Icon name="plus" size={18} />
       </button>
-      <Popover open={anchor !== null} anchor={anchor} onClose={() => setAnchor(null)} title="Add part" side="bottom" align="start" className="rw-add-part__popover" testId="add-part.popover">
+      <Popover open={anchor !== null} anchor={anchor} onClose={() => setAnchor(null)} title="Add part" side="right" gap={6} clearOf={anchor?.closest<HTMLElement>('[data-rw-region="left-rail"]') ?? null} caret className="rw-add-part__popover" testId="add-part.popover">
         <AddPartPalette
           components={components}
           selected={selected}

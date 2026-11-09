@@ -210,6 +210,7 @@
 /* ---- editor (lower ~40%) ------------------------------------------------------ */
 
 .rw-editor {
+  container: rw-editor / inline-size;
   flex: none;
   height: 335px;
   display: flex;
@@ -276,12 +277,31 @@
 .rw-editor__main {
   flex: 1;
   min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  border: var(--rw-hairline) solid var(--rw-line);
+  border-radius: var(--rw-radius);
+}
+
+/* The panel is a fixed height and tabs differ in field count: fields scroll, the status and actions below never do. */
+.rw-editor__scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 7px;
-  padding: 8px 14px 0;
-  border: var(--rw-hairline) solid var(--rw-line);
-  border-radius: var(--rw-radius);
+  padding: 8px 14px 8px;
+}
+
+.rw-editor__foot {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 7px 14px 10px;
+  border-top: var(--rw-hairline) solid var(--rw-line);
 }
 
 .rw-editor__fields {
@@ -298,6 +318,26 @@
 .rw-editor__fields[data-tab="Mass override"] {
   grid-auto-flow: row;
   grid-template-rows: none;
+}
+
+/*
+ * The editor is as wide as the window minus the rail and agent pane, 349 px of
+ * content at the 1024 px minimum window. Two columns of fields beside the
+ * profile need 850 px; under that the fields go to one column, and under 574
+ * px the small profile goes (the workspace above still shows the part), so a
+ * field or the action row is never squeezed behind it.
+ */
+@container rw-editor (max-width: 849.98px) {
+  .rw-editor__fields {
+    grid-template-columns: minmax(0, 1fr);
+    grid-auto-flow: row;
+  }
+}
+
+@container rw-editor (max-width: 573.98px) {
+  .rw-editor__body > .rw-part {
+    display: none;
+  }
 }
 
 .rw-editor__note {
@@ -357,9 +397,8 @@
 
 .rw-editor__actions {
   display: flex;
-  gap: 12px;
-  margin-top: auto;
-  padding-bottom: 10px;
+  flex-wrap: wrap;
+  gap: 8px 12px;
 }
 
 .rw-editor__actions .rw-button {
@@ -678,10 +717,6 @@ li[data-state="later"] .rw-thread-history__name {
 
 .rw-editor:has(.rw-outline):not([data-collapsed="true"]) {
   height: 440px;
-}
-
-.rw-editor__main:has(.rw-outline, .rw-field-group, .rw-editor__add-group) {
-  overflow-y: auto;
 }
 
 .rw-outline {

@@ -642,6 +642,12 @@
   width: 560px;
 }
 
+/* An outline inside the button's own box, so opening cannot move the rail. */
+.rw-add-part__plus[aria-expanded="true"] {
+  outline: var(--rw-hairline) solid var(--rw-accent);
+  outline-offset: -1px;
+}
+
 .rw-add-part {
   display: flex;
   flex-direction: column;
