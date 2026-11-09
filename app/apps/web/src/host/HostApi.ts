@@ -4,7 +4,7 @@
  * everything else calls a `HostApi` and shows whatever comes back, so a
  * browser's empty Recents and typed paths need no second code path.
  */
-import type { DesktopBoot, DesktopBridge, DesktopCommand, DesktopPrefs, ExportFileRequest, ExportFileResult, FileFilter, PickFileOptions, PickFolderOptions, RecentProject, SaveAsOptions, ProjectInfo, schema } from "@rw/contracts";
+import type { DesktopBoot, DesktopBridge, DesktopCommand, DesktopPrefs, ExportFileRequest, ExportFileResult, FileFilter, PickFileOptions, PickFolderOptions, RecentProject, ProjectInfo, SaveCsvRequest, SaveCsvResult, schema } from "@rw/contracts";
 import { createBrowserHost } from "./browserHost.ts";
 import { createElectronHost } from "./electronHost.ts";
 
@@ -15,13 +15,14 @@ export interface HostApi {
   /** Null when the person cancels. */
   pickFolder(options?: PickFolderOptions): Promise<string | null>;
   pickFile(options?: PickFileOptions): Promise<string | null>;
-  saveAs(options?: SaveAsOptions): Promise<string | null>;
   /**
    * Asks where and writes the export (D18). The desktop's main process owns the
    * save dialog and may write anywhere the person picked; a browser asks for a
    * path inside the project and writes it through `writeInProject`.
    */
   exportFile(request: ExportFileRequest, writeInProject: (path: string) => Promise<schema.ExportOut>): Promise<ExportFileResult>;
+  /** Saves a CSV the page built: a native save dialog on the desktop, a download in a browser. Cancel writes nothing; a failed write rejects. */
+  saveCsv(request: SaveCsvRequest): Promise<SaveCsvResult>;
   /** Always empty in a browser, which keeps no store (R0.12). */
   recents(): Promise<RecentProject[]>;
   removeRecent(dir: string): Promise<void>;

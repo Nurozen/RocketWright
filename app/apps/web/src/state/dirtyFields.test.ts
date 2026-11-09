@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { anyDirtyField, flushDirtyFields, flushProject, onDirtyFieldsChanged, registerDirtyField, resetDirtyFields, settleWrites, trackWrite, watchDirty, writesPending } from "./dirtyFields.ts";
+import { anyDirtyField, flushDirtyFields, flushProject, onDirtyFieldsChanged, registerDirtyField, resetDirtyFields, settleWrites, trackWrite, watchDirty, windowLostFocus, writesPending } from "./dirtyFields.ts";
 import type { AppStore } from "./store.ts";
 
 afterEach(resetDirtyFields);
@@ -15,6 +15,21 @@ const deferred = <T>() => {
 };
 
 const draftStore = (draft: Record<string, unknown>) => ({ getState: () => ({ draft }) }) as unknown as AppStore;
+
+describe("windowLostFocus", () => {
+  it("is true only when the document has lost focus", () => {
+    const hasFocus = vi.fn<() => boolean>();
+    vi.stubGlobal("document", { hasFocus });
+    try {
+      hasFocus.mockReturnValue(false);
+      expect(windowLostFocus()).toBe(true);
+      hasFocus.mockReturnValue(true);
+      expect(windowLostFocus()).toBe(false);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+});
 
 describe("the dirty field registry", () => {
   it("reports dirt only while a dirty field is registered", () => {

@@ -19,7 +19,7 @@ import { Icon } from "../../shell/Icon.tsx";
 import { DiagnosticText, diagnosticPlainText } from "../../ui/DiagnosticText.tsx";
 import { StatusBadge } from "../../shell/StatusIcon.tsx";
 import { ViewportToolbar, type ViewChip } from "../../shell/ViewportToolbar.tsx";
-import { trackWrite, useDirtyField } from "../../state/dirtyFields.ts";
+import { trackWrite, useDirtyField, windowLostFocus } from "../../state/dirtyFields.ts";
 import type { RpcLike } from "../../state/rpc.ts";
 import { useAppState, type AppStore, type DeepReadonly, type Units } from "../../state/index.ts";
 import { UNITS, formatLength } from "../assembly/inspector-model.ts";
@@ -398,7 +398,9 @@ function RenameInput({ initial, onDone }: { initial: string; onDone: (name: stri
       value={v}
       onClick={(e) => e.stopPropagation()}
       onChange={(e) => setV(e.currentTarget.value)}
-      onBlur={() => onDone(v)}
+      onBlur={() => {
+        if (!windowLostFocus()) onDone(v);
+      }}
       onKeyDown={(e) => {
         if (e.key === "Enter") onDone(v);
         if (e.key === "Escape") onDone(null);
@@ -716,7 +718,9 @@ function MotorPanel({
                         disabled={!isAssigned}
                         onChange={(e) => setDelayText(e.currentTarget.value)}
                         onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
-                        onBlur={() => void commitDelay()}
+                        onBlur={() => {
+                          if (!windowLostFocus()) void commitDelay();
+                        }}
                       />
                       <span id={delayUnit}>s</span>
                     </span>
@@ -881,6 +885,7 @@ function CfgNumber({
             setText(e.currentTarget.value);
           }}
           onBlur={() => {
+            if (windowLostFocus()) return;
             setEditing(false);
             commit();
           }}

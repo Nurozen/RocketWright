@@ -21,7 +21,7 @@ const dirtyListeners = new Set<(id: number) => void>();
     boot: record("boot", { activeProjectId: "p1", notice: "n" }),
     pickFolder: record("pickFolder", "/picked/folder"),
     pickFile: record("pickFile", "/picked/file.ork"),
-    saveAs: record("saveAs", "/picked/out.ork"),
+    saveCsv: record("saveCsv", { canceled: false as const, path: "/picked/results.csv" }),
     exportFile: record("exportFile", { canceled: true as const }),
     recents: record("recents", [RECENT]),
     removeRecent: record("removeRecent", undefined),
@@ -60,7 +60,6 @@ describe("electron host", () => {
     expect(await host.boot()).toEqual({ activeProjectId: "p1", notice: "n" });
     expect(await host.pickFolder(options)).toBe("/picked/folder");
     expect(await host.pickFile(options)).toBe("/picked/file.ork");
-    expect(await host.saveAs(options)).toBe("/picked/out.ork");
     expect(await host.recents()).toEqual([RECENT]);
     await host.removeRecent("/gone");
     await host.setActiveProject(PROJECT);
@@ -69,12 +68,18 @@ describe("electron host", () => {
       ["boot"],
       ["pickFolder", options],
       ["pickFile", options],
-      ["saveAs", options],
       ["recents"],
       ["removeRecent", "/gone"],
       ["setActiveProject", PROJECT],
       ["setActiveProject", null],
     ]);
+  });
+
+  it("forwards a CSV save to the bridge and its answer back", async () => {
+    const { bridge, calls } = fakeBridge();
+    const request = { defaultName: "results.csv", text: "t\n" };
+    expect(await createElectronHost(bridge).saveCsv(request)).toEqual({ canceled: false, path: "/picked/results.csv" });
+    expect(calls).toEqual([["saveCsv", request]]);
   });
 
   it("passes a cancelled picker through as null", async () => {
@@ -206,12 +211,33 @@ describe("browser host", () => {
     });
     expect(await host.pickFolder()).toBe("/typed/folder");
     expect(await host.pickFile({ title: "Import", filters: [{ name: "OpenRocket", extensions: ["ork"] }] })).toBe("/typed/file");
-    expect(await host.saveAs({ defaultPath: "out.csv" })).toBe("/typed/save");
     expect(asked).toEqual([
       { kind: "folder", title: "Choose a folder" },
       { kind: "file", title: "Import", filters: [{ name: "OpenRocket", extensions: ["ork"] }] },
-      { kind: "save", title: "Save as", defaultPath: "out.csv" },
     ]);
+  });
+});
+
+describe("browser CSV save", () => {
+  it("downloads under the default name and reports no path", async () => {
+    const blobs: Blob[] = [];
+    vi.stubGlobal("URL", { createObjectURL: (b: Blob) => (blobs.push(b), "blob:x"), revokeObjectURL: () => undefined });
+    const links: { download: string; clicked: boolean }[] = [];
+    vi.stubGlobal("document", {
+      createElement: () => {
+        const a = { href: "", download: "", style: { display: "" }, clicked: false, click() { a.clicked = true; links.push(a); }, remove() {} };
+        return a;
+      },
+      body: { append: () => undefined },
+    });
+    try {
+      const result = await createBrowserHost(() => Promise.resolve(null)).saveCsv({ defaultName: "results-a.csv", text: "t\n1\n" });
+      expect(result).toEqual({ canceled: false, path: null });
+      expect(links.map((l) => l.download)).toEqual(["results-a.csv"]);
+      await expect(blobs[0]!.text()).resolves.toBe("t\n1\n");
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });
 

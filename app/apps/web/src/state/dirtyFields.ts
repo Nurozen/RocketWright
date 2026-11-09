@@ -21,6 +21,18 @@ export interface DirtyField {
   discard?(): void;
 }
 
+/**
+ * A blur from the window losing focus, not from focus moving inside the page:
+ * a native dialog opened, or another app came forward. The person has not left
+ * the field, so its blur must neither commit nor reset the text: Keep editing
+ * would find it gone. The field regains focus when the window does.
+ *
+ * Every field that registers here checks this before acting on a blur.
+ */
+export function windowLostFocus(): boolean {
+  return !document.hasFocus();
+}
+
 const fields = new Set<DirtyField>();
 /** Writes on their way; each resolves to why it failed, or null. */
 const writes = new Set<Promise<string | null>>();

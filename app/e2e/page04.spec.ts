@@ -24,6 +24,7 @@ const APP = resolve(import.meta.dirname, "..");
 const REPO = resolve(APP, "..");
 const DESKTOP = join(APP, "apps/desktop");
 const OUT = join(REPO, "dist/e2e/page04");
+const SAVE_DIR = join(OUT, "saved");
 
 /** The drive report (loosely typed JSON). */
 // oxlint-disable-next-line typescript/no-explicit-any -- untyped JSON report, read field by field
@@ -86,6 +87,8 @@ function runElectron(query: string): Promise<{ code: number | null; err: string 
     join(APP, "apps/web/dist"),
     "--timeout-ms",
     "90000",
+    "--hidden-save-dir",
+    SAVE_DIR,
     "-ApplePersistenceIgnoreState",
     "YES",
   ];
@@ -126,6 +129,8 @@ beforeAll(async () => {
     if (b.status !== 0) throw new Error(`web build failed:\n${b.stdout}\n${b.stderr}`);
   }
   mkdirSync(OUT, { recursive: true });
+  rmSync(SAVE_DIR, { recursive: true, force: true });
+  mkdirSync(SAVE_DIR);
   bin = sidecarBinary();
   project = seededCopy(bin, "rw-page04-");
   readRuns();
@@ -335,10 +340,13 @@ describe("page 04 Results (live, seeded)", () => {
   });
 
   it("exports the plotted runs as CSV", () => {
-    const c = report.csv;
-    expect(c.fileName).toBe("results-baseline-higher_altitude.csv");
-    expect(c.header).toBe("run,sim,run_id,t,altitude,x,y,vz,speed,accel,mach,aoa,stability,thrust,mass,cg,cp,cd");
-    expect(c.runs).toEqual({ Baseline: baseline().rows, "Higher altitude": higher().rows });
+    const file = join(SAVE_DIR, "results-baseline-higher_altitude.csv");
+    expect(report.csv).toContain(file);
+    const lines = readFileSync(file, "utf8").trim().split("\n");
+    expect(lines[0]).toBe("run,sim,run_id,t,altitude,x,y,vz,speed,accel,mach,aoa,stability,thrust,mass,cg,cp,cd");
+    const counts: Record<string, number> = {};
+    for (const l of lines.slice(1)) counts[l.split(",")[0]!] = (counts[l.split(",")[0]!] ?? 0) + 1;
+    expect(counts).toEqual({ Baseline: baseline().rows, "Higher altitude": higher().rows });
   });
 
   it("sorts by a column and toggles the overlay", () => {

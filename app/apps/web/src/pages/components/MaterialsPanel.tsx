@@ -10,7 +10,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { PatchOp, schema } from "@rw/contracts";
 import { Icon } from "../../shell/Icon.tsx";
 import { DiagnosticText, diagnosticPlainText } from "../../ui/DiagnosticText.tsx";
-import { trackWrite, useDirtyField } from "../../state/dirtyFields.ts";
+import { trackWrite, useDirtyField, windowLostFocus } from "../../state/dirtyFields.ts";
 import type { DeepReadonly, Units } from "../../state/index.ts";
 import { addMaterialOps, deleteMaterialOps, renameMaterialOps, setMaterialOps } from "../../state/ops/materials.ts";
 import { Banner } from "../../ui/Banner.tsx";
@@ -262,7 +262,9 @@ export function MaterialsPanel({ materials, files, units, diagnostics, library, 
               error={errors.name}
               hint={form.id !== null ? "Renaming updates every part that uses it. Renaming or deleting a material outdates the runs you have flown." : "Created as soon as it has a name and a density."}
               onChange={(name) => edit({ ...formRef.current!, name })}
-              onBlur={() => void save()}
+              onBlur={() => {
+                if (!windowLostFocus()) void save();
+              }}
               onKeyDown={(e) => {
                 if (e.key === "Enter") e.currentTarget.blur();
               }}

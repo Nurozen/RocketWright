@@ -5,6 +5,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { anyDirtyField, flushDirtyFields, resetDirtyFields } from "../../state/dirtyFields.ts";
 import { FinOutlineEditor, type FinOutlineEditorProps } from "./FinOutlineEditor.tsx";
+import { blurFromWindow } from "../../testing/windowFocus.ts";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -60,6 +61,32 @@ describe("outline point fields and the dirty registry", () => {
     await type(el.querySelector<HTMLInputElement>('[data-testid="outline.x"]')!, "wide");
     await expect(flushDirtyFields()).resolves.toEqual(["Point 1 X needs a number."]);
     expect(onEdit).not.toHaveBeenCalled();
+  });
+
+  it("the window losing focus keeps invalid text, keeps it dirty, and writes nothing", async () => {
+    const { el, onEdit } = await outline();
+    const x = el.querySelector<HTMLInputElement>('[data-testid="outline.x"]')!;
+    await act(async () => x.focus());
+    await type(x, "wide");
+    await blurFromWindow(x);
+    expect(x.value).toBe("wide");
+    expect(anyDirtyField()).toBe(true);
+    expect(onEdit).not.toHaveBeenCalled();
+  });
+
+  it("the window losing focus keeps a valid value uncommitted until focus really moves", async () => {
+    const { el, onEdit, onCommit } = await outline();
+    const x = el.querySelector<HTMLInputElement>('[data-testid="outline.x"]')!;
+    await act(async () => x.focus());
+    await type(x, "12");
+    await blurFromWindow(x);
+    expect(x.value).toBe("12");
+    expect(anyDirtyField()).toBe(true);
+    expect(onEdit).not.toHaveBeenCalled();
+    await act(async () => x.focus());
+    await act(async () => x.blur());
+    expect(onEdit).toHaveBeenCalledOnce();
+    expect(onCommit).toHaveBeenCalledOnce();
   });
 });
 

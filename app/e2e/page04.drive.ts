@@ -231,29 +231,10 @@ export default async function drive(page: PageLike): Promise<Json> {
   const velocity = await page.evaluate(readPage, null);
   await page.evaluate(click, '[data-testid="plot.tab"][data-tab="altitude"]');
 
-  // Export CSV: capture the blob handed to the download link.
-  const csv = await page.evaluate(async () => {
-    const w = window as unknown as { __rwBlobs?: Blob[] };
-    w.__rwBlobs = [];
-    const orig = URL.createObjectURL.bind(URL);
-    URL.createObjectURL = (b: Blob | MediaSource) => {
-      if (b instanceof Blob) w.__rwBlobs!.push(b);
-      return orig(b);
-    };
-    let fileName = "";
-    const origClick = HTMLAnchorElement.prototype.click;
-    HTMLAnchorElement.prototype.click = function (this: HTMLAnchorElement) {
-      fileName = this.download;
-    };
-    document.querySelector<HTMLElement>('[data-testid="results.export-csv"]')!.click();
-    HTMLAnchorElement.prototype.click = origClick;
-    const blob = w.__rwBlobs[0];
-    const text = blob ? await blob.text() : "";
-    const lines = text.trim().split("\n");
-    const runs: Record<string, number> = {};
-    for (const l of lines.slice(1)) runs[l.split(",")[0]!] = (runs[l.split(",")[0]!] ?? 0) + 1;
-    return { fileName, header: lines[0] ?? "", rows: lines.length - 1, runs };
-  }, null);
+  // Export CSV: a hidden run has no save dialog, so the file lands in `--hidden-save-dir` and `page04.spec.ts` reads it.
+  await page.evaluate(click, '[data-testid="results.export-csv"]');
+  await waitFor(page, "the CSV to be written", () => document.querySelector('[data-testid="results.export-notice"]') !== null);
+  const csv = await page.evaluate(() => document.querySelector('[data-testid="results.export-notice"]')?.textContent ?? "", null);
 
   // Sorting by apogee: ascending, then descending.
   const order = () => Array.from(document.querySelectorAll<HTMLElement>('[data-testid="runs.table-row"]')).map((r) => r.dataset.sim ?? "");

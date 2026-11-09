@@ -7,6 +7,8 @@
  * it for the screen and Export CSV stays SI.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { SaveCsvRequest, SaveCsvResult } from "@rw/contracts";
+import { downloadCsv } from "../../host/browserHost.ts";
 import { SERIES_COLORS, SERIES_SLOTS } from "../../state/types.ts";
 import { unitSystemOf } from "../../state/displayUnits.ts";
 import { hasNoParts } from "../../state/selectors.ts";
@@ -16,7 +18,7 @@ import type { DrawnEvent } from "../../plots/eventLines.ts";
 import { legendFigure, PLOT_TABS, plotAxis, plotTab, plotValues } from "../../plots/quantities.ts";
 import { seriesColumn } from "../../plots/series.ts";
 import { TimePlot, type PlotLine } from "../../plots/TimePlot.tsx";
-import { downloadText, exportFileName, exportRunsCsv, type ExportRun } from "./csv.ts";
+import { exportFileName, exportRunsCsv, type ExportRun } from "./csv.ts";
 import { canRefly, defaultOverlay, legendRows, outdatedBanner, plotPrompt, primaryRow, rowRef, runDetails, runnableSims, type ResultsRow } from "./model.ts";
 import { Banner } from "../../ui/Banner.tsx";
 import { MenuButton } from "../../ui/Menu.tsx";
@@ -35,12 +37,14 @@ export interface ResultsPageProps {
   app: AppStore;
   /** Run series source (HTTP `SERIES_PATH` in the app); `null` renders without plots. */
   source: RunDataSource | null;
+  /** Saves Export CSV: `HostApi.saveCsv` in the app. Without a host (no window to answer a dialog), the browser's download. */
+  saveCsv?: ((request: SaveCsvRequest) => Promise<SaveCsvResult>) | undefined;
 }
 
 /** Stores whose overlay and selection the page has already defaulted (once per store). */
 const seeded = new WeakSet<AppStore>();
 
-export function ResultsPage({ app, source }: ResultsPageProps) {
+export function ResultsPage({ app, source, saveCsv = downloadCsv }: ResultsPageProps) {
   const rows = useResultsRows(app);
   const projectId = useAppState(app, (s) => s.project.projectId);
   const noParts = useAppState(app, hasNoParts);
@@ -124,6 +128,19 @@ export function ResultsPage({ app, source }: ResultsPageProps) {
     const data = dataOf(r);
     return data ? [{ name: r.name, sim: r.sim, runId: r.entry.run_id!, series: data.series }] : [];
   });
+  const [saving, setSaving] = useState(false);
+  const [exported, setExported] = useState<string | null>(null);
+  const exportCsv = () => {
+    setSaving(true);
+    setExported(null);
+    ui.getState().set({ notice: null });
+    saveCsv({ defaultName: exportFileName(exportable), text: exportRunsCsv(exportable) })
+      .then((result) => {
+        if (!result.canceled && result.path !== null) setExported(`Exported to ${result.path}.`);
+      })
+      .catch((e: unknown) => ui.getState().set({ notice: `The CSV could not be saved: ${(e instanceof Error ? e.message : String(e)).replace(/^Error invoking remote method '[^']*': /, "")}` }))
+      .finally(() => setSaving(false));
+  };
   const selectedSims = runnableSims(rows, rows.filter((r) => r.series !== null || r.selected).map((r) => r.sim));
   const outdatedSims = runnableSims(rows, rows.filter((r) => (r.status.kind === "outdated" || r.status.kind === "not_run") && canRefly(r)).map((r) => r.sim));
   const runAll = (sims: string[], force = false) => {
@@ -184,8 +201,8 @@ export function ResultsPage({ app, source }: ResultsPageProps) {
             type="button"
             className="rw-button"
             data-testid="results.export-csv"
-            disabled={exportable.length === 0}
-            onClick={() => downloadText(exportFileName(exportable), exportRunsCsv(exportable))}
+            disabled={exportable.length === 0 || saving}
+            onClick={exportCsv}
           >
             <ResultsIcon name="download" size={18} />
             Export CSV
@@ -205,6 +222,12 @@ export function ResultsPage({ app, source }: ResultsPageProps) {
           }}
         >
           {runError ?? notice}
+        </Banner>
+      )}
+
+      {exported !== null && (
+        <Banner tone="success" className="rw-results__error" testId="results.export-notice" onDismiss={() => setExported(null)}>
+          {exported}
         </Banner>
       )}
 
