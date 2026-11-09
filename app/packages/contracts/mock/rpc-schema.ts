@@ -6,7 +6,8 @@
  * track `rpc.ts`: the mock tests validate every frame against these.
  */
 import type { JsonValue } from "../src/types.ts";
-import { AGENT_OPS, TEST_HOOK_OPS } from "../src/broker.ts";
+import { AGENT_OPS, PROJECT_TOOLS, TEST_HOOK_OPS } from "../src/broker.ts";
+import { PROJECT_TEMPLATES } from "../src/projectTools.ts";
 import type { RpcMethod, RpcTopic } from "../src/rpc.ts";
 import { RPC_VERSION } from "../src/rpc.ts";
 import type { Schema } from "./jsonschema.ts";
@@ -81,7 +82,7 @@ const $defs: { [k: string]: S } = {
   ),
   RpcError: obj(
     {
-      code: { enum: ["not_found", "invalid_params", "sidecar_unavailable", "version_mismatch", "hooks_disabled", "api_error", "internal"] },
+      code: { enum: ["not_found", "invalid_params", "sidecar_unavailable", "version_mismatch", "hooks_disabled", "api_error", "internal", "conflict", "not_a_project", "permission_denied", "forbidden"] },
       message: str,
       api: reg("api-error"),
     },
@@ -94,6 +95,11 @@ const $defs: { [k: string]: S } = {
     op: { enum: [...AGENT_OPS, ...TEST_HOOK_OPS] },
     args: jsonObject,
   }),
+  HostRequest: obj(
+    { requestId: str, tool: { enum: [...PROJECT_TOOLS] }, path: str, name: str, template: { enum: [...PROJECT_TEMPLATES] }, request: str },
+    ["requestId", "tool", "path"],
+  ),
+  ProjectInspection: obj({ dir: str, state: { enum: ["missing", "empty", "folder", "project"] }, name: { type: ["string", "null"] }, collisions: { type: "array", items: str } }),
 };
 
 /** Result schema per method (must match `RpcMethods` in rpc.ts). */
@@ -101,6 +107,11 @@ export const RESULT_SCHEMAS: { [M in RpcMethod]: S } = {
   "project.list": obj({ projects: { type: "array", items: def("ProjectInfo") } }),
   "project.open": obj({ project: def("ProjectInfo") }),
   "project.close": empty,
+  "project.create": obj({ project: def("ProjectInfo") }),
+  "project.inspect": def("ProjectInspection"),
+  "project.defaults": obj({ location: str }),
+  "project.rename": obj({ project: def("ProjectInfo") }),
+  "project.restartSidecar": empty,
   "project.subscribe": obj({ subscriptionId: str, snapshot: def("ProjectSnapshot") }),
   "project.unsubscribe": empty,
   "model.patch": reg("tools/model_patch.output"),
@@ -120,23 +131,37 @@ export const RESULT_SCHEMAS: { [M in RpcMethod]: S } = {
   "cfd.list": obj({ datasets: { type: "array", items: jsonObject } }),
   "motor.thrustcurveSearch": reg("tools/thrustcurve_search.output"),
   "motor.thrustcurveFetch": reg("tools/thrustcurve_fetch.output"),
+  "component.remove": reg("tools/component_remove.output"),
+  "import.file": reg("tools/import_file.output"),
+  "export.file": reg("tools/export_file.output"),
+  render: reg("tools/render.output"),
+  "motor.search": reg("tools/motor_search.output"),
+  "motor.show": obj({ info: jsonObject, curve: reg("thrust-curve") }),
+  // `run_delete` returns `MutationOut`, the same Rust type as `model_patch`.
+  "run.delete": reg("tools/model_patch.output"),
   "broker.hostRegister": empty,
   "broker.respond": empty,
   "embed.target": def("EmbedTarget"),
   "embed.refreshToken": def("EmbedTarget"),
   "embed.setThreadAppData": empty,
   "embed.setHostContext": obj({ applied: { type: "boolean" } }),
+  "host.register": empty,
+  "host.respond": empty,
   "test.call": jsonObject,
 };
 
 /** Push payload schema per topic (must match `RpcTopics`). */
 export const TOPIC_SCHEMAS: { [T in RpcTopic]: S } = {
   "project.opened": obj({ project: def("ProjectInfo") }),
+  "project.closed": obj({ projectId: str }),
+  "project.updated": obj({ project: def("ProjectInfo") }),
   "project.snapshot": obj({ subscriptionId: str, snapshot: def("ProjectSnapshot") }),
   "project.patch": obj({ subscriptionId: str, patch: def("ProjectPatch") }),
   "broker.request": def("BrokerRequest"),
   "embed.threads": obj({ projectId: str, threads: { type: "array", items: def("EmbedThread") } }),
   "lecturn.status": def("LecturnStatus"),
+  "host.request": def("HostRequest"),
+  "host.show": obj({ projectId: str, threadId: str }, ["projectId"]),
 };
 
 const frameBranches: S[] = [

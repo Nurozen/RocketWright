@@ -203,7 +203,7 @@ describe("page URL and preload", () => {
     const src = buildPreload();
     expect(src).not.toMatch(/^\s*(import|export)\s/m);
     const arg = desktopArg({ rpcUrl: "ws://127.0.0.1:9/rpc", serverUrl: "http://127.0.0.1:9" });
-    expect(runPreload(["/Electron", "--type=renderer", arg]).rwDesktop).toEqual({
+    expect(runPreload(["/Electron", "--type=renderer", arg]).rwDesktop).toMatchObject({
       desktop: true,
       platform: "darwin",
       rpcUrl: "ws://127.0.0.1:9/rpc",

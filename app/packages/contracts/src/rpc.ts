@@ -23,8 +23,27 @@ import type {
   RwRef,
   SimulateOut,
 } from "./types.ts";
-import type { CfdDataset, CfdImportOut, EngineDesignOut, LibKind, LibrarySearchOut, ThrustcurveFetchOut, ThrustcurveSearchOut } from "./generated/types.ts";
+import type {
+  CfdDataset,
+  CfdImportOut,
+  ComponentRemoveIn,
+  EngineDesignOut,
+  ExportFileIn,
+  ExportOut,
+  ImportFileIn,
+  ImportOut,
+  LibKind,
+  LibrarySearchOut,
+  MotorSearchIn,
+  MotorSearchOut,
+  MotorShowOut,
+  RenderIn,
+  RenderResult,
+  ThrustcurveFetchOut,
+  ThrustcurveSearchOut,
+} from "./generated/types.ts";
 import type { BrokerArgs, BrokerCapabilities, BrokerRequest, BrokerResponse, PageId, TestHookOp } from "./broker.ts";
+import type { DisplayUnits, HostRequest, HostResponse, HostShow, ProjectTemplate } from "./projectTools.ts";
 
 export const RPC_VERSION = "rw-rpc/1" as const;
 /** WebSocket path on the server. */
@@ -63,6 +82,34 @@ export interface ProjectInfo {
   projectId: string;
   dir: string;
   name: string;
+}
+
+/** `project.create`. The target folder is `<location>/<name>`. */
+export interface ProjectCreateParams {
+  /** One safe path segment: the project's name and its folder's. */
+  name: string;
+  /** The parent folder; `~` expands (default: `project.defaults`). */
+  location?: string;
+  template?: ProjectTemplate;
+  /** Create from a `.ork` file instead of a template (`rw import ork`, D17). */
+  source?: { ork: string };
+  /** The default-units preference, written to the new project (U59 fills it). */
+  displayUnits?: DisplayUnits;
+}
+
+/**
+ * What a folder holds: `missing` (nothing there yet), `empty`, `folder`
+ * (files, no project: `collisions` lists those `rw init` would refuse over,
+ * D3) or `project`.
+ */
+export type ProjectFolderState = "missing" | "empty" | "folder" | "project";
+
+export interface ProjectInspection {
+  dir: string;
+  state: ProjectFolderState;
+  /** The project's name when `state` is `project`. */
+  name: string | null;
+  collisions: string[];
 }
 
 export type SidecarState = "starting" | "ready" | "restarting" | "failed";
@@ -171,6 +218,16 @@ export interface RpcMethods {
   "project.list": { params: Record<string, never>; result: { projects: ProjectInfo[] } };
   "project.open": { params: { dir: string }; result: { project: ProjectInfo } };
   "project.close": { params: P; result: Record<string, never> };
+  /** Spawns `rw init` (or `rw import ork`), then opens the project. `conflict` when the target holds a project. */
+  "project.create": { params: ProjectCreateParams; result: { project: ProjectInfo } };
+  /** What a folder holds, by Rust's project rule (R0.4). */
+  "project.inspect": { params: { dir: string }; result: ProjectInspection };
+  /** The default parent folder for new projects. */
+  "project.defaults": { params: Record<string, never>; result: { location: string } };
+  /** Both manifests in one history step; pushes `project.updated`. Outdates the project's runs. */
+  "project.rename": { params: P & { name: string }; result: { project: ProjectInfo } };
+  /** Restarts a failed sidecar (R3.3). */
+  "project.restartSidecar": { params: P; result: Record<string, never> };
   /** Pushes `project.snapshot` once, then `project.patch` on every change. */
   "project.subscribe": { params: P; result: { subscriptionId: string; snapshot: ProjectSnapshot } };
   "project.unsubscribe": { params: { subscriptionId: string }; result: Record<string, never> };
@@ -210,6 +267,26 @@ export interface RpcMethods {
    * history step). A user action in the window: not approval-gated.
    */
   "motor.thrustcurveFetch": { params: P & { motor: string; manufacturer?: string; format?: "eng" | "rse"; dry_run?: boolean }; result: ThrustcurveFetchOut };
+  /** The sidecar's `component_remove`. */
+  "component.remove": { params: P & ComponentRemoveIn & { label?: string }; result: MutationOut };
+  /**
+   * The sidecar's `import_file` into the open project. Reads any path in both
+   * modes: an import only writes inside the project (D18).
+   */
+  "import.file": { params: P & ImportFileIn; result: ImportOut };
+  /**
+   * The sidecar's `export_file`. `allow_outside` is refused with `forbidden`
+   * except on Electron main's role-bound socket (D11, D18).
+   */
+  "export.file": { params: P & ExportFileIn; result: ExportOut };
+  /** The sidecar's `render`. */
+  "render": { params: P & RenderIn; result: RenderResult };
+  /** The sidecar's `motor_search`: built-in, project `lib/` and imported motors. */
+  "motor.search": { params: P & MotorSearchIn; result: MotorSearchOut };
+  /** The sidecar's `motor_show`: a motor and its curve. */
+  "motor.show": { params: P & { id: string }; result: MotorShowOut };
+  /** The sidecar's `run_delete`. `run` is `<sim>/<run id>` or a run id. */
+  "run.delete": { params: P & { run: string; dry_run?: boolean }; result: MutationOut };
   /** The web window registers as the viewport host for broker ops (IF11). */
   "broker.hostRegister": { params: P & { hostId: string; capabilities: BrokerCapabilities }; result: Record<string, never> };
   "broker.respond": { params: BrokerResponse; result: Record<string, never> };
@@ -237,6 +314,14 @@ export interface RpcMethods {
    * `internal` error).
    */
   "embed.setHostContext": { params: P & { text: string }; result: { applied: boolean } };
+  /**
+   * Electron main claims the host channel with the server's stdout secret
+   * (`RW_MAIN_TOKEN`, D11; never in env, which reaches Lecturn). The first
+   * registration wins; any other is `forbidden`.
+   */
+  "host.register": { params: { token: string }; result: Record<string, never> };
+  /** Answers a `host.request`. `forbidden` except on the registered socket. */
+  "host.respond": { params: HostResponse; result: Record<string, never> };
   /** Test hooks: rejected unless the server runs with `RW_TEST_HOOKS=1` (I12). */
   "test.call": { params: P & { op: TestHookOp; args: BrokerArgs[TestHookOp] }; result: JsonObject };
 }
@@ -249,6 +334,11 @@ export const RPC_METHODS = [
   "project.list",
   "project.open",
   "project.close",
+  "project.create",
+  "project.inspect",
+  "project.defaults",
+  "project.rename",
+  "project.restartSidecar",
   "project.subscribe",
   "project.unsubscribe",
   "model.patch",
@@ -268,12 +358,21 @@ export const RPC_METHODS = [
   "cfd.list",
   "motor.thrustcurveSearch",
   "motor.thrustcurveFetch",
+  "component.remove",
+  "import.file",
+  "export.file",
+  "render",
+  "motor.search",
+  "motor.show",
+  "run.delete",
   "broker.hostRegister",
   "broker.respond",
   "embed.target",
   "embed.refreshToken",
   "embed.setThreadAppData",
   "embed.setHostContext",
+  "host.register",
+  "host.respond",
   "test.call",
 ] as const satisfies readonly RpcMethod[];
 
@@ -288,6 +387,10 @@ export interface RpcTopics {
    * before a socket connected come from `project.list`.
    */
   "project.opened": { project: ProjectInfo };
+  /** Broadcast when the server closes a project; main forgets it. */
+  "project.closed": { projectId: string };
+  /** Broadcast when an open project's info changes (a rename). */
+  "project.updated": { project: ProjectInfo };
   "project.snapshot": { subscriptionId: string; snapshot: ProjectSnapshot };
   "project.patch": { subscriptionId: string; patch: ProjectPatch };
   "broker.request": BrokerRequest;
@@ -299,6 +402,10 @@ export interface RpcTopics {
   "embed.threads": { projectId: string; threads: EmbedThread[] };
   /** The child's Lecturn connection on every change; also sent to each new socket after `hello`. */
   "lecturn.status": LecturnStatus;
+  /** To the registered main socket only: show a native consent dialog; answer with `host.respond`. */
+  "host.request": HostRequest;
+  /** To the registered main socket only: bring a project (and thread) to the front. */
+  "host.show": HostShow;
 }
 
 export type RpcTopic = keyof RpcTopics;
@@ -306,7 +413,7 @@ export type RpcTopic = keyof RpcTopics;
 // ---- frames --------------------------------------------------------------------
 
 export interface RpcError {
-  code: "not_found" | "invalid_params" | "sidecar_unavailable" | "version_mismatch" | "hooks_disabled" | "api_error" | "internal";
+  code: "not_found" | "invalid_params" | "sidecar_unavailable" | "version_mismatch" | "hooks_disabled" | "api_error" | "internal" | "conflict" | "not_a_project" | "permission_denied" | "forbidden";
   message: string;
   /** Present when the sidecar returned an `rw_api::ApiError`. */
   api?: ApiError;
