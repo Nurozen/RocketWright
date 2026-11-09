@@ -4,7 +4,7 @@
 #   Lecturn kit  macOS   the vendored Lecturn tarballs app/ installs (lecturn-kit.yml)
 #   Rust         Linux   make check-rust: fmt, clippy, tests, audit, docs-check
 #   TypeScript   Linux   make schema-check wasm check-ts
-#   E2E          macOS   make wasm e2e (Playwright + Electron); not a required status, but CONTRIBUTING.md has a merge rule
+#   E2E          macOS   make wasm e2e (Playwright + Electron)
 #   Check        Linux   the one required status: every required job passed
 name: CI
 
@@ -75,11 +75,8 @@ jobs:
       - name: make schema-check wasm check-ts
         run: make schema-check wasm check-ts
 
-  # Not in Check's needs yet: Playwright and Electron on a hosted macOS VM
-  # (no GPU, cold disks) have not been shown to pass reliably. Make it
-  # required by adding it to Check once it has a green track record.
   e2e:
-    name: E2E (not required)
+    name: E2E
     needs: lecturn-kit
     runs-on: macos-15
     timeout-minutes: 90
@@ -135,7 +132,7 @@ jobs:
   check:
     name: Check
     if: ${{ always() }}
-    needs: [lecturn-kit, rust, ts]
+    needs: [lecturn-kit, rust, ts, e2e]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:

@@ -10,12 +10,13 @@ Runs on every pull request and on pushes to `main`; together the jobs are
 | Lecturn kit | macos-15 | the vendored Lecturn tarballs (`lecturn-kit.yml`) |
 | Rust | ubuntu-24.04 | `make check-rust`: fmt, clippy, tests, `rw-liquid` acceptance, audit, docs-check |
 | Schema, WASM and TypeScript | ubuntu-24.04 | `make schema-check wasm check-ts` |
-| E2E (not required) | macos-15 | `make wasm e2e` (Playwright and Electron) |
-| Check | ubuntu-24.04 | passes only when every job above except E2E passed |
+| E2E | macos-15 | `make wasm e2e` (Playwright and Electron) |
+| Check | ubuntu-24.04 | passes only when every job above passed |
 
-Branch protection should require `Check` alone. E2E stays out of `Check`
-until it has a green track record on hosted macOS runners; then add it to
-`Check`'s `needs`.
+Branch protection should require `Check` alone: add a required job to
+`Check`'s `needs` and the ruleset does not change. A hosted macOS runner that
+never picks up a job fails `Check` too, so rerun that job before reading it as
+a test failure.
 
 The Lecturn kit job checks out Nurozen/lecturn at `vendor/lecturn/PIN` beside
 RocketWright and runs `make vendor-lecturn LECTURN_INSTALL=none` (the full
