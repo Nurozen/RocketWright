@@ -42,6 +42,9 @@
  *   the paths of a drop the page imports on the guest's own `webContents.ipc`.
  *   A sender that is not the mounted guest's top frame at its target's origin
  *   is ignored, and `checkGuestDrop` validates the paths before the page hears.
+ * - Focus into the pane: the page reads it as the window losing focus and
+ *   keeps typed text, so the guest's `focus` calls `onGuestFocus` (main: the
+ *   page's flush, as Save and quit uses).
  * - Captures: `captureGuest` shoots the guest over the bridge's session
  *   (`capture` option, the helper's `captureEmbedView` in main) and
  *   `captureComposite` blits it into the window capture at the pane bounds
@@ -81,6 +84,9 @@ export interface GuestContentsLike {
   isCrashed(): boolean;
   isFocused(): boolean;
   focus(): void;
+  /** Electron's `focus`: the guest took the keyboard (a click into the pane, or `focus()`). */
+  on(event: "focus", listener: () => void): unknown;
+  removeListener(event: "focus", listener: () => void): unknown;
   /** Hears only this guest's messages. */
   readonly ipc: { on(channel: string, listener: GuestIpcListener): unknown; removeListener(channel: string, listener: GuestIpcListener): unknown };
 }
@@ -160,6 +166,13 @@ export interface PaneControllerOptions {
   maxReloads?: number;
   /** How long a ref-label ask waits for the page's answer (default 2000 ms). */
   labelTimeoutMs?: number;
+  /**
+   * The mounted guest took focus. The pane is a view of its own, so to the
+   * page this looks like the window losing focus, which leaves typed text
+   * alone (a native dialog must not commit it); main asks the page to save
+   * instead, as a focus move inside the page would.
+   */
+  onGuestFocus?: () => void;
   /** Schedules crash reloads and unmounts off the current event (default `setTimeout(fn, 0)`). */
   defer?: (fn: () => void) => void;
   log?: (line: string) => void;
@@ -505,6 +518,24 @@ export function createPaneController(opts: PaneControllerOptions): PaneControlle
     });
   }
 
+  function wireGuestFocus(m: MountState): void {
+    const onGuestFocus = opts.onGuestFocus;
+    if (onGuestFocus === undefined) return;
+    const contents = m.bridge.webContents;
+    const listener = (): void => {
+      if (mount !== m || destroyed) return;
+      try {
+        onGuestFocus();
+      } catch (e) {
+        log(`lecturn pane: guest focus handler failed: ${errText(e)}`);
+      }
+    };
+    contents.on("focus", listener);
+    m.offs.push(() => {
+      if (!contents.isDestroyed()) contents.removeListener("focus", listener);
+    });
+  }
+
   function dispose(): void {
     const m = mount;
     if (m === null) return;
@@ -550,6 +581,7 @@ export function createPaneController(opts: PaneControllerOptions): PaneControlle
     mount = m;
     wire(m);
     wireGuestDrop(m);
+    wireGuestFocus(m);
     send({ type: "state", projectId, state: "mounting" });
   }
 

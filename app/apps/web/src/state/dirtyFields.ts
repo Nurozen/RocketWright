@@ -28,6 +28,11 @@ export interface DirtyField {
  * would find it gone. The field regains focus when the window does.
  *
  * Every field that registers here checks this before acting on a blur.
+ *
+ * The agent pane is a view of its own, so a click into it reads here as the
+ * window losing focus too. Electron main hears the pane take focus and asks
+ * for the same flush Save and quit uses (`host.onFlush`), which saves what a
+ * focus move inside the page would and leaves invalid text typed and marked.
  */
 export function windowLostFocus(): boolean {
   return !document.hasFocus();

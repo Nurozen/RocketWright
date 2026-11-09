@@ -347,7 +347,7 @@ const GUEST_CAPTURE = { attempts: 4, attemptTimeoutMs: 5_000 } as const;
  * over main's RPC, keyed by each project's workspace root. Null without an
  * RPC client (no server: no pane).
  */
-function startPane(win: BrowserWindow, rpc: MainRpc | null, dropPreload: string | undefined): PaneController | null {
+function startPane(win: BrowserWindow, rpc: MainRpc | null, dropPreload: string | undefined, onGuestFocus?: () => void): PaneController | null {
   if (rpc === null) return null;
   const theme = loadEmbedTheme();
   let guestOrigin: string | null = null;
@@ -384,6 +384,7 @@ function startPane(win: BrowserWindow, rpc: MainRpc | null, dropPreload: string 
     guestOrigin: () => guestOrigin,
     // The bridge handed back is the helper's own object (`mount` above).
     capture: (b) => captureEmbedView(b as unknown as EmbedBridge, GUEST_CAPTURE),
+    ...(onGuestFocus === undefined ? {} : { onGuestFocus }),
     log: (line) => process.stderr.write(`${line}\n`),
   });
 }
@@ -774,7 +775,9 @@ async function main(): Promise<void> {
     win.show();
     win.focus();
   };
-  pane = startPane(win, mainRpc, dropPreload);
+  // A click into the pane is a focus move away from the page's field, so typed text is saved before the agent reads the model.
+  // What could not be saved stays typed and marked in its field, which says why; nothing more to tell here.
+  pane = startPane(win, mainRpc, dropPreload, () => void pageFlush.flush());
   app.setAboutPanelOptions({ applicationName: APP_NAME, applicationVersion: app.getVersion() });
   menu = createMenuController({
     win,

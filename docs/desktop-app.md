@@ -57,7 +57,9 @@ fields. Values carry units (`54 mm`), and an expression starting with `=` works
 in any field that takes a quantity. Changes save as you go, and each one is a
 step you can undo. The status in the header tells you when everything is saved.
 If you change page or quit while a field still holds typed text, RocketWright
-saves it, or asks first when it cannot.
+saves it, or asks first when it cannot. Clicking into the agent pane saves it
+too, so the agent works from what you typed; text that cannot be saved stays in
+its field, marked.
 
 Right-click a part, use its menu in the inspector, or press Delete for the part
 operations: **Rename**, **Duplicate**, **Move to** and **Delete**. Deleting a part
