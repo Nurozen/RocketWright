@@ -1,9 +1,8 @@
 # Using the desktop app
 
 You can design, check and fly a rocket by hand here, with an agent as a helper
-rather than a requirement. Two things still need the agent or the CLI: adding
-stages and assigning parts to them, and creating a **Visual flow** study. Press
-**Help** in the header, or open
+rather than a requirement. One thing still needs the agent or the CLI: adding
+stages and assigning parts to them. Press **Help** in the header, or open
 **Help > Quick start**, for the short version inside the app.
 
 ## Projects
@@ -113,8 +112,8 @@ results. After an edit the page reads **Modified, needs recompute** rather than
 quietly changing the numbers.
 
 On **Simulate**, the **Engineering** and **Visual flow** views run only when you
-press **Run**. A Visual flow study has to exist first, and the agent or the CLI
-adds one. **Cancel** drops that result. **Import CFD result** picks a CFD
+press **Run**. A Visual flow study has to exist first: **New study** adds one for
+the engine you pick. **Cancel** drops that result. **Import CFD result** picks a CFD
 file from your disk. The flow preview is illustrative, not an engineering result.
 
 ## Importing and exporting
