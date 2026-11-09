@@ -65,7 +65,7 @@ function fakeExpect(fake: Fake): Expect {
 
 function context(fake: Fake): DriveContext {
   const lifecycle = { chooseFolder: async () => "/tmp/x", quit: async () => undefined, relaunch: async () => fake.page, finish: async () => undefined };
-  return { page: fake.page, expect: fakeExpect(fake), lifecycle, statuses: new Map<string, RowStatus>(), added: new Set(), timeouts: { row: 10, launch: 10, run: 10 }, timing: {}, tableReads: [] };
+  return { page: fake.page, expect: fakeExpect(fake), lifecycle, projectName: "A simple model rocket", statuses: new Map<string, RowStatus>(), added: new Set(), timeouts: { row: 10, launch: 10, run: 10 }, timing: {}, tableReads: [] };
 }
 
 const rows = boundRows();

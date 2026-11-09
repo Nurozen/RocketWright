@@ -36,7 +36,7 @@ export const STAGE_NEEDS: Readonly<Record<StageId, readonly StageId[]>> = {
 };
 
 /** The enabled stages: the steps that make a stage reachable add it. */
-export const B1_STAGES: ReadonlySet<StageId> = new Set<StageId>(["launch", "welcome", "new", "quit", "reopen"]);
+export const B1_STAGES: ReadonlySet<StageId> = new Set<StageId>(["launch", "welcome", "choose", "new", "nose", "body", "quit", "reopen", "compare"]);
 
 /** One message per stage enabled without a stage it needs. */
 export function validateStages(enabled: ReadonlySet<StageId>): string[] {
@@ -70,7 +70,7 @@ export interface Lifecycle {
   quit(): Promise<void>;
   /** Launches it again on the same profile and returns the new window. */
   relaunch(): Promise<Page>;
-  /** Final quit, `killOrphans`, then the post-quit comparison and run scoring. */
+  /** Final quit, kills what this run started and quit left, then the post-quit comparison and run scoring. */
   finish(drive: DriveContext): Promise<void>;
 }
 
@@ -78,6 +78,8 @@ export interface DriveContext {
   page: Page;
   expect: Expect;
   lifecycle: Lifecycle;
+  /** The name typed in New project: reopen must show this project, not just any Design tab. */
+  projectName: string;
   statuses: Map<string, RowStatus>;
   /** Parts' Add affordances already pressed. */
   added: Set<string>;
@@ -288,6 +290,7 @@ const STAGE_BODIES: Readonly<Record<StageId, StageBody>> = {
   async reopen(ctx) {
     ctx.page = await ctx.lifecycle.relaunch();
     await ctx.expect(ctx.page.getByRole("tab", exactly("Design"))).toBeVisible({ timeout: ctx.timeouts.launch });
+    await ctx.expect(ctx.page.getByRole("button", { name: ctx.projectName })).toBeVisible({ timeout: ctx.timeouts.row });
     if (ctx.tableReads.length === 0) return;
     await ctx.page.getByRole("tab", exactly("Results")).click();
     await ctx.expect(completeRow(ctx.page)).toBeVisible({ timeout: ctx.timeouts.row });

@@ -60,6 +60,17 @@ describe("component editor markup", () => {
     expect(html).toContain('data-rw-region="editor"');
   });
 
+  it("links the unit shown beside a number to its input, and leaves a unitless field undescribed", () => {
+    const html = renderToStaticMarkup(<ComponentEditor {...props()} />);
+    const field = (key: string) => new RegExp(`data-field="${key}"[\\s\\S]*?</label>`).exec(html)?.[0] ?? "";
+    const span = field("span");
+    const id = /aria-describedby="([^"]+)"/.exec(span)?.[1] ?? "";
+    expect(id).not.toBe("");
+    expect(span).toContain(`<span id="${id}" class="rw-field__unit">mm</span>`);
+    expect(field("count")).toContain("rw-spinbox__input");
+    expect(field("count")).not.toContain("aria-describedby");
+  });
+
   it("marks the fields the agent changed with words, not ids", () => {
     const html = renderToStaticMarkup(<ComponentEditor {...props({ agentChanged: ["span", "sweep"] })} />);
     expect(html.match(/data-testid="editor.field-changed"/g)).toHaveLength(2);

@@ -4,14 +4,15 @@ import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:f
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { CheckReport, EvalComponent, EvaluatedModel, ModelGetOut } from "../../packages/contracts/src/generated/index.ts";
-import { allRowKeys, compareCase1, compareEvaluatedConditions, comparePersisted, matchParts, type Case1Actual } from "../case1-compare.ts";
+import { allRowKeys, compareCase1, compareEvaluatedConditions, comparePersisted, judgeRebuild, matchParts, type Case1Actual, type PostQuitReader } from "../case1-compare.ts";
 import { loadCase1Plan, readEnv, type Case1Plan } from "../case1-plan.ts";
 import { FIXTURE_DIR } from "../case1-script.ts";
 import { SCRATCH, sidecarBinary } from "../live.ts";
+import { enabledRowKeys } from "../case1-stages.ts";
 
 let bin = "";
 let plan: Case1Plan;
-let identity: Case1Actual;
+let identity: Required<Case1Actual>;
 let tmp = "";
 
 const part = (model: EvaluatedModel, id: string): EvalComponent => {
@@ -19,7 +20,7 @@ const part = (model: EvaluatedModel, id: string): EvalComponent => {
   if (c === undefined) throw new Error(`no part ${id}`);
   return c;
 };
-const mutated = (edit: (a: Case1Actual) => void): Case1Actual => {
+const mutated = (edit: (a: Required<Case1Actual>) => void): Required<Case1Actual> => {
   const copy = structuredClone(identity);
   edit(copy);
   return copy;
@@ -167,6 +168,69 @@ describe("compareCase1", () => {
 
   it("has a comparison rule for every part field the script drives", () => {
     expect(compareCase1(plan, identity).filter((d) => d.expected === "a comparison rule")).toEqual([]);
+  });
+});
+
+describe("the skeleton's subset (B1-c)", () => {
+  const enabled = () => enabledRowKeys(new Set(["launch", "welcome", "new", "nose", "body"]));
+  /** What the app builds: only these parts, under the ids it derives from their names. */
+  const built = (): EvaluatedModel => {
+    const model = structuredClone(identity.model);
+    model.components = model.components.filter((c) => c.id === "nose" || c.id === "body");
+    part(model, "nose").id = "nose_cone";
+    const body = part(model, "body");
+    body.id = "body_tube";
+    body.parent = "nose_cone";
+    return model;
+  };
+  const verdict = (model: EvaluatedModel) => {
+    const reader: PostQuitReader = {
+      calls: [],
+      model: () => model,
+      check: () => {
+        throw new Error("rw check exits 1 on a partial model: the subset must not read it");
+      },
+      runSummary: () => {
+        throw new Error("nothing was flown");
+      },
+    };
+    return judgeRebuild({ plan, project: join(tmp, "p"), reader, enabled: enabled() });
+  };
+
+  it("pairs the app's nose_cone and body_tube with the script's nose and body", () => {
+    expect(verdict(built())).toMatchObject({ diffs: [], problems: [] });
+  });
+
+  it("still scores the built fields: a 0.02 mm shift in a driven length fails", () => {
+    const model = built();
+    (part(model, "body_tube").shape as { length: number }).length += 2e-5;
+    expect(verdict(model).diffs).toEqual([expect.objectContaining({ part: "body", field: "length" })]);
+  });
+
+  it("reads the check once the whole model is scored", () => {
+    let reads = 0;
+    const reader: PostQuitReader = {
+      calls: [],
+      model: () => identity.model,
+      check: () => {
+        reads += 1;
+        return identity.check;
+      },
+      runSummary: () => {
+        throw new Error("nothing was flown");
+      },
+    };
+    expect(judgeRebuild({ plan, project: join(tmp, "p"), reader, enabled: allRowKeys() })).toMatchObject({ diffs: [], problems: [] });
+    expect(reads).toBe(1);
+  });
+
+  it("fails a part the drive never added, and a body left off the nose", () => {
+    const extra = built();
+    extra.components.push({ ...structuredClone(part(identity.model, "fins")), parent: "body_tube" });
+    expect(verdict(extra).diffs).toEqual([expect.objectContaining({ part: "fins", field: "part", expected: "no such part" })]);
+    const loose = built();
+    delete (part(loose, "body_tube") as { parent?: unknown }).parent;
+    expect(verdict(loose).diffs).toEqual(expect.arrayContaining([expect.objectContaining({ part: "body", field: "part", actual: "missing" })]));
   });
 });
 

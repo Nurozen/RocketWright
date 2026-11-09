@@ -10,7 +10,7 @@
  * model (a draft previewed by rw-wasm, I4); Enter or leaving the field commits
  * it through `model.patch` (I1, I2); Escape discards it.
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import type { PatchOp, schema } from "@rw/contracts";
 import { Icon } from "../../shell/Icon.tsx";
 import { ADD_FIRST_PART, FIRST_PART_HINT, type DeepReadonly, type Units } from "../../state/index.ts";
@@ -409,6 +409,7 @@ function SpinField({
 }) {
   const [text, setText] = useState(value);
   const [editing, setEditing] = useState(false);
+  const unitId = useId();
   useEffect(() => {
     if (!editing) setText(value);
   }, [value, editing]);
@@ -433,6 +434,7 @@ function SpinField({
           value={text}
           placeholder={placeholder}
           aria-label={field.label}
+          aria-describedby={unit === "" ? undefined : unitId}
           aria-invalid={error ? true : undefined}
           onFocus={() => setEditing(true)}
           onChange={(e) => {
@@ -468,7 +470,9 @@ function SpinField({
           </button>
         </span>
       </span>
-      <span className="rw-field__unit">{unit}</span>
+      <span id={unitId} className="rw-field__unit">
+        {unit}
+      </span>
     </label>
   );
 }
