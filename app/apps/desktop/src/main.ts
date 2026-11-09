@@ -71,6 +71,7 @@ import { pathToFileURL } from "node:url";
 import { parseArgs } from "node:util";
 import { capturePageDpr1, countForeground, debuggerSessions, emulateDpr1, installFreezeClock, pngSize } from "./capture.ts";
 import { waitGuestSized } from "./guestSize.ts";
+import { openHiddenWindow } from "./hiddenWindow.ts";
 import { captureComposite, createPaneController, droppedCapture, GUEST_WEB_PREFERENCES, isGuestUrl, type EmbedBridgeLike, type MountArgs, type PaneController } from "./lecturn.ts";
 import { connectMainRpc, type MainRpc } from "./mainRpc.ts";
 import { bootProjects, buildPreload, desktopArg, documentsDirOverride, lecturnBaseDirFor, parseDesktopArgs, REPO_ROOT, resolveDevProject, startBackend, userDataOverride, waitForHttp, type Backend, type DevProject } from "./backend.ts";
@@ -346,52 +347,37 @@ function startPane(win: BrowserWindow, rpc: MainRpc | null): PaneController | nu
 /** The window `rwDesktop` calls are accepted from (`nativeDialogs.ts`); a hidden retry replaces it. */
 let appWindow: BrowserWindow | null = null;
 
-/** Attempts at opening the hidden window before giving up. */
-const OPEN_ATTEMPTS = 4;
-
-/**
- * Creates the hidden window at DPR 1 and loads the app, retrying with a fresh
- * window when a load fails. Under load, Electron 44 intermittently rejects the
- * very first navigation (`ERR_FAILED (-2) loading 'about:blank'`) before the
- * renderer is up; a new window then loads fine. The app origin is polled until
- * it answers before each attempt.
- */
-async function openHiddenWindow(backend: Backend, preload: string | undefined, consoleLines: string[], deadline: number): Promise<BrowserWindow> {
-  let lastError: unknown;
-  for (let attempt = 1; attempt <= OPEN_ATTEMPTS; attempt++) {
-    await waitForHttp(backend.url, deadline);
-    const win = new BrowserWindow({ show: false, width, height, useContentSize: true, webPreferences: webPreferences(preload, backend) });
-    appWindow = win;
-    win.webContents.on("console-message", (e) => consoleLines.push(`[${e.level}] ${e.message}`));
-    win.webContents.on("preload-error", (_e, path, err) => consoleLines.push(`[preload-error] ${path}: ${err.message}`));
-    try {
-      // DPR 1 from the first frame, so the canvas renders at the capture size.
-      // CDP commands before the first navigation crash Electron 44's main
-      // process (SIGSEGV), so emulate on about:blank; the override persists.
-      await win.loadURL("about:blank");
-      await emulateDpr1(win.webContents, width, height);
-      if (freezeClock !== undefined) await installFreezeClock(debuggerSessions.session(win.webContents), freezeClock);
-      await win.loadURL(backend.url);
-      return win;
-    } catch (e) {
-      lastError = e;
-      process.stderr.write(`hidden window load failed (attempt ${attempt}/${OPEN_ATTEMPTS}): ${e instanceof Error ? e.message : String(e)}\n`);
-      win.destroy();
-      if (Date.now() > deadline) break;
-      await new Promise((r) => setTimeout(r, 250 * attempt));
-    }
-  }
-  throw lastError instanceof Error ? lastError : new Error(String(lastError));
-}
-
 /** The hidden window: load, wait for `readyGlobal`, optionally measure and capture (`out`), print the probe JSON. */
 async function renderHidden(backend: Backend, preload: string | undefined, out: string | undefined, rpc: MainRpc | null, onPane: (pane: PaneController | null) => void): Promise<number> {
   app.dock?.hide();
   const deadline = Date.now() + timeoutMs;
   const consoleLines: string[] = [];
-  const win = await openHiddenWindow(backend, preload, consoleLines, deadline);
-  const pane = startPane(win, rpc);
-  onPane(pane);
+  const { win, pane } = await openHiddenWindow<BrowserWindow, PaneController>({
+    url: backend.url,
+    deadline,
+    waitForServer: () => waitForHttp(backend.url, deadline),
+    createWindow: () => {
+      const w = new BrowserWindow({ show: false, width, height, useContentSize: true, webPreferences: webPreferences(preload, backend) });
+      appWindow = w;
+      w.webContents.on("console-message", (e) => consoleLines.push(`[${e.level}] ${e.message}`));
+      w.webContents.on("preload-error", (_e, path, err) => consoleLines.push(`[preload-error] ${path}: ${err.message}`));
+      return w;
+    },
+    prepare: async (w) => {
+      // DPR 1 from the first frame, so the canvas renders at the capture size.
+      // CDP commands before the first navigation crash Electron 44's main
+      // process (SIGSEGV), so emulate on about:blank; the override persists.
+      await w.loadURL("about:blank");
+      await emulateDpr1(w.webContents, width, height);
+      if (freezeClock !== undefined) await installFreezeClock(debuggerSessions.session(w.webContents), freezeClock);
+    },
+    startPane: (w) => {
+      const p = startPane(w, rpc);
+      onPane(p);
+      return p;
+    },
+    log: (line) => process.stderr.write(`${line}\n`),
+  });
   const page = await waitForProbe(win);
 
   const result: Record<string, unknown> = {
