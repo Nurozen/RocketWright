@@ -4,7 +4,7 @@
  * its RPC mirror (IF10 `ProjectSnapshot`, `ThreadInfo`, history) onto this
  * shape. `PLACEHOLDER_SHELL` is the static stand-in used without a server.
  */
-import type { PageId, RwRef } from "@rw/contracts";
+import type { DesktopCommand, PageId, RecentProject, RwRef } from "@rw/contracts";
 import type { StatusView } from "../state/status.ts";
 import type { IconName } from "./Icon.tsx";
 
@@ -124,6 +124,17 @@ export type CheckStatus = "unknown" | "running" | "ok" | "issues" | "errors" | "
 export interface ShellProject {
   id: string;
   name: string;
+}
+
+/** What the header's project menu shows beyond the open projects, and what it does. */
+export interface ProjectMenuModel {
+  recents: readonly RecentProject[];
+  /** Why part of the menu could not be filled, shown in the menu itself. */
+  errors: readonly string[];
+  /** The menu opened: refresh what it shows. */
+  onOpen: () => void;
+  onCommand: (command: DesktopCommand) => void;
+  onRemoveRecent: (dir: string) => void;
 }
 
 export interface ShellModel {

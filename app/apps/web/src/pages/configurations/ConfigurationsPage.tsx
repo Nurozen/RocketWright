@@ -10,13 +10,14 @@
  * Every change is a `model.patch` (I1, I2); `▶ Run configurations` runs the
  * sims that fly them.
  */
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { PatchOp, RwRef, schema } from "@rw/contracts";
 import { useStore } from "zustand";
 import { createStore, type StoreApi } from "zustand/vanilla";
 import { Icon } from "../../shell/Icon.tsx";
 import { StatusBadge } from "../../shell/StatusIcon.tsx";
 import { ViewportToolbar, type ViewChip } from "../../shell/ViewportToolbar.tsx";
+import { trackWrite, useDirtyField } from "../../state/dirtyFields.ts";
 import type { RpcLike } from "../../state/rpc.ts";
 import { useAppState, type AppStore, type DeepReadonly, type Units } from "../../state/index.ts";
 import { UNITS, formatLength } from "../assembly/inspector-model.ts";
@@ -173,11 +174,10 @@ function ConfigurationsWorkspace({ store, client, ui }: { store: AppStore; clien
   useMotorLibrary(ui);
   const motors = useStore(ui, (s) => s.library.motors);
 
-  const patch = async (ops: PatchOp[], label: string): Promise<boolean> => {
-    if (client === null || projectId === null || ops.length === 0) return false;
+  const write = async (ops: PatchOp[], label: string): Promise<boolean> => {
     setPending(true);
     try {
-      await client.call("model.patch", { projectId, ops, label });
+      await client!.call("model.patch", { projectId: projectId!, ops, label });
       ui.setState({ error: null });
       return true;
     } catch (e) {
@@ -186,6 +186,10 @@ function ConfigurationsWorkspace({ store, client, ui }: { store: AppStore; clien
     } finally {
       setPending(false);
     }
+  };
+  const patch = (ops: PatchOp[], label: string): Promise<boolean> => {
+    if (client === null || projectId === null || ops.length === 0) return Promise.resolve(false);
+    return trackWrite(write(ops, label), (ok) => (ok ? null : (ui.getState().error ?? `Could not save: ${label}.`)));
   };
   const select = (id: string) => store.getState().selection.select([cfgRef(id)], "table");
 
@@ -330,6 +334,13 @@ function ConfigurationsWorkspace({ store, client, ui }: { store: AppStore; clien
 
 function RenameInput({ initial, onDone }: { initial: string; onDone: (name: string | null) => void }) {
   const [v, setV] = useState(initial);
+  useDirtyField({
+    dirty: () => v.trim() !== "" && v.trim() !== initial,
+    commit: () => {
+      onDone(v);
+      return null;
+    },
+  });
   return (
     <input
       className="rw-cfg__rename"
@@ -428,6 +439,17 @@ function MotorPanel({
   useEffect(() => setCustom(false), [config.id, picked, mount?.id]);
   const delayState = ejectionDelayState(delay, current?.delays ?? [], custom);
   const fileDelays = delayState.source === "manufacturer";
+  // The typed delay's one write: leaving the field and leaving the project both end here.
+  const commitDelay = (): string | null => {
+    const t = delayText.trim();
+    const n = Number(t);
+    if (t === "" || !Number.isFinite(n) || n < 0 || mount === undefined) return "Ejection delay needs a number of seconds.";
+    if (delay !== null && Math.abs(n - delay) < 1e-9) return null;
+    void patch([{ op: "add", path: `/configs/${config.id}/motors/${mount.id}/delay`, value: `${n} s` }], `Set ${config.name} ejection delay`);
+    return null;
+  };
+  const delayTyped = isAssigned && !(fileDelays && delayState.listed.length > 0);
+  useDirtyField({ dirty: () => delayTyped && delayText.trim() !== (delay !== null ? String(Number(delay.toFixed(2))) : ""), commit: commitDelay });
   const listedText = delayState.listed.map((d) => Number(d.toFixed(2))).join(", ");
   const setFilter = (k: keyof MotorFilters, v: string) => ui.setState((s) => ({ filters: { ...s.filters, [k]: v } }));
   return (
@@ -628,11 +650,7 @@ function MotorPanel({
                         disabled={!isAssigned}
                         onChange={(e) => setDelayText(e.currentTarget.value)}
                         onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
-                        onBlur={() => {
-                          const n = Number(delayText);
-                          if (!Number.isFinite(n) || n < 0 || mount === undefined || (delay !== null && Math.abs(n - delay) < 1e-9)) return;
-                          void patch([{ op: "add", path: `/configs/${config.id}/motors/${mount.id}/delay`, value: `${n} s` }], `Set ${config.name} ejection delay`);
-                        }}
+                        onBlur={() => void commitDelay()}
                       />
                       <span>s</span>
                     </span>
@@ -745,10 +763,23 @@ function CfgNumber({
     if (!editing) setText(value);
   }, [value, editing]);
   useEffect(() => setError(null), [value]);
+  // The text a flush already wrote: the blur that follows it must not write it twice.
+  const sent = useRef<string | null>(null);
   const commit = () => {
-    if (text.trim() === value.trim() && value.trim() !== "") return;
+    if (text === sent.current || (text.trim() === value.trim() && value.trim() !== "")) return;
     setError(onCommit(text));
   };
+  useDirtyField({
+    dirty: () => disabled !== true && (error !== null || (editing && text.trim() !== value.trim())),
+    commit: () => {
+      // A blur already put the model's value back: there is nothing to write, only the refusal to pass on.
+      if (error !== null && text.trim() === value.trim()) return `${label}: ${error}`;
+      sent.current = text;
+      const problem = onCommit(text);
+      setError(problem);
+      return problem === null ? null : `${label}: ${problem}`;
+    },
+  });
   return (
     <span className="rw-cfg-num" data-invalid={error !== null || invalid ? "true" : undefined}>
       <span className="rw-motor__delay-input">
@@ -760,7 +791,10 @@ function CfgNumber({
           disabled={disabled}
           aria-invalid={error !== null || invalid ? true : undefined}
           onFocus={() => setEditing(true)}
-          onChange={(e) => setText(e.currentTarget.value)}
+          onChange={(e) => {
+            sent.current = null;
+            setText(e.currentTarget.value);
+          }}
           onBlur={() => {
             setEditing(false);
             commit();

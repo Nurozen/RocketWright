@@ -1,5 +1,5 @@
 /** `project`: the read-only mirror of the server's ProjectHost snapshot (IF10). */
-import type { ProjectPatch, ProjectSnapshot, RwRef, SnapshotKey } from "@rw/contracts";
+import type { ProjectInfo, ProjectPatch, ProjectSnapshot, RwRef, SnapshotKey } from "@rw/contracts";
 import { RpcCallError, type RpcLike } from "../rpc.ts";
 import type { AppState, DeepReadonly, ProjectSlice, SliceCtx } from "../types.ts";
 import { handshake, loadWasm } from "../wasm.ts";
@@ -37,6 +37,7 @@ export function createProjectSlice(ctx: SliceCtx): ProjectSlice {
       ctx.cleanup.push(
         client.on("project.snapshot", (p) => mine(p.subscriptionId) && applySnapshot(ctx, p.snapshot)),
         client.on("project.patch", (p) => mine(p.subscriptionId) && p.patch.projectId === projectId && applyPatch(ctx, p.patch)),
+        client.on("project.updated", (p) => p.project.projectId === projectId && applyProjectInfo(ctx, p.project)),
         // B12: the project's Lecturn threads feed the rail (title, age, busy); a live switch remaps the shown one (D25).
         client.on("embed.threads", (p) => p.projectId === projectId && onEmbedThreads(ctx, p.threads)),
         client.on("lecturn.status", (st) => onLecturnSwitch(ctx, st)),
@@ -137,6 +138,13 @@ export function applySnapshot(ctx: SliceCtx, snap: ProjectSnapshot): void {
 }
 
 /** Replaces the keys present in `patch` (wholesale per key, IF10); unchanged keys keep identity. */
+/** `project` is not a patch key: a rename reaches every window through `project.updated`. */
+function applyProjectInfo(ctx: SliceCtx, project: ProjectInfo): void {
+  const prev = ctx.get().project.snapshot;
+  if (prev === null) return;
+  ctx.patch("project", { snapshot: Object.freeze({ ...prev, project: deepFreeze({ ...project }) }) });
+}
+
 export function applyPatch(ctx: SliceCtx, patch: ProjectPatch): void {
   const prev = ctx.get().project.snapshot;
   if (prev === null) return;

@@ -6,8 +6,10 @@
  *
  * - `projects`: every project the child has open, seeded from `project.list`
  *   after `hello` (the CLI's `--project` dirs open before main connects) and
- *   kept current by the `project.opened` push; `onProjectOpened` fires once
- *   per project id, in that order.
+ *   kept current by the `project.opened`, `project.updated` and
+ *   `project.closed` pushes; `onProjectOpened` fires once per opening, in that
+ *   order, so a project closed and opened again fires twice. Recents never
+ *   hang off it: `rwDesktop.setActiveProject` feeds those.
  * - `call`: any IF10 method (`embed.target` for the chat pane, B8/B10).
  * - `lecturnStatus`: the child's last `lecturn.status` push (null before the
  *   first); `onLecturnStatus` fires on each one, so the pane follows a live
@@ -56,13 +58,18 @@ export async function connectMainRpc(rpcUrl: string, opts: MainRpcOptions = {}):
   let hello: (() => void) | null = null;
   let helloFail: ((e: Error) => void) | null = null;
   // Pushes that arrive before the seed list finishes are applied after it, so order stays push-consistent.
-  let seeding: ProjectInfo[] | null = [];
+  let seeding: (() => void)[] | null = [];
   let status: LecturnStatus | null = null;
 
   const see = (p: ProjectInfo): void => {
     if (seen.has(p.projectId)) return;
     seen.set(p.projectId, { ...p });
     opts.onProjectOpened?.({ ...p });
+  };
+
+  const apply = (change: () => void): void => {
+    if (seeding !== null) seeding.push(change);
+    else change();
   };
 
   const shut = (why: string): void => {
@@ -100,8 +107,15 @@ export async function connectMainRpc(rpcUrl: string, opts: MainRpcOptions = {}):
       else r.fail(new MainRpcError(r.method, f.error));
     } else if (f.kind === "push" && f.topic === "project.opened") {
       const { project } = f.payload as { project: ProjectInfo };
-      if (seeding !== null) seeding.push(project);
-      else see(project);
+      apply(() => see(project));
+    } else if (f.kind === "push" && f.topic === "project.closed") {
+      const { projectId } = f.payload as { projectId: string };
+      apply(() => seen.delete(projectId));
+    } else if (f.kind === "push" && f.topic === "project.updated") {
+      const { project } = f.payload as { project: ProjectInfo };
+      apply(() => {
+        if (seen.has(project.projectId)) seen.set(project.projectId, { ...project });
+      });
     } else if (f.kind === "push" && f.topic === "lecturn.status") {
       status = f.payload as LecturnStatus;
       opts.onLecturnStatus?.(status);
@@ -139,7 +153,7 @@ export async function connectMainRpc(rpcUrl: string, opts: MainRpcOptions = {}):
     const early = seeding;
     seeding = null;
     for (const p of projects) see(p);
-    for (const p of early) see(p);
+    for (const change of early) change();
   } catch (e) {
     ws.close();
     shut("connect failed");

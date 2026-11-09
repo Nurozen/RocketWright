@@ -17,6 +17,8 @@ export interface MenuItem {
   disabled?: boolean | undefined;
   /** Present (true or false) makes this a checkable item. */
   checked?: boolean | undefined;
+  /** False keeps this row out of the check column of a list that has one (actions under a list of choices). */
+  gutter?: false | undefined;
   /** Destructive action, drawn in the danger colour. */
   danger?: boolean | undefined;
   icon?: ReactNode;
@@ -121,7 +123,7 @@ function MenuList({ entries, label, testId, listRef, close, back }: MenuListProp
                 entry.onSelect?.();
               }}
             >
-              {checkable && (
+              {checkable && entry.gutter !== false && (
                 <span className="rw-ui-menu__check" aria-hidden>
                   {entry.checked === true ? <Icon name="check" size={16} /> : null}
                 </span>

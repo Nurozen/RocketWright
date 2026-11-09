@@ -279,6 +279,13 @@ export class ProjectHost {
   }
 
   /** One sidecar tool call as the UI; tool errors become `api_error`. */
+  /** Writes both manifests through the sidecar; the name changes for every window at once, ahead of the file watch. */
+  async setName(name: string): Promise<ProjectInfo> {
+    await this.tool("project_rename", { name });
+    this.syncName();
+    return { ...this.info };
+  }
+
   async tool<T>(name: string, args: Record<string, unknown>, label?: string): Promise<T> {
     if (this.closed) throw new RpcFail("not_found", `project ${this.info.projectId} is closed`);
     const meta: Record<string, unknown> = { [META_ORIGIN]: "ui", [META_THREAD]: UI_THREAD };

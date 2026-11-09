@@ -7,7 +7,7 @@
  * `ConnectedShell` feeds it from the store; `ShellApp` from a static model.
  */
 import type { ReactNode } from "react";
-import type { ShellNavRow, ShellHistoryStep } from "./model.ts";
+import type { ProjectMenuModel, ShellNavRow, ShellHistoryStep } from "./model.ts";
 import { AgentPane } from "./AgentPane.tsx";
 import { Header } from "./Header.tsx";
 import { HistoryStrip } from "./HistoryStrip.tsx";
@@ -43,6 +43,8 @@ export interface AppShellProps {
   onTabChange?: (tab: TopTab) => void;
   onLocalTabChange?: (id: string) => void;
   handlers?: ShellHandlers;
+  /** The header's project menu (the live window; the static shell has none). */
+  projectMenu?: ProjectMenuModel | undefined;
   /** Page content inside the workspace. */
   children?: ReactNode;
   /** Row between the workspace and the history strip (the viewport toolbar). */
@@ -81,6 +83,7 @@ export function AppShell({
   onTabChange,
   onLocalTabChange,
   handlers = {},
+  projectMenu,
   children,
   toolbar,
   agent,
@@ -111,6 +114,7 @@ export function AppShell({
         check={model.check}
         projects={model.projects ?? []}
         projectId={model.projectId ?? null}
+        projectMenu={projectMenu}
         {...(onTabChange ? { onTabChange } : {})}
         {...(h.onCheckModel ? { onCheckModel: h.onCheckModel } : {})}
         {...(h.onOpenProjects ? { onOpenProjects: h.onOpenProjects } : {})}

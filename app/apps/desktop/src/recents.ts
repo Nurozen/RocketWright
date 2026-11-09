@@ -162,7 +162,8 @@ export function createRecents(options: RecentsOptions): Recents {
     list: async () => {
       const { recents } = await enqueue(read);
       const [skip, openHere] = await Promise.all([canonSet(excluded), canonSet(openDirs())]);
-      return Promise.all(recents.filter((e) => !skip.has(e.dir)).map(async (e) => ({ ...e, status: await probeStatus(e.dir, openHere, alive) })));
+      // A project open here is in the header's open list; Recent is for reaching the others.
+      return Promise.all(recents.filter((e) => !skip.has(e.dir) && !openHere.has(e.dir)).map(async (e) => ({ ...e, status: await probeStatus(e.dir, openHere, alive) })));
     },
     see: (project) =>
       enqueue(async () => {

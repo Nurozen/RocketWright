@@ -14,6 +14,7 @@ import type { CfdStore } from "../pages/propsim/cfd.tsx";
 import type { RunDataSource } from "../pages/results/source.ts";
 import type { RpcLike } from "../state/rpc.ts";
 import type { AppStore } from "../state/store.ts";
+import { registerDirtyField, resetDirtyFields, trackWrite } from "../state/dirtyFields.ts";
 import { AppRoot, type AppRootProps } from "./AppRoot.tsx";
 import type { ConnectedShellProps } from "./ConnectedShell.tsx";
 
@@ -44,6 +45,7 @@ function fakeClient(open: string[], fail: Record<string, string> = {}) {
   const call = (method: string, params: Record<string, unknown>): Promise<unknown> => {
     calls.push({ method, params });
     if (method === "project.list") return Promise.resolve({ projects: projects.map(info) });
+    if (method === "project.defaults") return Promise.resolve({ location: "/docs" });
     if (method === "project.subscribe") {
       const projectId = params["projectId"] as string;
       if (fail[projectId] !== undefined) return Promise.reject(new Error(fail[projectId]));
@@ -131,6 +133,8 @@ afterEach(async () => {
   await act(async () => root?.unmount());
   root = null;
   el.remove();
+  resetDirtyFields();
+  document.title = "";
   vi.restoreAllMocks();
 });
 
@@ -317,5 +321,235 @@ describe("closing and commands", () => {
     await settled();
     await settled();
     expect(storeOf(shown()).getState().project.projectId).toBe("recent");
+  });
+});
+
+describe("the project menu", () => {
+  const order = (t: ReturnType<typeof fakeClient>) => t.calls.map((c) => c.method).filter((m) => m === "project.unsubscribe" || m === "project.close" || m === "model.patch");
+  const dialog = (name: string) => document.querySelector(`[role="dialog"][aria-labelledby] h2`)?.textContent === name;
+  const button = (name: string) => [...document.querySelectorAll("button")].find((b) => b.textContent === name)!;
+  const banner = () => document.querySelector('[data-testid="project-actions.error"]')?.textContent ?? "";
+  const send = async (command: DesktopCommand) => {
+    await act(async () => shown()!.projectMenu!.onCommand(command));
+    await settled();
+    await settled();
+  };
+
+  function failing(t: ReturnType<typeof fakeClient>, method: string, message: string) {
+    const call = t.client.call.bind(t.client);
+    (t.client as { call: unknown }).call = (m: string, params: never) => (m === method ? Promise.reject(new Error(message)) : call(m as never, params));
+  }
+
+  it("closes in order: flush, disconnect, close, then Welcome", async () => {
+    const t = fakeClient(["a"]);
+    await mount(t, fakeHost());
+    let release!: () => void;
+    registerDirtyField({
+      dirty: () => true,
+      commit: () => {
+        void t.client.call("model.patch", { projectId: "a", ops: [] });
+        void trackWrite(new Promise<void>((ok) => (release = ok)));
+        return null;
+      },
+    });
+    await act(async () => shown()!.projectMenu!.onCommand({ id: "project.close" }));
+    await settled();
+    expect(order(t)).toEqual(["model.patch"]);
+    release();
+    await settled();
+    await settled();
+    expect(order(t)).toEqual(["model.patch", "project.unsubscribe", "project.close"]);
+    expect(el.querySelector('[data-testid="welcome"]')).not.toBeNull();
+  });
+
+  it("goes to the next open project once the server has closed this one", async () => {
+    const t = fakeClient(["a", "b"]);
+    await mount(t, fakeHost());
+    t.projects.splice(0, 1);
+    await send({ id: "project.close" });
+    expect(storeOf(shown()).getState().project.projectId).toBe("b");
+  });
+
+  it("shows a close that failed, and stays connected to the project", async () => {
+    const t = fakeClient(["a"]);
+    await mount(t, fakeHost());
+    failing(t, "project.close", "the sidecar would not stop");
+    await send({ id: "project.close" });
+    expect(banner()).toContain("the sidecar would not stop");
+    expect(el.querySelector('[data-testid="welcome"]')).toBeNull();
+    expect(storeOf(shown()).getState().project.projectId).toBe("a");
+    expect(storeOf(shown()).getState().project.snapshot).not.toBeNull();
+  });
+
+  it("asks before dropping what could not be saved, and Keep editing stays", async () => {
+    const t = fakeClient(["a"]);
+    await mount(t, fakeHost());
+    registerDirtyField({ dirty: () => true, commit: () => "Length needs a number." });
+    await send({ id: "project.close" });
+    expect(dialog("Unsaved changes")).toBe(true);
+    expect(document.body.textContent).toContain("Length needs a number.");
+    expect(order(t)).toEqual([]);
+    await act(async () => button("Keep editing").click());
+    await settled();
+    expect(dialog("Unsaved changes")).toBe(false);
+    expect(order(t)).toEqual([]);
+    expect(el.querySelector('[data-testid="welcome"]')).toBeNull();
+  });
+
+  it("Don't save goes ahead", async () => {
+    const t = fakeClient(["a"]);
+    await mount(t, fakeHost());
+    registerDirtyField({ dirty: () => true, commit: () => "Length needs a number." });
+    await send({ id: "project.close" });
+    t.projects.splice(0, 1);
+    await act(async () => button("Don't save").click());
+    await settled();
+    await settled();
+    expect(order(t)).toEqual(["project.unsubscribe", "project.close"]);
+    expect(el.querySelector('[data-testid="welcome"]')).not.toBeNull();
+  });
+
+  it.each([
+    ["switching", async () => act(async () => shown()!.onSwitchProject!("b"))],
+    ["New project", async () => send({ id: "project.new" })],
+    ["Open folder", async () => send({ id: "project.open" })],
+    ["a recent project", async () => send({ id: "project.openRecent", dir: "/p/b" })],
+    ["the sample rocket", async () => send({ id: "project.openSample" })],
+  ] as const)("guards %s the same way", async (_name, act_) => {
+    const t = fakeClient(["a", "b"]);
+    const pickFolder = vi.fn<HostApi["pickFolder"]>(() => Promise.resolve(null));
+    await mount(t, fakeHost({ pickFolder }));
+    registerDirtyField({ dirty: () => true, commit: () => "Length needs a number." });
+    await act_();
+    await settled();
+    expect(dialog("Unsaved changes")).toBe(true);
+    expect(pickFolder).not.toHaveBeenCalled();
+    expect(t.calls.filter((c) => c.method === "project.open" || c.method === "project.create")).toEqual([]);
+    expect(storeOf(shown()).getState().project.projectId).toBe("a");
+  });
+
+  it("New project opens the dialog and shows what it creates", async () => {
+    const t = fakeClient(["a"]);
+    await mount(t, fakeHost());
+    await send({ id: "project.new" });
+    expect(dialog("New project")).toBe(true);
+  });
+
+  it("says inline when a folder cannot be opened", async () => {
+    const t = fakeClient(["a"]);
+    const h = fakeHost({ pickFolder: () => Promise.resolve("/p/nope") });
+    await mount(t, h);
+    failing(t, "project.inspect", "no permission");
+    await send({ id: "project.open" });
+    expect(banner()).toContain("no permission");
+  });
+
+  it("says inline when a recent project will not open, on the native menu too", async () => {
+    const t = fakeClient(["a"]);
+    const h = fakeHost();
+    await mount(t, h);
+    failing(t, "project.open", "its folder is gone");
+    await act(async () => h.send({ id: "project.openRecent", dir: "/p/gone" }));
+    await settled();
+    await settled();
+    expect(banner()).toContain("its folder is gone");
+  });
+
+  it("reads Recent from the host each time the menu opens, and shows a failure there", async () => {
+    const recents = vi.fn<HostApi["recents"]>(() => Promise.resolve([{ dir: "/p/z", name: "Z", lastOpened: "t", status: "ok" as const }]));
+    await mount(fakeClient(["a"]), fakeHost({ recents }));
+    await act(async () => shown()!.projectMenu!.onOpen());
+    await settled();
+    expect(shown()!.projectMenu!.recents.map((r) => r.name)).toEqual(["Z"]);
+    recents.mockRejectedValueOnce(new Error("unreadable"));
+    await act(async () => shown()!.projectMenu!.onOpen());
+    await settled();
+    expect(shown()!.projectMenu!.errors).toEqual(["Could not read recent projects: unreadable"]);
+  });
+
+  it("says inline when a recent cannot be removed", async () => {
+    await mount(fakeClient(["a"]), fakeHost({ removeRecent: () => Promise.reject(new Error("read-only store")) }));
+    await act(async () => shown()!.projectMenu!.onRemoveRecent("/p/gone"));
+    await settled();
+    expect(banner()).toContain("read-only store");
+  });
+
+  it("says inline when main cannot record the shown project", async () => {
+    await mount(fakeClient(["a"]), fakeHost({ setActiveProject: () => Promise.reject(new Error("no store")) }));
+    await settled();
+    expect(banner()).toContain("Could not update recent projects: no store");
+  });
+
+  describe("rename", () => {
+    const named = (projectId: string, name: string): ProjectInfo => ({ ...info(projectId), name });
+    const nameField = () => document.querySelector<HTMLInputElement>('[data-testid="rename-project"] input')!;
+    const type = (input: HTMLInputElement, value: string) => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(input, value);
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    };
+
+    async function renaming(t: ReturnType<typeof fakeClient>) {
+      await mount(t, fakeHost());
+      await send({ id: "project.rename" });
+    }
+
+    it("warns that runs become outdated before anything is written", async () => {
+      const t = fakeClient(["a"]);
+      await renaming(t);
+      expect(document.querySelector('[data-testid="rename-project.warning"]')?.textContent).toMatch(/runs .*outdated/);
+      expect(nameField().value).toBe("Project a");
+      expect(t.calls.some((c) => c.method === "project.rename")).toBe(false);
+    });
+
+    it("renames, and the push updates the store, Recent and the window title", async () => {
+      const t = fakeClient(["a"]);
+      const h = fakeHost();
+      await mount(t, h);
+      await settled();
+      expect(document.title).toBe("Project a – RocketWright");
+      await send({ id: "project.rename" });
+      await act(async () => type(nameField(), "  Solstice  "));
+      await act(async () => button("Rename").click());
+      await settled();
+      expect(t.calls).toContainEqual({ method: "project.rename", params: { projectId: "a", name: "Solstice" } });
+      await act(async () => t.push("project.updated", { project: named("a", "Solstice") }));
+      await settled();
+      expect(storeOf(shown()).getState().project.snapshot?.project.name).toBe("Solstice");
+      expect(h.active.at(-1)).toEqual(named("a", "Solstice"));
+      expect(document.title).toBe("Solstice – RocketWright");
+      expect(document.querySelector('[data-testid="rename-project"]')).toBeNull();
+    });
+
+    it("ignores another project's rename", async () => {
+      const t = fakeClient(["a", "b"]);
+      await mount(t, fakeHost());
+      await settled();
+      await act(async () => t.push("project.updated", { project: named("b", "Other") }));
+      expect(storeOf(shown()).getState().project.snapshot?.project.name).toBe("Project a");
+    });
+
+    it("does not write when the name is unchanged", async () => {
+      const t = fakeClient(["a"]);
+      await renaming(t);
+      await act(async () => button("Rename").click());
+      await settled();
+      expect(t.calls.some((c) => c.method === "project.rename")).toBe(false);
+      expect(document.querySelector('[data-testid="rename-project"]')).toBeNull();
+    });
+
+    it("refuses an empty name and shows a server refusal in the dialog", async () => {
+      const t = fakeClient(["a"]);
+      await renaming(t);
+      await act(async () => type(nameField(), "   "));
+      await act(async () => button("Rename").click());
+      expect(document.body.textContent).toContain("Enter a name.");
+      expect(t.calls.some((c) => c.method === "project.rename")).toBe(false);
+      failing(t, "project.rename", "a project name cannot hold control characters");
+      await act(async () => type(nameField(), "Good name"));
+      await act(async () => button("Rename").click());
+      await settled();
+      expect(document.querySelector('[data-testid="rename-project.error"]')?.textContent).toContain("control characters");
+      expect(document.querySelector('[data-testid="rename-project"]')).not.toBeNull();
+    });
   });
 });
