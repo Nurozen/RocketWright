@@ -228,7 +228,14 @@ export function AppRoot({ url, requestedProjectId, initialPage, pageForced = fal
     };
     const run = (command: DesktopCommand): boolean => dispatchCommand(command, { ...latest.current.commands, ...surfaceCommands.current, ...windowCommands });
     const offMenu = host.onCommand((command) => void run(command));
-    if (host.kind !== "browser") return offMenu;
+    // Save and quit: main waits for this, so a project-less window answers that nothing is unsaved.
+    const offFlush = host.onFlush(async () => (await surfaceRef.current?.flush()) ?? []);
+    if (host.kind !== "browser") {
+      return () => {
+        offMenu();
+        offFlush();
+      };
+    }
     // No native menu here to own the keys (R0.12). The desktop must not listen too: an accelerator would run twice.
     const onKey = (e: KeyboardEvent): void => {
       const command = browserShortcut(e);
@@ -237,6 +244,7 @@ export function AppRoot({ url, requestedProjectId, initialPage, pageForced = fal
     window.addEventListener("keydown", onKey);
     return () => {
       offMenu();
+      offFlush();
       window.removeEventListener("keydown", onKey);
     };
   }, [host, openHelp, openSettings]);

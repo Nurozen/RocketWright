@@ -4,7 +4,8 @@ import { createServer } from "node:net";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import type { RecentsFile } from "@rw/contracts";
-import { createRecents, parseRecents, pidAlive, type Recents, type RecentsOptions } from "./recents.ts";
+import { createRecents, LAST_ACTIVE_TIMEOUT_MS, parseRecents, pidAlive, PROBE_TIMEOUT_MS, type Recents, type RecentsOptions } from "./recents.ts";
+import { REOPEN_TIMEOUT_MS } from "./reopen.ts";
 
 const temps: string[] = [];
 afterEach(() => {
@@ -87,7 +88,61 @@ describe("a Recent on a stalled mount", () => {
     const dir = root();
     const file = join(dir, "recents.json");
     await store(file).see({ dir: project(dir, "stalled"), name: "H" });
-    expect(await store(file, { stat: hangingStat(), probeTimeoutMs: 20 }).pickLastActive()).toEqual({ dir: stalled(dir), status: "denied" });
+    expect(await store(file, { stat: hangingStat(), lastActiveTimeoutMs: 20 }).pickLastActive()).toEqual({ dir: stalled(dir), status: "denied" });
+  });
+
+  it("gives a last project still being answered for (a privacy prompt) longer than a row, inside the reopen deadline", async () => {
+    const dir = root();
+    const file = join(dir, "recents.json");
+    const a = project(dir, "a");
+    await store(file).see({ dir: a, name: "A" });
+    const slowStat: NonNullable<RecentsOptions["stat"]> = async (path) => {
+      await new Promise((r) => setTimeout(r, 80));
+      return stat(path);
+    };
+    expect(await store(file, { stat: slowStat, probeTimeoutMs: 20 }).pickLastActive()).toEqual({ dir: a, status: "ok" });
+    expect((await store(file, { stat: slowStat, probeTimeoutMs: 20 }).list())[0]?.status).toBe("denied");
+    expect(LAST_ACTIVE_TIMEOUT_MS).toBeGreaterThan(PROBE_TIMEOUT_MS);
+    // What is left has to cover `project.open` once the person has answered.
+    expect(LAST_ACTIVE_TIMEOUT_MS).toBeLessThanOrEqual(REOPEN_TIMEOUT_MS - 5000);
+  });
+
+  it("reads a healthy row by its own stat when two dead mounts hold the slots", async () => {
+    const dir = root();
+    const file = join(dir, "recents.json");
+    const a = project(dir, "a");
+    // Most recent first: both dead mounts are probed ahead of the healthy row.
+    await store(file).see({ dir: a, name: "A" });
+    for (const n of ["stalled1", "stalled2"]) await store(file).see({ dir: project(dir, n), name: n });
+    const list = await store(file, { stat: hangingStat(), probeTimeoutMs: 20 }).list();
+    expect(Object.fromEntries(list.map((r) => [r.dir, r.status]))).toEqual({ [a]: "ok", [join(dir, "stalled1")]: "denied", [join(dir, "stalled2")]: "denied" });
+  });
+
+  it("gives a row its full time from when its stat starts, not from when it joined the queue", async () => {
+    const dir = root();
+    const file = join(dir, "recents.json");
+    const a = project(dir, "a");
+    await store(file).see({ dir: a, name: "A" });
+    await store(file).see({ dir: project(dir, "b"), name: "B" });
+    await store(file).see({ dir: project(dir, "c"), name: "C" });
+    // Each stat takes most of the limit, so the third starts well after the limit has passed since the list began.
+    const slowStat: NonNullable<RecentsOptions["stat"]> = async (path) => {
+      await new Promise((r) => setTimeout(r, 120));
+      return stat(path);
+    };
+    const list = await store(file, { stat: slowStat, probeTimeoutMs: 200 }).list();
+    expect(list.map((r) => r.status)).toEqual(["ok", "ok", "ok"]);
+  });
+
+  it("never waits forever when every thread it may use is stuck", async () => {
+    const dir = root();
+    const file = join(dir, "recents.json");
+    const a = project(dir, "a");
+    await store(file).see({ dir: a, name: "A" });
+    for (const n of ["stalled1", "stalled2", "stalled3", "stalled4"]) await store(file).see({ dir: project(dir, n), name: n });
+    const list = await store(file, { stat: hangingStat(), probeTimeoutMs: 10 }).list();
+    expect(list).toHaveLength(5);
+    expect(list.every((r) => r.status === "denied")).toBe(true);
   });
 
   it("does not pile stalled probes onto the fs thread pool", async () => {
@@ -98,7 +153,8 @@ describe("a Recent on a stalled mount", () => {
     const recents = store(file, { stat: hangingStat(calls), probeTimeoutMs: 10 });
     await recents.list();
     await recents.list();
-    expect(calls.filter((c) => c.endsWith("rocketwright.toml")).length).toBeLessThanOrEqual(2);
+    // Three at most, however many mounts are dead: libuv has four threads, and main needs one for its own files.
+    expect(calls.filter((c) => c.endsWith("rocketwright.toml")).length).toBeLessThanOrEqual(3);
   });
 });
 

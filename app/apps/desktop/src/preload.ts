@@ -52,12 +52,14 @@
     removeRecent: "rw-desktop:remove-recent",
     setActiveProject: "rw-desktop:set-active-project",
     setDirty: "rw-desktop:set-dirty",
+    flushDone: "rw-desktop:flush-done",
     prefs: "rw-desktop:prefs",
     setPrefs: "rw-desktop:set-prefs",
     openProviders: "rw-desktop:open-providers",
     relaunch: "rw-desktop:relaunch",
   };
   const COMMAND = "rw-desktop:command";
+  const FLUSH = "rw-desktop:flush";
   contextBridge.exposeInMainWorld("lecturnEmbedIpc", {
     send: (channel: unknown, payload: unknown) => {
       if (typeof channel === "string" && SEND.includes(channel)) ipcRenderer.send(channel, payload);
@@ -79,6 +81,7 @@
     removeRecent: (dir: unknown) => ipcRenderer.invoke(INVOKE.removeRecent, dir),
     setActiveProject: (project: unknown) => ipcRenderer.invoke(INVOKE.setActiveProject, project),
     setDirty: (dirty: unknown) => ipcRenderer.invoke(INVOKE.setDirty, dirty),
+    flushDone: (result: unknown) => ipcRenderer.invoke(INVOKE.flushDone, result),
     prefs: () => ipcRenderer.invoke(INVOKE.prefs),
     setPrefs: (patch: unknown) => ipcRenderer.invoke(INVOKE.setPrefs, patch),
     openProviders: () => ipcRenderer.invoke(INVOKE.openProviders),
@@ -87,6 +90,11 @@
       const listener = (_e: unknown, command: unknown) => cb(command);
       ipcRenderer.on(COMMAND, listener);
       return () => void ipcRenderer.removeListener(COMMAND, listener);
+    },
+    onFlush: (cb: (id: unknown) => void) => {
+      const listener = (_e: unknown, id: unknown) => cb(id);
+      ipcRenderer.on(FLUSH, listener);
+      return () => void ipcRenderer.removeListener(FLUSH, listener);
     },
     pathForFile: (file: File) => webUtils.getPathForFile(file),
     lecturn: {

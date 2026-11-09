@@ -14,6 +14,14 @@ export function createElectronHost(bridge: DesktopBridge): HostApi {
     removeRecent: (dir) => bridge.removeRecent(dir),
     setActiveProject: (project) => bridge.setActiveProject(project),
     setDirty: (dirty) => bridge.setDirty(dirty),
+    onFlush: (flush) =>
+      bridge.onFlush((id) => {
+        // A flush that throws has not saved, so it is reported as a problem rather than as silence.
+        void flush()
+          .catch((e: unknown) => [e instanceof Error ? e.message : String(e)])
+          .then((problems) => bridge.flushDone({ id, problems }))
+          .catch((e: unknown) => console.error("flushDone", e));
+      }),
     relaunch: () => bridge.relaunch(),
     prefs: () => bridge.prefs(),
     setPrefs: (patch) => bridge.setPrefs(patch),

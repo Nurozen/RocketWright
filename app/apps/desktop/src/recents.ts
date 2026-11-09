@@ -44,6 +44,8 @@ export interface RecentsOptions {
   /** Test seam for a mount that never answers. */
   stat?: (path: string) => Promise<Pick<Stats, "isFile">>;
   probeTimeoutMs?: number;
+  /** How long the launch's own last-active probe may take; test seam. */
+  lastActiveTimeoutMs?: number;
 }
 
 export interface LastActive {
@@ -60,10 +62,30 @@ export interface Recents {
   pickLastActive(): Promise<LastActive | null>;
 }
 
-/** How long one Recent may take to answer; a network mount that stops answering must not hold up a list or a launch. */
+/** How long one Recent may take once its stat has started; a network mount that stops answering must not hold up a list. */
 export const PROBE_TIMEOUT_MS = 1500;
-/** A stalled stat holds one of libuv's four fs threads until the mount answers, so at most this many may be out at once. */
+/**
+ * The same limit for the one project a launch reopens: a privacy prompt on
+ * `~/Documents` blocks the stat until the person answers, and that project is
+ * healthy. Short of `REOPEN_TIMEOUT_MS`, which has to cover `project.open` too.
+ */
+export const LAST_ACTIVE_TIMEOUT_MS = 12_000;
+/** How many probes may run at once. */
 const PROBE_SLOTS = 2;
+/**
+ * A stat on a dead mount holds one of libuv's four fs threads until the mount
+ * answers, so counting only running probes would let dead mounts take them
+ * all. A probe past its limit gives its slot up, or two dead mounts would
+ * starve every healthy row, but stays counted here until its stat returns.
+ * Three leaves one thread for main's own files.
+ */
+const MAX_STATS_OUT = 3;
+
+/** One folder's probe: `started` settles when its stat begins (false when none could be run). */
+interface Run {
+  started: Promise<boolean>;
+  status: Promise<RecentStatus>;
+}
 
 const emptyFile = (): RecentsFile => ({ version: 1, recents: [], lastActive: null });
 
@@ -229,37 +251,69 @@ export function createRecents(options: RecentsOptions): Recents {
 
   const statFile = options.stat ?? stat;
   const probeTimeoutMs = options.probeTimeoutMs ?? PROBE_TIMEOUT_MS;
-  // One probe per folder and a cap overall, kept until the stat really returns: a second list must not start another stat on a mount that has not answered the first.
-  const probing = new Map<string, Promise<RecentStatus>>();
-  let freeSlots = PROBE_SLOTS;
-  const waiting: (() => void)[] = [];
-  const takeSlot = (): Promise<void> => {
-    if (freeSlots > 0) {
-      freeSlots--;
-      return Promise.resolve();
+  const lastActiveTimeoutMs = options.lastActiveTimeoutMs ?? LAST_ACTIVE_TIMEOUT_MS;
+  // One probe per folder, kept until the stat really returns: a second list must not start another stat on a mount that has not answered the first.
+  const probing = new Map<string, Run>();
+  let running = 0;
+  let stalled = 0;
+  const waiting: ((slot: boolean) => void)[] = [];
+  const pump = (): void => {
+    // Nothing can free a thread but the mounts themselves, so what is still waiting cannot be told now.
+    if (stalled >= MAX_STATS_OUT) for (const next of waiting.splice(0)) next(false);
+    while (waiting.length > 0 && running < PROBE_SLOTS && running + stalled < MAX_STATS_OUT) {
+      running++;
+      waiting.shift()!(true);
     }
-    return new Promise((ok) => waiting.push(ok));
   };
-  const freeSlot = (): void => {
-    const next = waiting.shift();
-    if (next !== undefined) next();
-    else freeSlots++;
+  const takeSlot = (): Promise<boolean> =>
+    new Promise((ok) => {
+      waiting.push(ok);
+      pump();
+    });
+  /** Starts the folder's stat once a slot is free; `started` says when, or that no stat could be run. */
+  const startRun = (dir: string, openHere: ReadonlySet<string>): Run => {
+    let onStarted: (ran: boolean) => void = () => undefined;
+    const started = new Promise<boolean>((ok) => {
+      onStarted = ok;
+    });
+    const status = takeSlot()
+      .then(async (slot): Promise<RecentStatus> => {
+        onStarted(slot);
+        if (!slot) return "denied";
+        let late = false;
+        const timer = setTimeout(() => {
+          late = true;
+          running--;
+          stalled++;
+          pump();
+        }, probeTimeoutMs);
+        try {
+          return await probeStatus(dir, openHere, seams, statFile);
+        } finally {
+          clearTimeout(timer);
+          if (late) stalled--;
+          else running--;
+          pump();
+        }
+      })
+      .finally(() => probing.delete(dir));
+    return { started, status };
   };
   /** The status, or `denied` once the folder has taken too long: it may be fine, so it must not read as Missing. */
-  const probe = async (dir: string, openHere: ReadonlySet<string>): Promise<RecentStatus> => {
-    let running = probing.get(dir);
-    if (running === undefined) {
-      running = takeSlot()
-        .then(() => probeStatus(dir, openHere, seams, statFile).finally(freeSlot))
-        .finally(() => probing.delete(dir));
-      probing.set(dir, running);
+  const probe = async (dir: string, openHere: ReadonlySet<string>, limitMs: number): Promise<RecentStatus> => {
+    let run = probing.get(dir);
+    if (run === undefined) {
+      run = startRun(dir, openHere);
+      probing.set(dir, run);
     }
+    // The clock starts with the stat, so time spent queued behind other rows is not held against this one.
+    if (!(await Promise.race([run.started, run.status.then(() => false)]))) return run.status;
     let timer: NodeJS.Timeout | undefined;
     const late = new Promise<RecentStatus>((ok) => {
-      timer = setTimeout(() => ok("denied"), probeTimeoutMs);
+      timer = setTimeout(() => ok("denied"), limitMs);
     });
     try {
-      return await Promise.race([running, late]);
+      return await Promise.race([run.status, late]);
     } finally {
       clearTimeout(timer);
     }
@@ -275,7 +329,7 @@ export function createRecents(options: RecentsOptions): Recents {
           .filter((e) => !skip.has(e.dir))
           .map(async (e) => ({
             ...e,
-            status: await probe(e.dir, openHere),
+            status: await probe(e.dir, openHere, probeTimeoutMs),
             // Who hides it is the caller's choice: the header lists open projects itself, Welcome has no other way to reach one.
             ...(openHere.has(e.dir) ? { open: true } : {}),
           })),
@@ -310,7 +364,7 @@ export function createRecents(options: RecentsOptions): Recents {
       if (lastActive === null) return null;
       const [skip, openHere] = await Promise.all([canonSet(excluded), canonSet(openDirs())]);
       if (skip.has(lastActive)) return null;
-      return { dir: lastActive, status: await probe(lastActive, openHere) };
+      return { dir: lastActive, status: await probe(lastActive, openHere, lastActiveTimeoutMs) };
     },
   };
 }

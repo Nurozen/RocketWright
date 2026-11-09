@@ -20,6 +20,7 @@ export const DESKTOP_INVOKE_CHANNELS = {
   removeRecent: "rw-desktop:remove-recent",
   setActiveProject: "rw-desktop:set-active-project",
   setDirty: "rw-desktop:set-dirty",
+  flushDone: "rw-desktop:flush-done",
   prefs: "rw-desktop:prefs",
   setPrefs: "rw-desktop:set-prefs",
   openProviders: "rw-desktop:open-providers",
@@ -28,6 +29,15 @@ export const DESKTOP_INVOKE_CHANNELS = {
 
 /** Main → page: one `DesktopCommand`. */
 export const DESKTOP_COMMAND_CHANNEL = "rw-desktop:command";
+
+/** Main → page: save typed work the way Close does, then answer on `flushDone` with this request's id (Save and quit). */
+export const DESKTOP_FLUSH_CHANNEL = "rw-desktop:flush";
+
+/** What the page reports back for one flush; `problems` is empty when everything was saved. */
+export interface DesktopFlushResult {
+  id: number;
+  problems: string[];
+}
 
 /** Commands the native menu sends the page (`W/shell/commands.ts` is the table behind menu, header menus and shortcuts). */
 export const DESKTOP_COMMAND_IDS = [
@@ -223,11 +233,15 @@ export interface DesktopBridge {
   /** What feeds Recents and last-active (never `project.opened`); null on Welcome. */
   setActiveProject(project: ProjectInfo | null): Promise<void>;
   setDirty(dirty: boolean): Promise<void>;
+  /** Answers one `onFlush` request. */
+  flushDone(result: DesktopFlushResult): Promise<void>;
   prefs(): Promise<DesktopPrefs>;
   setPrefs(patch: Partial<DesktopPrefs>): Promise<void>;
   openProviders(): Promise<void>;
   relaunch(): Promise<void>;
   onCommand(listener: (command: DesktopCommand) => void): () => void;
+  /** Main asking the page to save (Save and quit); the id goes back with `flushDone`. */
+  onFlush(listener: (id: number) => void): () => void;
   /** A dropped file's path (`File.path` is gone; `webUtils.getPathForFile`). */
   pathForFile(file: File): string;
 }
