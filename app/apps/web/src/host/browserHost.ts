@@ -7,7 +7,7 @@
  * is the seam between the two: whoever renders the prompt subscribes with
  * `useSyncExternalStore` and answers through `submit` and `cancel`.
  */
-import type { DesktopPrefs, PickFileOptions, PickFolderOptions } from "@rw/contracts";
+import type { DesktopPrefs, PickFileOptions, PickFolderOptions, SaveCsvRequest, SaveCsvResult } from "@rw/contracts";
 import type { HostApi, PathPrompt, PathPromptKind, PathPromptRequest } from "./HostApi.ts";
 
 function request(kind: PathPromptKind, fallbackTitle: string, options: PickFolderOptions & PickFileOptions = {}): PathPromptRequest {
@@ -17,6 +17,20 @@ function request(kind: PathPromptKind, fallbackTitle: string, options: PickFolde
 
 /** A browser may not write outside the project (D18). */
 const IN_PROJECT_HINT = "A path inside the project. The desktop app can save anywhere.";
+
+/** A browser's save: an ordinary download, and it cannot tell where the file went. */
+export function downloadCsv({ defaultName, text }: SaveCsvRequest): Promise<SaveCsvResult> {
+  const url = URL.createObjectURL(new Blob([text], { type: "text/csv;charset=utf-8" }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = defaultName;
+  a.style.display = "none";
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 0);
+  return Promise.resolve({ canceled: false, path: null });
+}
 
 export function createBrowserHost(prompt: PathPrompt): HostApi {
   let prefs: DesktopPrefs = { window: null, view: {}, lastTab: null, defaultDisplayUnits: null };
@@ -29,11 +43,11 @@ export function createBrowserHost(prompt: PathPrompt): HostApi {
     },
     pickFolder: (options) => prompt(request("folder", "Choose a folder", options)),
     pickFile: (options) => prompt(request("file", "Choose a file", options)),
-    saveAs: (options) => prompt(request("save", "Save as", options)),
     exportFile: async ({ defaultName }, writeInProject) => {
       const path = await prompt({ ...request("save", "Export", { defaultPath: `exports/${defaultName ?? "export"}` }), hint: IN_PROJECT_HINT });
       return path === null ? { canceled: true } : { canceled: false, out: await writeInProject(path) };
     },
+    saveCsv: downloadCsv,
     recents: () => Promise.resolve([]),
     removeRecent: () => Promise.resolve(),
     setActiveProject: () => Promise.resolve(),

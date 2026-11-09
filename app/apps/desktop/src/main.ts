@@ -56,6 +56,9 @@
  *   with no project open, as an interactive launch with none does, so the
  *   page shows Welcome. `RW_SEEDED_PROFILE` (unpackaged) is the profile to use
  *   instead of a fresh temp one: its `recents.json` supplies Recents.
+ * - `--hidden-save-dir <dir>` (e2e): a hidden run has nobody to answer a save
+ *   dialog, so a Results CSV is written here under its default name instead
+ *   of reading as cancelled.
  * - `--hidden`: the same hidden window without a PNG (captures that only
  *   measure). `--smoke` (`make dev SMOKE=1`) = `--hidden --ready __rwShell
  *   --query page=01` plus a check that the header shows the opened project.
@@ -112,6 +115,7 @@ const { values: args } = parseArgs({
     drive: { type: "string" },
     "page-path": { type: "string" },
     "freeze-clock": { type: "string" },
+    "hidden-save-dir": { type: "string" },
   },
 });
 
@@ -123,6 +127,7 @@ const height = Number(str(args.height) ?? 1024);
 const timeoutMs = Number(str(args["timeout-ms"]) ?? 60_000);
 const renderOut = str(args["render-out"]);
 const probeOut = str(args["probe-out"]);
+const hiddenSaveDir = str(args["hidden-save-dir"]);
 /** URL query of the hidden page (default: the viewport-only render mode). */
 const query = str(args.query) ?? (desk.smoke ? `page=${desk.page ?? "01"}` : renderOut !== undefined || desk.hidden ? "mode=render" : desk.page !== undefined ? `page=${desk.page}` : "");
 /** Window global the page publishes `{status}` on when ready. */
@@ -678,6 +683,9 @@ async function main(): Promise<void> {
     documents,
     boot: () => boot,
     headless: hidden,
+    // Outside the project, so this write never goes through the sidecar's single writer.
+    writeText: (path, text) => writeFile(path, text, "utf8"),
+    ...(hiddenSaveDir === undefined ? {} : { hiddenSaveDir }),
     recents,
     relaunch: () => {
       app.relaunch();

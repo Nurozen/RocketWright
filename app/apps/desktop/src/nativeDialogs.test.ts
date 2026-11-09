@@ -11,7 +11,8 @@ interface FakeWindow {
   isDestroyed(): boolean;
 }
 
-function setup(opts: { headless?: boolean; window?: FakeWindow | null; exportFile?: DesktopServices<FakeWindow>["exportFile"] } = {}) {
+function setup(opts: { headless?: boolean; window?: FakeWindow | null; exportFile?: DesktopServices<FakeWindow>["exportFile"]; hiddenSaveDir?: string; writeText?: DesktopServices<FakeWindow>["writeText"] } = {}) {
+  const writeText = opts.writeText ?? vi.fn<DesktopServices<FakeWindow>["writeText"]>(() => Promise.resolve());
   const handlers = new Map<string, Handler>();
   const ipc: HandlerIpc = {
     handle: (channel, listener) => void handlers.set(channel, listener),
@@ -53,8 +54,10 @@ function setup(opts: { headless?: boolean; window?: FakeWindow | null; exportFil
     setDirty,
     flushDone,
     dirtyAnswer,
+    writeText,
     ...(opts.headless !== undefined ? { headless: opts.headless } : {}),
     ...(opts.exportFile !== undefined ? { exportFile: opts.exportFile } : {}),
+    ...(opts.hiddenSaveDir !== undefined ? { hiddenSaveDir: opts.hiddenSaveDir } : {}),
   });
   const call = (channel: string, ...args: unknown[]): Promise<unknown> => {
     const handler = handlers.get(channel);
@@ -62,11 +65,11 @@ function setup(opts: { headless?: boolean; window?: FakeWindow | null; exportFil
     return Promise.resolve().then(() => handler({ sender: win.webContents }, ...args));
   };
   const callAs = (sender: unknown, channel: string, ...args: unknown[]): Promise<unknown> => Promise.resolve().then(() => handlers.get(channel)!({ sender }, ...args));
-  return { handlers, win, dialog, recents, boot, relaunch, prefs, openProviders, setDirty, flushDone, dirtyAnswer, documentsCalls, setDocuments: (d: string) => (documents = d), call, callAs, dispose };
+  return { handlers, win, dialog, recents, boot, relaunch, prefs, openProviders, setDirty, flushDone, dirtyAnswer, writeText, documentsCalls, setDocuments: (d: string) => (documents = d), call, callAs, dispose };
 }
 
 const c = DESKTOP_INVOKE_CHANNELS;
-const OWNED = [c.boot, c.pickFolder, c.pickFile, c.saveAs, c.exportFile, c.recents, c.removeRecent, c.setActiveProject, c.setDirty, c.flushDone, c.dirtyAnswer, c.relaunch, c.prefs, c.setPrefs, c.openProviders];
+const OWNED = [c.boot, c.pickFolder, c.pickFile, c.saveCsv, c.exportFile, c.recents, c.removeRecent, c.setActiveProject, c.setDirty, c.flushDone, c.dirtyAnswer, c.relaunch, c.prefs, c.setPrefs, c.openProviders];
 
 describe("sender check", () => {
   it("registers the services it owns and removes them", () => {
@@ -201,27 +204,62 @@ describe("pickers", () => {
     await expect(t.call(c.pickFile)).resolves.toBeNull();
   });
 
-  it("puts a bare save name in Documents, and keeps an absolute one", async () => {
-    const t = setup();
-    await expect(t.call(c.saveAs, { defaultPath: "rocket.ork" })).resolves.toBe("/saved");
-    await t.call(c.saveAs, { defaultPath: "/work/rocket.ork" });
-    expect(vi.mocked(t.dialog.showSaveDialog).mock.calls.map((x) => x[1].defaultPath)).toEqual(["/docs/rocket.ork", "/work/rocket.ork"]);
-  });
-
-  it("returns null when the save is cancelled or has no path", async () => {
-    const t = setup();
-    vi.mocked(t.dialog.showSaveDialog).mockResolvedValueOnce({ canceled: true, filePath: "/ignored" });
-    await expect(t.call(c.saveAs)).resolves.toBeNull();
-    vi.mocked(t.dialog.showSaveDialog).mockResolvedValueOnce({ canceled: false, filePath: "" });
-    await expect(t.call(c.saveAs)).resolves.toBeNull();
-  });
-
   it("never shows a dialog on a hidden run", async () => {
     const t = setup({ headless: true });
     await expect(t.call(c.pickFolder)).resolves.toBeNull();
     await expect(t.call(c.pickFile)).resolves.toBeNull();
-    await expect(t.call(c.saveAs)).resolves.toBeNull();
     expect(t.dialog.showOpenDialog).not.toHaveBeenCalled();
+  });
+});
+
+describe("Results CSV save", () => {
+  const CSV = { defaultName: "results-baseline.csv", text: "run,sim\nBaseline,baseline\n" };
+
+  it("asks where with the CSV filter, in Documents, and writes only to the path the person chose", async () => {
+    const t = setup();
+    await expect(t.call(c.saveCsv, { ...CSV, path: "/etc/page-supplied" })).resolves.toEqual({ canceled: false, path: "/saved" });
+    expect(t.dialog.showSaveDialog).toHaveBeenCalledWith(t.win, { title: "Export Flight data", defaultPath: "/docs/results-baseline.csv", filters: [{ name: "Flight data", extensions: ["csv"] }] });
+    expect(vi.mocked(t.writeText).mock.calls).toEqual([["/saved", CSV.text]]);
+  });
+
+  it("keeps the dialog's default to a bare name, whatever the page sent", async () => {
+    const t = setup();
+    await t.call(c.saveCsv, { defaultName: "../../secret.csv", text: "x" });
+    expect(vi.mocked(t.dialog.showSaveDialog).mock.calls[0]![1].defaultPath).toBe("/docs/secret.csv");
+  });
+
+  it("writes nothing when the save is cancelled or has no path", async () => {
+    const t = setup();
+    vi.mocked(t.dialog.showSaveDialog).mockResolvedValueOnce({ canceled: true, filePath: "/ignored" });
+    await expect(t.call(c.saveCsv, CSV)).resolves.toEqual({ canceled: true });
+    vi.mocked(t.dialog.showSaveDialog).mockResolvedValueOnce({ canceled: false, filePath: "" });
+    await expect(t.call(c.saveCsv, CSV)).resolves.toEqual({ canceled: true });
+    expect(t.writeText).not.toHaveBeenCalled();
+  });
+
+  it("rejects with why a write failed", async () => {
+    const t = setup({ writeText: () => Promise.reject(new Error("EACCES: permission denied")) });
+    await expect(t.call(c.saveCsv, CSV)).rejects.toThrow("EACCES");
+  });
+
+  it("never shows a dialog on a hidden run, and writes nothing without a hidden save folder", async () => {
+    const t = setup({ headless: true });
+    await expect(t.call(c.saveCsv, CSV)).resolves.toEqual({ canceled: true });
+    expect(t.dialog.showSaveDialog).not.toHaveBeenCalled();
+    expect(t.writeText).not.toHaveBeenCalled();
+  });
+
+  it("a hidden run with a save folder writes there, under the default name, without asking", async () => {
+    const t = setup({ headless: true, hiddenSaveDir: "/out" });
+    await expect(t.call(c.saveCsv, CSV)).resolves.toEqual({ canceled: false, path: "/out/results-baseline.csv" });
+    expect(t.dialog.showSaveDialog).not.toHaveBeenCalled();
+    expect(vi.mocked(t.writeText).mock.calls).toEqual([["/out/results-baseline.csv", CSV.text]]);
+  });
+
+  it("refuses a request without text or a name", async () => {
+    const t = setup();
+    await expect(t.call(c.saveCsv, { defaultName: "a.csv" })).rejects.toThrow(TypeError);
+    await expect(t.call(c.saveCsv, null)).rejects.toThrow(TypeError);
     expect(t.dialog.showSaveDialog).not.toHaveBeenCalled();
   });
 });

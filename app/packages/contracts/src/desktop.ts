@@ -14,7 +14,7 @@ export const DESKTOP_INVOKE_CHANNELS = {
   boot: "rw-desktop:boot",
   pickFolder: "rw-desktop:pick-folder",
   pickFile: "rw-desktop:pick-file",
-  saveAs: "rw-desktop:save-as",
+  saveCsv: "rw-desktop:save-csv",
   exportFile: "rw-desktop:export-file",
   recents: "rw-desktop:recents",
   removeRecent: "rw-desktop:remove-recent",
@@ -149,8 +149,6 @@ export interface PickFileOptions extends PickFolderOptions {
   filters?: FileFilter[];
 }
 
-export type SaveAsOptions = PickFileOptions;
-
 /** Main owns the save dialog and calls `export.file` over its role socket (D18). */
 export interface ExportFileRequest {
   projectId: string;
@@ -161,6 +159,15 @@ export interface ExportFileRequest {
 }
 
 export type ExportFileResult = { canceled: true } | { canceled: false; out: ExportOut };
+
+/** A CSV the page built (Results, Export CSV): main asks where, and writes it there itself. The request names a default, never where. */
+export interface SaveCsvRequest {
+  defaultName: string;
+  text: string;
+}
+
+/** `path` is where it went; null in a browser, whose download the page cannot follow. */
+export type SaveCsvResult = { canceled: true } | { canceled: false; path: string | null };
 
 /** What each export format is called and where it lands; main names the save dialog's filter from this, the page the choice. */
 export const EXPORT_FILE_TYPES: Record<ExportFormat, { label: string; description: string; extension: string }> = {
@@ -236,8 +243,9 @@ export interface DesktopBridge {
   boot(): Promise<DesktopBoot>;
   pickFolder(options?: PickFolderOptions): Promise<string | null>;
   pickFile(options?: PickFileOptions): Promise<string | null>;
-  saveAs(options?: SaveAsOptions): Promise<string | null>;
   exportFile(request: ExportFileRequest): Promise<ExportFileResult>;
+  /** Asks where (native save dialog) and writes the file in main. Rejects with why a write failed. */
+  saveCsv(request: SaveCsvRequest): Promise<SaveCsvResult>;
   recents(): Promise<RecentProject[]>;
   removeRecent(dir: string): Promise<void>;
   /** What feeds Recents and last-active (never `project.opened`); null on Welcome. */
