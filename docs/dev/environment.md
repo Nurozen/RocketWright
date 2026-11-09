@@ -151,7 +151,8 @@ child connects only when it has a Lecturn base dir:
   when set (else `<userData>/lecturn`). A plain `node src/rpc/cli.ts` with
   neither runs without Lecturn.
 - `RW_USER_DATA_DIR`: the desktop app's Electron profile (`userData`) for a
-  visible window. Every harness launch sets a temp one
+  visible window, which holds `recents.json` and `preferences.json` (main is
+  their only writer). Every harness launch sets a temp one
   (`app/e2e/lecturn-env.ts`), so no run writes under the real
   `~/Library/Application Support/Electron`; hidden runs always use a fresh
   temp profile, removed on exit.
@@ -336,9 +337,20 @@ the web bundle, then runs:
   global setup seeds one pristine project (`RW_E2E_SEEDED`), starts the app
   server on a copy (`RW_E2E_RPC_URL`, `RW_E2E_HTTP_URL`, `RW_E2E_PROJECT`), and
   serves the web bundle (`RW_E2E_WEB_URL`). `page01.spec.ts` drives the web
-  bundle; its inspector numbers equal `rw check --json`. `b4a.spec.ts` opens a
-  copy in Electron with the embedded Lecturn pane and
-  Lecturn's scripted provider replaying `app/e2e/fixtures/scripted/b4a.json`.
+  bundle; its inspector numbers equal `rw check --json`. Specs that need the
+  real desktop shell are the `electron` Playwright project (`ELECTRON_SPECS`
+  in the config). `b4a.spec.ts` opens a copy with the embedded Lecturn pane and
+  Lecturn's scripted provider replaying `app/e2e/fixtures/scripted/b4a.json`;
+  `rebuild-case1.spec.ts` builds case 1 from a clean profile through visible
+  controls (`bar-tooling.md`, Rebuild and agent drives); `agent-project.spec.ts`
+  covers the agent's `rw_project_new` and its native dialog;
+  `import-export-electron.spec.ts` runs import and export through main's
+  dialogs; `native-menu.spec.ts` checks Undo routing and view zoom;
+  `quit-dirty.spec.ts` the prompt before losing a typed edit; `errors.spec.ts`
+  a server that dies or never starts; and `preferences.spec.ts` default units
+  and a relaunch restoring the window, view and tab. Native dialogs are
+  stubbed in these specs (`app/e2e/electron-dialogs.ts`), and `RW_DOCUMENTS_DIR`
+  keeps them out of the real Documents folder.
 - `pnpm --dir app e2e:desktop [page04]` (vitest, `app/e2e/vitest.config.ts`):
   `page04.spec.ts` opens a seeded copy in the desktop hidden window (`--project`,
   1536x1024, DPR 1), drives it with `app/e2e/page04.drive.ts`, and checks the
@@ -451,8 +463,8 @@ against the bundle (no network, I10).
 
 ## Desktop dev loop (`make dev`, M1.52)
 
-`make dev` builds the sidecar (`rw-cli` with `doubles` until the Session
-lands), rw-wasm, and the web bundle, then starts Electron 44 with `env -u
+`make dev` builds the plain sidecar, rw-wasm, and the web bundle, then starts
+Electron 44 with `env -u
 ELECTRON_RUN_AS_NODE`. Electron's main (`app/apps/desktop/src/main.ts`)
 spawns the app server (`app/apps/server/src/rpc/cli.ts`, through `env -u
 ELECTRON_RUN_AS_NODE node`), serves the bundle on `http://127.0.0.1:<port>`
@@ -474,9 +486,17 @@ the app's own (localhost or `app://`); local tools without an Origin need only
 the token. Drivers that open the socket themselves (e2e, bar captures) take
 the URL from the server, the preload, or `rpc=` plus `#token=`.
 
-- Project: a fresh `/tmp/rw-dev-*` copy of `fixtures/research-vehicle` (an
-  empty temp project until the fixture lands); `PROJECT=<dir>` opens a
-  project in place. Temp projects live under `/tmp` to keep paths short.
+- Which project opens: an interactive launch with no `--project` boots a
+  server with nothing open (`bootProjects`), and main reopens the last-active
+  project before the window loads, or the page shows Welcome. Reopening is
+  bounded (`reopen.ts`), so a stalled folder ends on Welcome with a notice.
+  Hidden runs stay server-free unless given `--project` or `--zero-project`.
+- `make dev` passes `--dev-project`, which opens a throwaway copy of
+  `fixtures/research-vehicle` so dev edits never touch the fixture. It is
+  excluded from Recents. `PROJECT=<dir>` opens a project in place instead. A
+  packaged app ignores `--dev-project`, so no shipped launch opens a copy.
+- New projects default to `<Documents>/RocketWright` (`project.defaults`;
+  `RW_DOCUMENTS_DIR` overrides Documents in unpackaged runs).
 - `BROWSER=1`: no Electron. `node src/backend.ts --browser` prints
   `RW_APP_URL=…` for an ordinary browser; `OPEN=1` opens it.
 - `SMOKE=1`: a hidden window waits for the shell and checks that the header
