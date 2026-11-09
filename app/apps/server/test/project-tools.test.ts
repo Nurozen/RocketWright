@@ -13,7 +13,9 @@ import { ProjectTools, cleanRequest, threadLaunchUnavailable, type ProjectThread
 import { RpcFail } from "../src/rpc/errors.ts";
 import { HostChannelError } from "../src/rpc/HostChannel.ts";
 import { AppServer } from "../src/rpc/AppServer.ts";
+import { LecturnLink } from "../src/lecturn/connection.ts";
 import type { SidecarConnection } from "../src/sidecar/SidecarSupervisor.ts";
+import { connectTo, FakeConnection } from "./helpers/fakeLecturn.ts";
 import { sidecarBin } from "./helpers/harness.ts";
 
 type Result = Awaited<ReturnType<ProjectTools["call"]>>;
@@ -286,10 +288,32 @@ describe("project tools: branches (U37)", () => {
       expect(shown).toEqual([{ projectId: "p1" }]);
     });
 
-    it("until U38 the default starter reports opened with no thread", async () => {
+    it("with no Lecturn link the default starter reports opened with no thread", async () => {
       const r = await tools({ startThread: threadLaunchUnavailable }).call("project_new", newArgs(), CALLER);
       expect(r.isError).not.toBe(true);
       expect(text(r)).toMatch(/no new thread was started/);
+    });
+
+    it("a thread that exists but did not start says so, names it and shows it", async () => {
+      const r = await tools({ startThread: () => Promise.resolve({ threadId: "t9", unstarted: "its first message could not be confirmed" }) }).call("project_new", newArgs({ request: "x" }), CALLER);
+      expect(r.isError).not.toBe(true);
+      expect(text(r)).toMatch(/thread t9 exists there, but it did not start as asked \(its first message could not be confirmed\)/);
+      expect(text(r)).toMatch(/Do not call this tool again/);
+      expect(r.structuredContent).toEqual({ project: info(join(base, "solstice")), threadId: "t9" });
+      expect(shown).toEqual([{ projectId: "p1" }, { projectId: "p1", threadId: "t9" }]);
+    });
+
+    it("tells the starter whether the call made the project", async () => {
+      const seen: boolean[] = [];
+      const t = tools({
+        startThread: (s) => {
+          seen.push(s.created);
+          return Promise.resolve({ threadId: "t" });
+        },
+      });
+      await t.call("project_new", newArgs(), CALLER);
+      await t.call("project_open", { path: projectAt("existing") }, CALLER);
+      expect(seen).toEqual([true, false]);
     });
 
     it("a folder that became a project during the dialog still hints rw_project_open", async () => {
@@ -534,5 +558,62 @@ describe("project tools: the real route and host channel (U37)", () => {
     expect(r.isError).not.toBe(true);
     expect(r.structuredContent).toMatchObject({ project: { projectId: "thread-fails" }, threadId: null });
     expect(text(r)).toContain("no thread today");
+  });
+});
+
+describe("project tools: the default thread starter is the Lecturn link (U38)", () => {
+  const validator = makeValidator();
+  const fake = new FakeConnection();
+  let base: string;
+  let server: AppServer;
+  let main: TestClient;
+  let mcp: Client;
+
+  beforeAll(async () => {
+    base = realpathSync(mkdtempSync("/tmp/rwu38r-"));
+    fake.rpcThreads.set("lecturn-t", { modelSelection: { instanceId: "caller", model: "m" }, runtimeMode: "auto", interactionMode: "plan", messages: ["earlier"] });
+    server = await AppServer.start({
+      bin: sidecarBin(),
+      coreVersion: "0.0.0-test",
+      stderr: "ignore",
+      testHooks: false,
+      connect: () => new FakeSidecar(),
+      lecturn: (events) => new LecturnLink(connectTo(fake), events, { rpc: fake.rpc }),
+      log: () => undefined,
+    });
+    main = await TestClient.connect(server.rpcUrl, validator);
+    await main.call("host.register", { token: server.mainToken });
+    mcp = new Client({ name: "lecturn-live-test", version: "0" }, { capabilities: {} });
+    await mcp.connect(new StreamableHTTPClientTransport(new URL(server.liveMcpUrl), { requestInit: { headers: { Authorization: `Bearer ${server.liveBearer.token}` } } }));
+  }, 600_000);
+
+  afterAll(async () => {
+    await mcp?.close();
+    main?.close();
+    await server?.close();
+    if (base !== undefined) rmSync(base, { recursive: true, force: true });
+  });
+
+  it("starts a thread with the caller's settings and the request behind the prefix", async () => {
+    const pending = mcp.callTool({
+      name: "project_new",
+      arguments: { name: "launched", location: base, request: "Add a nose cone." },
+      _meta: { "lecturn/context": { projectId: "lecturn-p", threadId: "lecturn-t", workspaceRoot: "/nowhere/open", turnId: "u" } },
+    });
+    const asked = await main.push("host.request", (q) => q.name === "launched");
+    await main.call("host.respond", { requestId: asked.requestId, accepted: true });
+    const r = await pending;
+    expect(r.isError, text(r)).not.toBe(true);
+    expect(r.structuredContent).toMatchObject({ project: { projectId: "launched" }, threadId: "thread-1" });
+    expect(await main.push("host.show", (s) => s.threadId !== undefined)).toEqual({ projectId: "launched", threadId: "thread-1" });
+    const launch = fake.rpcCalls.find((c) => c.tag === "orchestration.launchThread")!;
+    expect(launch.payload).toMatchObject({
+      threadId: "thread-1",
+      modelSelection: { instanceId: "caller", model: "m" },
+      runtimeMode: "auto",
+      interactionMode: "plan",
+      initialMessage: { text: "This project was just created and is open; do not create it again.\n\nAdd a nose cone.", attachments: [] },
+    });
+    expect(fake.rpcThreads.get("lecturn-t")!.messages).toEqual(["earlier"]);
   });
 });

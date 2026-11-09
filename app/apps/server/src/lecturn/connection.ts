@@ -36,6 +36,9 @@
  *   `/mcp/live` with `setLiveTools` once connected. The helper moves the
  *   lease on a live switch, so the endpoint and bearer stay, and clears it on
  *   close.
+ * - New threads (R1.3, D12): `startThreadInProject` starts a thread in another
+ *   project for the project tools, over embed-token RPCs on the origin of each
+ *   token (a turn still draining on the old server reads its caller there).
  * - Lifetime: `connect({signal})` returns a closable pending connection.
  *   `close()` aborts the signal and closes the pending connection, so a
  *   Lecturn sidecar that is still starting is stopped (and awaited) rather
@@ -46,7 +49,8 @@ import { createRequire } from "node:module";
 import { resolve } from "node:path";
 import type { ConnectionEvent, ConnectionMode, ConnectionStatus, ConnectOptions, HostContextTarget, LiveTools } from "@lecturn/embed/node";
 import type { EmbedTarget, EmbedThread, LecturnStatus, ProjectInfo } from "@rw/contracts";
-import { lecturnRpc, readServerOrigin, readSidecarAppSession } from "./appsRpc.ts";
+import type { ProjectThreadStart, ProjectThreadStarted, ProjectToolCaller } from "../mcp/projectTools.ts";
+import { LecturnRpcError, lecturnRpc, readServerOrigin, readSidecarAppSession, untilAborted } from "./appsRpc.ts";
 import { rocketwrightRegistration } from "./registration.ts";
 
 export type { ConnectionEvent, ConnectionMode, ConnectionStatus, HostContextTarget, LiveTools };
@@ -114,6 +118,11 @@ export interface ImportResult {
 export interface LecturnLinkOptions {
   /** The Lecturn sidecar's base dir: its app session file lets test hooks import bundles (B13). */
   baseDir?: string | null;
+  /** The RPC used to start threads (tests). */
+  rpc?: typeof lecturnRpc;
+  /** Thread-start limits (tests). */
+  threadStartMs?: number;
+  threadStepMs?: number;
 }
 
 /** Lecturn is not usable (connect failed, closed, or the project is not open). */
@@ -146,6 +155,30 @@ interface Workspace {
 
 const CLOSE_TIMEOUT_MS = 8_000;
 
+/** One deadline for a whole thread start, whichever step it is on (the project tools' guard can only shorten it). */
+const THREAD_START_MS = 30_000;
+/** One step's limit, so a stalled step leaves time to read what happened and carry on. */
+const THREAD_STEP_MS = 5_000;
+/** Lecturn has no read-only runtime mode; this is its lowest, and the cap when the caller's cannot be copied. */
+const CAPPED_RUNTIME_MODE = "approval-required";
+/** Lecturn's `threadTitle` limit. */
+const THREAD_TITLE_MAX = 256;
+/** A launch retried with its commandId is deduplicated by Lecturn's receipt, so a second try is safe. */
+const LAUNCH_ATTEMPTS = 2;
+
+/** Above the agent's words, because the new thread starts with none of the calling thread's context (R1.3). */
+const JUST_CREATED = "This project was just created and is open; do not create it again.";
+const JUST_OPENED = "This project was just opened; do not open it again.";
+
+/** The settings a new thread copies from its caller. */
+interface ThreadSettings {
+  modelSelection: unknown;
+  runtimeMode: string;
+  interactionMode: string;
+}
+
+type EmbedCall = (tag: string, payload: unknown) => Promise<unknown>;
+
 const byUpdatedDesc = (a: EmbedThread, b: EmbedThread): number => (a.updatedAt < b.updatedAt ? 1 : a.updatedAt > b.updatedAt ? -1 : a.threadId < b.threadId ? -1 : 1);
 
 const message = (e: unknown): string => (e instanceof Error ? e.message : String(e));
@@ -154,6 +187,9 @@ export class LecturnLink {
   private readonly connectFn: ConnectFn;
   private readonly events: LecturnLinkEvents;
   private readonly baseDir: string | null;
+  private readonly rpc: typeof lecturnRpc;
+  private readonly threadStartMs: number;
+  private readonly threadStepMs: number;
   /** The link's lifetime: aborted by `close()`, which also stops a starting sidecar. */
   private readonly lifetime = new AbortController();
   /** `connect()`'s closable promise, once started. */
@@ -172,6 +208,9 @@ export class LecturnLink {
     this.connectFn = connect;
     this.events = events;
     this.baseDir = opts.baseDir ?? null;
+    this.rpc = opts.rpc ?? lecturnRpc;
+    this.threadStartMs = opts.threadStartMs ?? THREAD_START_MS;
+    this.threadStepMs = opts.threadStepMs ?? THREAD_STEP_MS;
   }
 
   get status(): LecturnStatus {
@@ -355,6 +394,144 @@ export class LecturnLink {
   }
 
   /**
+   * Starts a thread in an open project, copying the calling thread's model,
+   * runtime and interaction mode (R1.3, D12). When those cannot be read it
+   * uses the project's defaults with the runtime capped; the caller's own
+   * thread is never touched.
+   *
+   * Rejects only while no thread exists. Past `apps.createEmbedThread` a thread
+   * is there whatever happens next, so a later failure resolves with
+   * `unstarted`: the agent must not start another.
+   */
+  async startThreadInProject(start: ProjectThreadStart): Promise<ProjectThreadStarted> {
+    const deadline = AbortSignal.any([start.signal, AbortSignal.timeout(this.threadStartMs)]);
+    const copied = await this.callerSettings(start.caller, deadline);
+    if (deadline.aborted) throw new LecturnUnavailable("ran out of time before the thread was created");
+
+    const conn = await untilAborted(this.connection(), deadline, "the Lecturn connection");
+    const projectId = await untilAborted(this.lecturnProjectId(start.project.projectId), deadline, "the Lecturn workspace");
+    const target = await untilAborted(conn.embedTarget(projectId), this.stepSignal(deadline), "the embed token");
+    const call = this.embedCall(target, deadline);
+    const title = threadTitle(start.project.name);
+    const created = await call("apps.createEmbedThread", { projectId, title });
+    const threadId = isRecord(created) && typeof created["threadId"] === "string" ? created["threadId"] : null;
+    if (threadId === null) throw new LecturnUnavailable(`apps.createEmbedThread answered ${JSON.stringify(created)}`);
+
+    try {
+      const unconfirmed = await this.configureAndLaunch(call, { projectId, threadId, title, copied, start, deadline });
+      return unconfirmed === null ? { threadId } : { threadId, unstarted: unconfirmed };
+    } catch (e) {
+      return { threadId, unstarted: message(e) };
+    }
+  }
+
+  /**
+   * Gives the new thread its settings and its first message. Null when the
+   * thread is ready, or the reason its first message cannot be confirmed.
+   * Throws when the message did not start: a thread whose settings could not be
+   * applied must not run, since it would run with the project's defaults
+   * instead of the caller's, which may allow more.
+   */
+  private async configureAndLaunch(call: EmbedCall, ctx: { projectId: string; threadId: string; title: string; copied: ThreadSettings | null; start: ProjectThreadStart; deadline: AbortSignal }): Promise<string | null> {
+    const { projectId, threadId, title, copied, start, deadline } = ctx;
+    const command = (type: string, fields: Record<string, unknown>): Promise<unknown> => call("orchestration.dispatchCommand", { type, commandId: `rw:${type}:${threadId}`, threadId, ...fields });
+    await command("thread.runtime-mode.set", { runtimeMode: copied?.runtimeMode ?? CAPPED_RUNTIME_MODE });
+    if (copied !== null) await command("thread.interaction-mode.set", { interactionMode: copied.interactionMode });
+
+    if (start.request === null) {
+      // No launch will carry the model, and no turn runs on it: the thread still works on its default.
+      if (copied !== null) await command("thread.model-selection.set", { modelSelection: copied.modelSelection }).catch((e: unknown) => this.events.log?.(`lecturn: copying the model to ${threadId}: ${message(e)}`));
+      return null;
+    }
+
+    const defaults = async (): Promise<ThreadSettings> => {
+      const read = settingsOf(await call("orchestration.getThreadProjection", { threadId }));
+      if (read === null) throw new LecturnUnavailable(`could not read the new thread ${threadId}`);
+      return read;
+    };
+    // The launch carries the copied model rather than a set before it, so a
+    // disabled one leaves the thread on the defaults to fall back to (D12).
+    const settings = copied ?? { ...(await defaults()), runtimeMode: CAPPED_RUNTIME_MODE };
+    const launch = (commandId: string, modelSelection: unknown): Promise<string | null> =>
+      this.launchReconciled(
+        call,
+        threadId,
+        deadline,
+        {
+          commandId,
+          threadId,
+          reuseExistingThread: true,
+          projectId,
+          title,
+          modelSelection,
+          runtimeMode: settings.runtimeMode,
+          interactionMode: settings.interactionMode,
+          workspaceStrategy: { type: "root" },
+          initialMessage: { text: `${start.created ? JUST_CREATED : JUST_OPENED}\n\n${start.request}`, attachments: [] },
+        },
+      );
+    try {
+      return await launch(`rw:launch:${threadId}`, settings.modelSelection);
+    } catch (e) {
+      if (copied === null || !isDisabledModel(e)) throw e;
+      this.events.log?.(`lecturn: ${message(e)}; starting ${threadId} on the project's default model`);
+      return launch(`rw:launch-default-model:${threadId}`, (await defaults()).modelSelection);
+    }
+  }
+
+  /**
+   * `launchThread`, finding out what happened when the reply is lost. Lecturn
+   * may have accepted a launch whose answer never arrived, so the thread is
+   * read before anything is reported, and a launch it does not show is sent
+   * again under the same commandId. Null once the turn is there; otherwise why
+   * it cannot be confirmed. Throws Lecturn's own refusal.
+   */
+  private async launchReconciled(call: EmbedCall, threadId: string, deadline: AbortSignal, input: Record<string, unknown>): Promise<string | null> {
+    let why = "the launch was not confirmed";
+    for (let attempt = 0; attempt < LAUNCH_ATTEMPTS && !deadline.aborted; attempt++) {
+      try {
+        await call("orchestration.launchThread", input);
+        return null;
+      } catch (e) {
+        if (!(e instanceof LecturnRpcError) || !e.ambiguous) throw e;
+        why = e.message;
+      }
+      try {
+        if (hasTurn(await call("orchestration.getThreadProjection", { threadId }))) return null;
+      } catch (e) {
+        why = message(e);
+      }
+    }
+    return `its first message could not be confirmed: ${why}`;
+  }
+
+  /** The caller's settings, or null to use the project's defaults (R1.3). Only the deadline ends the start here. */
+  private async callerSettings(caller: ProjectToolCaller, deadline: AbortSignal): Promise<ThreadSettings | null> {
+    if (caller.threadId === null || caller.projectId === null) return null;
+    try {
+      const conn = await untilAborted(this.connection(), deadline, "the Lecturn connection");
+      // The raw id: a turn draining on the old server has that server's project id, and the helper mints on it.
+      const target = await untilAborted(conn.embedTarget(caller.projectId, caller.threadId), this.stepSignal(deadline), "the caller's embed token");
+      const settings = settingsOf(await this.embedCall(target, deadline)("orchestration.getThreadProjection", { threadId: caller.threadId }));
+      if (settings === null) this.events.log?.(`lecturn: thread ${caller.threadId} has no settings to copy`);
+      return settings;
+    } catch (e) {
+      this.events.log?.(`lecturn: reading the calling thread ${caller.threadId}: ${message(e)}`);
+      return null;
+    }
+  }
+
+  /** Calls on `target`'s own server (D12: never the connection's current origin) under the start's deadline. */
+  private embedCall(target: EmbedTarget, deadline: AbortSignal): EmbedCall {
+    const origin = new URL(target.url).origin;
+    return (tag, payload) => this.rpc(origin, target.token, tag, payload, { signal: deadline, timeoutMs: this.threadStepMs });
+  }
+
+  private stepSignal(deadline: AbortSignal): AbortSignal {
+    return AbortSignal.any([deadline, AbortSignal.timeout(this.threadStepMs)]);
+  }
+
+  /**
    * Unsubscribes and closes the connection: the helper clears the live lease
    * and stops the Lecturn sidecar this child started. Before `connect()`
    * settled, this aborts it, so a sidecar that is still starting is stopped
@@ -492,6 +669,33 @@ export class LecturnLink {
     this.current = next;
     this.events.status(this.status);
   }
+}
+
+const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
+
+/** The thread's copyable settings from a `getThreadProjection` answer; null when it does not have them. */
+function settingsOf(projection: unknown): ThreadSettings | null {
+  const thread = isRecord(projection) ? projection["thread"] : undefined;
+  if (!isRecord(thread)) return null;
+  const { modelSelection, runtimeMode, interactionMode } = thread;
+  if (!isRecord(modelSelection) || typeof modelSelection["instanceId"] !== "string" || typeof runtimeMode !== "string" || typeof interactionMode !== "string") return null;
+  return { modelSelection, runtimeMode, interactionMode };
+}
+
+/** Whether a launch left a message or run behind it (Lecturn's own test for an empty thread). */
+function hasTurn(projection: unknown): boolean {
+  if (!isRecord(projection)) return false;
+  const count = (v: unknown): number => (Array.isArray(v) ? v.length : 0);
+  return count(projection["messages"]) > 0 || count(projection["runs"]) > 0;
+}
+
+/** Lecturn's refusal of a provider instance turned off here (`ThreadManagementProviderInstanceDisabledError`). */
+function isDisabledModel(e: unknown): boolean {
+  return e instanceof LecturnRpcError && /Provider instance .+ is disabled/.test(e.message);
+}
+
+function threadTitle(projectName: string): string {
+  return projectName.trim().slice(0, THREAD_TITLE_MAX).trim() || "New project";
 }
 
 function copyTarget(t: EmbedTarget): EmbedTarget {
