@@ -29,7 +29,7 @@ import { type AppStore, useAppState } from "../state/store.ts";
 import type { ViewId } from "@rw/contracts";
 import { AppShell, type ShellHandlers } from "./AppShell.tsx";
 import { shellModelFrom } from "./connect.ts";
-import { PAGE_TABS, pageOf, type DesignTab, type ShellHistoryStep, type ShellNavRow, type ShellProject } from "./model.ts";
+import { PAGE_TABS, pageOf, type DesignTab, type ProjectMenuModel, type ShellHistoryStep, type ShellNavRow, type ShellProject } from "./model.ts";
 import { undoKey } from "./undo.ts";
 import { ViewportToolbar, type ViewChip } from "./ViewportToolbar.tsx";
 
@@ -57,6 +57,8 @@ export interface ConnectedShellProps {
   onPaneBridge?: (bridge: PaneBridge | null) => void;
   /** Show another open project; `AppRoot` owns which one is on screen. */
   onSwitchProject?: (projectId: string) => void;
+  /** Recents and the project commands; `AppRoot` owns both. */
+  projectMenu?: ProjectMenuModel | undefined;
 }
 
 /** Shell slots a page may own; absent ones keep the shell defaults. */
@@ -103,11 +105,12 @@ const chipOf = (v: ViewId): ViewChip => (v[0]!.toUpperCase() + v.slice(1)) as Vi
 
 const message = (e: unknown): string => (e instanceof Error ? e.message : String(e));
 
-export function ConnectedShell({ store, client = null, renderPage, renderCompare, toolbarControls, pageSlots, now = Date.now, onPaneBridge, onSwitchProject }: ConnectedShellProps) {
+export function ConnectedShell({ store, client = null, renderPage, renderCompare, toolbarControls, pageSlots, now = Date.now, onPaneBridge, onSwitchProject, projectMenu }: ConnectedShellProps) {
   const s = useAppState(store, (x) => x);
   const [clock, setClock] = useState(now());
   const [checking, setChecking] = useState(false);
   const [projects, setProjects] = useState<ShellProject[] | null>(null);
+  const [projectsError, setProjectsError] = useState<string | null>(null);
   const [reverting, setReverting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastDesign, setLastDesign] = useState<DesignTab>("assembly");
@@ -191,7 +194,15 @@ export function ConnectedShell({ store, client = null, renderPage, renderCompare
       run(client.call("check.run", { projectId }).finally(() => setChecking(false)));
     },
     onOpenProjects: () => {
-      if (client !== null) run(client.call("project.list", {}).then((r) => setProjects(r.projects.map((p) => ({ id: p.projectId, name: p.name })))));
+      projectMenu?.onOpen();
+      // Said in the menu that asked: this pane's error line is hidden behind the embed.
+      client?.call("project.list", {}).then(
+        (r) => {
+          setProjects(r.projects.map((p) => ({ id: p.projectId, name: p.name })));
+          setProjectsError(null);
+        },
+        (e: unknown) => setProjectsError(`Could not list the open projects: ${message(e)}`),
+      );
     },
     onSwitchProject: (id) => onSwitchProject?.(id),
     onSelectThread: (id) => run(openThread(store, id)),
@@ -279,6 +290,7 @@ export function ConnectedShell({ store, client = null, renderPage, renderCompare
       onTabChange={(t) => run(navigatePage(store, pageOf(t, t === "design" ? lastDesign : null)))}
       onLocalTabChange={(id) => run(navigatePage(store, id as PageId))}
       handlers={handlers}
+      projectMenu={projectMenu === undefined || projectsError === null ? projectMenu : { ...projectMenu, errors: [...projectMenu.errors, projectsError] }}
       agent={agent}
       agentEmbed={embed}
       agentExtras={slots?.agentExtra}

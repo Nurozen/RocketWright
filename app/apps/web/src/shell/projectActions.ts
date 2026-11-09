@@ -40,6 +40,18 @@ export function nameProblem(name: string): string | null {
   return null;
 }
 
+// oxlint-disable-next-line no-control-regex -- the session refuses control characters in a project name
+const CONTROL_CHARS = /[\u0000-\u001f\u007f-\u009f]/;
+
+/** Why this cannot be a project's name, or null. The session's rule (`checked_project_name`), said in advance; the folder is not involved. */
+export function renameProblem(name: string): string | null {
+  const trimmed = name.trim();
+  if (trimmed === "") return "Enter a name.";
+  if (new TextEncoder().encode(trimmed).length > 255) return "A name can be at most 255 bytes.";
+  if (CONTROL_CHARS.test(trimmed)) return "A name cannot contain a control character.";
+  return null;
+}
+
 export function locationProblem(location: string): string | null {
   return location.trim() === "" ? "Enter a location." : null;
 }
@@ -61,6 +73,21 @@ export interface CreateRequest {
 export async function createProject(rpc: ProjectRpc, { name, location, template }: CreateRequest): Promise<ProjectInfo> {
   const { project } = await rpc.call("project.create", { name: name.trim(), location: location.trim(), template });
   return project;
+}
+
+export async function renameProject(rpc: ProjectRpc, projectId: string, name: string): Promise<ProjectInfo> {
+  const { project } = await rpc.call("project.rename", { projectId, name: name.trim() });
+  return project;
+}
+
+/** The next open project after `closed` goes, or null for Welcome. */
+export async function nextOpen(rpc: ProjectRpc, closed: string): Promise<string | null> {
+  try {
+    const { projects } = await rpc.call("project.list", {});
+    return projects.find((p) => p.projectId !== closed)?.projectId ?? null;
+  } catch {
+    return null;
+  }
 }
 
 /** A durable copy in the default location, numbered if one is already there (R0.8). */

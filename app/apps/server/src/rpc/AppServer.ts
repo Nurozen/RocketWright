@@ -560,9 +560,9 @@ export class AppServer {
 
     "project.defaults": () => ({ location: defaultProjectLocation() }),
 
-    // U25: project.rename. U58: project.restartSidecar.
-    "project.rename": () => notYet("project.rename"),
+    "project.rename": async (_c, params) => ({ project: await this.hostOf(params).setName(str(params, "name")) }),
 
+    // U58: project.restartSidecar.
     "project.restartSidecar": () => notYet("project.restartSidecar"),
 
     "project.subscribe": (conn, params, after) => {

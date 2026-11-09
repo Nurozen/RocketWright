@@ -724,49 +724,8 @@ button:disabled {
   color: var(--rw-danger);
 }
 
-.rw-project-wrap {
-  position: relative;
-}
-
-.rw-menu {
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 0;
-  z-index: 20;
-  min-width: 220px;
-  margin: 0;
-  padding: 6px;
-  list-style: none;
-  border: var(--rw-hairline) solid var(--rw-line);
-  border-radius: var(--rw-radius);
-  background: var(--rw-panel);
-}
-
-.rw-menu__item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  height: 32px;
-  padding: 0 8px;
-  border: 0;
-  border-radius: var(--rw-radius-sm);
-  background: none;
-  text-align: left;
-}
-
-.rw-menu__item:hover,
-.rw-menu__item[aria-checked="true"] {
-  background: var(--rw-selection-row);
-}
-
-.rw-menu__gap {
-  width: 16px;
-}
-
-.rw-menu__empty {
-  padding: 8px;
-  color: var(--rw-text-secondary);
+[data-testid="header.project-menu.list"] button[aria-checked="true"] .rw-ui-menu__label {
+  font-weight: var(--rw-font-weight-strong);
 }
 
 .rw-save[data-tone="amber"] {

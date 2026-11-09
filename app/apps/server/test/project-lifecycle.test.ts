@@ -59,6 +59,19 @@ describe("project lifecycle (U14)", () => {
     expect(await c.call("project.inspect", { dir: project.dir })).toEqual({ dir: project.dir, state: "project", name: "solstice-rocket", collisions: [] });
   });
 
+  it("renames a project: both manifests, the folder unchanged, and a push for every window", async () => {
+    const location = freshLocation("renamed");
+    const { project } = await c.call("project.create", { name: "rename-me", location, template: "empty" });
+    const { project: renamed } = await c.call("project.rename", { projectId: project.projectId, name: "  Solstice II " });
+    expect(renamed).toEqual({ ...project, name: "Solstice II" });
+    expect((await c.push("project.updated", (p) => p.project.projectId === project.projectId)).project.name).toBe("Solstice II");
+    for (const f of ["rocketwright.toml", "rocket.rw.toml"]) expect(readFileSync(join(project.dir, f), "utf8")).toMatch(/^name = "Solstice II"$/m);
+    expect((await c.call("project.list", {})).projects.find((p) => p.projectId === project.projectId)?.name).toBe("Solstice II");
+    expect(existsSync(project.dir)).toBe(true);
+    expect(await c.request("project.rename", { projectId: project.projectId, name: "a\nb" })).toMatchObject({ ok: false, error: { code: "api_error" } });
+    await c.call("project.close", { projectId: project.projectId });
+  });
+
   it("creates missing parent folders through rw init and expands ~", async () => {
     const home = freshLocation("home");
     vi.stubEnv("HOME", home);

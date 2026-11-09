@@ -5,7 +5,7 @@
  * as the CFD dataset list, and the Results `seeded` flag start fresh, and the
  * new project gets a broker host of its own.
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type RefObject } from "react";
 import type { BrokerRequest, PageId, ProjectInfo } from "@rw/contracts";
 import { answer, startBrokerHost, windowHostDeps } from "../broker/host.ts";
 import { openArtifactThread } from "../embed/rail.ts";
@@ -23,10 +23,13 @@ import { RunSnapshots } from "../pages/results/RunSnapshots.tsx";
 import { RunsRail } from "../pages/results/RunsRail.tsx";
 import type { RunDataSource } from "../pages/results/source.ts";
 import { ThumbnailBaker } from "../render/ThumbnailBaker.tsx";
+import { flushProject } from "../state/dirtyFields.ts";
 import type { RpcLike } from "../state/rpc.ts";
 import { createAppStore, useAppState } from "../state/store.ts";
 import { browserGlbDeps } from "../viewport/glb-source.ts";
 import { ConnectedShell, type PageSlots } from "./ConnectedShell.tsx";
+import type { ProjectMenuModel } from "./model.ts";
+import type { SurfaceHandle } from "./useProjectActions.tsx";
 
 export interface ProjectSurfaceProps {
   client: RpcLike;
@@ -41,11 +44,14 @@ export interface ProjectSurfaceProps {
   onSwitchProject: (projectId: string) => void;
   /** This project's name and folder, once known and whenever they change. */
   onProjectInfo: (project: ProjectInfo) => void;
+  projectMenu?: ProjectMenuModel | undefined;
+  /** Filled while this surface is mounted: what `AppRoot` needs before it can leave the project. */
+  surfaceRef?: RefObject<SurfaceHandle | null> | undefined;
 }
 
 const message = (e: unknown): string => (e instanceof Error ? e.message : String(e));
 
-export function ProjectSurface({ client, projectId, initialPage, runSource, httpBase, onPageChange, onOpenFailed, onSwitchProject, onProjectInfo }: ProjectSurfaceProps) {
+export function ProjectSurface({ client, projectId, initialPage, runSource, httpBase, onPageChange, onOpenFailed, onSwitchProject, onProjectInfo, projectMenu, surfaceRef }: ProjectSurfaceProps) {
   const [store] = useState(() => {
     const st = createAppStore();
     st.getState().ui.navigate(initialPage);
@@ -76,6 +82,24 @@ export function ProjectSurface({ client, projectId, initialPage, runSource, http
       if (window.__rwBroker === probe) delete window.__rwBroker;
     };
   }, [client, projectId, store, runSource, onOpenFailed]);
+
+  useEffect(() => {
+    if (surfaceRef === undefined) return;
+    const handle: SurfaceHandle = {
+      flush: () => flushProject(store),
+      disconnect: () => store.getState().project.disconnect(),
+      reconnect: () => {
+        store
+          .getState()
+          .project.connect(client, projectId)
+          .catch((e: unknown) => onOpenFailed(projectId, message(e)));
+      },
+    };
+    surfaceRef.current = handle;
+    return () => {
+      if (surfaceRef.current === handle) surfaceRef.current = null;
+    };
+  }, [surfaceRef, store, client, projectId, onOpenFailed]);
 
   const page = useAppState(store, (s) => s.ui.page);
   useEffect(() => onPageChange(page), [page, onPageChange]);
@@ -134,7 +158,7 @@ export function ProjectSurface({ client, projectId, initialPage, runSource, http
   const renderCompare = () => <ComparePage store={store} client={client} glbDeps={glbDeps} />;
   return (
     <>
-      <ConnectedShell store={store} client={client} renderPage={renderPage} renderCompare={renderCompare} pageSlots={pageSlots} onSwitchProject={onSwitchProject} />
+      <ConnectedShell store={store} client={client} renderPage={renderPage} renderCompare={renderCompare} pageSlots={pageSlots} onSwitchProject={onSwitchProject} projectMenu={projectMenu} />
       <ThumbnailBaker store={store} glbDeps={glbDeps} />
     </>
   );

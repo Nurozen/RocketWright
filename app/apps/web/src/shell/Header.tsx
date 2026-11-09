@@ -2,10 +2,12 @@
  * Header (concepts.md §3): mark + wordmark, project switcher, save state,
  * centred tabs, Check model with its status, settings, help.
  */
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { Menu } from "../ui/Menu.tsx";
 import { BRAND } from "./brand.ts";
 import { Icon } from "./Icon.tsx";
-import { stepLabel, TOP_TABS, type CheckStatus, type ShellHistoryStep, type ShellProject, type TopTab } from "./model.ts";
+import { stepLabel, TOP_TABS, type CheckStatus, type ProjectMenuModel, type ShellHistoryStep, type ShellProject, type TopTab } from "./model.ts";
+import { projectMenuEntries } from "./projectMenu.ts";
 
 export interface HeaderProps {
   projectName: string;
@@ -20,6 +22,8 @@ export interface HeaderProps {
   /** The switcher opened (refresh the project list). */
   onOpenProjects?: () => void;
   onSwitchProject?: (projectId: string) => void;
+  /** Recent, New, Open, Rename and Close; absent (the static shell) leaves only the open projects. */
+  projectMenu?: ProjectMenuModel | undefined;
   /** Undo/redo targets (history steps); absent hides the controls. */
   undo?: { undo: ShellHistoryStep | null; redo: ShellHistoryStep | null };
   /** A restore is in flight (both disabled). */
@@ -89,6 +93,7 @@ export function Header({
   onCheckModel,
   onOpenProjects,
   onSwitchProject,
+  projectMenu,
   undo,
   undoBusy = false,
   onUndo,
@@ -96,6 +101,7 @@ export function Header({
   onOpenSettings,
 }: HeaderProps) {
   const [menu, setMenu] = useState(false);
+  const switcher = useRef<HTMLButtonElement>(null);
   return (
     <header className="rw-header" data-rw-region="header" data-testid="header">
       <div className="rw-header__start">
@@ -106,45 +112,29 @@ export function Header({
           </span>
         </div>
         <span className="rw-header__sep" aria-hidden />
-        <div className="rw-project-wrap">
-          <button
-            type="button"
-            className="rw-project"
-            data-testid="header.project-switcher"
-            aria-haspopup="menu"
-            aria-expanded={menu}
-            onClick={() => {
-              if (!menu) onOpenProjects?.();
-              setMenu(!menu);
-            }}
-          >
-            <span>{projectName}</span>
-            <Icon name="chevron-down" size={16} />
-          </button>
-          {menu && (
-            <ul className="rw-menu" role="menu" aria-label="Projects" data-testid="header.project-menu">
-              {projects.length === 0 && <li className="rw-menu__empty">No other projects open</li>}
-              {projects.map((p) => (
-                <li key={p.id} role="none">
-                  <button
-                    type="button"
-                    role="menuitemradio"
-                    aria-checked={p.id === projectId}
-                    className="rw-menu__item"
-                    data-project-id={p.id}
-                    onClick={() => {
-                      setMenu(false);
-                      if (p.id !== projectId) onSwitchProject?.(p.id);
-                    }}
-                  >
-                    {p.id === projectId ? <Icon name="check" size={16} /> : <span className="rw-menu__gap" />}
-                    {p.name}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+        <button
+          ref={switcher}
+          type="button"
+          className="rw-project"
+          data-testid="header.project-switcher"
+          aria-haspopup="menu"
+          aria-expanded={menu}
+          onClick={() => {
+            if (!menu) onOpenProjects?.();
+            setMenu(!menu);
+          }}
+        >
+          <span>{projectName}</span>
+          <Icon name="chevron-down" size={16} />
+        </button>
+        <Menu
+          open={menu}
+          anchor={switcher.current}
+          onClose={() => setMenu(false)}
+          label="Projects"
+          testId="header.project-menu"
+          items={projectMenuEntries({ projects, projectId, projectName, menu: projectMenu, onSwitch: (id) => onSwitchProject?.(id) })}
+        />
         <span className="rw-save" data-testid="header.save-state" data-tone={saveTone}>
           {saveTone === "amber" ? <Icon name="status-dot" size={18} className="rw-save__dot" /> : <Icon name="cloud" size={18} />}
           {saveState}

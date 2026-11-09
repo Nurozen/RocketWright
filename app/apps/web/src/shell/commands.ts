@@ -28,6 +28,11 @@ export const APP_COMMANDS: readonly AppCommand[] = [
   { id: "app.settings", label: "Settings…", menu: "App" },
 ];
 
+/** A command's label as every menu shows it. */
+export function commandLabel(id: DesktopCommandId): string {
+  return APP_COMMANDS.find((c) => c.id === id)?.label ?? id;
+}
+
 export type CommandHandlers = { [Id in DesktopCommandId]?: (command: Extract<DesktopCommand, { id: Id }>) => void };
 
 /** Runs `command`'s handler. False when nothing handles it yet, so a caller can leave it to a later owner. */

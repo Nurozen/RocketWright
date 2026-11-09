@@ -90,6 +90,21 @@ describe("main RPC client (B6)", () => {
     expect(rpc.projects()).toEqual(opened);
   });
 
+  it("forgets a closed project, so opening it again is heard again, and follows a rename", async () => {
+    const { srv, rpc, opened } = await setup();
+    const other = await connectMainRpc(srv.url);
+    clients.push(other);
+    const p = (await other.call("project.open", { dir: "/tmp/Second Rocket" })).project;
+    await until(() => opened.length === 2);
+    await other.call("project.rename", { projectId: p.projectId, name: "Renamed" });
+    await until(() => rpc.projects().some((x) => x.name === "Renamed"));
+    await other.call("project.close", { projectId: p.projectId });
+    await until(() => rpc.projects().length === 1);
+    await other.call("project.open", { dir: "/tmp/Second Rocket" });
+    await until(() => opened.length === 3);
+    expect(opened.map((x) => x.projectId)).toEqual([SEED_PROJECT_ID, "second-rocket", "second-rocket"]);
+  });
+
   it("keeps the last lecturn.status and reports each push, live switches included (B10, D25)", async () => {
     const srv = await startMockServer({ tickMs: 5 });
     servers.push(srv);

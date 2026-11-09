@@ -13,6 +13,7 @@
 import { useEffect, useId, useMemo, useState } from "react";
 import type { PatchOp, schema } from "@rw/contracts";
 import { Icon } from "../../shell/Icon.tsx";
+import { useDirtyField } from "../../state/dirtyFields.ts";
 import { ADD_FIRST_PART, FIRST_PART_HINT, type DeepReadonly, type Units } from "../../state/index.ts";
 import { partLabel } from "../../state/ops/parts.ts";
 import { displayUnit, fromDisplay, limitsOf, rangeError, sharedFields, tabsFor, toDisplay, toSource, type EditorTab, type FieldSpec } from "./fields.ts";
@@ -413,6 +414,9 @@ function SpinField({
   useEffect(() => {
     if (!editing) setText(value);
   }, [value, editing]);
+  // Valid text is in the draft from the keystroke on; only text that failed its check has nowhere to go.
+  // The error, not the text: a blur puts the model's value back, and the person still has not been told it was dropped.
+  useDirtyField({ dirty: () => error !== null && error !== "", commit: () => error });
   const bump = (dir: 1 | -1) => {
     const cur = Number(text === "" ? value || "0" : text);
     const next = Number(((Number.isFinite(cur) ? cur : 0) + dir * step).toPrecision(10));

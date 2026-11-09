@@ -186,7 +186,7 @@ describe("status", () => {
     const status = async (opts: Partial<RecentsOptions>): Promise<string | undefined> => (await store(file, opts).list())[0]?.status;
     expect(await status({ pidAlive: () => true })).toBe("locked");
     expect(await status({ pidAlive: () => false })).toBe("ok");
-    expect(await status({ pidAlive: () => true, openDirs: () => [a] })).toBe("ok");
+    await expect(store(file, { pidAlive: () => true, openDirs: () => [a] }).list()).resolves.toEqual([]);
     writeFileSync(join(a, ".rw/lock"), "garbage");
     expect(await status({ pidAlive: () => true })).toBe("ok");
   });

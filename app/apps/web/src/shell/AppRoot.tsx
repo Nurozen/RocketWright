@@ -11,11 +11,13 @@ import { createPathPrompts } from "../host/browserHost.ts";
 import { hostFor, type HostApi } from "../host/HostApi.ts";
 import type { RunDataSource } from "../pages/results/source.ts";
 import { RpcClient, type RpcLike } from "../state/rpc.ts";
-import { dispatchCommand, type CommandHandlers } from "./commands.ts";
+import { BRAND } from "./brand.ts";
+import { dispatchCommand } from "./commands.ts";
 import { INITIAL_LIFECYCLE, lifecycle, shellOutcome, type LifecycleState } from "./lifecycle.ts";
 import { PathPromptModal } from "./PathPromptModal.tsx";
-import { errorText } from "./projectActions.ts";
+import { errorText, nextOpen } from "./projectActions.ts";
 import { ProjectSurface } from "./ProjectSurface.tsx";
+import { useProjectActions, type SurfaceHandle } from "./useProjectActions.tsx";
 import { Welcome } from "./Welcome.tsx";
 
 export interface AppRootProps {
@@ -33,16 +35,6 @@ export interface AppRootProps {
 }
 
 const connectRpc = (url: string): Promise<RpcLike> => RpcClient.connect(url);
-
-/** The next open project after `closed` goes, or null for Welcome. */
-async function nextOpen(client: RpcLike, closed: string): Promise<string | null> {
-  try {
-    const { projects } = await client.call("project.list", {});
-    return projects.find((p) => p.projectId !== closed)?.projectId ?? null;
-  } catch {
-    return null;
-  }
-}
 
 /** The startup failure itself, in the window (a blank one tells nobody anything). */
 export function FatalScreen({ error }: { error: string }) {
@@ -101,14 +93,36 @@ export function AppRoot({ url, requestedProjectId, initialPage, runSource, httpB
   }, [state, onOutcome]);
 
   const onOpenFailed = useCallback((projectId: string, error: string) => dispatch({ type: "openFailed", projectId, error }), []);
-  const onSwitchProject = useCallback((projectId: string) => dispatch({ type: "select", projectId }), []);
+  const show = useCallback((projectId: string) => dispatch({ type: "select", projectId }), []);
+  const closedProject = useCallback((projectId: string, next: string | null) => dispatch({ type: "closed", projectId, next }), []);
+
+  const surfaceRef = useRef<SurfaceHandle | null>(null);
+  const [info, setInfo] = useState<ProjectInfo | null>(null);
+  const infoRef = useRef(info);
+  infoRef.current = info;
+  const actions = useProjectActions({ client, host, lifecycle: stateRef, surface: surfaceRef, info: infoRef, show, closed: closedProject });
+  const { report } = actions;
+  const latest = useRef(actions);
+  latest.current = actions;
 
   // Main keeps Recents and last-active from this alone, never from `project.opened` (seam 2).
-  const onProjectInfo = useCallback((project: ProjectInfo) => void host.setActiveProject(project).catch((e: unknown) => console.error(e)), [host]);
+  const reportRecents = useCallback((e: unknown) => report(`Could not update recent projects: ${errorText(e)}`), [report]);
+  const onProjectInfo = useCallback(
+    (project: ProjectInfo) => {
+      setInfo(project);
+      host.setActiveProject(project).catch(reportRecents);
+    },
+    [host, reportRecents],
+  );
   const onWelcome = state.phase === "welcome";
   useEffect(() => {
-    if (onWelcome) void host.setActiveProject(null).catch((e: unknown) => console.error(e));
-  }, [host, onWelcome]);
+    if (onWelcome) host.setActiveProject(null).catch(reportRecents);
+  }, [host, onWelcome, reportRecents]);
+
+  const shownName = state.phase === "project" && info?.projectId === state.projectId ? info.name : null;
+  useEffect(() => {
+    document.title = shownName === null ? BRAND.name : `${shownName} – ${BRAND.name}`;
+  }, [shownName]);
 
   useEffect(() => {
     if (client === null) return;
@@ -123,33 +137,19 @@ export function AppRoot({ url, requestedProjectId, initialPage, runSource, httpB
   const desktop = useMemo(() => desktopPaneGlobals(), []);
   useEffect(() => {
     if (desktop === null || client === null) return;
-    return onOpenProject(desktop, (id) => dispatch({ type: "select", projectId: id }));
+    return onOpenProject(desktop, (id) => latest.current.switchProject(id));
   }, [desktop, client]);
 
   useEffect(() => {
     if (client === null) return;
-    const handlers: CommandHandlers = {
-      "project.openRecent": ({ dir }) => {
-        client.call("project.open", { dir }).then(
-          ({ project }) => dispatch({ type: "select", projectId: project.projectId }),
-          (e: unknown) => console.error(e),
-        );
-      },
-      "project.close": () => {
-        const shown = stateRef.current;
-        if (shown.phase !== "project") return;
-        // The server's `project.closed` push moves the window on.
-        client.call("project.close", { projectId: shown.projectId }).catch((e: unknown) => console.error(e));
-      },
-    };
-    return host.onCommand((command) => void dispatchCommand(command, handlers));
+    return host.onCommand((command) => void dispatchCommand(command, latest.current.commands));
   }, [client, host]);
 
   let screen = null;
   if (state.phase === "fatal") {
     screen = <FatalScreen error={state.error} />;
   } else if (client !== null && state.phase === "welcome") {
-    screen = <Welcome client={client} host={host} notice={state.notice} onOpened={onSwitchProject} />;
+    screen = <Welcome client={client} host={host} notice={state.notice} onOpened={show} />;
   } else if (client !== null && state.phase === "project") {
     screen = (
       <ProjectSurface
@@ -161,14 +161,17 @@ export function AppRoot({ url, requestedProjectId, initialPage, runSource, httpB
         httpBase={httpBase}
         onPageChange={onPageChange}
         onOpenFailed={onOpenFailed}
-        onSwitchProject={onSwitchProject}
+        onSwitchProject={actions.switchProject}
         onProjectInfo={onProjectInfo}
+        projectMenu={actions.menu}
+        surfaceRef={surfaceRef}
       />
     );
   }
   return (
     <>
       {screen}
+      {actions.overlays}
       <PathPromptModal prompts={prompts} />
     </>
   );
