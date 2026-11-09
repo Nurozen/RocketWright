@@ -29,15 +29,18 @@ export function processesNaming(markers: readonly string[], rows: readonly Proc[
   return rows.filter((p) => !self.includes(p.pid) && ms.some((m) => p.command.includes(m)));
 }
 
-/** Kills (SIGKILL) what `processesNaming` finds and returns their command lines. */
-export function killOrphans(markers: readonly string[]): string[] {
-  let out = "";
+/** What `processesNaming` finds on this machine now; empty if `ps` fails. */
+export function findOrphans(markers: readonly string[]): Proc[] {
   try {
-    out = execFileSync("ps", ["-axo", "pid=,command="], { encoding: "utf8", maxBuffer: 16 * 1024 * 1024 });
+    return processesNaming(markers, parsePs(execFileSync("ps", ["-axo", "pid=,command="], { encoding: "utf8", maxBuffer: 16 * 1024 * 1024 })));
   } catch {
     return [];
   }
-  const left = processesNaming(markers, parsePs(out));
+}
+
+/** Kills (SIGKILL) what `findOrphans` finds and returns their command lines. */
+export function killOrphans(markers: readonly string[]): string[] {
+  const left = findOrphans(markers);
   for (const p of left) {
     try {
       process.kill(p.pid, "SIGKILL");

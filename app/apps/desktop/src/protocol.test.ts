@@ -108,4 +108,13 @@ describe("openFromLink", () => {
     expect(calls).toEqual([]);
     expect(logs[0]).toMatch(/project\.open \/tmp\/missing failed/);
   });
+
+  it("says whether a link is waiting, and stops once a handler takes it", () => {
+    const q = linkQueue();
+    expect(q.pending()).toBe(false);
+    q.push({ workspace: "/tmp/rv" });
+    expect(q.pending()).toBe(true);
+    q.ready(() => undefined);
+    expect(q.pending()).toBe(false);
+  });
 });

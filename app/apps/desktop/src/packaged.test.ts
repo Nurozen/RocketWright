@@ -12,7 +12,6 @@ describe("packaged app", () => {
     expect(layout).toEqual({
       serverCli: "/Applications/RocketWright.app/Contents/Resources/app.asar/app/apps/server/src/rpc/cli.mjs",
       sidecarBin: "/Applications/RocketWright.app/Contents/Resources/bin/rocketwright",
-      samplesRoot: "/Applications/RocketWright.app/Contents/Resources",
     });
     expect(packagedLayout("C:\\RW\\resources", "C:\\RW\\resources\\app.asar", "win32").sidecarBin).toMatch(/rocketwright\.exe$/);
   });
