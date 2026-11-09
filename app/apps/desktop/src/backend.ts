@@ -3,7 +3,8 @@
  *
  * - `spawnServer`: the app server (`apps/server/src/rpc/cli.ts`) as a child
  *   started through `env -u ELECTRON_RUN_AS_NODE node …`, parsed for its
- *   `RW_SERVER_URL=` / `RW_RPC_URL=` (and optional `RW_LIVE_MCP_URL=`) lines;
+ *   `RW_SERVER_URL=` / `RW_RPC_URL=` (and optional `RW_LIVE_MCP_URL=` and
+ *   `RW_MAIN_TOKEN=`) lines;
  * - `startBackend`: that server plus the web bundle on http://127.0.0.1:<port 0>
  *   (`serve.ts`; never file://, which breaks the WASM fetch);
  * - `resolveDevProject`: what `make dev` opens (a copy of
@@ -110,6 +111,12 @@ export interface ServerUrls {
    * write, since parsing completes once the two required lines are in.
    */
   liveMcpUrl: string | null;
+  /**
+   * `RW_MAIN_TOKEN=`: the secret that makes main's socket the host channel's
+   * owner (D11), or null when the server sends none. For main alone: it must
+   * never reach the preload config or the page URL, which hold only the URLs.
+   */
+  mainToken: string | null;
 }
 
 /** The server's announced URLs, once both required lines are complete (newline-terminated) in `text`. */
@@ -117,7 +124,8 @@ export function parseServerUrls(text: string): ServerUrls | null {
   const serverUrl = /^RW_SERVER_URL=(\S+)\r?\n/m.exec(text)?.[1];
   const rpcUrl = /^RW_RPC_URL=(\S+)\r?\n/m.exec(text)?.[1];
   const liveMcpUrl = /^RW_LIVE_MCP_URL=(\S+)\r?\n/m.exec(text)?.[1] ?? null;
-  return serverUrl !== undefined && rpcUrl !== undefined ? { serverUrl, rpcUrl, liveMcpUrl } : null;
+  const mainToken = /^RW_MAIN_TOKEN=(\S+)\r?\n/m.exec(text)?.[1] ?? null;
+  return serverUrl !== undefined && rpcUrl !== undefined ? { serverUrl, rpcUrl, liveMcpUrl, mainToken } : null;
 }
 
 /**

@@ -21,6 +21,12 @@
  * also be the app's own (`allowedOrigin`); a missing `Origin` (a local
  * non-browser client) is accepted only with the token.
  *
+ * Electron main shares that token with the renderer, so consent needs more
+ * (D11): main claims the host channel with a second secret (`mainToken`,
+ * printed on stdout only, never in env, which reaches Lecturn), and that socket
+ * alone gets `role: "main"`: it receives `host.request`, may send `host.respond`
+ * and may set `allow_outside` on `export.file`.
+ *
  * One `ProjectHost` (sidecar, mirror, jobs) per open project. The agent is
  * Lecturn's (B17 removed the old chat engine and its `thread.*` and
  * `approval.*` methods). Test hooks
@@ -74,6 +80,7 @@ import { ThumbCacheError } from "../project/ThumbCache.ts";
 import { sidecarBinary, sidecarEnv } from "../sidecar/SidecarClient.ts";
 import type { BackoffOptions, SidecarConnection } from "../sidecar/SidecarSupervisor.ts";
 import { RpcFail, toRpcError } from "./errors.ts";
+import { HostChannel } from "./HostChannel.ts";
 import { componentRemoveArgs, exportFileArgs, importFileArgs, isObject, libraryQuery, motorSearchArgs, optBool, optStr, patchOps, projectCreateArgs, renderArgs, str, thrustcurveFetchQuery, thrustcurveSearchQuery } from "./params.ts";
 
 /** Lecturn `apps.updateHostContext` caps the text at 4 KB. */
@@ -110,6 +117,8 @@ interface Conn {
   id: number;
   /** Passed the token (and Origin) check on the upgrade; only such sockets are ever in `conns`. */
   authed: boolean;
+  /** `main` only after this socket claimed the host channel with `mainToken` (D11). */
+  role: "client" | "main";
   send(frame: ServerFrame): void;
   close(): void;
   subs: Set<string>;
@@ -176,6 +185,10 @@ export class AppServer {
   readonly coreVersion: string;
   /** The per-launch RPC upgrade secret (see the module doc). */
   readonly rpcToken: string;
+  /** The secret that makes a socket Electron main's (D11); the CLI prints it on stdout and nothing else may hold it. */
+  readonly mainToken: string = randomBytes(32).toString("base64url");
+  /** Consent requests to Electron main (D11). */
+  readonly hostChannel = new HostChannel<Conn>();
   /** Agent viewport tools and test hooks, forwarded to the web host over `broker.*`. */
   readonly broker: ViewportBroker;
   /** The live route's static bearer (B9), leased to Lecturn with the URL. */
@@ -306,6 +319,7 @@ export class AppServer {
   }
 
   async close(): Promise<void> {
+    this.hostChannel.failAll("the app server is closing");
     for (const c of [...this.conns]) c.close();
     await Promise.all([...this.projects.keys()].map((id) => this.closeProject(id).catch(() => undefined)));
     await Promise.all([...this.opening.values()].map((p) => p.then((h) => h.close()).catch(() => undefined)));
@@ -419,7 +433,7 @@ export class AppServer {
       socket.end("HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n");
       return;
     }
-    const conn: Conn = { id: ++this.counter, authed: true, send: () => undefined, close: () => undefined, subs: new Set() };
+    const conn: Conn = { id: ++this.counter, authed: true, role: "client", send: () => undefined, close: () => undefined, subs: new Set() };
     const ws = acceptUpgrade(req, socket, () => ({
       message: (text) => void this.receive(conn, text),
       close: () => this.disconnect(conn),
@@ -480,6 +494,7 @@ export class AppServer {
     if (!this.conns.delete(conn)) return;
     for (const id of [...conn.subs]) this.dropSub(id);
     this.broker.dropOwner(conn);
+    this.hostChannel.dropOwner(conn);
   }
 
   private async receive(conn: Conn, raw: string): Promise<void> {
@@ -636,10 +651,10 @@ export class AppServer {
 
     "import.file": (_c, params) => this.hostOf(params).tool<schema.ImportOut>("import_file", { ...importFileArgs(params) }),
 
-    "export.file": (_c, params) => {
+    "export.file": (conn, params) => {
       const args = exportFileArgs(params);
-      // Writing outside the project needs main's role-bound socket (D11), which U35 adds; until then no socket has it.
-      if (args.allow_outside === true) throw new RpcFail("forbidden", "export.file: allow_outside is refused on this socket");
+      // Writing outside the project needs main's role-bound socket (D11); the page's token alone must not write anywhere (D18).
+      if (args.allow_outside === true && conn.role !== "main") throw new RpcFail("forbidden", "export.file: allow_outside is refused on this socket");
       return this.hostOf(params).tool<schema.ExportOut>("export_file", { ...args });
     },
 
@@ -708,10 +723,28 @@ export class AppServer {
       return { applied: true };
     },
 
-    // U35: the role-bound host channel.
-    "host.register": () => notYet("host.register"),
+    "host.register": (conn, params) => {
+      // One message for a wrong secret and a taken channel: a caller learns nothing about either.
+      if (!tokenMatches(str(params, "token"), this.mainToken) || !this.hostChannel.claim(conn, (request) => this.push(conn, "host.request", request))) {
+        throw new RpcFail("forbidden", "host.register: refused");
+      }
+      conn.role = "main";
+      return {};
+    },
 
-    "host.respond": () => notYet("host.respond"),
+    "host.respond": (conn, params) => {
+      // Before any parsing, so a token-only socket learns nothing about what is pending.
+      if (conn.role !== "main") throw new RpcFail("forbidden", "host.respond: refused on this socket");
+      const requestId = str(params, "requestId");
+      if (typeof params.accepted !== "boolean") throw new RpcFail("invalid_params", "accepted: expected a boolean");
+      const { displayUnits } = params;
+      if (displayUnits !== undefined && (!isObject(displayUnits) || !Object.values(displayUnits).every((u) => typeof u === "string"))) {
+        throw new RpcFail("invalid_params", "displayUnits: expected an object of strings");
+      }
+      const answer = { requestId, accepted: params.accepted, ...(displayUnits === undefined ? {} : { displayUnits: displayUnits as Record<string, string> }) };
+      if (!this.hostChannel.respond(answer)) throw new RpcFail("not_found", `no pending host request ${requestId}`);
+      return {};
+    },
 
     "test.call": async (_c, params) => {
       if (!this.testHooks) throw new RpcFail("hooks_disabled", "test hooks need RW_TEST_HOOKS=1");
