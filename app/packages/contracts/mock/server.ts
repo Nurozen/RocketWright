@@ -16,7 +16,7 @@
  *   hooks (`test.call`) are rejected unless `testHooks` (I12).
  * - Series CSV over HTTP at SERIES_PATH (G §4.2), events at EVENTS_PATH.
  *
- * Run: `pnpm --filter @rw/contracts mock [--port N] [--tick ms] [--script f.json] [--demo] [--test-hooks]`.
+ * Run: `pnpm --filter @rw/contracts mock [--port N] [--tick ms] [--script f.json] [--demo] [--test-hooks] [--zero-projects]`.
  * It prints `RW_RPC_URL=ws://127.0.0.1:<port>/rpc`. Port 0 (default) picks a free port.
  */
 import { createHash } from "node:crypto";
@@ -62,7 +62,9 @@ import type {
   RunListOut,
   SimulateOut,
 } from "../src/types.ts";
-import type { CfdImportOut, EngineDesignOut, LibrarySearchOut, Origin, ThrustcurveFetchOut, ThrustcurveSearchOut } from "../src/generated/types.ts";
+import type { CfdImportOut, EngineDesignOut, ExportOut, ImportOut, LibrarySearchOut, MotorSearchOut, Origin, RenderResult, ThrustCurve, ThrustcurveFetchOut, ThrustcurveSearchOut } from "../src/generated/types.ts";
+import type { HostRequest, HostResponse, HostShow } from "../src/projectTools.ts";
+import { PROJECT_TEMPLATES } from "../src/projectTools.ts";
 import { clone, DEFAULT_FIXTURES_DIR, type FixtureSet, loadFixtures } from "./fixtures.ts";
 import { acceptUpgrade } from "./ws.ts";
 
@@ -126,6 +128,8 @@ export interface MockOptions {
   /** Delay between scripted job and turn steps (default 150 ms). */
   tickMs?: number;
   script?: ScriptStep[];
+  /** Start with no project open, as a fresh desktop launch does (default: the seeded project). */
+  zeroProjects?: boolean;
   /** How long a broker request waits for `broker.respond` (default 10 s). */
   brokerTimeoutMs?: number;
   coreVersion?: string;
@@ -133,6 +137,8 @@ export interface MockOptions {
 
 export const MOCK_CORE_VERSION = "0.0.0-mock";
 export const SEED_PROJECT_ID = "research-vehicle";
+/** `project.defaults`. */
+export const MOCK_DEFAULT_LOCATION = "/mock/Documents/RocketWright";
 /** Logical clock origin (2026-10-15T14:00:00Z); UI ordering only. */
 const CLOCK0 = Date.UTC(2026, 9, 15, 14, 0, 0);
 
@@ -147,6 +153,17 @@ class RpcFail extends Error {
 }
 
 class Aborted extends Error {}
+
+/**
+ * What the mock pretends a closed folder holds, by its name's start, so web
+ * tests can reach every R0.4 branch: `not-a-project…` has files and no
+ * project, `empty…` is empty, anything else does not exist yet.
+ */
+function inspectFolder(dir: string): "missing" | "empty" | "folder" {
+  const name = basename(dir);
+  if (name.startsWith("not-a-project")) return "folder";
+  return name.startsWith("empty") ? "empty" : "missing";
+}
 
 const sha256 = (s: string): string => createHash("sha256").update(s).digest("hex");
 const sha1 = (s: string): string => createHash("sha1").update(s).digest("hex");
@@ -217,6 +234,9 @@ export class MockRpc {
   private readonly conns = new Set<Conn>();
   private readonly hosts = new Map<string, Host>();
   private readonly broker = new Map<string, (r: BrokerResponse) => void>();
+  /** The socket that claimed the host channel (D11; the mock accepts any token). */
+  private hostConn: Conn | null = null;
+  private readonly hostPending = new Map<string, { resolve: (r: HostResponse) => void; reject: (e: Error) => void }>();
   private counter = 0;
   /** M3.6 thumbnails: `<model_hash>/<id>` -> PNG base64. */
   private readonly thumbs = new Map<string, string>();
@@ -236,7 +256,7 @@ export class MockRpc {
     this.brokerTimeoutMs = opts.brokerTimeoutMs ?? 10_000;
     this.coreVersion = opts.coreVersion ?? MOCK_CORE_VERSION;
     this.script = opts.script ?? [];
-    this.addProject(`/mock/${SEED_PROJECT_ID}`, SEED_PROJECT_ID);
+    if (opts.zeroProjects !== true) this.addProject(`/mock/${SEED_PROJECT_ID}`, SEED_PROJECT_ID);
   }
 
   // ---- public API (tests, CLI) ----
@@ -349,6 +369,22 @@ export class MockRpc {
     });
   }
 
+  /** Asks the registered main socket for consent, as the agent's project tools do. */
+  requestHost(request: Omit<HostRequest, "requestId">): Promise<HostResponse> {
+    const conn = this.hostConn;
+    if (conn === null) return Promise.reject(new Error("no host registered"));
+    const requestId = `host-${++this.counter}`;
+    return new Promise((resolve, reject) => {
+      this.hostPending.set(requestId, { resolve, reject });
+      this.push(conn, "host.request", { ...request, requestId });
+    });
+  }
+
+  /** Brings a project to the front on the registered main socket. */
+  showHost(show: HostShow): void {
+    if (this.hostConn !== null) this.push(this.hostConn, "host.show", show);
+  }
+
   /** The series CSV of a run, or `null` if the run is unknown. */
   seriesCsv(projectId: string, sim: string, runId: string): string | null {
     const p = this.projects.get(projectId);
@@ -417,6 +453,7 @@ export class MockRpc {
     "project.open": (_c, params, after) => {
       const dir = str(params, "dir")!;
       const existing = [...this.projects.values()].find((p) => p.info.dir === dir);
+      if (existing === undefined && inspectFolder(dir) === "folder") throw new RpcFail("not_a_project", `${dir} holds no project`);
       const p = existing ?? this.addProject(dir);
       if (existing === undefined) {
         after(() => {
@@ -427,9 +464,62 @@ export class MockRpc {
       return { project: clone(p.info) };
     },
 
-    "project.close": (conn, params) => {
+    "project.close": (conn, params, after) => {
       const p = this.project(str(params, "projectId")!);
       for (const id of [...conn.subs]) if (this.subs.get(id)?.projectId === p.info.projectId) this.dropSub(id);
+      // As the app server: the project closes once no window holds a subscription.
+      if (![...this.subs.values()].some((s) => s.projectId === p.info.projectId)) {
+        for (const job of p.jobs.values()) job.ctl.abort();
+        this.projects.delete(p.info.projectId);
+        this.hosts.delete(p.info.projectId);
+        this.hostContexts.delete(p.info.projectId);
+        after(() => this.broadcast("project.closed", { projectId: p.info.projectId }));
+      }
+      return {};
+    },
+
+    "project.create": (_c, params, after) => {
+      const base = str(params, "name")!;
+      const location = str(params, "location", true) ?? MOCK_DEFAULT_LOCATION;
+      const template = params.template;
+      if (template !== undefined && !(PROJECT_TEMPLATES as readonly unknown[]).includes(template)) throw new RpcFail("invalid_params", "template: unknown");
+      if (base.includes("/")) throw new RpcFail("invalid_params", "name: one folder name, no separators");
+      const taken = (name: string): boolean => [...this.projects.values()].some((p) => p.info.dir === `${location}/${name}`);
+      let name = base;
+      // The sample is reopened by creating it again, so its name dedupes (U14); anything else refuses.
+      if (template === "sample") for (let n = 2; taken(name); n++) name = `${base} ${n}`;
+      if (taken(name)) throw new RpcFail("conflict", `${location}/${name} already holds a project`);
+      const p = this.addProject(`${location}/${name}`);
+      after(() => {
+        this.broadcast("project.opened", { project: clone(p.info) });
+        this.broadcastEmbedThreads(p);
+      });
+      return { project: clone(p.info) };
+    },
+
+    "project.inspect": (_c, params) => {
+      const dir = str(params, "dir")!;
+      const open = [...this.projects.values()].find((p) => p.info.dir === dir);
+      if (open !== undefined) return { dir, state: "project", name: open.info.name, collisions: [] };
+      const state = inspectFolder(dir);
+      return { dir, state, name: null, collisions: state === "folder" ? ["rocket.rw.toml"] : [] };
+    },
+
+    "project.defaults": () => ({ location: MOCK_DEFAULT_LOCATION }),
+
+    "project.rename": (_c, params, after) => {
+      const p = this.project(str(params, "projectId")!);
+      p.info.name = str(params, "name")!;
+      after(() => this.broadcast("project.updated", { project: clone(p.info) }));
+      return { project: clone(p.info) };
+    },
+
+    "project.restartSidecar": (_c, params, after) => {
+      const p = this.project(str(params, "projectId")!);
+      after(() => {
+        this.playStep({ afterMs: 0, projectId: p.info.projectId, sidecar: "restarting" });
+        this.playStep({ afterMs: 0, projectId: p.info.projectId, sidecar: "ready" });
+      });
       return {};
     },
 
@@ -593,6 +683,67 @@ export class MockRpc {
       return this.fixtures.payload<ThrustcurveFetchOut>("tools/thrustcurve_fetch.output");
     },
 
+    "component.remove": (_c, params, after) => {
+      const p = this.project(str(params, "projectId")!);
+      const id = str(params, "id")!;
+      if (bool(params, "dry_run")) return this.dryRun(p, "tools/component_remove.output", `remove ${id}`);
+      const out = this.commit(p, { title: str(params, "label", true) ?? `Remove ${id}`, origin: "ui", thread: "ui", tool: "component_remove", toolCall: null, salt: `remove ${id}`, base: "tools/component_remove.output" });
+      after(() => this.resourcesUpdated(p.info.projectId, COMMIT_URIS));
+      return out;
+    },
+
+    "import.file": (_c, params, after) => {
+      const p = this.project(str(params, "projectId")!);
+      const path = str(params, "path")!;
+      if (params.kind !== "ork" && params.kind !== "motor") throw new RpcFail("invalid_params", "kind: expected ork|motor");
+      if (bool(params, "dry_run")) return this.dryRun(p, "tools/import_file.output", `import ${path}`) as ImportOut;
+      const out = this.commit(p, { title: `Import ${basename(path)}`, origin: "ui", thread: "ui", tool: "import_file", toolCall: null, salt: `import ${path}`, base: "tools/import_file.output" }) as ImportOut;
+      after(() => this.resourcesUpdated(p.info.projectId, COMMIT_URIS));
+      return out;
+    },
+
+    "export.file": (_c, params) => {
+      this.project(str(params, "projectId")!);
+      const path = str(params, "path")!;
+      str(params, "format");
+      if (bool(params, "allow_outside")) throw new RpcFail("forbidden", "allow_outside: not on this socket");
+      return { ...this.fixtures.payload<ExportOut>("tools/export_file.output"), path };
+    },
+
+    render: (_c, params) => {
+      this.project(str(params, "projectId")!);
+      str(params, "view");
+      return this.fixtures.payload<RenderResult>("tools/render.output");
+    },
+
+    "motor.search": (_c, params) => {
+      this.project(str(params, "projectId")!);
+      return this.fixtures.payload<MotorSearchOut>("tools/motor_search.output");
+    },
+
+    "motor.show": (_c, params) => {
+      this.project(str(params, "projectId")!);
+      const info = this.fixtures.payload<MotorSearchOut>("tools/motor_search.output").motors[0]!;
+      return { info: { ...info, id: str(params, "id")! }, curve: this.fixtures.payload<ThrustCurve>("thrust-curve") };
+    },
+
+    "run.delete": (_c, params, after) => {
+      const p = this.project(str(params, "projectId")!);
+      const run = str(params, "run")!;
+      const runId = run.split("/").at(-1);
+      const idx = p.snap.runs.runs.findIndex((r) => r.run_id === runId);
+      if (idx < 0) throw new RpcFail("not_found", `no run ${run}`);
+      const out = this.dryRun(p, "tools/model_patch.output", `delete ${run}`);
+      out.model_hash = p.snap.files.model_hash;
+      // Nothing about the model changes (U43): an empty delta.
+      Object.assign(out.delta, { model_hash: p.snap.files.model_hash, changed: {}, new_diagnostics: [], resolved_diagnostics: [] });
+      if (bool(params, "dry_run")) return out;
+      out.dry_run = false;
+      p.snap.runs.runs.splice(idx, 1);
+      after(() => this.resourcesUpdated(p.info.projectId, ["rw://runs/index"]));
+      return out;
+    },
+
     "broker.hostRegister": (conn, params) => {
       const p = this.project(str(params, "projectId")!);
       const hostId = str(params, "hostId")!;
@@ -643,6 +794,24 @@ export class MockRpc {
       if (Buffer.byteLength(text) > 4096) throw new RpcFail("invalid_params", "text: at most 4096 bytes");
       this.hostContexts.set(p.info.projectId, text);
       return { applied: true };
+    },
+
+    "host.register": (conn, params) => {
+      str(params, "token");
+      if (this.hostConn !== null && this.hostConn !== conn) throw new RpcFail("forbidden", "the host channel is already registered");
+      this.hostConn = conn;
+      return {};
+    },
+
+    "host.respond": (conn, params) => {
+      if (conn !== this.hostConn) throw new RpcFail("forbidden", "host.respond: not the registered host");
+      const requestId = str(params, "requestId")!;
+      if (typeof params.accepted !== "boolean") throw new RpcFail("invalid_params", "accepted: expected a boolean");
+      const pending = this.hostPending.get(requestId);
+      if (pending === undefined) throw new RpcFail("not_found", `no pending host request ${requestId}`);
+      this.hostPending.delete(requestId);
+      pending.resolve(params as unknown as HostResponse);
+      return {};
     },
 
     "test.call": async (_c, params) => {
@@ -704,6 +873,11 @@ export class MockRpc {
     if (!this.conns.delete(conn)) return;
     for (const id of [...conn.subs]) this.dropSub(id);
     for (const [pid, h] of this.hosts) if (h.conn === conn) this.hosts.delete(pid);
+    if (this.hostConn === conn) {
+      this.hostConn = null;
+      for (const pending of this.hostPending.values()) pending.reject(new Error("the host disconnected"));
+      this.hostPending.clear();
+    }
   }
 
   private push<T extends RpcTopic>(conn: Conn, topic: T, payload: RpcTopics[T]): void {
@@ -756,7 +930,11 @@ export class MockRpc {
     if (p.scripted) return;
     p.scripted = true;
     for (const step of this.script) {
-      if ((step.projectId ?? SEED_PROJECT_ID) === p.info.projectId) this.after(step.afterMs, () => this.playStep(step));
+      if ((step.projectId ?? SEED_PROJECT_ID) === p.info.projectId) {
+        this.after(step.afterMs, () => {
+          if (this.projects.has(p.info.projectId)) this.playStep(step);
+        });
+      }
     }
   }
 
@@ -1027,6 +1205,7 @@ async function main(argv: string[]): Promise<void> {
     script,
     ...(tick === undefined ? {} : { tickMs: Number(tick) }),
     ...(argv.includes("--test-hooks") ? { testHooks: true } : {}),
+    ...(argv.includes("--zero-projects") ? { zeroProjects: true } : {}),
   });
   process.stdout.write(`RW_RPC_URL=${srv.url}\nRW_HTTP_URL=${srv.httpUrl}\n`);
   const stop = (): void => void srv.close().then(() => process.exit(0));

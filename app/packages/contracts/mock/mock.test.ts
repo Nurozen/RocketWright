@@ -9,7 +9,7 @@ import { RPC_METHODS, RPC_PATH, type RpcMethod } from "../src/rpc.ts";
 import { loadFixtures } from "./fixtures.ts";
 import { makeValidator, schemaMode, TestClient } from "./harness.ts";
 import { reg, RESULT_SCHEMAS, TOPIC_SCHEMAS } from "./rpc-schema.ts";
-import { COMMIT_URIS, type MockOptions, type MockServer, SEED_PROJECT_ID, startMockServer } from "./server.ts";
+import { COMMIT_URIS, MOCK_DEFAULT_LOCATION, type MockOptions, type MockServer, SEED_PROJECT_ID, startMockServer } from "./server.ts";
 
 const fixtures = loadFixtures();
 const validator = makeValidator(fixtures);
@@ -69,6 +69,16 @@ describe("mock RPC: every method", () => {
     expect(written.threads[0]?.appData).toBe('{"page":"results"}');
     expect(await call("embed.setHostContext", { ...P, text: "- Page: assembly" })).toEqual({ applied: true });
     expect(srv.mock.hostContexts.get(SEED_PROJECT_ID)).toBe("- Page: assembly");
+    expect((await call("project.defaults", {})).location).toBe(MOCK_DEFAULT_LOCATION);
+    expect(await call("project.inspect", { dir: "/tmp/empty-folder" })).toEqual({ dir: "/tmp/empty-folder", state: "empty", name: null, collisions: [] });
+    const made = (await call("project.create", { name: "Solstice", template: "empty", displayUnits: { length: "mm" } })).project;
+    expect(made.dir).toBe(`${MOCK_DEFAULT_LOCATION}/Solstice`);
+    expect(await call("project.inspect", { dir: made.dir })).toMatchObject({ state: "project", name: "Solstice" });
+    expect((await call("project.rename", { projectId: made.projectId, name: "Solstice II" })).project.name).toBe("Solstice II");
+    expect((await host.push("project.updated", (p) => p.project.projectId === made.projectId)).project.name).toBe("Solstice II");
+    expect(await call("project.restartSidecar", { projectId: made.projectId })).toEqual({});
+    await call("project.close", { projectId: made.projectId });
+    await host.push("project.closed", (p) => p.projectId === made.projectId);
     await call("project.close", { projectId: opened.projectId });
 
     const sub = await call("project.subscribe", P);
@@ -106,6 +116,25 @@ describe("mock RPC: every method", () => {
     expect((await call("cfd.list", P)).datasets.map((d) => d.id)).toEqual(["tank_flow"]);
     expect((await call("motor.thrustcurveSearch", { ...P, query: "C6" })).motors[0]?.designation).toBe("C6");
     expect((await call("motor.thrustcurveFetch", { ...P, motor: "5f0000000000000000000001", dry_run: true })).imported).toEqual(["lib:motors/Acme_C6.eng#C6"]);
+    expect((await call("component.remove", { ...P, id: "lug", dry_run: true })).dry_run).toBe(true);
+    expect((await call("component.remove", { ...P, id: "lug", label: "Remove lug" })).step).toMatch(/^step:\d+$/);
+    expect((await call("import.file", { ...P, path: "/elsewhere/C6.eng", kind: "motor", dry_run: true })).dry_run).toBe(true);
+    expect((await call("import.file", { ...P, path: "/elsewhere/C6.eng", kind: "motor" })).imported.length).toBeGreaterThan(0);
+    expect((await call("export.file", { ...P, format: "csv", path: "exports/a.csv" })).path).toBe("exports/a.csv");
+    expect(typeof (await call("render", { ...P, view: "profile" })).path).toBe("string");
+    const [firstMotor] = (await call("motor.search", { ...P, class: "F" })).motors;
+    expect((await call("motor.show", { ...P, id: firstMotor!.id })).info.id).toBe(firstMotor!.id);
+    const deletable = (await call("project.subscribe", P)).snapshot.runs.runs.find((r) => r.run_id !== undefined && r.run_id !== null)!;
+    expect((await call("run.delete", { ...P, run: `${deletable.sim}/${String(deletable.run_id)}` })).dry_run).toBe(false);
+    await host.call("host.register", { token: "main-secret" });
+    ok.add("host.register");
+    const consent = srv.mock.requestHost({ tool: "project_new", path: "/tmp/solstice", name: "solstice" });
+    const asked = await host.push("host.request", (r) => r.tool === "project_new");
+    await host.call("host.respond", { requestId: asked.requestId, accepted: true, displayUnits: { length: "mm" } });
+    ok.add("host.respond");
+    expect(await consent).toMatchObject({ accepted: true, displayUnits: { length: "mm" } });
+    srv.mock.showHost({ projectId: SEED_PROJECT_ID, threadId: "t1" });
+    expect(await host.push("host.show")).toEqual({ projectId: SEED_PROJECT_ID, threadId: "t1" });
     await host.call("broker.hostRegister", { ...P, hostId: "window-1", capabilities: { ops: [...AGENT_OPS, ...TEST_HOOK_OPS], backend: "webgpu" } });
     ok.add("broker.hostRegister");
     const hooked = c.call("test.call", { ...P, op: "app_navigate", args: { page: "results" } });
@@ -151,6 +180,76 @@ describe("mock RPC: every method", () => {
     expect(bad.ok ? null : bad.error.code).toBe("invalid_params");
     const noHost = await c.request("test.call", { ...P, op: "app_navigate", args: { page: "results" } });
     expect(noHost.ok ? null : noHost.error.code).toBe("not_found");
+  });
+});
+
+describe("mock RPC: project lifecycle", () => {
+  it("can start with no project, and opens the first one created", async () => {
+    const { c } = await setup({ zeroProjects: true });
+    expect((await c.call("project.list", {})).projects).toEqual([]);
+    const { project } = await c.call("project.create", { name: "First", location: "/tmp/rockets" });
+    expect((await c.push("project.opened", (p) => p.project.projectId === project.projectId)).project.dir).toBe("/tmp/rockets/First");
+    expect((await c.call("project.list", {})).projects.map((p) => p.name)).toEqual(["First"]);
+  });
+
+  it("refuses a target that holds a project and a folder that holds none", async () => {
+    const { c } = await setup({ zeroProjects: true });
+    await c.call("project.create", { name: "Same", location: "/tmp/rockets" });
+    expect(await c.request("project.create", { name: "Same", location: "/tmp/rockets" })).toMatchObject({ ok: false, error: { code: "conflict" } });
+    expect(await c.request("project.open", { dir: "/tmp/not-a-project" })).toMatchObject({ ok: false, error: { code: "not_a_project" } });
+    expect(await c.call("project.inspect", { dir: "/tmp/not-a-project" })).toMatchObject({ state: "folder", collisions: ["rocket.rw.toml"] });
+  });
+
+  it("dedupes the sample's name instead of refusing", async () => {
+    const { c } = await setup({ zeroProjects: true });
+    await c.call("project.create", { name: "Sample rocket", template: "sample" });
+    expect((await c.call("project.create", { name: "Sample rocket", template: "sample" })).project.name).toBe("Sample rocket 2");
+  });
+
+  it("really closes a project once no window holds a subscription", async () => {
+    const { srv, c } = await setup();
+    const other = await client(srv);
+    const sub = await c.call("project.subscribe", P);
+    await other.call("project.subscribe", P);
+    await c.call("project.close", P);
+    expect(c.pushes("project.closed")).toEqual([]);
+    expect(c.frames.some((f) => f.kind === "response" && f.ok === false)).toBe(false);
+    expect((await c.call("project.list", {})).projects.map((p) => p.projectId)).toContain(SEED_PROJECT_ID);
+    await other.call("project.close", P);
+    expect((await c.push("project.closed")).projectId).toBe(SEED_PROJECT_ID);
+    expect((await c.call("project.list", {})).projects).toEqual([]);
+    expect(await c.request("project.unsubscribe", { subscriptionId: sub.subscriptionId })).toMatchObject({ ok: false, error: { code: "not_found" } });
+  });
+});
+
+describe("mock RPC: host channel (D11)", () => {
+  it("binds to the first registered socket, and refuses every other one", async () => {
+    const { srv, c } = await setup();
+    const page = await client(srv);
+    await c.call("host.register", { token: "main-secret" });
+    expect(await page.request("host.register", { token: "main-secret" })).toMatchObject({ ok: false, error: { code: "forbidden" } });
+    const consent = srv.mock.requestHost({ tool: "project_open", path: "/tmp/rocket" });
+    const { requestId } = await c.push("host.request");
+    expect(await page.request("host.respond", { requestId, accepted: true })).toMatchObject({ ok: false, error: { code: "forbidden" } });
+    expect(page.pushes("host.request")).toEqual([]);
+    await c.call("host.respond", { requestId, accepted: false });
+    expect((await consent).accepted).toBe(false);
+    expect(await c.request("host.respond", { requestId, accepted: true })).toMatchObject({ ok: false, error: { code: "not_found" } });
+  });
+
+  it("fails pending requests when the host goes away", async () => {
+    const { srv, c } = await setup();
+    await expect(srv.mock.requestHost({ tool: "project_open", path: "/tmp/rocket" })).rejects.toThrow("no host");
+    await c.call("host.register", { token: "main-secret" });
+    const consent = srv.mock.requestHost({ tool: "project_open", path: "/tmp/rocket" });
+    await c.push("host.request");
+    c.close();
+    await expect(consent).rejects.toThrow("disconnected");
+  });
+
+  it("refuses an export outside the project", async () => {
+    const { c } = await setup();
+    expect(await c.request("export.file", { ...P, format: "csv", path: "/tmp/out.csv", allow_outside: true })).toMatchObject({ ok: false, error: { code: "forbidden" } });
   });
 });
 
@@ -315,7 +414,7 @@ describe("mock RPC: Lecturn (B8)", () => {
 describe("mock RPC: schemas", () => {
   it("has a result schema per method and a push schema per topic", () => {
     expect(Object.keys(RESULT_SCHEMAS).sort()).toEqual([...RPC_METHODS].sort());
-    expect(Object.keys(TOPIC_SCHEMAS).sort()).toEqual(["broker.request", "embed.threads", "lecturn.status", "project.opened", "project.patch", "project.snapshot"]);
+    expect(Object.keys(TOPIC_SCHEMAS).sort()).toEqual(["broker.request", "embed.threads", "host.request", "host.show", "lecturn.status", "project.closed", "project.opened", "project.patch", "project.snapshot", "project.updated"]);
   });
 
   it("every contract fixture validates against its registry schema", () => {
