@@ -10,6 +10,7 @@
 //! lib/materials/*.rw.toml  `[materials.<id>]`, merged into evaluation
 //! lib/motors/*.eng|*.rse   motor files, kept verbatim
 //! renders/ runs/ .rw/      outputs and state (never sources)
+//! artifacts/               agents' planning and scratch files (never sources)
 //! ```
 //!
 //! Sources are the files the [`crate::TomlStore`] edits. Library files are
@@ -32,7 +33,14 @@ pub const LIB_MATERIALS: &str = "lib/materials";
 pub const LIB_MOTORS: &str = "lib/motors";
 
 /// Top-level directories that never hold sources.
-const OUTPUT_DIRS: [&str; 5] = ["runs", "renders", "node_modules", "target", "lib"];
+const OUTPUT_DIRS: [&str; 6] = [
+    "runs",
+    "renders",
+    "artifacts",
+    "node_modules",
+    "target",
+    "lib",
+];
 /// How deep the source walk goes (`parts/sub/x.rw.toml` is depth 3).
 const MAX_DEPTH: usize = 4;
 
@@ -258,6 +266,9 @@ mod tests {
             ".rw/history/steps.jsonl",
             "runs/baseline/abc/summary.rw.json",
             "renders/manifest.json",
+            "artifacts/plan.md",
+            "artifacts/draft.rw.toml",
+            "artifacts/notes/draft.rw.toml",
             "parts/.fin_can.rw.toml.swp",
             "parts/.fin_can.rw.toml.rw-tmp-12",
             "rocket.rw.toml~",
@@ -282,6 +293,8 @@ mod tests {
             "runs",
             "runs/baseline",
             "renders",
+            "artifacts",
+            "artifacts/notes",
             "lib/other",
             "a/b/c/d",
         ] {
@@ -301,6 +314,9 @@ mod tests {
         .unwrap();
         std::fs::create_dir_all(dir.path().join("runs/baseline/r1")).unwrap();
         std::fs::write(dir.path().join("runs/baseline/r1/x.rw.toml"), b"junk").unwrap();
+        std::fs::create_dir_all(dir.path().join("artifacts/notes")).unwrap();
+        std::fs::write(dir.path().join("artifacts/draft.rw.toml"), b"junk").unwrap();
+        std::fs::write(dir.path().join("artifacts/notes/x.rw.toml"), b"junk").unwrap();
         std::fs::create_dir_all(dir.path().join(".rw")).unwrap();
         std::fs::write(dir.path().join(".rw/x.rw.toml"), b"junk").unwrap();
         let p = read_project(dir.path()).unwrap();
