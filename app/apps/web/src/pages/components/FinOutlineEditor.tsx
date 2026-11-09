@@ -15,7 +15,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { PatchOp, schema } from "@rw/contracts";
 import { Icon } from "../../shell/Icon.tsx";
 import type { DeepReadonly, Units } from "../../state/index.ts";
-import { displayUnit, fromDisplay, toDisplay } from "./fields.ts";
+import { displayUnit, fromDisplay, toDisplay } from "../../ui/fields/index.ts";
 import { canRemove, fromPx, insertPoint, movePoint, outlineFrame, outlineProblem, outlineSource, removePoint, snapPoint, toPx, type OutlineFrame, type Pt } from "./outline.ts";
 
 type Comp = DeepReadonly<schema.EvalComponent>;

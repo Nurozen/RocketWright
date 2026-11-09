@@ -9,7 +9,7 @@ import type { CheckReport, CompareOut, EvaluatedModel, PatchOp } from "@rw/contr
 import { describe, expect, it } from "vitest";
 import { changeText } from "./AgentExtras.tsx";
 import { partDiagnostics } from "./ComponentEditor.tsx";
-import { editorFields, fromDisplay, limitsOf, parseLiteral, rangeError, sharedFields, tabsFor, toDisplay, toSource } from "./fields.ts";
+import { editorFields, fromDisplay, limitsOf, parseLiteral, rangeError, sharedFields, tabsFor, toDisplay, toSource } from "../../ui/fields/index.ts";
 import { planformLayout, planformOf } from "./PartProfile.tsx";
 import { airframeJoints, finOutlines, fitFrame, hull, modelExtents, profileOverlay, projectBody, scaleLabel, toScreen } from "./profile-geometry.ts";
 import { changedFields, componentDiffers, draftProposal, findStepProposal, reverseOps } from "./proposal.ts";
@@ -92,8 +92,9 @@ describe("schema-driven fields", () => {
     expect(geo.find((x) => x.key === "count")).toMatchObject({ label: "Fin count", kind: "integer", min: 1, max: 8 });
     expect(geo.find((x) => x.key === "span")).toMatchObject({ kind: "quantity", dim: "length", expr: true, group: "Fins" });
     expect(geo.find((x) => x.key === "cross_section")).toMatchObject({ kind: "enum", options: ["square", "rounded", "airfoil"] });
-    // Nested groups (the fin tab) stay out of the flat grid.
+    // The fin tab is a named group, not a field of the flat grid.
     expect(geo.some((x) => x.key === "tab")).toBe(false);
+    expect(geo.filter((x) => x.parent === "tab").map((x) => x.key)).toEqual(["tab.height", "tab.length", "tab.offset"]);
     expect(f.filter((x) => x.tab === "Mass override").map((x) => x.key)).toEqual(["override.mass", "override.cg"]);
     expect(f.find((x) => x.key === "override.mass")).toMatchObject({ dim: "mass" });
     expect(f.find((x) => x.key === "appearance.preset")?.options).toContain("composite_white");

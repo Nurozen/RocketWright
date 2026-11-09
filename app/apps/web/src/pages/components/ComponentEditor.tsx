@@ -2,7 +2,7 @@
  * Page 02 component editor (concept 02, lower 40% of the workspace,
  * collapsible): tabs Geometry | Material | Appearance | Mass override, two
  * columns of unit-aware spinner fields from the component-type schema
- * (fields.ts), validation messages (local limits plus the check's
+ * (ui/fields), validation messages (local limits plus the check's
  * diagnostics on the part), the live part profile, Modified status, Parts
  * library, and Revert change.
  *
@@ -10,13 +10,13 @@
  * model (a draft previewed by rw-wasm, I4); Enter or leaving the field commits
  * it through `model.patch` (I1, I2); Escape discards it.
  */
-import { useEffect, useId, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { PatchOp, schema } from "@rw/contracts";
 import { Icon } from "../../shell/Icon.tsx";
-import { useDirtyField } from "../../state/dirtyFields.ts";
 import { ADD_FIRST_PART, FIRST_PART_HINT, type DeepReadonly, type Units } from "../../state/index.ts";
 import { partLabel } from "../../state/ops/parts.ts";
-import { displayUnit, fromDisplay, limitsOf, rangeError, sharedFields, tabsFor, toDisplay, toSource, type EditorTab, type FieldSpec } from "./fields.ts";
+import { BoolField, displayUnit, FieldGroupFrame, fromDisplay, groupsOf, limitsOf, rangeError, SelectField, sharedFields, SpinField, tabsFor, toDisplay, toSource, type EditorTab, type FieldSpec } from "../../ui/fields/index.ts";
+import { evaluatedValue, fieldWriteOps, groupAddOps, tablePresent } from "./fieldOps.ts";
 import { FinOutlineEditor } from "./FinOutlineEditor.tsx";
 import { PartProfile } from "./PartProfile.tsx";
 import { fieldTarget, type SourceFilesLike } from "./source.ts";
@@ -74,19 +74,6 @@ export function linkTitle(param: { name: string; doc?: string } | null, expressi
   return doc;
 }
 
-/** The evaluated value behind a field (SI number, enum text, or null). */
-export function evaluatedValue(c: Comp, key: string): number | string | null {
-  const parts = key.split(".");
-  if (parts[0] === "override") {
-    const v = (c.override as Record<string, unknown> | null | undefined)?.[parts[1]!];
-    return typeof v === "number" ? v : null;
-  }
-  if (key === "appearance.preset") return c.appearance?.preset ?? null;
-  if (key === "material") return c.material ?? null;
-  const v = (c.shape as Record<string, unknown>)[key];
-  return typeof v === "number" || typeof v === "string" ? v : null;
-}
-
 /** Diagnostics on these parts' source paths (or on params their fields reference). */
 export function partDiagnostics(diags: readonly DeepReadonly<Diagnostic>[], ids: readonly string[], paramPaths: readonly string[]): DeepReadonly<Diagnostic>[] {
   const seen = new Set<string>();
@@ -118,16 +105,34 @@ export function ComponentEditor(props: ComponentEditorProps) {
     );
   }
   const ids = comps.map((c) => c.id);
+  const flat = all.filter((f) => f.parent === undefined);
+  const groups = groupsOf(all);
   // Required fields fill the two-column grid; optional ones show when the source sets them.
-  const fields = all.filter((f) => f.tab !== "Geometry" || f.required || comps.some((c) => fieldTarget(files, c.id, f.key).written !== undefined));
+  const fields = flat.filter((f) => f.tab !== "Geometry" || f.required || comps.some((c) => fieldTarget(files, c.id, f.key).written !== undefined));
   const primary = fields.filter((f) => f.tab !== "Geometry" || f.required);
   const extra = fields.filter((f) => !primary.includes(f));
   const title = comps.length > 1 ? `${comps.length} parts` : first.name;
-  const paramPaths = fields.map((f) => fieldTarget(files, first.id, f.key)).filter((t) => t.param !== null).map((t) => t.path);
+  const paramPaths = [...fields, ...groups.flatMap((g) => g.fields)].map((f) => fieldTarget(files, first.id, f.key)).filter((t) => t.param !== null).map((t) => t.path);
   // A single freeform fin set edits its outline on Geometry (its RW-E061 outline messages show there).
   const outline = active === "Geometry" && comps.length === 1 && first.shape.type === "freeform_fin_set";
   const onOutline = (d: DeepReadonly<Diagnostic>) => outline && (d.path === `/c/${first.id}/points` || (d.path ?? "").startsWith(`/c/${first.id}/points/`));
   const diags = partDiagnostics(props.diagnostics, ids, paramPaths).filter((d) => !onOutline(d));
+  const row = (f: FieldSpec) => (
+    <FieldRow
+      key={`${ids.join(",")}:${f.key}`}
+      field={f}
+      comps={comps}
+      files={files}
+      units={units}
+      materials={props.materials}
+      error={errors[f.key] ?? null}
+      setError={(e) => setErrors((x) => ({ ...x, [f.key]: e ?? "" }))}
+      onEdit={props.onEdit}
+      onCommit={props.onCommit}
+      onDiscard={props.onDiscard}
+      byAgent={props.agentChanged?.includes(f.key) ?? false}
+    />
+  );
   return (
     <section className="rw-editor" data-rw-region="editor" data-testid="editor" data-part={ids.join(",")} data-collapsed={collapsed ? "true" : "false"}>
       <header className="rw-editor__head">
@@ -158,42 +163,36 @@ export function ComponentEditor(props: ComponentEditorProps) {
           <div className="rw-editor__body">
             <div className="rw-editor__main">
               <div className="rw-editor__fields" data-tab={active} style={active === "Geometry" ? { gridTemplateRows: `repeat(${Math.max(1, Math.ceil(primary.length / 2))}, auto)` } : undefined}>
-                {primary.map((f) => (
-                  <FieldRow
-                    key={`${ids.join(",")}:${f.key}`}
-                    field={f}
-                    comps={comps}
-                    files={files}
-                    units={units}
-                    materials={props.materials}
-                    error={errors[f.key] ?? null}
-                    setError={(e) => setErrors((x) => ({ ...x, [f.key]: e ?? "" }))}
-                    onEdit={props.onEdit}
-                    onCommit={props.onCommit}
-                    onDiscard={props.onDiscard}
-                    byAgent={props.agentChanged?.includes(f.key) ?? false}
-                  />
-                ))}
+                {primary.map(row)}
               </div>
               {extra.length > 0 && (
                 <div className="rw-editor__fields rw-editor__fields--extra" data-tab={active}>
-                  {extra.map((f) => (
-                    <FieldRow
-                      key={`${ids.join(",")}:${f.key}`}
-                      field={f}
-                      comps={comps}
-                      files={files}
-                      units={units}
-                      materials={props.materials}
-                      error={errors[f.key] ?? null}
-                      setError={(e) => setErrors((x) => ({ ...x, [f.key]: e ?? "" }))}
-                      onEdit={props.onEdit}
-                      onCommit={props.onCommit}
-                      onDiscard={props.onDiscard}
-                      byAgent={props.agentChanged?.includes(f.key) ?? false}
-                    />
-                  ))}
+                  {extra.map(row)}
                 </div>
+              )}
+              {groups.map((g) =>
+                comps.every((c) => tablePresent(files, c, [g.key])) ? (
+                  <FieldGroupFrame key={g.key} heading={g.heading} group={g.key}>
+                    <div className="rw-editor__fields rw-editor__fields--extra" data-tab={active}>
+                      {g.fields.map(row)}
+                    </div>
+                  </FieldGroupFrame>
+                ) : (
+                  <button
+                    key={g.key}
+                    type="button"
+                    className="rw-button rw-editor__add-group"
+                    data-testid="editor.add-group"
+                    data-group={g.key}
+                    onClick={() => {
+                      props.onEdit(groupAddOps(comps, files, g, units), `${g.add} to ${title}`);
+                      props.onCommit();
+                    }}
+                  >
+                    <Icon name="plus" size={18} />
+                    {g.add}
+                  </button>
+                ),
               )}
               {outline && <FinOutlineEditor comp={first} units={units} diagnostics={props.diagnostics} onEdit={props.onEdit} onCommit={props.onCommit} onDiscard={props.onDiscard} />}
               <div className="rw-editor__notes">
@@ -284,55 +283,40 @@ function FieldRow({
   const lim = limitsOf(f, target.param, units);
   const u = displayUnit(f.dim, units);
   const label = comps.length > 1 ? `Set ${f.label.toLowerCase()} on ${comps.length} parts` : `Set ${first.name} ${f.label.toLowerCase()}`;
-  // One op per distinct target (a shared param is written once).
-  const opsFor = (v: string | number | null): PatchOp[] => {
-    const seen = new Set<string>();
-    const ops: PatchOp[] = [];
-    for (const c of comps) {
-      const t = fieldTarget(files, c.id, f.key);
-      if (seen.has(t.path)) continue;
-      seen.add(t.path);
-      const parts = f.key.split(".");
-      // A nested field whose table the part does not have yet (`override`, `appearance`): add the table.
-      const parentMissing = parts.length > 1 && t.param === null && (c as unknown as Record<string, unknown>)[parts[0]!] == null;
-      if (v === null) {
-        if (t.written !== undefined) ops.push({ op: "remove", path: t.path });
-      } else if (parentMissing) ops.push({ op: "add", path: `/c/${c.id}/${parts[0]}`, value: { [parts[1]!]: v } as never });
-      else ops.push({ op: t.written === undefined && !t.param ? "add" : "replace", path: t.path, value: v as never });
-    }
-    return ops;
-  };
+  const opsFor = (v: string | number | boolean | null): PatchOp[] => fieldWriteOps(comps, files, f, v);
   const linked = linkTitle(target.param !== null ? { name: target.param.name, ...(target.param.doc !== undefined ? { doc: target.param.doc } : {}) } : null, target.expression, f.doc);
   const testid = "editor.field";
+  if (f.kind === "bool") {
+    return (
+      <BoolField
+        testid={testid}
+        field={f}
+        checked={mixed ? null : value === true}
+        title={linked}
+        byAgent={byAgent}
+        onChange={(checked) => {
+          onEdit(opsFor(checked), label);
+          onCommit();
+        }}
+      />
+    );
+  }
   if (f.kind === "enum") {
     const options = f.key === "material" ? materials : (f.options ?? []);
     return (
-      <label className="rw-field" data-testid={testid} data-field={f.key} title={linked}>
-        <span className="rw-field__label">
-          {f.label}
-          {byAgent && <AgentMarker />}
-        </span>
-        <span className="rw-select rw-select--native rw-field__select">
-          <select
-            value={mixed || value === null ? "" : String(value)}
-            aria-label={f.label}
-            onChange={(e) => {
-              const v = e.currentTarget.value;
-              if (v === "") return;
-              onEdit(opsFor(v), label);
-              onCommit();
-            }}
-          >
-            {(mixed || value === null) && <option value="">{mixed ? "Mixed" : "—"}</option>}
-            {options.map((o) => (
-              <option key={o} value={o}>
-                {o.replace(/_/g, " ")}
-              </option>
-            ))}
-          </select>
-          <Icon name="chevron-down" size={16} />
-        </span>
-      </label>
+      <SelectField
+        testid={testid}
+        field={f}
+        value={mixed || value === null ? "" : String(value)}
+        options={options}
+        placeholder={mixed ? "Mixed" : value === null ? "—" : null}
+        title={linked}
+        byAgent={byAgent}
+        onChange={(v) => {
+          onEdit(opsFor(v), label);
+          onCommit();
+        }}
+      />
     );
   }
   const shown = mixed ? "" : typeof value === "number" ? (f.kind === "quantity" ? toDisplay(value, f.dim, units) : String(Number(value.toPrecision(6)))) : "";
@@ -376,117 +360,6 @@ function FieldRow({
         onDiscard();
       }}
     />
-  );
-}
-
-/** A spinner field: typed number, ▲▼ steps, unit suffix; Enter or blur commits, Escape discards. */
-function SpinField({
-  testid,
-  field,
-  unit,
-  value,
-  placeholder,
-  step,
-  title,
-  byAgent,
-  error,
-  onChange,
-  onCommit,
-  onDiscard,
-}: {
-  testid: string;
-  field: FieldSpec;
-  unit: string;
-  value: string;
-  placeholder: string;
-  step: number;
-  /** Tooltip (shared parameter or formula, in words; else the field's doc). */
-  title: string | undefined;
-  byAgent: boolean;
-  error: string | null;
-  onChange: (text: string) => void;
-  onCommit: () => void;
-  onDiscard: () => void;
-}) {
-  const [text, setText] = useState(value);
-  const [editing, setEditing] = useState(false);
-  const unitId = useId();
-  useEffect(() => {
-    if (!editing) setText(value);
-  }, [value, editing]);
-  // Valid text is in the draft from the keystroke on; only text that failed its check has nowhere to go.
-  // The error, not the text: a blur puts the model's value back, and the person still has not been told it was dropped.
-  useDirtyField({ dirty: () => error !== null && error !== "", commit: () => error });
-  const bump = (dir: 1 | -1) => {
-    const cur = Number(text === "" ? value || "0" : text);
-    const next = Number(((Number.isFinite(cur) ? cur : 0) + dir * step).toPrecision(10));
-    const s = String(next);
-    setText(s);
-    onChange(s);
-    onCommit();
-  };
-  return (
-    <label className="rw-field" data-testid={testid} data-field={field.key} data-invalid={error ? "true" : undefined} data-by-agent={byAgent ? "true" : undefined} title={title}>
-      <span className="rw-field__label">
-        {field.label}
-        {byAgent && <AgentMarker />}
-      </span>
-      <span className="rw-spinbox">
-        <input
-          className="rw-spinbox__input"
-          inputMode="decimal"
-          value={text}
-          placeholder={placeholder}
-          aria-label={field.label}
-          aria-describedby={unit === "" ? undefined : unitId}
-          aria-invalid={error ? true : undefined}
-          onFocus={() => setEditing(true)}
-          onChange={(e) => {
-            setText(e.currentTarget.value);
-            onChange(e.currentTarget.value);
-          }}
-          onBlur={() => {
-            setEditing(false);
-            if (!error) onCommit();
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !error) {
-              e.currentTarget.blur();
-            } else if (e.key === "Escape") {
-              setText(value);
-              onDiscard();
-              e.currentTarget.blur();
-            } else if (e.key === "ArrowUp") {
-              e.preventDefault();
-              bump(1);
-            } else if (e.key === "ArrowDown") {
-              e.preventDefault();
-              bump(-1);
-            }
-          }}
-        />
-        <span className="rw-spinbox__arrows">
-          <button type="button" tabIndex={-1} aria-label={`Increase ${field.label}`} data-testid="editor.spin-up" onMouseDown={(e) => e.preventDefault()} onClick={() => bump(1)}>
-            <Icon name="chevron-up" size={12} />
-          </button>
-          <button type="button" tabIndex={-1} aria-label={`Decrease ${field.label}`} data-testid="editor.spin-down" onMouseDown={(e) => e.preventDefault()} onClick={() => bump(-1)}>
-            <Icon name="chevron-down" size={12} />
-          </button>
-        </span>
-      </span>
-      <span id={unitId} className="rw-field__unit">
-        {unit}
-      </span>
-    </label>
-  );
-}
-
-/** Under a field label: the agent changed this value in the shown revision. */
-function AgentMarker() {
-  return (
-    <span className="rw-field__agent" data-testid="editor.field-changed">
-      Changed by agent
-    </span>
   );
 }
 

@@ -445,6 +445,22 @@ test.describe(FREEFORM, () => {
     expect(outline()[3]).toEqual([80, 0]);
   });
 
+  test("Add fin tab writes the whole group, and a nested edit keeps its siblings", async ({ page }) => {
+    await page.getByRole("button", { name: "Add fin tab", exact: true }).click();
+    const tabGroup = page.getByRole("group", { name: "Fin tab", exact: true });
+    const height = tabGroup.getByLabel("Height", { exact: true });
+    await expect(height).toBeVisible();
+    await expect(height).toHaveAccessibleDescription("mm");
+    await expect(page.getByRole("button", { name: "Add fin tab", exact: true })).toHaveCount(0);
+    const tabText = () => /\[c\.fins\][\s\S]*?^tab = (\{.*\})$/m.exec(rocket())?.[1] ?? "";
+    await expect.poll(tabText).toMatch(/height = "0 mm".*length = "/);
+
+    await height.fill("3");
+    await height.press("Enter");
+    await expect.poll(tabText).toMatch(/height = "3 mm"/);
+    expect(tabText()).toMatch(/length = "/);
+  });
+
   test("cut vents are subtracted from the tube in the shaded views", async ({ page }) => {
     // Four 6 mm x 30 mm slots through the 0.8 mm wall, as the mass model removes them.
     const vp = page.getByTestId("viewport");

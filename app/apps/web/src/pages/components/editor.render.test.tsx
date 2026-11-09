@@ -107,3 +107,36 @@ describe("component editor markup", () => {
     expect(hist).toContain("Step 03 · ");
   });
 });
+
+describe("nested groups", () => {
+  const shoulder = { length: 0.02, od: 0.023, thickness: 0.002, capped: true };
+  const withShoulder = { ...nose, shape: { ...(nose.shape as object), shoulder } } as unknown as typeof nose;
+  const noShoulder = { ...nose, shape: { ...(nose.shape as object), shoulder: undefined } } as unknown as typeof nose;
+
+  it("offers a shoulder the part does not have as an Add button, with no leaf fields", () => {
+    const html = renderToStaticMarkup(<ComponentEditor {...props({ comps: [noShoulder], files: { "rocket.rw.toml": "[c.nose]\n" } })} />);
+    expect(html).toMatch(/<button[^>]*data-testid="editor.add-group"[^>]*>.*Add shoulder<\/button>/s);
+    expect(html).not.toContain('data-field="shoulder.length"');
+    expect(html).not.toContain('role="group" aria-labelledby');
+  });
+
+  it("names the group by its visible heading and links each unit to its input", () => {
+    const html = renderToStaticMarkup(<ComponentEditor {...props({ comps: [withShoulder], files: { "rocket.rw.toml": '[c.nose]\nshoulder = { length = "20 mm", od = "23 mm" }\n' } })} />);
+    const group = /<div class="rw-field-group" role="group" aria-labelledby="([^"]+)" data-group="shoulder">([\s\S]*?)<\/div><\/div>/.exec(html);
+    expect(group).not.toBeNull();
+    expect(group?.[2]).toContain(`<h3 id="${group?.[1]}" class="rw-field-group__title">Shoulder</h3>`);
+    expect(html).not.toContain("Add shoulder");
+    const field = (key: string) => new RegExp(`data-field="${key}"[\\s\\S]*?</label>`).exec(html)?.[0] ?? "";
+    const length = field("shoulder.length");
+    expect(length).toContain('aria-label="Length"');
+    const id = /aria-describedby="([^"]+)"/.exec(length)?.[1] ?? "";
+    expect(id).not.toBe("");
+    expect(length).toContain(`<span id="${id}" class="rw-field__unit">mm</span>`);
+    expect(length).toContain('value="20"');
+    const capped = field("shoulder.capped");
+    expect(capped).toContain('type="checkbox"');
+    expect(capped).toContain('aria-label="Capped"');
+    expect(capped).toContain("checked");
+    expect(capped).not.toContain("aria-describedby");
+  });
+});

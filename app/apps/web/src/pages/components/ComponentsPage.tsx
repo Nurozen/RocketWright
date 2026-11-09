@@ -23,7 +23,7 @@ import { AddPartButton } from "../assembly/AddPartPopover.tsx";
 import { ComponentTreeSlot } from "../assembly/AssemblyPage.tsx";
 import { ChangedFieldsCard, ThreadHistory, useOpenThreadHistory } from "./AgentExtras.tsx";
 import { ComponentEditor, type EditorStatus } from "./ComponentEditor.tsx";
-import { editorFields, type EditorTab } from "./fields.ts";
+import { editorFields, type EditorTab } from "../../ui/fields/index.ts";
 import { PROFILE_VIEW_LABEL, PROFILE_VIEWS, type ProfileView as ViewId } from "./profile-geometry.ts";
 import { ProfileView } from "./ProfileView.tsx";
 import { draftProposal, findStepProposal, type Proposal } from "./proposal.ts";
