@@ -8,7 +8,8 @@
 Agent-driven rocket design and simulation for hobbyists. You describe a rocket
 in a chat (or in plain TOML files), and an agent edits the design, checks it,
 flies it, and renders it, with every number coming from the engine rather than
-the model's arithmetic.
+the model's arithmetic. You can also do all of it yourself in the desktop app,
+with no agent at all.
 
 - **Design and check**: a parametric model (`rocket.rw.toml`, expressions,
   named anchors), mass and CG, Barrowman-style aerodynamics with stability
@@ -46,7 +47,33 @@ above.
 
 Alpha, macOS-first (Apple Silicon). The core, CLI, MCP server, desktop
 app, and liquid-engine tools work end to end and are covered by `make check`.
-Known gaps: OpenRocket parity holds on the seven reference cases, but the
+
+The desktop app now takes a rocket from nothing to a flight without an agent
+([full guide](docs/desktop-app.md)):
+
+- **Projects**: create one in `~/Documents/RocketWright` by default, or anywhere
+  you choose, from an Empty, Minimal, or Simple rocket template. Open any folder,
+  open your own copy of the sample rocket, and come back through Recent. The
+  app reopens your last project when it starts.
+- **Parts**: add every part type from Add part, or a preset from the parts
+  library; rename, duplicate, move, and delete; edit every field, with undo.
+- **Materials**: browse the project and library materials, and create or edit
+  your own.
+- **Simulations**: set the rail, site, wind, atmosphere, and solver, then run,
+  cancel, duplicate, and delete runs, and overlay up to six of them, in metric
+  or imperial.
+- **Import and export**: `.ork`, `.eng`, and `.rse` in, by menu or by dropping
+  them on the window; `.ork`, RASP, CSV, STL, and GLB out.
+- **Liquid engines**: create, duplicate, delete, and edit engines, including
+  the feed graph, then compute them and run the flow views.
+- **Preferences**: default units for new projects, and the window, view, and
+  tab you last used.
+
+The agent can start a new project or open an existing one too, once you confirm
+in a native dialog that names what it wants to do and where.
+
+Known gaps: multi-stage setup still goes through the agent or the CLI;
+OpenRocket parity holds on the seven reference cases, but the
 rail-button drag model rests on an assumed boundary-layer profile
 ([`docs/dev/parity-log.md`](docs/dev/parity-log.md)); release builds of the desktop app are unsigned until the
 signing secrets are configured ([`docs/dev/releasing.md`](docs/dev/releasing.md));
@@ -120,6 +147,10 @@ make dev                    # a fresh /tmp copy of fixtures/research-vehicle
 make dev PROJECT=~/my-rocket # open your own project in place
 make dev BROWSER=1 OPEN=1   # serve the app to a browser instead of Electron
 ```
+
+The fresh copy is a developer convenience of `make dev` alone. A packaged app
+reopens your last project or shows Welcome, and keeps projects in real folders;
+see [Using the desktop app](docs/desktop-app.md).
 
 `make dev` builds the plain sidecar (`target/rw-plain/rocketwright`, never
 the test-only `doubles` build), the WASM core, and the web bundle, then starts
@@ -200,6 +231,7 @@ committed `.ork` files all fail it. Procedure and roles:
 
 ## Documentation
 
+- [`docs/desktop-app.md`](docs/desktop-app.md): using the desktop app, with or without an agent
 - [`CONTRIBUTING.md`](CONTRIBUTING.md), [`AGENTS.md`](AGENTS.md): how to contribute, conventions for coding agents
 - [`docs/agents/`](docs/agents/): the agent briefing, skill, and diagnostic codes
 - [`docs/dev/environment.md`](docs/dev/environment.md): toolchain, setup, make targets, pitfalls

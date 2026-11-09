@@ -17,6 +17,25 @@
   Component presets and motors are search-only (`library_search`, `library_show`).
 - `Session::lib_record` writes the current hashes into `[lib.sha256]` (a normal step).
 
+## Project lifecycle in the app
+
+- `project.create` (`app/apps/server/src/project/create.ts`) spawns `rw init`,
+  or `rw import ork` for an `.ork` from Welcome, into `<location>/<name>` and
+  then opens the result. It is the only write outside a session, and the CLI
+  takes the project lock itself. It refuses before spawning if the target
+  already holds a project.
+- `project_rename` writes the name to `rocketwright.toml` and `rocket.rw.toml`
+  in one step. The folder and every id stay. The name is in the model hash, so
+  a rename outdates every run; the UI warns first.
+- Removing a component also removes its `motors` and `deploy` entries, and those
+  of everything removed with it, from every configuration, in the same step
+  (`config_entry_removals`), so an undo restores them together. References that
+  can stay broken on purpose keep their diagnostics: `/stage/<id>/first`, feed
+  `node.component`, expressions, and `[report]`.
+- `run_delete` removes one stored run and records no history step: the run
+  store is not part of the model, so nothing else changes byte for byte. It
+  refuses while that sim has a job running.
+
 ## Mutation pipeline (`session.rs`)
 
 ops -> `TomlStore::preview` -> eval (+library) -> `Checker` -> dry run returns
