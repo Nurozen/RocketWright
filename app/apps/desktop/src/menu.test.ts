@@ -48,6 +48,10 @@ describe("the native menu", () => {
     expect(accelerated("CmdOrCtrl+W")).toEqual(["project.close"]);
     expect(accelerated("CmdOrCtrl+Shift+W")).toEqual(["window.close"]);
     expect(accelerated("CmdOrCtrl+Z")).toEqual(["edit.undo"]);
+    expect(accelerated("CmdOrCtrl+N")).toEqual(["project.new"]);
+    expect(accelerated("CmdOrCtrl+O")).toEqual(["project.open"]);
+    expect(accelerated("CmdOrCtrl+,")).toEqual(["app.settings"]);
+    expect([1, 2, 3, 4].map((n) => accelerated(`CmdOrCtrl+${n}`))).toEqual([["view.tab:design"], ["view.tab:propulsion"], ["view.tab:simulate"], ["view.tab:results"]]);
   });
 
   it.each(platforms)("has no close, zoom or Delete shortcut that would bypass the app on %s", (platform) => {

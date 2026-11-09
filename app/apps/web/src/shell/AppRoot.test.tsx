@@ -91,6 +91,7 @@ function fakeHost(over: Partial<HostApi> = {}) {
     exportFile: () => Promise.resolve({ canceled: true }),
     recents: () => Promise.resolve([]),
     removeRecent: () => Promise.resolve(),
+    setDirty: () => Promise.resolve(),
     setActiveProject: (p) => {
       active.push(p);
       return Promise.resolve();
@@ -395,6 +396,53 @@ describe("closing and commands", () => {
     await settled();
     expect(storeOf(shown()).getState().project.projectId).toBe("a");
     expect(shown()!.store).toBe(before!.store);
+  });
+
+  it("in a browser, Cmd-O asks for a folder and Cmd-N stays the browser's", async () => {
+    const t = fakeClient([]);
+    await mount(t, fakeHost({ kind: "browser" }), { host: undefined });
+    const press = (key: string) => {
+      const e = new KeyboardEvent("keydown", { key, metaKey: true, cancelable: true });
+      window.dispatchEvent(e);
+      return e.defaultPrevented;
+    };
+    expect(press("n")).toBe(false);
+    await settled();
+    expect(document.querySelector('[data-testid="path-prompt"]')).toBeNull();
+    await act(async () => void press("o"));
+    await settled();
+    expect(document.querySelector('[data-testid="path-prompt"]')?.textContent).toContain("Open folder");
+  });
+
+  it("on the desktop, the page leaves those keys to the native menu", async () => {
+    const t = fakeClient([]);
+    const pickFolder = vi.fn<HostApi["pickFolder"]>(() => Promise.resolve(null));
+    await mount(t, fakeHost({ pickFolder }));
+    const e = new KeyboardEvent("keydown", { key: "o", metaKey: true, cancelable: true });
+    await act(async () => void window.dispatchEvent(e));
+    await settled();
+    expect(e.defaultPrevented).toBe(false);
+    expect(pickFolder).not.toHaveBeenCalled();
+  });
+
+  it("tells main while typed work is unsaved, and that it is safe once the project is left", async () => {
+    const t = fakeClient(["a"]);
+    const setDirty = vi.fn<HostApi["setDirty"]>(() => Promise.resolve());
+    await mount(t, fakeHost({ setDirty }));
+    let dirty = true;
+    const off = registerDirtyField({ dirty: () => dirty, commit: () => null });
+    await settled();
+    expect(setDirty.mock.calls).toEqual([[true]]);
+    dirty = false;
+    off();
+    await settled();
+    expect(setDirty.mock.calls).toEqual([[true], [false]]);
+    dirty = true;
+    registerDirtyField({ dirty: () => dirty, commit: () => null });
+    await settled();
+    await act(async () => root?.unmount());
+    root = null;
+    expect(setDirty.mock.lastCall).toEqual([false]);
   });
 
   it("a native close asks the server to close the shown project", async () => {

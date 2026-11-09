@@ -13,6 +13,7 @@ export function createElectronHost(bridge: DesktopBridge): HostApi {
     recents: () => bridge.recents(),
     removeRecent: (dir) => bridge.removeRecent(dir),
     setActiveProject: (project) => bridge.setActiveProject(project),
+    setDirty: (dirty) => bridge.setDirty(dirty),
     relaunch: () => bridge.relaunch(),
     onCommand: (listener) => bridge.onCommand(listener),
     pathForFile: (file) => {

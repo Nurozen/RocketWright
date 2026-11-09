@@ -60,6 +60,10 @@ export interface AppCommand {
   id: DesktopCommandId;
   label: string;
   menu: "File" | "Edit" | "View" | "Help" | "App";
+  /** The native menu item's key, when it has one. */
+  accelerator?: string;
+  /** A plain browser tab can take this key too. Absent for keys a browser keeps for itself, such as Cmd-N and Cmd-W (R0.12). */
+  browser?: true;
 }
 
 /**
@@ -69,11 +73,11 @@ export interface AppCommand {
  * main has to read it too.
  */
 export const APP_COMMANDS: readonly AppCommand[] = [
-  { id: "project.new", label: "New project…", menu: "File" },
-  { id: "project.open", label: "Open folder…", menu: "File" },
+  { id: "project.new", label: "New project…", menu: "File", accelerator: "CmdOrCtrl+N" },
+  { id: "project.open", label: "Open folder…", menu: "File", accelerator: "CmdOrCtrl+O", browser: true },
   { id: "project.openSample", label: "Open sample rocket", menu: "File" },
   { id: "project.openRecent", label: "Recent", menu: "File" },
-  { id: "project.close", label: "Close project", menu: "File" },
+  { id: "project.close", label: "Close project", menu: "File", accelerator: "CmdOrCtrl+W" },
   { id: "project.rename", label: "Rename project…", menu: "File" },
   { id: "file.import", label: "Import…", menu: "File" },
   { id: "file.export", label: "Export…", menu: "File" },
@@ -82,12 +86,17 @@ export const APP_COMMANDS: readonly AppCommand[] = [
   { id: "view.tab", label: "Tab", menu: "View" },
   { id: "view.zoom", label: "Zoom", menu: "View" },
   { id: "help.quickStart", label: "Quick start", menu: "Help" },
-  { id: "app.settings", label: "Settings…", menu: "App" },
+  { id: "app.settings", label: "Settings…", menu: "App", accelerator: "CmdOrCtrl+,", browser: true },
 ];
 
 /** A command's label as every menu shows it. */
 export function commandLabel(id: DesktopCommandId): string {
   return APP_COMMANDS.find((c) => c.id === id)?.label ?? id;
+}
+
+/** A command's native menu key, if it has one. */
+export function commandAccelerator(id: DesktopCommandId): string | undefined {
+  return APP_COMMANDS.find((c) => c.id === id)?.accelerator;
 }
 
 /** The header's tabs, which the native View menu lists too. */

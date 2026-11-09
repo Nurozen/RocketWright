@@ -88,7 +88,7 @@ import { bootProjects, buildPreload, desktopArg, documentsDirOverride, lecturnBa
 import { createConsentDialogs, registerDesktopServices } from "./nativeDialogs.ts";
 import { packagedLayout, packagedServerOptions, userArgv } from "./packaged.ts";
 import { installProtocol, linkInArgv, linkQueue, openFromLink, parseOpenUrl, projectActivator } from "./protocol.ts";
-import { once, shutdownOnQuit } from "./quit.ts";
+import { guardQuit, once, QUIT_DISCARD_BUTTON, QUIT_PROMPT } from "./quit.ts";
 import { createRecents, type Recents } from "./recents.ts";
 import { reopenLast } from "./reopen.ts";
 import { classifyPane, PANE_DOM_VIEW_SCRIPT, SNAPSHOT_SHOWN_SCRIPT, waitOverlaySnapshot, type PaneDomView } from "./surfacePane.ts";
@@ -603,6 +603,8 @@ async function main(): Promise<void> {
   // D2: main's own socket on the child; B8/B10 use it for `embed.target` and per-project mounts.
   let pane: PaneController | null = null;
   let menu: MenuController | null = null;
+  // The page's last word on typed work (R3.7), so a quit never waits on it.
+  let pageDirty = false;
   // Main's socket claims the host channel before any window exists, so both of these read the window when called: until then a request is refused.
   const consent = createConsentDialogs<BrowserWindow>({ dialog, window: () => appWindow, focus: () => focusWindow?.(), headless: hidden });
   const activateProject = projectActivator({
@@ -650,6 +652,9 @@ async function main(): Promise<void> {
     relaunch: () => {
       app.relaunch();
       void shutdown(0);
+    },
+    setDirty: (dirty) => {
+      pageDirty = dirty;
     },
     ...(mainRpc === null
       ? {}
@@ -721,7 +726,22 @@ async function main(): Promise<void> {
   await win.loadURL(backend.url);
   app.on("window-all-closed", () => void shutdown(0));
   // app.quit() (Cmd+Q, Playwright's close) emits no window-all-closed: without this the exit hook SIGKILLs the server and orphans its sidecars (quit.ts).
-  shutdownOnQuit(app, shutdown);
+  const quit = guardQuit(app, {
+    isDirty: () => pageDirty,
+    confirmDiscard: async () => {
+      focusWindow?.();
+      return (await dialog.showMessageBox(win, { ...QUIT_PROMPT, buttons: [...QUIT_PROMPT.buttons] })).response === QUIT_DISCARD_BUTTON;
+    },
+    shutdown,
+    log: (line) => process.stderr.write(`${line}\n`),
+  });
+  win.on("close", (e) => quit.onWindowClose(e));
+  // A page that went away took its typed work with it, and a new one says for itself.
+  const pageGone = (): void => {
+    pageDirty = false;
+  };
+  win.webContents.on("render-process-gone", pageGone);
+  win.webContents.on("did-navigate", pageGone);
   const rpc = mainRpc;
   if (rpc !== null) {
     links.ready((link) => {

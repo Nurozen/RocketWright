@@ -64,6 +64,8 @@ export interface DesktopServices<W extends WindowLike> {
   headless?: boolean;
   /** Starts a new instance of the app and ends this one (R3.3, D19). */
   relaunch: () => void;
+  /** The page says whether it holds typed work the model does not have (R3.7). */
+  setDirty?: (dirty: boolean) => void;
 }
 
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null;
@@ -158,6 +160,10 @@ export function registerDesktopServices<W extends WindowLike>(deps: DesktopServi
     return recents.remove(dir);
   });
   handle(c.setActiveProject, (_win, project) => recents.see(activeProject(project)));
+  handle(c.setDirty, (_win, dirty) => {
+    if (typeof dirty !== "boolean") throw new TypeError("setDirty: expected a boolean");
+    deps.setDirty?.(dirty);
+  });
   handle(c.relaunch, () => deps.relaunch());
   return () => {
     for (const channel of channels) ipc.removeHandler(channel);

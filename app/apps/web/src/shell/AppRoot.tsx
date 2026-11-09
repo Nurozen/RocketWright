@@ -4,7 +4,7 @@
  * survives a switch and keeps the socket.
  */
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
-import type { PageId, ProjectInfo, SidecarState } from "@rw/contracts";
+import type { DesktopCommand, PageId, ProjectInfo, SidecarState } from "@rw/contracts";
 import { desktopPaneGlobals, onOpenProject } from "../embed/bridge.ts";
 import { trackLecturnStatus } from "../embed/status.ts";
 import { createPathPrompts } from "../host/browserHost.ts";
@@ -13,7 +13,7 @@ import type { RunDataSource } from "../pages/results/source.ts";
 import { RpcClient, type RpcLike } from "../state/rpc.ts";
 import { Banner } from "../ui/Banner.tsx";
 import { BRAND } from "./brand.ts";
-import { dispatchCommand, type CommandHandlers } from "./commands.ts";
+import { browserShortcut, dispatchCommand, type CommandHandlers } from "./commands.ts";
 import { RECONNECT_DELAYS_MS, type LinkStatus } from "./connection.ts";
 import { ErrorBoundary } from "./ErrorBoundary.tsx";
 import { INITIAL_LIFECYCLE, lifecycle, shellOutcome, type LifecycleState } from "./lifecycle.ts";
@@ -202,7 +202,19 @@ export function AppRoot({ url, requestedProjectId, initialPage, runSource, httpB
         applyZoom(window, zoom.current);
       },
     };
-    return host.onCommand((command) => void dispatchCommand(command, { ...latest.current.commands, ...surfaceCommands.current, ...windowCommands }));
+    const run = (command: DesktopCommand): boolean => dispatchCommand(command, { ...latest.current.commands, ...surfaceCommands.current, ...windowCommands });
+    const offMenu = host.onCommand((command) => void run(command));
+    if (host.kind !== "browser") return offMenu;
+    // No native menu here to own the keys (R0.12). The desktop must not listen too: an accelerator would run twice.
+    const onKey = (e: KeyboardEvent): void => {
+      const command = browserShortcut(e);
+      if (command !== null && run(command)) e.preventDefault();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      offMenu();
+      window.removeEventListener("keydown", onKey);
+    };
   }, [host, openHelp]);
 
   const relaunchLabel = host.kind === "desktop" ? "Relaunch" : "Reload";

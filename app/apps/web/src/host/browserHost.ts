@@ -36,6 +36,7 @@ export function createBrowserHost(prompt: PathPrompt): HostApi {
     recents: () => Promise.resolve([]),
     removeRecent: () => Promise.resolve(),
     setActiveProject: () => Promise.resolve(),
+    setDirty: () => Promise.resolve(),
     onCommand: () => () => undefined,
     pathForFile: () => null,
   };
