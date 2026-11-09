@@ -170,7 +170,8 @@ describe("server spawn", () => {
       `process.stdout.write("RW_SERVER_URL=http://127.0.0.1:1\\nRW_RPC_URL=ws://127.0.0.1:1/rpc\\n");
 process.stdin.on("end", () => { process.stdout.write("stdin ended\\n"); process.exit(0); });
 process.stdin.resume();
-process.stdout.write(JSON.stringify({ watch: process.env.RW_EXIT_WITH_PARENT ?? null }) + "\\n");
+// Later than the URL lines: spawnServer keeps the chunk that announces them, so anything in that chunk never reaches the log.
+setTimeout(() => process.stdout.write(JSON.stringify({ watch: process.env.RW_EXIT_WITH_PARENT ?? null }) + "\\n"), 50);
 setInterval(() => {}, 1000);`,
     );
     const server = await spawnServer({ cli, log: (c) => (seen += c) });
