@@ -27,6 +27,8 @@ import type { AssemblyModel } from "../../viewport/scene.ts";
 import { cameraBasis, type ViewPose } from "../../viewport/views.ts";
 import { ThreadHistory, useOpenThreadHistory } from "../components/AgentExtras.tsx";
 import { ConnectivityDiagram } from "./Diagram.tsx";
+import { EngineEditor, NewEngineButton } from "./EngineEditor.tsx";
+import { designKey, type DesignEntry } from "./engineOps.ts";
 import {
   CATEGORIES,
   bcLabel,
@@ -85,8 +87,8 @@ export interface LiquidUi {
   engine: string | null;
   inspectorTab: InspectorTab;
   sourcesOpen: boolean;
-  /** `engine_design` per engine and model hash. */
-  design: { key: string; state: "loading" | "ready" | "error"; out: EngineDesignOut | null; error?: string } | null;
+  /** The last `engine_design` per engine, kept when the engine changes under it (R3.2: last result shown stale). */
+  designs: Record<string, DesignEntry>;
   /** The blowdown analysis per engine (`engine.simulate`). */
   analysis: Record<string, AnalysisState>;
 }
@@ -94,7 +96,7 @@ export interface LiquidUi {
 export type LiquidStore = StoreApi<LiquidUi>;
 
 export function createLiquidUi(): LiquidStore {
-  return createStore<LiquidUi>()(() => ({ engine: null, inspectorTab: "connection", sourcesOpen: false, design: null, analysis: {} }));
+  return createStore<LiquidUi>()(() => ({ engine: null, inspectorTab: "connection", sourcesOpen: false, designs: {}, analysis: {} }));
 }
 
 export interface LiquidSlots {
@@ -127,7 +129,7 @@ function useEngineView(store: AppStore, ui: LiquidStore): EngineView | null {
   const diagnostics = useAppState(store, (s) => s.project.snapshot?.check?.diagnostics ?? null);
   const refs = useAppState(store, (s) => s.selection.refs);
   const preferred = useStore(ui, (s) => s.engine);
-  const designOut = useStore(ui, (s) => s.design?.out ?? null);
+  const designs = useStore(ui, (s) => s.designs);
   const ids = useMemo(() => engineIds(engines as Record<string, unknown> | null), [engines]);
   const id = pickEngine(ids, refs, preferred);
   useEffect(() => {
@@ -140,26 +142,51 @@ function useEngineView(store: AppStore, ui: LiquidStore): EngineView | null {
     const target = refs.map(feedTarget).find((t): t is FeedTarget => t !== null && t.engine === id) ?? null;
     const connection = connectionOf(engine, target);
     // The check report owns the badge; before the first check, the design's own diagnostics stand in.
-    const diags = diagnostics ?? (designOut?.engine === id ? designOut.diagnostics : null);
+    const diags = diagnostics ?? designs[id]?.out?.diagnostics ?? null;
     return { id, engine, target, connection, missing: missingInputs(diags as Diagnostic[] | null, id) };
-  }, [id, engines, refs, diagnostics, designOut]);
+  }, [id, engines, refs, diagnostics, designs]);
 }
 
-/** `engine.design` for the engine on screen, refetched when the model changes. */
-function useEngineDesign(store: AppStore, client: RpcLike | null, ui: LiquidStore, engineId: string | null): void {
+let designRequests = 0;
+
+/**
+ * Asks the sidecar for one engine's design and stores it under the engine it
+ * was computed from. Only the newest request for an engine lands; a failure
+ * keeps the last result beside the error.
+ */
+export function requestDesign(store: AppStore, client: RpcLike | null, ui: LiquidStore, engineId: string): Promise<void> {
+  const st = store.getState();
+  const engine = st.project.snapshot?.evaluated?.engines?.[engineId] as EvalEngine | undefined;
+  const projectId = st.project.projectId;
+  if (client === null || projectId === null || engine === undefined) return Promise.resolve();
+  const key = designKey(engineId, engine);
+  const seq = ++designRequests;
+  const last = ui.getState().designs[engineId]?.out ?? null;
+  const land = (entry: Pick<DesignEntry, "state" | "out" | "error">) => {
+    ui.setState((s) => ({ designs: { ...s.designs, [engineId]: { key, seq, ...entry } } }));
+  };
+  land({ state: "loading", out: last });
+  const current = () => ui.getState().designs[engineId]?.seq === seq;
+  return client.call("engine.design", { projectId, engine: engineId }).then(
+    (out) => {
+      if (current()) land({ state: "ready", out });
+    },
+    (e: unknown) => {
+      if (current()) land({ state: "error", out: last, error: message(e) });
+    },
+  );
+}
+
+/**
+ * The first visit to an engine computes its design. After that only Compute
+ * does, so an edit reads as Modified instead of quietly changing the numbers.
+ */
+function useFirstDesign(store: AppStore, client: RpcLike | null, ui: LiquidStore, engineId: string | null): void {
   const projectId = useAppState(store, (s) => s.project.projectId);
-  const hash = useAppState(store, (s) => s.project.snapshot?.evaluated?.model_hash ?? "");
-  const key = `${engineId ?? ""}@${hash}`;
   useEffect(() => {
-    const cur = ui.getState().design;
-    if (client === null || projectId === null || engineId === null || (cur?.key === key && cur.state !== "error")) return;
-    ui.setState({ design: { key, state: "loading", out: cur?.key.startsWith(`${engineId}@`) ? cur.out : null } });
-    // Only the newest request lands (the key moves on with the engine and the model).
-    client
-      .call("engine.design", { projectId, engine: engineId })
-      .then((out) => ui.getState().design?.key === key && ui.setState({ design: { key, state: "ready", out } }))
-      .catch((e: unknown) => ui.getState().design?.key === key && ui.setState({ design: { key, state: "error", out: null, error: message(e) } }));
-  }, [client, projectId, engineId, key, ui]);
+    if (client === null || projectId === null || engineId === null || ui.getState().designs[engineId] !== undefined) return;
+    void requestDesign(store, client, ui, engineId);
+  }, [store, client, projectId, engineId, ui]);
 }
 
 /**
@@ -209,13 +236,26 @@ export function liquidPose(view: string): ViewPose {
 
 function LiquidWorkspace({ store, client, glbDeps, ui }: { store: AppStore; client: RpcLike | null; glbDeps: GlbDeps; ui: LiquidStore }) {
   const view = useEngineView(store, ui);
-  useEngineDesign(store, client, ui, view?.id ?? null);
+  useFirstDesign(store, client, ui, view?.id ?? null);
   const tabRaw = useAppState(store, (s) => s.ui.tab);
   const tab: LiquidTab = isLiquidTab(tabRaw) ? tabRaw : "system";
   const snap = useAppState(store, (s) => s.project.snapshot);
-  const design = useStore(ui, (s) => s.design);
-  const out = design !== null && design.key.startsWith(`${view?.id ?? ""}@`) ? design.out : null;
+  const entry = useStore(ui, (s) => (view === null ? null : (s.designs[view.id] ?? null)));
+  const out = entry?.out ?? null;
   const setTab = (t: LiquidTab) => store.getState().ui.navigate("liquid", t);
+  // A new or duplicated engine opens where it can be edited. The selection goes too: a feed ref would keep the old engine on screen.
+  const showEngine = (id: string) => {
+    ui.setState({ engine: id });
+    store.getState().selection.select([], "inspector");
+    store.getState().ui.navigate("liquid", "properties");
+  };
+  const engineDeleted = (id: string) => {
+    ui.setState((s) => {
+      const { [id]: _gone, ...designs } = s.designs;
+      return { designs, engine: s.engine === id ? null : s.engine };
+    });
+    store.getState().selection.select([], "inspector");
+  };
   const ids = engineIds(snap?.evaluated?.engines as Record<string, unknown> | null | undefined);
 
   return (
@@ -224,7 +264,7 @@ function LiquidWorkspace({ store, client, glbDeps, ui }: { store: AppStore; clie
         <h1 className="rw-page-title" data-testid="page.title">
           Liquid propulsion
         </h1>
-        {ids.length > 1 && view !== null && (
+        {view !== null && (
           <label className="rw-liq__engine">
             <span>Engine</span>
             <select
@@ -252,11 +292,20 @@ function LiquidWorkspace({ store, client, glbDeps, ui }: { store: AppStore; clie
         ))}
       </nav>
       {view === null ? (
-        <p className="rw-liq__empty" data-testid="liquid.empty">
-          {snap === null ? "Opening the project…" : NO_LIQUID_ENGINE}
-        </p>
+        <div className="rw-liq__empty-state">
+          <p className="rw-liq__empty" data-testid="liquid.empty">
+            {snap === null ? "Opening the project…" : NO_LIQUID_ENGINE}
+          </p>
+          {snap !== null && <NewEngineButton app={store} primary onShow={showEngine} />}
+        </div>
       ) : tab === "properties" ? (
-        <PropertiesView view={view} out={out} state={design?.state ?? "loading"} error={design?.error} />
+        <PropertiesView
+          view={view}
+          out={out}
+          state={entry?.state ?? "loading"}
+          error={entry?.error}
+          editor={<EngineEditor key={view.id} app={store} engineId={view.id} engine={view.engine} entry={entry} onCompute={() => requestDesign(store, client, ui, view.id)} canCompute={client !== null} onShow={showEngine} onDeleted={engineDeleted} />}
+        />
       ) : (
         <div className={`rw-liq__body rw-liq__body--${tab}`}>
           <ModuleViewport store={store} view={view} out={out} glbDeps={glbDeps} />
@@ -610,10 +659,11 @@ function ParametersPanel({ view }: { view: EngineView }) {
   );
 }
 
-function PropertiesView({ view, out, state, error }: { view: EngineView; out: EngineDesignOut | null; state: "loading" | "ready" | "error"; error?: string | undefined }) {
+function PropertiesView({ view, out, state, error, editor }: { view: EngineView; out: EngineDesignOut | null; state: "loading" | "ready" | "error"; error?: string | undefined; editor: ReactNode }) {
   const groups = propertyGroups(out);
   return (
     <div className="rw-liq-props" data-testid="liquid.properties" data-state={state}>
+      {editor}
       {state === "error" && <p className="rw-liq__empty">engine_design failed: {error}</p>}
       {state === "loading" && groups.length === 0 && <p className="rw-liq__empty">Computing the design…</p>}
       {out !== null && groups.length === 0 && <p className="rw-liq__empty">The chamber cannot be sized yet: {out.missing_inputs.join(", ") || "inputs missing"}.</p>}

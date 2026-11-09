@@ -213,6 +213,52 @@ test("Properties shows engine_design's computed performance and geometry", async
   await expect(props.getByTestId("insp.source-link").first()).toHaveAttribute("href", /ntrs\.nasa\.gov/);
 });
 
+test("the Properties editor writes a design input, reads Modified, and Compute clears it", async ({ page }) => {
+  await pageTab(page, "properties").click();
+  const props = page.getByTestId("liquid.properties");
+  await expect(props).toHaveAttribute("data-state", "ready");
+  await expect(props.locator('[data-testid="props.group"][data-group="performance"]')).toHaveCount(1);
+  const thrust = props.getByRole("group", { name: "Chamber" }).getByRole("textbox", { name: "Thrust", exact: true });
+  await expect(thrust).toHaveValue("1.5");
+  // The result stays on screen, stale, until Compute.
+  const isp = await page.locator('[data-testid="liquid.results"] [data-stat="isp"] dd').innerText();
+  await thrust.fill("1.6");
+  await thrust.press("Enter");
+  await expect(page.getByTestId("liquid.modified")).toHaveText("Modified, needs recompute");
+  await expect(page.getByTestId("liquid.results")).toHaveAttribute("data-stale", "true");
+  await expect(page.locator('[data-testid="liquid.results"] [data-stat="isp"] dd')).toHaveText(isp);
+  await page.getByTestId("liquid.compute").click();
+  await expect(page.getByTestId("liquid.modified")).toHaveCount(0);
+  await expect(page.getByTestId("liquid.results")).not.toHaveAttribute("data-stale", "true");
+  await expect(props.locator('[data-testid="props.row"][data-key="thrust"] dd')).toContainText("1,600");
+  // Leave the shared project as it was for the specs after this one.
+  await thrust.fill("1.5");
+  await thrust.press("Enter");
+  await expect(page.getByTestId("liquid.modified")).toHaveCount(1);
+  await page.getByTestId("liquid.compute").click();
+  await expect(page.getByTestId("liquid.modified")).toHaveCount(0);
+});
+
+test("New engine, Duplicate, and Delete", async ({ page }) => {
+  await pageTab(page, "properties").click();
+  await page.getByTestId("liquid.new-engine").click();
+  await expect(page.getByTestId("liquid-page")).toHaveAttribute("data-engine", "engine_3");
+  await expect(page.getByTestId("liquid.engine")).toHaveValue("engine_3");
+  await expect(pageTab(page, "properties")).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByTestId("liquid.properties").getByRole("group", { name: "Tanks" })).toContainText("No tanks");
+  await page.getByTestId("liquid.duplicate-engine").click();
+  await expect(page.getByTestId("liquid-page")).toHaveAttribute("data-engine", "engine_3_copy");
+  for (const id of ["engine_3_copy", "engine_3"]) {
+    await page.getByTestId("liquid.engine").selectOption(id);
+    await expect(page.getByTestId("liquid-page")).toHaveAttribute("data-engine", id);
+    await page.getByTestId("liquid.delete-engine").click();
+    await page.getByTestId("delete-engine").getByRole("button", { name: "Delete" }).click();
+    await expect(page.getByTestId("delete-engine")).toHaveCount(0);
+    await expect(page.getByTestId("liquid.engine").locator("option")).toHaveCount(id === "engine_3" ? 2 : 3);
+  }
+  await expect(page.getByTestId("liquid-page")).toHaveAttribute("data-engine", "demo");
+});
+
 test("Source references and Assumptions", async ({ page }) => {
   await page.getByTestId("insp.source-references").click();
   const links = page.getByTestId("insp.source-link");

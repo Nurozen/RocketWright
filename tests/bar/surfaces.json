@@ -113,9 +113,9 @@
     "boot": "project",
     "mockup": "07-liquid-editor.png",
     "existing": "liquid-propulsion.png",
-    "ready": null,
+    "ready": "[data-testid=\"liquid.properties\"]",
     "overlay": null,
-    "pane": null,
+    "pane": "visible",
     "checks": [
       "Propulsion's Properties tab shows cards for Propellants, Chamber, Nozzle and Tanks, with editable fields.",
       "New engine and Duplicate are available.",

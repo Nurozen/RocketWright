@@ -561,3 +561,95 @@
   padding: 0 14px;
   font-size: 13px;
 }
+
+/* The engine editor on Properties (R3.2): toolbar, cards, result strip, above the computed tables. */
+.rw-liq-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.rw-liq-editor__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 34px;
+}
+
+.rw-liq-editor__modified {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--rw-warning);
+  font-weight: var(--rw-font-weight-strong);
+}
+
+.rw-liq-editor__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.rw-liq-editor__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 14px 16px;
+  align-items: start;
+}
+
+.rw-liq-editor__grid > .rw-field-group {
+  padding: 12px 14px;
+  border: var(--rw-hairline) solid var(--rw-line);
+  border-radius: var(--rw-radius);
+}
+
+.rw-liq-editor__grid > [data-group="Tanks"] {
+  grid-column: 1 / -1;
+}
+
+.rw-liq-editor__tanks {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 12px 24px;
+}
+
+.rw-liq-editor__fields {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rw-liq-editor__row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.rw-liq-editor__error {
+  margin: 0;
+  color: var(--rw-danger);
+  font-size: var(--rw-font-size-secondary);
+}
+
+.rw-liq-editor__empty {
+  margin: 0;
+  color: var(--rw-text-secondary);
+}
+
+.rw-liq-results .rw-ui-stats {
+  margin: 0;
+}
+
+.rw-liq-results[data-stale="true"] .rw-ui-stats__value {
+  color: var(--rw-text-secondary);
+}
+
+.rw-liq__empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
