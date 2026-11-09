@@ -16,6 +16,7 @@ import { parseSeriesCsv } from "../../plots/series.ts";
 import { exportFileName, exportRunsCsv } from "./csv.ts";
 import {
   assumptionsOf,
+  canRefly,
   defaultOverlay,
   environmentLabel,
   environmentShort,
@@ -28,6 +29,7 @@ import {
   primaryRow,
   resultsRows,
   runDetails,
+  runnableSims,
   runSnapshots,
   sortRows,
 } from "./model.ts";
@@ -168,6 +170,15 @@ describe("results view model", () => {
     expect(byRun.filter((r) => r.selected).map((r) => r.key)).toEqual(["baseline@0ldba5e11ne0"]);
   });
 
+  it("falls back to the latest flown runs for the first plot when an edit has outdated them all", () => {
+    const snap = snapshot();
+    snap.runs.model_hash = "e".repeat(64);
+    snap.evaluated!.model_hash = "e".repeat(64);
+    const rows = resultsRows(state({ snap, overlay: [] }));
+    expect(rows.filter((r) => r.status.kind === "complete")).toEqual([]);
+    expect(defaultOverlay(rows)).toEqual(["baseline", "higher_altitude"]);
+  });
+
   it("plots before/after when an overlaid sim's rerun supersedes its run", () => {
     const prev = [{ sim: "baseline", run_id: "aaa" }, { sim: "higher_altitude", run_id: "bbb" }];
     const next = [{ sim: "baseline", run_id: "ccc" }, { sim: "baseline", run_id: "aaa", superseded_by: "ccc" }, { sim: "higher_altitude", run_id: "bbb" }];
@@ -191,6 +202,49 @@ describe("results view model", () => {
     expect(nextSort({ key: "apogee", dir: 1 }, "apogee")).toEqual({ key: "apogee", dir: -1 });
     expect(nextSort({ key: "apogee", dir: -1 }, "apogee")).toBeNull();
     expect(nextSort({ key: "apogee", dir: -1 }, "name")).toEqual({ key: "name", dir: 1 });
+  });
+
+  describe("after a re-run or a deleted sim", () => {
+    const superseded = () => {
+      const snap = snapshot();
+      const fin = snap.runs.runs.find((r) => r.sim === "fin_revision")!;
+      const old: Entry = { ...structuredClone(fin), run_id: "0ldba5e11ne0", status: "outdated", superseded_by: "newrun000001" };
+      fin.run_id = "newrun000001";
+      fin.model_hash = snap.evaluated!.model_hash;
+      fin.status = "complete";
+      snap.runs.runs.push(old);
+      return snap;
+    };
+    const deleted = () => {
+      const snap = snapshot();
+      delete (snap.evaluated!.sims as Record<string, unknown>)["fin_revision"];
+      return snap;
+    };
+
+    it("clears the banner once the sim has flown on the current model", () => {
+      const rows = resultsRows(state({ snap: superseded() }));
+      expect(rows.find((r) => r.key.startsWith("fin_revision@"))?.status.kind).toBe("outdated");
+      expect(outdatedBanner(rows)).toBeNull();
+    });
+
+    it("has no banner for a sim that no longer exists", () => {
+      expect(outdatedBanner(resultsRows(state({ snap: deleted() })))).toBeNull();
+    });
+
+    it("offers no re-fly for a deleted sim, a superseded run, or one already flying", () => {
+      const del = resultsRows(state({ snap: deleted() })).find((r) => r.sim === "fin_revision")!;
+      expect([del.inModel, canRefly(del)]).toEqual([false, false]);
+      const old = resultsRows(state({ snap: superseded() })).find((r) => r.key.startsWith("fin_revision@"))!;
+      expect(canRefly(old)).toBe(false);
+      expect(canRefly(resultsRows(state()).find((r) => r.sim === "fin_revision")!)).toBe(true);
+    });
+
+    it("bulk actions skip a deleted sim and a sim already flying, even when an earlier row is outdated", () => {
+      expect(runnableSims(resultsRows(state({ snap: deleted() })), ["fin_revision", "recovery_test"])).toEqual(["recovery_test"]);
+      const snap = superseded();
+      snap.jobs = [{ job_id: "j1", kind: "simulate", state: "running", progress: 0.5, sim: "fin_revision" }] as never;
+      expect(runnableSims(resultsRows(state({ snap })), ["fin_revision"])).toEqual([]);
+    });
   });
 
   it("raises the Outdated banner from the computed status", () => {

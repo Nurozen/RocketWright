@@ -27,6 +27,8 @@ export interface ResultsRow extends RunRow {
   selected: boolean;
   /** Hidden with the rail eye toggle. */
   hidden: boolean;
+  /** The row's sim is still in the model, so it can be flown (a deleted sim's runs stay listed). */
+  inModel: boolean;
 }
 
 export type SortKey = "name" | "status" | "apogee" | "maxSpeed" | "flightTime";
@@ -94,6 +96,7 @@ export function nextSort(cur: SortState | null, key: SortKey): SortState | null 
 /** The run table rows, statuses computed against the current model hash. */
 export function resultsRows(s: AppState, opts: { sort?: SortState | null; hidden?: readonly string[] } = {}): ResultsRow[] {
   const hidden = new Set(opts.hidden ?? []);
+  const sims = s.project.snapshot?.evaluated?.sims ?? null;
   const rows = runRows(s).map((r): ResultsRow => {
     const slot = s.runs.overlay.indexOf(r.key);
     return {
@@ -102,6 +105,7 @@ export function resultsRows(s: AppState, opts: { sort?: SortState | null; hidden
       series: SERIES_SLOTS[slot] ?? null,
       selected: isRowSelected(s.selection.refs, r),
       hidden: hidden.has(r.key),
+      inModel: sims?.[r.sim] != null,
     };
   });
   return sortRows(rows, opts.sort ?? null);
@@ -114,9 +118,23 @@ export interface OutdatedBanner {
   more: number;
 }
 
-/** The Outdated banner: shown while any run's model revision differs from the current one. */
+/** A row whose sim can be flown now: its sim's latest row, still in the model, with nothing flying. */
+export function canRefly(r: Pick<ResultsRow, "inModel" | "entry" | "status">): boolean {
+  return r.inModel && r.entry.superseded_by == null && r.status.kind !== "running" && r.status.kind !== "queued";
+}
+
+/** Of `sims`, the ones a bulk Run may fly: a superseded row says nothing about its sim's latest flight. */
+export function runnableSims(rows: readonly ResultsRow[], sims: readonly string[]): string[] {
+  return [...new Set(sims)].filter((sim) => rows.some((r) => r.sim === sim && canRefly(r)));
+}
+
+/**
+ * The Outdated banner: shown while a sim's latest run is on an older model. A
+ * run its re-run replaced stays Outdated for before/after, and a deleted sim's
+ * run has nothing to fly, so neither keeps the banner up.
+ */
 export function outdatedBanner(rows: readonly ResultsRow[]): OutdatedBanner | null {
-  const outdated = rows.filter((r) => r.status.kind === "outdated");
+  const outdated = rows.filter((r) => r.status.kind === "outdated" && canRefly(r));
   const first = outdated[0];
   if (first === undefined) return null;
   return {
@@ -144,9 +162,16 @@ export function plotPrompt(rows: readonly ResultsRow[], noParts: boolean): PlotP
   return { text: "Tick up to six runs to plot them.", action: null };
 }
 
-/** Runs worth plotting first: the first two Complete runs (row keys). Two even though the plot takes six: a comparison to read, not every run at once. */
+/**
+ * Runs worth plotting first (row keys): the first two Complete runs, else the
+ * latest flown ones, because one edit makes every run Outdated and the flights
+ * are still on disk. Two even though the plot takes six: a comparison to read,
+ * not every run at once.
+ */
 export function defaultOverlay(rows: readonly ResultsRow[]): string[] {
-  return rows.filter((r) => r.status.kind === "complete").slice(0, 2).map((r) => r.key);
+  const complete = rows.filter((r) => r.status.kind === "complete");
+  const pick = complete.length > 0 ? complete : rows.filter((r) => r.status.kind === "outdated" && r.entry.run_id != null && r.entry.superseded_by == null);
+  return pick.slice(0, 2).map((r) => r.key);
 }
 
 /** The plotted rows that have a drawn line, matched by row key: a run its latest replaced shares the sim id, so the sim id cannot tell them apart. */

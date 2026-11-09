@@ -8,8 +8,9 @@
  */
 import type { PatchOp, schema } from "@rw/contracts";
 import type { DeepReadonly } from "../../state/index.ts";
+import type { UnitSystem } from "../../state/displayUnits.ts";
 import { displayUnit, toDisplay, toSource } from "../../ui/fields/index.ts";
-import { fileTable } from "../components/source.ts";
+import { fileTable, type SourceScalar } from "../components/source.ts";
 
 type EvalSim = DeepReadonly<schema.EvalSim>;
 type Diagnostic = DeepReadonly<schema.Diagnostic>;
@@ -33,6 +34,8 @@ export interface NumberField extends FieldBase {
   kind: "number";
   /** `x-unit-dimension`, pinned to one unit; the percent field has none. */
   dim: string;
+  /** The `dim` a project in imperial units shows and writes, when it differs. */
+  imperial?: string;
   step: number;
   /** Text shown as a percentage, written as a fraction (the source's turbulence). */
   percent?: boolean;
@@ -56,17 +59,17 @@ const RAD = Math.PI / 180;
 const rad = (deg: number): number => deg * RAD;
 
 export const SIM_FIELDS: readonly SimField[] = [
-  { key: "launch.rail_length", label: "Rail length", group: "Launch", kind: "number", dim: "length:m", step: 0.1, required: true, read: (s) => s.conditions.rail_length_m },
+  { key: "launch.rail_length", label: "Rail length", group: "Launch", kind: "number", dim: "length:m", imperial: "length:ft", step: 0.1, required: true, read: (s) => s.conditions.rail_length_m },
   { key: "launch.rod_angle", label: "Rail angle", group: "Launch", kind: "number", dim: "angle:deg", step: 1, title: "Tilt from vertical", read: (s) => rad(s.conditions.rod_angle_deg) },
   { key: "launch.rod_direction", label: "Rail direction", group: "Launch", kind: "number", dim: "angle:deg", step: 1, title: "Azimuth, clockwise from north", read: (s) => rad(s.conditions.rod_direction_deg) },
   { key: "launch.latitude", label: "Latitude", group: "Site", kind: "number", dim: "angle:deg", step: 0.1, read: (s) => rad(s.conditions.latitude_deg) },
   { key: "launch.longitude", label: "Longitude", group: "Site", kind: "number", dim: "angle:deg", step: 0.1, read: (s) => rad(s.conditions.longitude_deg) },
-  { key: "launch.altitude", label: "Elevation", group: "Site", kind: "number", dim: "length:m", step: 1, read: (s) => s.conditions.site_altitude_m },
-  { key: "wind.speed", label: "Speed", group: "Wind", kind: "number", dim: "velocity", step: 0.1, required: true, read: (s) => s.conditions.wind_speed_ms },
+  { key: "launch.altitude", label: "Elevation", group: "Site", kind: "number", dim: "length:m", imperial: "length:ft", step: 1, read: (s) => s.conditions.site_altitude_m },
+  { key: "wind.speed", label: "Speed", group: "Wind", kind: "number", dim: "velocity", imperial: "velocity:mph", step: 0.1, required: true, read: (s) => s.conditions.wind_speed_ms },
   { key: "wind.direction", label: "Direction", group: "Wind", kind: "number", dim: "angle:deg", step: 1, title: "Where the wind blows from, clockwise from north", read: (s) => rad(s.conditions.wind_direction_deg) },
   { key: "wind.turbulence", label: "Turbulence", group: "Wind", kind: "number", dim: "dimensionless", step: 1, percent: true, read: (s) => s.conditions.wind_turbulence },
-  { key: "atmosphere.base_temperature", label: "Temperature", group: "Atmosphere", kind: "number", dim: "temperature", step: 1, title: "Sea-level base temperature", read: (s) => s.conditions.base_temperature_k },
-  { key: "atmosphere.base_pressure", label: "Pressure", group: "Atmosphere", kind: "number", dim: "pressure:hPa", step: 1, title: "Sea-level base pressure", read: (s) => s.conditions.base_pressure_pa },
+  { key: "atmosphere.base_temperature", label: "Temperature", group: "Atmosphere", kind: "number", dim: "temperature", imperial: "temperature:degF", step: 1, title: "Sea-level base temperature", read: (s) => s.conditions.base_temperature_k },
+  { key: "atmosphere.base_pressure", label: "Pressure", group: "Atmosphere", kind: "number", dim: "pressure:hPa", imperial: "pressure:inHg", step: 1, title: "Sea-level base pressure", read: (s) => s.conditions.base_pressure_pa },
   { key: "atmosphere.model", label: "Model", group: "Atmosphere", kind: "choice", options: ["ussa1976", "isa_custom"], labels: { ussa1976: "USSA 1976", isa_custom: "ISA (custom base)" }, read: (s) => s.conditions.atmosphere },
   { key: "integrator.dt", label: "Time step", group: "Solver", kind: "number", dim: "time:s", step: 0.01, title: "Fixed step (RK4), or the initial and largest step (adaptive)", read: (s) => s.conditions.time_step_s },
   { key: "integrator.max_time", label: "Max time", group: "Solver", kind: "number", dim: "time:s", step: 1, title: "Longest flight the solver will simulate", read: (s) => s.max_time },
@@ -75,8 +78,10 @@ export const SIM_FIELDS: readonly SimField[] = [
 
 const UNITS = "m" as const;
 
+const dimOf = (f: NumberField, system: UnitSystem): string => (system === "imperial" ? (f.imperial ?? f.dim) : f.dim);
+
 /** The unit shown beside a number. */
-export const fieldUnit = (f: NumberField): string => (f.percent === true ? "%" : displayUnit(f.dim, UNITS).unit);
+export const fieldUnit = (f: NumberField, system: UnitSystem = "metric"): string => (f.percent === true ? "%" : displayUnit(dimOf(f, system), UNITS).unit);
 
 /** USSA 1976 fixes its own base state, so these two do nothing under it. */
 export const appliesToModel = (key: string, model: string): boolean => model !== "ussa1976" || (key !== "atmosphere.base_temperature" && key !== "atmosphere.base_pressure");
@@ -98,22 +103,31 @@ export interface SimForm {
   values: Record<string, string>;
   /** What the model holds, so a field left alone is never rewritten. */
   baseline: Record<string, string>;
+  /** The units `values` and `baseline` are in. */
+  system: UnitSystem;
+  /** Each field's value as the literal a sim file would hold, unrounded by the display. */
+  exact: Record<string, string | number>;
   /** Configuration the sim flies. */
   config: string;
   baseConfig: string;
 }
 
-function shown(f: SimField, s: EvalSim): string {
+function shown(f: SimField, s: EvalSim, system: UnitSystem): string {
   const v = f.read(s);
   if (f.kind === "choice") return v as string;
   if (f.percent === true) return String(Number(((v as number) * 100).toPrecision(10)));
-  return toDisplay(v as number, f.dim, UNITS);
+  return toDisplay(v as number, dimOf(f, system), UNITS);
 }
 
-export function formFromSim(s: EvalSim): SimForm {
+export function formFromSim(s: EvalSim, system: UnitSystem = "metric"): SimForm {
   const values: Record<string, string> = {};
-  for (const f of SIM_FIELDS) values[f.key] = shown(f, s);
-  return { sim: s.id, values, baseline: { ...values }, config: s.config, baseConfig: s.config };
+  const exact: Record<string, string | number> = {};
+  for (const f of SIM_FIELDS) {
+    values[f.key] = shown(f, s, system);
+    const metric = shown(f, s, "metric");
+    if (metric.trim() !== "") exact[f.key] = literal(f, metric, "metric");
+  }
+  return { sim: s.id, values, baseline: { ...values }, system, exact, config: s.config, baseConfig: s.config };
 }
 
 const dirtyKeys = (f: SimForm): string[] => SIM_FIELDS.filter((d) => (f.values[d.key] ?? "").trim() !== (f.baseline[d.key] ?? "").trim()).map((d) => d.key);
@@ -133,10 +147,35 @@ export function validateForm(f: SimForm): Record<string, string> {
   return errors;
 }
 
-function literal(d: SimField, text: string): string | number {
+function literal(d: SimField, text: string, system: UnitSystem): string | number {
   if (d.kind === "choice") return text;
   const n = Number(text);
-  return d.percent === true ? Number((n / 100).toPrecision(10)) : toSource(n, d.dim, UNITS);
+  return d.percent === true ? Number((n / 100).toPrecision(10)) : toSource(n, dimOf(d, system), UNITS);
+}
+
+export type SimFormat = "toml" | "json";
+
+/** A sim's source text and how it is written; a sim is `sims/<id>.rw.toml` or `sims/<id>.rw.json`. */
+export function simSource(files: Readonly<Record<string, string | undefined>> | null | undefined, sim: string): { text: string; format: SimFormat } {
+  const json = files?.[`sims/${sim}.rw.json`];
+  if (json !== undefined) return { text: json, format: "json" };
+  return { text: files?.[`sims/${sim}.rw.toml`] ?? "", format: "toml" };
+}
+
+/** A table of a sim's source, or null when the source has no such table. */
+function sourceTable(text: string, format: SimFormat, section: SimSection): Record<string, SourceScalar> | null {
+  if (format === "toml") return fileTable(text, [section]);
+  let doc: unknown;
+  try {
+    doc = JSON.parse(text);
+  } catch {
+    return null;
+  }
+  const table = typeof doc === "object" && doc !== null ? (doc as Record<string, unknown>)[section] : undefined;
+  if (typeof table !== "object" || table === null || Array.isArray(table)) return null;
+  const out: Record<string, SourceScalar> = {};
+  for (const [k, v] of Object.entries(table)) if (typeof v === "string" || typeof v === "number" || typeof v === "boolean") out[k] = v;
+  return out;
 }
 
 /**
@@ -144,20 +183,23 @@ function literal(d: SimField, text: string): string | number {
  * the sim file states them even when the person accepted every default (D23);
  * the solver only when it is edited.
  */
-export function conditionsOps(f: SimForm, simFile: string): PatchOp[] {
+export function conditionsOps(f: SimForm, simFile: string, format: SimFormat = "toml"): PatchOp[] {
   const ops: PatchOp[] = [];
   const dirty = new Set(dirtyKeys(f));
   const base = `/sims/${f.sim}`;
   if (f.config !== f.baseConfig) ops.push({ op: "replace", path: `${base}/config`, value: f.config });
   for (const { section, required, always } of SECTIONS) {
     const fields = SIM_FIELDS.filter((d) => sectionOf(d) === section);
-    const source = fileTable(simFile, [section]);
+    const source = sourceTable(simFile, format, section);
     if (source === null) {
       if (!always && !fields.some((d) => dirty.has(d.key))) continue;
       const value: Record<string, string | number> = {};
       for (const d of fields) {
         const text = (f.values[d.key] ?? "").trim();
-        if (text !== "" && (leafOf(d) === required || dirty.has(d.key))) value[leafOf(d)] = literal(d, text);
+        // Untouched, a required key is stated from the model: display rounding must not change it.
+        if (dirty.has(d.key)) {
+          if (text !== "") value[leafOf(d)] = literal(d, text, f.system);
+        } else if (leafOf(d) === required && f.exact[d.key] !== undefined) value[leafOf(d)] = f.exact[d.key]!;
       }
       ops.push({ op: "add", path: `${base}/${section}`, value: value as never });
       continue;
@@ -170,7 +212,7 @@ export function conditionsOps(f: SimForm, simFile: string): PatchOp[] {
       if (text === "") {
         if (source[leaf] !== undefined) ops.push({ op: "remove", path });
       } else {
-        ops.push({ op: source[leaf] === undefined ? "add" : "replace", path, value: literal(d, text) as never });
+        ops.push({ op: source[leaf] === undefined ? "add" : "replace", path, value: literal(d, text, f.system) as never });
       }
     }
   }

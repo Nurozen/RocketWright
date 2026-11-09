@@ -5,6 +5,7 @@
  * physics; Thermal analysis is an honest empty state (not modelled). Pure
  * view-model functions; `analysis.tsx` renders them.
  */
+import { flightUnit, toFlight, type FlightDim, type UnitSystem } from "../../state/displayUnits.ts";
 import { fmtNum } from "../../plots/quantities.ts";
 import { seriesColumn, type Series } from "../../plots/series.ts";
 import type { RunSummary } from "../../plots/events.ts";
@@ -24,14 +25,20 @@ export const isFlightRow = (r: Pick<ResultsRow, "entry">): boolean => (r.entry.k
 /**
  * The runs an analysis page shows (at most `max`): the runs overlaid on the
  * Results plots (series A, B) when there are any, else the first Complete
- * flight runs. Only latest runs on disk (no superseded rows).
+ * flight runs, else the latest flown ones: one edit or rename outdates every
+ * run, and those runs are still on disk (`runLabel` says so). Only latest runs
+ * on disk (no superseded rows).
  */
 export function analysisRuns(rows: readonly ResultsRow[], max = 2): ResultsRow[] {
   const flights = rows.filter((r) => isFlightRow(r) && r.entry.run_id != null && r.entry.superseded_by == null);
   const overlaid = (["a", "b"] as const).flatMap((slot) => flights.filter((r) => r.series === slot));
   if (overlaid.length > 0) return overlaid.slice(0, max);
-  return flights.filter((r) => r.status.kind === "complete").slice(0, max);
+  const complete = flights.filter((r) => r.status.kind === "complete");
+  return (complete.length > 0 ? complete : flights.filter((r) => r.status.kind === "outdated")).slice(0, max);
 }
+
+/** A run's name as a chart shows it: an Outdated run says so. */
+export const runLabel = (r: Pick<ResultsRow, "name" | "status">): string => (r.status.kind === "outdated" ? `${r.name} (Outdated)` : r.name);
 
 export interface StatRow {
   key: string;
@@ -45,16 +52,18 @@ const withUnit = (v: number | null | undefined, digits: number, unit: string): s
   return s === "—" ? s : `${s} ${unit}`;
 };
 
-/** Trajectory figures per run, straight from each run's summary. */
-export function trajectoryStats(summaries: readonly (RunSummary | null | undefined)[]): StatRow[] {
+const withFlight = (si: number | null | undefined, digits: number, dim: FlightDim, system: UnitSystem): string => withUnit(toFlight(si, dim, system), digits, flightUnit(dim, system).unit);
+
+/** Trajectory figures per run, straight from each run's summary, in the project's units. */
+export function trajectoryStats(summaries: readonly (RunSummary | null | undefined)[], system: UnitSystem = "metric"): StatRow[] {
   const row = (key: string, label: string, f: (s: RunSummary) => string): StatRow => ({ key, label, values: summaries.map((s) => (s ? f(s) : "—")) });
   return [
-    row("apogee", "Apogee", (s) => withUnit(s.apogee_m, 0, "m")),
+    row("apogee", "Apogee", (s) => withFlight(s.apogee_m, 0, "length", system)),
     row("time_to_apogee", "Time to apogee", (s) => withUnit(s.time_to_apogee_s, 1, "s")),
-    row("max_velocity", "Max velocity", (s) => withUnit(s.max_velocity_ms, 0, "m/s")),
+    row("max_velocity", "Max velocity", (s) => withFlight(s.max_velocity_ms, 0, "velocity", system)),
     row("max_mach", "Max Mach", (s) => fmtNum(s.max_mach, 2)),
     row("flight_time", "Flight time", (s) => withUnit(s.flight_time_s, 1, "s")),
-    row("drift", "Landing drift", (s) => withUnit(s.drift_m, 0, "m")),
+    row("drift", "Landing drift", (s) => withFlight(s.drift_m, 0, "length", system)),
   ];
 }
 

@@ -3,18 +3,19 @@
  * Status, Apogee, Max speed, Flight time, and a row menu. The numeric headers
  * name the unit their cells are in, `Apogee (m)` or `Apogee (ft)`: B1's scoring
  * reads each cell by the unit its header shows, so the two must always agree.
- * Sortable columns; status is computed (I7). Outdated rows show
- * dashes: only a Complete run's numbers are current. A sim that has never run
- * reads Not run, offers Run in place of its numbers, and opens its conditions
- * from the row (R2.7). A flying row offers Cancel; a cancelled one offers Run
- * again. The row menu's Duplicate copies the sim definition and Delete removes
+ * Sortable columns; status is computed (I7). Outdated rows show dashes, since
+ * only a Complete run's numbers are current, and a labelled Run beside the row
+ * menu so the edit-then-fly loop never leaves the table. A sim that has never
+ * run reads Not run, offers Run in place of its numbers, and opens its
+ * conditions from the row (R2.7). A flying row offers Cancel; a cancelled one
+ * offers Run again; a failed one says why and offers Run. The row menu's Duplicate copies the sim definition and Delete removes
  * the stored run (`run.delete`).
  */
 import { useState } from "react";
 import { useAppState, type AppStore } from "../../state/store.ts";
 import { flightUnit, toFlight, unitSystemOf, type UnitSystem } from "../../state/displayUnits.ts";
 import { fmtNum } from "../../plots/quantities.ts";
-import { nextSort, rowRef, type ResultsRow, type SortKey } from "./model.ts";
+import { canRefly, nextSort, rowRef, type ResultsRow, type SortKey } from "./model.ts";
 import { MenuButton } from "../../ui/Menu.tsx";
 import { Modal } from "../../ui/Modal.tsx";
 import { StatusGlyph, useResultsRows } from "./parts.tsx";
@@ -119,7 +120,7 @@ export function RunTable({ app }: { app: AppStore }) {
                   {r.status.label}
                 </span>
               </td>
-              {r.status.kind === "not_run" || r.status.kind === "cancelled" || flying(r) ? (
+              {r.status.kind === "not_run" || r.status.kind === "cancelled" || r.status.kind === "failed" || flying(r) ? (
                 <>
                   <td data-testid="runs.apogee">
                     {flying(r) ? (
@@ -137,21 +138,31 @@ export function RunTable({ app }: { app: AppStore }) {
                         </button>
                       )
                     ) : (
-                      <button
-                        type="button"
-                        className="rw-button rw-runtable__run"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          void app.getState().runs.run(r.sim).catch(() => undefined);
-                        }}
-                      >
-                        <ResultsIcon name="run" size={16} />
-                        Run
-                      </button>
+                      canRefly(r) && (
+                        <button
+                          type="button"
+                          className="rw-button rw-runtable__run"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void app.getState().runs.run(r.sim).catch(() => undefined);
+                          }}
+                        >
+                          <ResultsIcon name="run" size={16} />
+                          Run
+                        </button>
+                      )
                     )}
                   </td>
-                  <td data-testid="runs.max-speed" />
-                  <td data-testid="runs.flight-time" />
+                  {r.status.kind === "failed" && r.status.reason !== undefined ? (
+                    <td colSpan={2} className="rw-runtable__failure" data-testid="runs.failure" title={r.status.reason}>
+                      {r.status.reason}
+                    </td>
+                  ) : (
+                    <>
+                      <td data-testid="runs.max-speed" />
+                      <td data-testid="runs.flight-time" />
+                    </>
+                  )}
                 </>
               ) : (
                 <>
@@ -167,6 +178,12 @@ export function RunTable({ app }: { app: AppStore }) {
                 </>
               )}
               <td className="rw-runtable__menu" onClick={(e) => e.stopPropagation()}>
+                {r.status.kind === "outdated" && canRefly(r) && (
+                  <button type="button" className="rw-button rw-runtable__run rw-runtable__rerun" aria-label={`Run ${r.name} again`} onClick={() => void app.getState().runs.run(r.sim).catch(() => undefined)}>
+                    <ResultsIcon name="run" size={16} />
+                    Run
+                  </button>
+                )}
                 <MenuButton
                   testId="runs.row-menu"
                   label={`${r.name} actions`}

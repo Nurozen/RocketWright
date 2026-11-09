@@ -14,6 +14,8 @@ import { useAppState, type AppStore } from "../../state/store.ts";
 import { Icon } from "../../shell/Icon.tsx";
 import { eventMarkers, type RunSummary } from "../../plots/events.ts";
 import { seriesColumn } from "../../plots/series.ts";
+import { plotAxis, plotTab, plotValues } from "../../plots/quantities.ts";
+import { unitSystemOf } from "../../state/displayUnits.ts";
 import { TimePlot, type PlotLine } from "../../plots/TimePlot.tsx";
 import { useResultsRows } from "../results/parts.tsx";
 import { runKey, useRunData, type RunData, type RunDataSource } from "../results/source.ts";
@@ -21,7 +23,7 @@ import { trajectoryPoints } from "../results/trajectory.ts";
 import { TrajectoryView, type TrajectoryPath } from "../results/TrajectoryView.tsx";
 import type { ResultsRow } from "../results/model.ts";
 import "../results/results.css";
-import { ANALYSIS_VIEWS, analysisRuns, stabilityFigures, stabilityStats, stabilityToApogee, trajectoryStats, type AnalysisView, type StatRow } from "./analysisModel.ts";
+import { ANALYSIS_VIEWS, analysisRuns, runLabel, stabilityFigures, stabilityStats, stabilityToApogee, trajectoryStats, type AnalysisView, type StatRow } from "./analysisModel.ts";
 
 export interface AnalysisPageProps {
   store: AppStore;
@@ -43,11 +45,14 @@ export function AnalysisPage({ store, view, source }: AnalysisPageProps) {
   );
 }
 
+const altitudeTab = plotTab("altitude");
+
 const summaryOf = (r: ResultsRow): RunSummary | null => (r.entry.summary ?? null) as RunSummary | null;
 
 function RunAnalysis({ store, view, source }: { store: AppStore; view: "trajectory" | "stability"; source: RunDataSource | null }) {
   const rows = useResultsRows(store, { includeHidden: true });
   const projectId = useAppState(store, (s) => s.project.projectId);
+  const system = useAppState(store, unitSystemOf);
   const runs = useMemo(() => analysisRuns(rows), [rows]);
   const keys = useMemo(() => runs.map((r) => ({ sim: r.sim, runId: r.entry.run_id! })), [runs]);
   const loaded = useRunData(source, projectId, keys);
@@ -65,13 +70,13 @@ function RunAnalysis({ store, view, source }: { store: AppStore; view: "trajecto
         if (!data) return [];
         if (view === "stability") {
           const s = stabilityToApogee(data.series, summaryOf(r));
-          return s ? [{ id: r.key, label: r.name, color: colorOf(r, i), t: s.t, y: s.y }] : [];
+          return s ? [{ id: r.key, label: runLabel(r), color: colorOf(r, i), t: s.t, y: s.y }] : [];
         }
         const t = seriesColumn(data.series, "t");
-        const y = seriesColumn(data.series, "altitude");
-        return t && y ? [{ id: r.key, label: r.name, color: colorOf(r, i), t, y }] : [];
+        const y = plotValues(data.series, altitudeTab, system);
+        return t && y ? [{ id: r.key, label: runLabel(r), color: colorOf(r, i), t, y }] : [];
       }),
-    [runs, loaded, view], // eslint-disable-line react-hooks/exhaustive-deps
+    [runs, loaded, view, system], // eslint-disable-line react-hooks/exhaustive-deps
   );
   const events = useMemo(
     () => runs.flatMap((r, i) => eventMarkers(summaryOf(r), dataOf(r)?.events ?? null).filter((m) => view === "trajectory" || m.label !== "Recovery").map((m) => ({ ...m, run: r.key, color: colorOf(r, i) }))),
@@ -83,13 +88,13 @@ function RunAnalysis({ store, view, source }: { store: AppStore; view: "trajecto
         ? []
         : runs.flatMap((r, i) => {
             const data = dataOf(r);
-            return data ? [{ id: r.key, label: r.name, color: colorOf(r, i), points: trajectoryPoints(data.series) }] : [];
+            return data ? [{ id: r.key, label: runLabel(r), color: colorOf(r, i), points: trajectoryPoints(data.series) }] : [];
           }),
     [runs, loaded, view], // eslint-disable-line react-hooks/exhaustive-deps
   );
   const stats: StatRow[] = useMemo(
-    () => (view === "trajectory" ? trajectoryStats(runs.map(summaryOf)) : stabilityStats(runs.map((r) => stabilityFigures(dataOf(r)?.series ?? null, summaryOf(r))))),
-    [runs, loaded, view], // eslint-disable-line react-hooks/exhaustive-deps
+    () => (view === "trajectory" ? trajectoryStats(runs.map(summaryOf), system) : stabilityStats(runs.map((r) => stabilityFigures(dataOf(r)?.series ?? null, summaryOf(r))))),
+    [runs, loaded, view, system], // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   if (runs.length === 0) {
@@ -107,14 +112,14 @@ function RunAnalysis({ store, view, source }: { store: AppStore; view: "trajecto
   return (
     <div className="rw-analysis__body" data-testid="analysis.body" data-runs={runs.map((r) => r.sim).join(",")}>
       <p className="rw-analysis__source" data-testid="analysis.source">
-        {view === "trajectory" ? "Altitude and flight path" : "Stability margin (calibers) from liftoff to apogee"} from the project's flight runs: {runs.map((r) => r.name).join(", ")}.
+        {view === "trajectory" ? "Altitude and flight path" : "Stability margin (calibers) from liftoff to apogee"} from the project's flight runs: {runs.map(runLabel).join(", ")}.
       </p>
       <div className={`rw-analysis__grid rw-analysis__grid--${view}`}>
         <section className="rw-analysis__plot" data-testid="analysis.plot" data-plot={view} data-lines={lines.length}>
           <h2 className="rw-analysis__title">{view === "trajectory" ? "Altitude" : "Stability margin"}</h2>
           <div className="rw-analysis__chart">
             {lines.length > 0 ? (
-              <TimePlot lines={lines} events={events} yLabel={view === "trajectory" ? "Altitude (m)" : "Stability (cal)"} topInset={14 + 22 * lines.length} />
+              <TimePlot lines={lines} events={events} yLabel={view === "trajectory" ? plotAxis(altitudeTab, system) : "Stability (cal)"} topInset={14 + 22 * lines.length} />
             ) : (
               <p className="rw-results__empty" data-testid="analysis.loading">
                 {loadError?.status === "error" ? `Could not load the run series: ${loadError.error}` : "Loading run series…"}

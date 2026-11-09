@@ -17,7 +17,7 @@ import { legendFigure, PLOT_TABS, plotAxis, plotTab, plotValues, type PlotTabId 
 import { seriesColumn } from "../../plots/series.ts";
 import { TimePlot, type PlotLine } from "../../plots/TimePlot.tsx";
 import { downloadText, exportFileName, exportRunsCsv, type ExportRun } from "./csv.ts";
-import { defaultOverlay, legendRows, outdatedBanner, plotPrompt, primaryRow, revealTab, rowRef, runDetails, type ResultsRow } from "./model.ts";
+import { canRefly, defaultOverlay, legendRows, outdatedBanner, plotPrompt, primaryRow, revealTab, rowRef, runDetails, runnableSims, type ResultsRow } from "./model.ts";
 import { Banner } from "../../ui/Banner.tsx";
 import { MenuButton } from "../../ui/Menu.tsx";
 import { useResultsRows } from "./parts.tsx";
@@ -58,7 +58,7 @@ export function ResultsPage({ app, source }: ResultsPageProps) {
     if (strip != null && tab != null) revealTab(strip, tab);
   }, [tabId, sheetOpen]);
 
-  // First visit with runs: plot the first two Complete runs and select series A.
+  // First visit with runs: plot the first two Complete runs (else the latest flown ones) and select series A.
   useEffect(() => {
     if (seeded.has(app)) return;
     const pick = defaultOverlay(rows);
@@ -131,9 +131,8 @@ export function ResultsPage({ app, source }: ResultsPageProps) {
     const data = dataOf(r);
     return data ? [{ name: r.name, sim: r.sim, runId: r.entry.run_id!, series: data.series }] : [];
   });
-  const runnable = (sims: string[]) => [...new Set(sims)].filter((sim) => rows.some((r) => r.sim === sim && r.status.kind !== "running" && r.status.kind !== "queued"));
-  const selectedSims = runnable([...rows.filter((r) => r.series !== null || r.selected).map((r) => r.sim)]);
-  const outdatedSims = runnable(rows.filter((r) => r.status.kind === "outdated" || r.status.kind === "not_run").map((r) => r.sim));
+  const selectedSims = runnableSims(rows, rows.filter((r) => r.series !== null || r.selected).map((r) => r.sim));
+  const outdatedSims = runnableSims(rows, rows.filter((r) => (r.status.kind === "outdated" || r.status.kind === "not_run") && canRefly(r)).map((r) => r.sim));
   const runAll = (sims: string[], force = false) => {
     for (const sim of sims) void app.getState().runs.run(sim, { force }).catch(() => undefined);
   };
@@ -284,6 +283,7 @@ export function ResultsPage({ app, source }: ResultsPageProps) {
                     <li key={r.key} data-testid="plot.series" data-sim={r.sim} data-row-key={r.key} data-series={r.series ?? undefined} data-color={line.color} data-points={line.t.length}>
                       <span className="rw-legend__swatch" data-series={r.series ?? undefined} aria-hidden />
                       {fig ? `${r.name} (${fig})` : r.name}
+                      {r.status.kind === "outdated" && " · Outdated"}
                     </li>
                   );
                 })}
