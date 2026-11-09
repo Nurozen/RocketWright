@@ -163,6 +163,40 @@ fn exports_write_every_format() {
     assert!(s.execute(&csv, &ctx()).is_err(), "csv needs a run");
 }
 
+#[test]
+fn an_ork_export_names_the_parts_it_left_out() {
+    let d = TempDir::new("export-skipped");
+    fixture_project(d.path());
+    let rocket = d.path().join("rocket.rw.toml");
+    let mut text = std::fs::read_to_string(&rocket).unwrap();
+    text.push_str(
+        "\n[c.ox_tank]\ntype = \"tank\"\nattach = { to = \"body.inner\", at = \"fore\", offset = \"100 mm\" }\nlength = \"100 mm\"\nod = \"20 mm\"\nwall = \"1 mm\"\nend_cap = \"hemispherical\"\n",
+    );
+    std::fs::write(&rocket, text).unwrap();
+    let mut s = Session::open(d.path(), SessionOptions::writer()).unwrap();
+    let export = |format, path: &str, s: &mut Session| {
+        let cmd = Command::ExportFile(ExportFileIn {
+            format,
+            path: path.into(),
+            config: None,
+            run: None,
+            allow_outside: false,
+        });
+        match s.execute(&cmd, &ctx()).unwrap() {
+            Response::ExportFile(o) => o,
+            other => panic!("{other:?}"),
+        }
+    };
+    let ork = export(ExportFormat::Ork, "out/rocket.ork", &mut s);
+    assert_eq!(ork.skipped, ["ox_tank"]);
+    let as_json = serde_json::to_value(&ork).unwrap();
+    assert_eq!(as_json["skipped"], serde_json::json!(["ox_tank"]));
+    // Only .ork drops parts, and an empty list stays off the wire.
+    let stl = export(ExportFormat::Stl, "out/rocket.stl", &mut s);
+    assert!(stl.skipped.is_empty());
+    assert!(serde_json::to_value(&stl).unwrap().get("skipped").is_none());
+}
+
 /// REV-core item 2: `export_file` stays inside the project unless the call
 /// sets `allow_outside` (a gated MCP call).
 #[test]

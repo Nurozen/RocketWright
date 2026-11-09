@@ -64,12 +64,25 @@ export function projectCreateArgs(p: JsonObject): ProjectCreateArgs {
 
 const LIB_KINDS = ["component", "material", "preset", "motor"] as const;
 
-/** `library.search` params: optional query, kind, and limit (1..500). */
-export function libraryQuery(p: JsonObject): { query?: string; kind?: (typeof LIB_KINDS)[number]; limit?: number } {
-  const out: { query?: string; kind?: (typeof LIB_KINDS)[number]; limit?: number } = {};
-  if (p.query !== undefined && p.query !== null) {
-    if (typeof p.query !== "string") throw new RpcFail("invalid_params", "query: expected a string");
-    if (p.query.trim() !== "") out.query = p.query;
+interface LibraryQuery {
+  query?: string;
+  kind?: (typeof LIB_KINDS)[number];
+  manufacturer?: string;
+  component_type?: string;
+  limit?: number;
+  offset?: number;
+}
+
+const U32_MAX = 0xffff_ffff;
+
+/** `library.search` params: optional query, kind, manufacturer, component_type, limit (1..500), and offset. */
+export function libraryQuery(p: JsonObject): LibraryQuery {
+  const out: LibraryQuery = {};
+  for (const key of ["query", "manufacturer", "component_type"] as const) {
+    const value = p[key];
+    if (value === undefined || value === null) continue;
+    if (typeof value !== "string") throw new RpcFail("invalid_params", `${key}: expected a string`);
+    if (value.trim() !== "") out[key] = value;
   }
   if (p.kind !== undefined && p.kind !== null) {
     if (typeof p.kind !== "string" || !(LIB_KINDS as readonly string[]).includes(p.kind)) throw new RpcFail("invalid_params", `kind: expected ${LIB_KINDS.join("|")}`);
@@ -78,6 +91,10 @@ export function libraryQuery(p: JsonObject): { query?: string; kind?: (typeof LI
   if (p.limit !== undefined && p.limit !== null) {
     if (typeof p.limit !== "number" || !Number.isInteger(p.limit) || p.limit < 1 || p.limit > 500) throw new RpcFail("invalid_params", "limit: expected an integer 1..500");
     out.limit = p.limit;
+  }
+  if (p.offset !== undefined && p.offset !== null) {
+    if (typeof p.offset !== "number" || !Number.isInteger(p.offset) || p.offset < 0 || p.offset > U32_MAX) throw new RpcFail("invalid_params", "offset: expected a non-negative integer");
+    out.offset = p.offset;
   }
   return out;
 }

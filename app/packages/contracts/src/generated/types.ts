@@ -1928,6 +1928,19 @@ export interface ExportOut {
   path: string;
   bytes: number;
   sha256: string;
+  /**
+   * Ids of components the format could not represent and the file leaves
+   * out (`.ork` has no tank or feed parts).
+   */
+  skipped?: string[];
+}
+
+/**
+ * One facet value and how many matching items carry it.
+ */
+export interface FacetCount {
+  value: string;
+  count: number;
 }
 
 /**
@@ -2667,14 +2680,43 @@ export interface LibSource {
   downloaded: string;
 }
 
+/**
+ * The values a search can narrow by. Each facet ignores its own filter, so
+ * choosing a manufacturer still lists the others.
+ */
+export interface LibraryFacets {
+  manufacturers: FacetCount[];
+  component_types: FacetCount[];
+}
+
 export interface LibrarySearchIn {
   query?: string | null;
   kind?: LibKind | null;
+  /**
+   * Catalog manufacturer, as `facets.manufacturers` lists it (whole name,
+   * any case). Only built-in presets record one.
+   */
+  manufacturer?: string | null;
+  /**
+   * Component type, e.g. `body_tube`, as `facets.component_types` lists it.
+   * Matches parts only, never materials or motors.
+   */
+  component_type?: string | null;
   limit?: number | null;
+  /**
+   * Matching items to pass over before the first one returned. Page with
+   * `total`: the list is project items, then presets, in a stable order.
+   */
+  offset?: number | null;
 }
 
 export interface LibrarySearchOut {
   items: LibItem[];
+  /**
+   * Every item matching the search, before `offset` and `limit`.
+   */
+  total: number;
+  facets: LibraryFacets;
 }
 
 export interface LibraryShowIn {
