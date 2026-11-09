@@ -27,6 +27,7 @@ function checkOf(s: AppState, running: boolean): ShellModel["check"] {
     errors: "errors",
     warnings: "issues",
     missing_inputs: "issues",
+    no_parts: "empty",
   };
   return { status: map[v.kind] ?? "unknown", issues: v.count ?? 0, label: v.label };
 }

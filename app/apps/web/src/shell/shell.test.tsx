@@ -132,6 +132,11 @@ describe("BC0 polish (concept 01)", () => {
     expect(html("errors", 1, "1 error")).toMatch(/data-tone="danger" data-testid="header.check-count">1</);
     expect(html("outdated")).toContain('data-testid="header.check-outdated"');
     expect(html("unknown")).toMatch(/data-testid="header.check-status">Model not checked yet</);
+    // R0.3a: neutral text with no action, no error badge and no danger tone.
+    const empty = html("empty", 0, "Add parts to begin");
+    expect(empty).toMatch(/data-check-status="empty">Add parts to begin</);
+    expect(empty).not.toContain("Check model");
+    expect(empty).not.toContain("header.check-count");
   });
 });
 

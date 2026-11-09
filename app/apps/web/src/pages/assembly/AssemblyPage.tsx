@@ -8,7 +8,7 @@
 import { useCallback, useMemo, useRef, useState, type ReactNode } from "react";
 import type { ViewId } from "@rw/contracts";
 import { MENTION_EVENT } from "../../embed/mention.ts";
-import { componentRef, useAppState, type AppStore, type Units } from "../../state/index.ts";
+import { ADD_FIRST_PART, FIRST_PART_HINT, componentRef, useAppState, type AppStore, type Units } from "../../state/index.ts";
 import { selectedComponentIds } from "../../state/slices/selection.ts";
 import { AssemblyViewport } from "../../viewport/AssemblyViewport.tsx";
 import type { EngineState, FitMargin } from "../../viewport/engine.ts";
@@ -77,6 +77,7 @@ export function AssemblyWorkspace({ store, glbDeps }: { store: AppStore; glbDeps
   const cardUrl = useAppState(store, (s) => (first === null ? undefined : s.thumbs.urls[thumbKey(first, "card")]));
   const firstComponent = first === null ? undefined : evaluated?.components.find((c) => c.id === first);
   const thumb = firstComponent ? { url: cardUrl, icon: iconFor(firstComponent as Parameters<typeof iconFor>[0]) } : null;
+  const noParts = evaluated?.components.length === 0;
   const ref = useRef<HTMLDivElement>(null);
   // Read at framing time (layout is current then), not tracked: the camera does not chase the inspector.
   const measureInsetHeight = useCallback(() => {
@@ -95,7 +96,13 @@ export function AssemblyWorkspace({ store, glbDeps }: { store: AppStore; glbDeps
         onMention={mentionInChat}
         onPick={(id) => store.getState().selection.select(id === null ? [] : [componentRef(id)], "viewport")}
       />
-      <Inspector view={view} thumb={thumb} />
+      {noParts && (
+        <div className="rw-first-part" data-testid="viewport.empty">
+          <p className="rw-first-part__title">{ADD_FIRST_PART}</p>
+          <p className="rw-first-part__hint">{FIRST_PART_HINT}</p>
+        </div>
+      )}
+      <Inspector view={view} thumb={thumb} noParts={noParts} />
     </div>
   );
 }
@@ -134,6 +141,14 @@ export function ComponentTreeSlot({ store }: { store: AppStore }) {
       }),
     [components, hidden, refs, collapsed, thumbs],
   );
+  // The rail hides its own empty text for a page-owned tree (LeftRail `navBody`).
+  if (components?.length === 0) {
+    return (
+      <p className="rw-rail__empty" data-testid="tree.empty">
+        {ADD_FIRST_PART}. {FIRST_PART_HINT}
+      </p>
+    );
+  }
   return (
     <ComponentTree
       rows={rows}

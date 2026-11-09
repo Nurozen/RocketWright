@@ -56,6 +56,8 @@ export function checkTitle({ status, issues, label }: HeaderProps["check"]): str
       return "The last check ran on an older model revision";
     case "running":
       return "Checking model…";
+    case "empty":
+      return label ?? "Add parts to begin";
     default:
       return "Model not checked yet";
   }
@@ -192,32 +194,39 @@ export function Header({
             <span className="rw-header__sep" aria-hidden />
           </>
         )}
-        <button
-          type="button"
-          className="rw-button rw-button--primary"
-          data-testid="header.check-model"
-          data-check-status={check.status}
-          title={checkTitle(check)}
-          aria-busy={check.status === "running" || undefined}
-          disabled={check.status === "running"}
-          onClick={onCheckModel}
-        >
-          {check.status === "running" ? (
-            <Icon name="spinner" size={18} className="rw-spin" />
-          ) : (
-            <Icon name="check-disc" size={18} className="rw-check__icon" />
-          )}
-          Check model
-          {checkCount(check) !== null && (
-            <span className="rw-badge" data-tone={check.status === "errors" ? "danger" : "amber"} data-testid="header.check-count">
-              {checkCount(check)}
-            </span>
-          )}
-          {check.status === "outdated" && <span className="rw-check__dot" data-testid="header.check-outdated" aria-hidden />}
-          <span className="rw-visually-hidden" data-testid="header.check-status">
+        {check.status === "empty" ? (
+          // R0.3a: no parts to check yet. Neutral text, not a button whose name would promise a check or an add.
+          <span className="rw-check-empty" role="status" data-testid="header.check-model" data-check-status="empty">
             {checkTitle(check)}
           </span>
-        </button>
+        ) : (
+          <button
+            type="button"
+            className="rw-button rw-button--primary"
+            data-testid="header.check-model"
+            data-check-status={check.status}
+            title={checkTitle(check)}
+            aria-busy={check.status === "running" || undefined}
+            disabled={check.status === "running"}
+            onClick={onCheckModel}
+          >
+            {check.status === "running" ? (
+              <Icon name="spinner" size={18} className="rw-spin" />
+            ) : (
+              <Icon name="check-disc" size={18} className="rw-check__icon" />
+            )}
+            Check model
+            {checkCount(check) !== null && (
+              <span className="rw-badge" data-tone={check.status === "errors" ? "danger" : "amber"} data-testid="header.check-count">
+                {checkCount(check)}
+              </span>
+            )}
+            {check.status === "outdated" && <span className="rw-check__dot" data-testid="header.check-outdated" aria-hidden />}
+            <span className="rw-visually-hidden" data-testid="header.check-status">
+              {checkTitle(check)}
+            </span>
+          </button>
+        )}
         <span className="rw-header__sep" aria-hidden />
         <SettingsButton {...(onOpenSettings ? { onClick: onOpenSettings } : {})} />
         <button type="button" className="rw-icon-button" data-testid="header.help" aria-label="Help">

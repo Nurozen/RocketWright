@@ -119,7 +119,7 @@ export interface ShellHistoryStep {
   origin?: string;
 }
 
-export type CheckStatus = "unknown" | "running" | "ok" | "issues" | "errors" | "outdated";
+export type CheckStatus = "unknown" | "running" | "ok" | "issues" | "errors" | "outdated" | "empty";
 
 export interface ShellProject {
   id: string;

@@ -18,7 +18,7 @@ import { useStore } from "zustand";
 import { createStore, type StoreApi } from "zustand/vanilla";
 import { Icon } from "../../shell/Icon.tsx";
 import type { RpcLike } from "../../state/rpc.ts";
-import { useAppState, type AppStore } from "../../state/index.ts";
+import { NO_LIQUID_ENGINE, useAppState, type AppStore } from "../../state/index.ts";
 import { AssemblyViewport } from "../../viewport/AssemblyViewport.tsx";
 import type { EngineState, FitMargin } from "../../viewport/engine.ts";
 import type { GlbDeps } from "../../viewport/glb-source.ts";
@@ -253,7 +253,7 @@ function LiquidWorkspace({ store, client, glbDeps, ui }: { store: AppStore; clie
       </nav>
       {view === null ? (
         <p className="rw-liq__empty" data-testid="liquid.empty">
-          {snap === null ? "Opening the project…" : "No liquid engine in this project. Add one under engines/<id>.rw.toml."}
+          {snap === null ? "Opening the project…" : NO_LIQUID_ENGINE}
         </p>
       ) : tab === "properties" ? (
         <PropertiesView view={view} out={out} state={design?.state ?? "loading"} error={design?.error} />
@@ -651,6 +651,7 @@ function PropertiesView({ view, out, state, error }: { view: EngineView; out: En
 /** The `Propulsion system` rail section: categories with eye toggles; a row selects its first entity. */
 export function PropulsionTree({ store, ui }: { store: AppStore; ui: LiquidStore }) {
   const view = useEngineView(store, ui);
+  const hasSnapshot = useAppState(store, (s) => s.project.snapshot !== null);
   const hidden = useAppState(store, (s) => s.ui.hidden);
   const selected = view ? categoryOfTarget(view.engine, view.target) : null;
   const select = (c: CategoryId) => {
@@ -658,6 +659,14 @@ export function PropulsionTree({ store, ui }: { store: AppStore; ui: LiquidStore
     const ref: RwRef | null = categoryTarget(view.engine, view.id, c);
     if (ref !== null) store.getState().selection.select([ref], "tree");
   };
+  // The categories are an engine's; with no engine the rows and their eyes would act on nothing.
+  if (view === null && hasSnapshot) {
+    return (
+      <p className="rw-rail__empty" data-testid="propulsion.tree-empty">
+        No liquid engine yet.
+      </p>
+    );
+  }
   return (
     <ul className="rw-list" role="listbox" aria-label="Propulsion system" data-testid="propulsion.tree">
       {CATEGORIES.map((c) => {

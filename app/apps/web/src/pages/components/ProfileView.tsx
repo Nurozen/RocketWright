@@ -13,7 +13,7 @@ import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import * as THREE from "three/webgpu";
 import type { CheckReport, EvaluatedModel } from "@rw/contracts";
 import { formatLength } from "../assembly/inspector-model.ts";
-import type { DeepReadonly, Units } from "../../state/index.ts";
+import { ADD_FIRST_PART, FIRST_PART_HINT, type DeepReadonly, type Units } from "../../state/index.ts";
 import { applyDetail, defaultDetailRegistry } from "../../detail/registry.ts";
 import { applyCuts, cutAttrs, type CutReport } from "../../viewport/cuts.ts";
 import { glbModelHash, loadAssemblyGlb, type GlbDeps } from "../../viewport/glb-source.ts";
@@ -267,9 +267,11 @@ export function ProfileView({ evaluated, check, base, selected, view, units, hid
         setCutReport(cuts);
         // The same visual-only detail as the 3D viewport (M3.0, I13): bevelled tube ends (joint
         // lines), the clear bay with its folded chute, machined motor casing; facing this view.
-        const applied = applyDetail(m, ev.components as EvaluatedModel["components"], defaultDetailRegistry(), { showcase: showcaseFor(view) });
-        m.detailReport = applied.report;
-        m.onDispose(applied.dispose);
+        if (ev.components.length > 0) {
+          const applied = applyDetail(m, ev.components as EvaluatedModel["components"], defaultDetailRegistry(), { showcase: showcaseFor(view) });
+          m.detailReport = applied.report;
+          m.onDispose(applied.dispose);
+        }
         engineRef.current?.setModel(m);
         setGlbHash(m.modelHash ?? ev.model_hash);
         setLoadError(null);
@@ -297,9 +299,11 @@ export function ProfileView({ evaluated, check, base, selected, view, units, hid
     engineRef.current?.setHidden(hidden);
   }, [hidden, glbHash]);
 
+  // CP, CG and station labels would all read zero on a rocket that does not exist (R0.3a).
+  const noParts = evaluated?.components.length === 0;
   const overlay = useMemo(
-    () => (evaluated !== null && frame !== null ? profileOverlay(evaluated, check, frame, view, selected, base) : null),
-    [evaluated, check, frame, view, selected, base],
+    () => (evaluated !== null && frame !== null && !noParts ? profileOverlay(evaluated, check, frame, view, selected, base) : null),
+    [evaluated, check, frame, view, selected, base, noParts],
   );
 
   const down = useRef<{ x: number; y: number } | null>(null);
@@ -359,7 +363,13 @@ export function ProfileView({ evaluated, check, base, selected, view, units, hid
       <span className="rw-profile__caption" data-testid="vp.view-label">
         {PROFILE_VIEW_CAPTION[view]}
       </span>
-      {frame !== null && (
+      {noParts && (
+        <div className="rw-first-part" data-testid="viewport.empty">
+          <p className="rw-first-part__title">{ADD_FIRST_PART}</p>
+          <p className="rw-first-part__hint">{FIRST_PART_HINT}</p>
+        </div>
+      )}
+      {frame !== null && !noParts && (
         <span className="rw-profile__scale" data-testid="vp.scale">
           {scaleLabel(frame)}
         </span>

@@ -11,7 +11,7 @@ import { useStore } from "zustand";
 import { createStore, type StoreApi } from "zustand/vanilla";
 import { TimePlot } from "../../plots/TimePlot.tsx";
 import type { RpcLike } from "../../state/rpc.ts";
-import { useAppState, type AppStore } from "../../state/index.ts";
+import { NO_LIQUID_ENGINE, useAppState, type AppStore } from "../../state/index.ts";
 import { engineRunUrl, engineeringPlots, parseEngineRun, provenanceLabel, runSummary, type EngineRunRecord, type EngineeringPlot } from "./model.ts";
 
 export type FetchText = (url: string) => Promise<{ ok: boolean; status: number; text(): Promise<string> }>;
@@ -111,7 +111,7 @@ export function EngineeringTab({ store, client, ui, httpBase, fetchText = (u) =>
       </header>
       {engine === null ? (
         <p className="rw-eng__empty" data-testid="engineering.empty">
-          No liquid engine in this project. Add one under engines/&lt;id&gt;.rw.toml.
+          {NO_LIQUID_ENGINE}
         </p>
       ) : run?.key === key && run.state === "error" ? (
         <p className="rw-eng__empty" data-testid="engineering.error">

@@ -201,44 +201,47 @@ export function VisualFlowView({ studies, selected, onSelect, record, state, err
           </div>
         )}
       </div>
-      <TransportBar store={transport} section={layers.section} onSection={(on) => setLayers({ ...layers, section: on })} />
-      <div className="rw-vis-lower" data-rw-region="traces" data-testid="traces">
-        <div className="rw-vis-lower__bar">
-          <nav className="rw-vis-subtabs" role="tablist" aria-label="Study detail">
-            {SUB_TABS.map((t) => (
-              <button key={t.id} type="button" role="tab" className="rw-tab rw-tab--editor" data-testid="visual.subtab" data-sub={t.id} aria-selected={t.id === sub} onClick={() => ui.setState({ sub: t.id })}>
-                {t.label}
-              </button>
-            ))}
-          </nav>
-          {provenance !== "" && (
-            <span className="rw-vis-provenance" data-testid="traces.provenance" data-provenance={provenance}>
-              {provenanceLabel(provenance)}
-            </span>
-          )}
-        </div>
-        <div className="rw-vis-lower__body">
-          {sub === "traces" && <Traces store={transport} flow={tr.flow} fill={tr.fill} />}
-          {sub === "inputs" && record && <StudyInputs record={record} />}
-          {sub === "assumptions" && record && (
-            <ul className="rw-vis-assumptions" data-testid="visual.assumptions">
-              {record.assumptions.map((a) => (
-                <li key={a}>{a}</li>
+      {/* With no study there is nothing to play and no traces to read: a 10 s clock and empty axes would imply one (R0.3a). */}
+      {state !== "empty" && <TransportBar store={transport} section={layers.section} onSection={(on) => setLayers({ ...layers, section: on })} />}
+      {state !== "empty" && (
+        <div className="rw-vis-lower" data-rw-region="traces" data-testid="traces">
+          <div className="rw-vis-lower__bar">
+            <nav className="rw-vis-subtabs" role="tablist" aria-label="Study detail">
+              {SUB_TABS.map((t) => (
+                <button key={t.id} type="button" role="tab" className="rw-tab rw-tab--editor" data-testid="visual.subtab" data-sub={t.id} aria-selected={t.id === sub} onClick={() => ui.setState({ sub: t.id })}>
+                  {t.label}
+                </button>
               ))}
-            </ul>
-          )}
+            </nav>
+            {provenance !== "" && (
+              <span className="rw-vis-provenance" data-testid="traces.provenance" data-provenance={provenance}>
+                {provenanceLabel(provenance)}
+              </span>
+            )}
+          </div>
+          <div className="rw-vis-lower__body">
+            {sub === "traces" && <Traces store={transport} flow={tr.flow} fill={tr.fill} />}
+            {sub === "inputs" && record && <StudyInputs record={record} />}
+            {sub === "assumptions" && record && (
+              <ul className="rw-vis-assumptions" data-testid="visual.assumptions">
+                {record.assumptions.map((a) => (
+                  <li key={a}>{a}</li>
+                ))}
+              </ul>
+            )}
+          </div>
+          <div className="rw-vis-lower__actions">
+            <button type="button" className="rw-button" data-testid="visual.open-engineering" onClick={onOpenEngineering}>
+              <OpenIcon />
+              Open engineering run
+            </button>
+            <button type="button" className="rw-button" data-testid="visual.import-cfd" onClick={onImportCfd}>
+              <ImportIcon />
+              Import CFD result
+            </button>
+          </div>
         </div>
-        <div className="rw-vis-lower__actions">
-          <button type="button" className="rw-button" data-testid="visual.open-engineering" onClick={onOpenEngineering}>
-            <OpenIcon />
-            Open engineering run
-          </button>
-          <button type="button" className="rw-button" data-testid="visual.import-cfd" onClick={onImportCfd}>
-            <ImportIcon />
-            Import CFD result
-          </button>
-        </div>
-      </div>
+      )}
     </div>
   );
 }
