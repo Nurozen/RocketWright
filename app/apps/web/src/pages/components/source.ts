@@ -282,6 +282,44 @@ export function sourceMaterialIds(files: SourceFilesLike): string[] {
     .map(([k]) => k);
 }
 
+/** One place the sources name a material: the patch path that holds it, and what a person calls that place. */
+export interface MaterialUse {
+  path: string;
+  label: string;
+}
+
+/**
+ * Everywhere the sources name this material: a part's `material` and
+ * `line_material`, and a feed-graph tank's wall `material` in an engine's own
+ * file. These are the only references the model has (`check_ref` and the
+ * engine's tank check), so a material with none can go, and a rename rewrites
+ * exactly these.
+ */
+export function materialUses(files: SourceFilesLike, material: string): MaterialUse[] {
+  const out: MaterialUse[] = [];
+  for (const [id, part] of Object.entries(tableAt(files, ["c"]) ?? {})) {
+    if (!isTable(part)) continue;
+    const label = typeof part["name"] === "string" ? part["name"] : id;
+    for (const key of ["material", "line_material"]) {
+      if (part[key] === material) out.push({ path: `/c/${id}/${key}`, label });
+    }
+  }
+  for (const [file, text] of Object.entries(files)) {
+    const engine = /^engines\/([^/]+)\.rw\.toml$/.exec(file)?.[1];
+    if (engine === undefined || text === undefined) continue;
+    const tree: SourceTable = {};
+    parseFile(text, tree);
+    const feed = tree["feed"];
+    const nodes = isTable(feed) ? feed["node"] : undefined;
+    if (!isTable(nodes)) continue;
+    const engineName = typeof tree["name"] === "string" ? tree["name"] : engine;
+    for (const [node, value] of Object.entries(nodes)) {
+      if (isTable(value) && value["material"] === material) out.push({ path: `/engines/${engine}/feed/node/${node}/material`, label: `${engineName} ${node}` });
+    }
+  }
+  return out;
+}
+
 /** The component has this nested table in its sources. */
 export function sourceHasTable(files: SourceFilesLike, id: string, sub: readonly string[]): boolean {
   return tableAt(files, ["c", id, ...sub]) !== undefined;

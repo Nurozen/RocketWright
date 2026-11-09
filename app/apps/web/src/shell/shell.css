@@ -539,6 +539,7 @@ h2 {
   padding: 0 0 0 24px;
   border-left: var(--rw-hairline) solid var(--rw-line);
   list-style: none;
+  container: rw-steps / inline-size;
 }
 
 .rw-step {
@@ -586,9 +587,9 @@ h2 {
   background: var(--rw-bg-canvas);
 }
 
-/* Name and meta never truncate: they stay on one line while the strip has
-   room and wrap within the step's width when it does not (title has the
-   full text, including the revision name). */
+/* Name and meta stay on one line while the strip has room and wrap within the
+   step's width when it does not (title has the full text, including the
+   revision name). A narrow window has no room to wrap into: see below. */
 .rw-step__text {
   display: flex;
   flex-direction: column;
@@ -609,6 +610,24 @@ h2 {
 .rw-step__date {
   color: var(--rw-text-secondary);
   font-size: var(--rw-font-size-secondary);
+}
+
+/* Windows under about 1270 px: a step is too narrow to wrap a label without
+   breaking its words ("conce / pt"), so labels end in an ellipsis instead and
+   the connectors give up their width first. */
+@container rw-steps (max-width: 479.98px) {
+  .rw-step__name,
+  .rw-step__date {
+    overflow: hidden;
+    overflow-wrap: normal;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .rw-step__link {
+    min-width: 8px;
+    margin: 0 6px;
+  }
 }
 
 /* ---- agent pane ---------------------------------------------------------- */

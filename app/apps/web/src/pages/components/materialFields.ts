@@ -75,8 +75,22 @@ export function formFromLiterals(id: string, data: Readonly<Record<string, unkno
   return formOf(id, session, (key) => parseLiteral(data[key] as SourceScalar | undefined), units);
 }
 
+/**
+ * The key an existing material would move to, or null when the name still
+ * means the same one. `displayName` is not reversible for a key the agent
+ * wrote (`Al-6061`), so a name left as shown is never a rename.
+ */
+export function renamedTo(f: MaterialForm): string | null {
+  if (f.id === null) return null;
+  const name = f.name.trim();
+  if (name === "" || name === displayName(f.id)) return null;
+  const to = slugify(name, "material");
+  return to === f.id ? null : to;
+}
+
 export function isDirty(f: MaterialForm): boolean {
   if (f.id === null && f.name.trim() !== "") return true;
+  if (f.id !== null && (f.name.trim() === "" || renamedTo(f) !== null)) return true;
   return DENSITY_FIELDS.some((d) => f.values[d.key].trim() !== f.baseline[d.key].trim());
 }
 
@@ -92,6 +106,11 @@ export function validateForm(f: MaterialForm, taken: ReadonlySet<string>): FormE
   if (f.id === null && f.name.trim() !== "" && taken.has(slugify(f.name, "material"))) {
     errors.name = `This project already has a material called ${f.name.trim()}. Pick it in the list to edit it.`;
   }
+  const renamed = renamedTo(f);
+  if (renamed !== null && taken.has(renamed)) {
+    errors.name = `This project already has a material called ${f.name.trim()}. Pick it in the list to edit it.`;
+  }
+  if (f.id !== null && f.name.trim() === "") errors.name = "A material needs a name.";
   if (f.id !== null && DENSITY_FIELDS.every((d) => f.values[d.key].trim() === "")) {
     errors.form = "A material needs at least one density.";
   }

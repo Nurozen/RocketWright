@@ -1,7 +1,9 @@
 # Using the desktop app
 
-RocketWright is built so that you can do everything here by hand, with an agent
-as a helper rather than a requirement. Press **Help** in the header, or open
+You can design, check and fly a rocket by hand here, with an agent as a helper
+rather than a requirement. Two things still need the agent or the CLI: adding
+stages and assigning parts to them, and creating a **Visual flow** study. Press
+**Help** in the header, or open
 **Help > Quick start**, for the short version inside the app.
 
 ## Projects
@@ -65,7 +67,10 @@ configuration, in one step that **Undo** brings back.
 
 **Materials** sits beside the part's tabs under **Components**. Browse the
 project's materials and the library's, pick one to copy it into the project, or
-create and edit your own.
+create and edit your own. A new material saves as soon as it has a name and a
+density. You can rename it later and every part that uses it follows, and you can
+delete one that no part uses. Renaming or deleting a material outdates the runs
+you have flown.
 
 **Configurations** pairs the airframe with motors and sets when each recovery
 device deploys. The motor picker lists the built-in motors, your project's
@@ -108,7 +113,8 @@ results. After an edit the page reads **Modified, needs recompute** rather than
 quietly changing the numbers.
 
 On **Simulate**, the **Engineering** and **Visual flow** views run only when you
-press **Run**. **Cancel** drops that result. **Import CFD result** picks a CFD
+press **Run**. A Visual flow study has to exist first, and the agent or the CLI
+adds one. **Cancel** drops that result. **Import CFD result** picks a CFD
 file from your disk. The flow preview is illustrative, not an engineering result.
 
 ## Importing and exporting

@@ -90,14 +90,127 @@ describe("creating a material", () => {
     expect(p.onMutate).toHaveBeenCalledWith([{ op: "add", path: "/materials/foam", value: { density: "100 kg/m^3" } }], "Add material foam");
   });
 
-  it("fixes the name once created, and later edits replace the entry", async () => {
+  it("later edits replace the entry", async () => {
     const p = props();
     const el = await mount(p);
     await fillNew(el, "foam", "Density", "100");
-    expect(input(el, "Name").disabled).toBe(true);
     await type(input(el, "Density"), "120");
     await blur(input(el, "Density"));
     expect(p.onMutate).toHaveBeenLastCalledWith([{ op: "replace", path: "/materials/foam", value: { density: "120 kg/m^3" } }], "Edit material foam");
+  });
+
+  describe("a material that already exists", () => {
+    const FILES = {
+      "rocket.rw.toml": '[materials.alumnium]\ndensity = "2700 kg/m^3"\ndoc = "kept"\n\n[materials.cord]\nline_density = "2 g/m"\n\n[c.body]\nname = "Body tube"\ntype = "body_tube"\nmaterial = "alumnium"\n\n[c.chute]\ntype = "parachute"\nmaterial = "cord"\nline_material = "alumnium"\n',
+      "engines/main.rw.toml": 'name = "Main"\n[feed.node.tank_a]\nkind = "tank"\nmaterial = "alumnium"\n',
+    };
+    const MATERIALS = { alumnium: { density: 2700 }, cord: { line_density: 0.002 } };
+    const openOne = async (over: Partial<MaterialsPanelProps> = {}, id = "alumnium") => {
+      const p = props({ files: FILES, materials: MATERIALS, ...over });
+      const el = await mount(p);
+      await click(el.querySelector<HTMLButtonElement>(`[data-testid="materials.item"][data-id="${id}"]`)!);
+      return { p, el };
+    };
+
+    it("renames in one step: the entry moves and every part and tank follows", async () => {
+      const { p, el } = await openOne();
+      expect(input(el, "Name").disabled).toBe(false);
+      await type(input(el, "Name"), "Aluminium");
+      await blur(input(el, "Name"));
+      expect(p.onMutate).toHaveBeenCalledTimes(1);
+      expect(p.onMutate).toHaveBeenCalledWith(
+        [
+          { op: "add", path: "/materials/aluminium", value: { density: "2700 kg/m^3", doc: "kept" } },
+          { op: "remove", path: "/materials/alumnium" },
+          { op: "replace", path: "/c/body/material", value: "aluminium" },
+          { op: "replace", path: "/c/chute/line_material", value: "aluminium" },
+          { op: "replace", path: "/engines/main/feed/node/tank_a/material", value: "aluminium" },
+        ],
+        "Rename material alumnium to aluminium",
+      );
+      expect(input(el, "Name").value).toBe("aluminium");
+    });
+
+    it("does not rename on a change of case, a blur with no change, or a key the name cannot spell", async () => {
+      const odd = { "rocket.rw.toml": '[materials.Al-6061]\ndensity = "2700 kg/m^3"\n' };
+      const first = await openOne({ files: odd, materials: { "Al-6061": { density: 2700 } } }, "Al-6061");
+      await blur(input(first.el, "Name"));
+      expect(first.p.onMutate).not.toHaveBeenCalled();
+      await act(async () => root!.unmount());
+      root = null;
+      const { p, el } = await openOne();
+      await type(input(el, "Name"), "ALUMNIUM");
+      await blur(input(el, "Name"));
+      expect(p.onMutate).not.toHaveBeenCalled();
+    });
+
+    it("refuses a rename onto another material or to nothing", async () => {
+      const { p, el } = await openOne();
+      await type(input(el, "Name"), "cord");
+      await blur(input(el, "Name"));
+      expect(el.textContent).toContain("already has a material called cord");
+      await type(input(el, "Name"), " ");
+      await blur(input(el, "Name"));
+      expect(el.textContent).toContain("A material needs a name.");
+      expect(p.onMutate).not.toHaveBeenCalled();
+    });
+
+    it("waits for a new material to reach the snapshot before renaming it", async () => {
+      const p = props();
+      const el = await mount(p);
+      await fillNew(el, "foam", "Density", "100");
+      await type(input(el, "Name"), "balsa");
+      await blur(input(el, "Name"));
+      expect(el.textContent).toContain("still saving");
+      expect(p.onMutate).toHaveBeenCalledTimes(1);
+    });
+
+    it("puts the old name back in the form when a rename fails", async () => {
+      const onMutate = vi.fn<MaterialsPanelProps["onMutate"]>(async () => {
+        throw new Error("no");
+      });
+      const { el } = await openOne({ onMutate });
+      await type(input(el, "Name"), "aluminium");
+      await blur(input(el, "Name"));
+      expect(el.querySelector('[data-testid="materials.error"]')?.textContent).toContain("no");
+      expect(input(el, "Name").value).toBe("aluminium");
+    });
+
+    it("deletes an unused material as one step and closes the form", async () => {
+      const files = { "rocket.rw.toml": '[materials.spare]\ndensity = "100 kg/m^3"\n' };
+      const { p, el } = await openOne({ files, materials: { spare: { density: 100 } } }, "spare");
+      const del = el.querySelector<HTMLButtonElement>('[data-testid="materials.delete"]')!;
+      expect(del.disabled).toBe(false);
+      await click(del);
+      expect(p.onMutate).toHaveBeenCalledWith([{ op: "remove", path: "/materials/spare" }], "Delete material spare");
+      expect(el.querySelector('[data-testid="materials.delete"]')).toBeNull();
+    });
+
+    it("will not delete a material in use, and says who uses it", async () => {
+      const { p, el } = await openOne();
+      const del = el.querySelector<HTMLButtonElement>('[data-testid="materials.delete"]')!;
+      expect(del.disabled).toBe(true);
+      expect(el.querySelector('[data-testid="materials.used-by"]')?.textContent).toBe("Used by Body tube, chute, Main tank_a. Pick another material there to delete this one.");
+      await click(del);
+      expect(p.onMutate).not.toHaveBeenCalled();
+    });
+
+    it("cannot delete until the material has reached the snapshot", async () => {
+      const el = await mount(props());
+      await fillNew(el, "foam", "Density", "100");
+      expect(el.querySelector<HTMLButtonElement>('[data-testid="materials.delete"]')!.disabled).toBe(true);
+    });
+
+    it("reopens the form when a delete fails", async () => {
+      const files = { "rocket.rw.toml": '[materials.spare]\ndensity = "100 kg/m^3"\n' };
+      const onMutate = vi.fn<MaterialsPanelProps["onMutate"]>(async () => {
+        throw new Error("no");
+      });
+      const { el } = await openOne({ files, materials: { spare: { density: 100 } }, onMutate }, "spare");
+      await click(el.querySelector<HTMLButtonElement>('[data-testid="materials.delete"]')!);
+      expect(input(el, "Name").value).toBe("spare");
+      expect(el.querySelector('[data-testid="materials.error"]')?.textContent).toContain("no");
+    });
   });
 
   it("starts a clean form for the next one, and keeps the writes in order", async () => {

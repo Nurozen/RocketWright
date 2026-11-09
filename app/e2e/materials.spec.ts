@@ -57,9 +57,9 @@ test("creates, edits and copies materials on an Empty project", async ({ page })
   const list = page.getByTestId("materials.item");
   await expect(list).toHaveText([/cardboard.*680 kg\/m³/, /elastic cord.*1\.8 g\/m/, /polystyrene.*1050 kg\/m³/, /ripstop nylon.*67 g\/m²/]);
 
-  // Editing keeps the name fixed and rewrites the one entry.
+  // Editing rewrites the one entry; the name can still be corrected.
   await page.getByRole("button", { name: /^cardboard/ }).click();
-  await expect(page.getByLabel("Name", { exact: true })).toBeDisabled();
+  await expect(page.getByLabel("Name", { exact: true })).toBeEditable();
   await expect(page.getByLabel("Density", { exact: true })).toHaveValue("680");
   await page.getByLabel("Density", { exact: true }).fill("700");
   await page.getByLabel("Density", { exact: true }).press("Tab");
