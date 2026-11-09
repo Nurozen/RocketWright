@@ -100,10 +100,14 @@ describe("contract batch (U13)", () => {
     expect(await c.request("motor.show", { projectId, id: "generic:NOPE" })).toMatchObject({ ok: false, error: { code: "api_error" } });
   });
 
+  it("run.delete reaches the sidecar and validates its params", async () => {
+    expect(await c.request("run.delete", { projectId, run: "baseline/aaaaaaaaaaaa", dry_run: true })).toMatchObject({ ok: false, error: { code: "api_error", api: { code: "not_found" } } });
+    expect(await c.request("run.delete", { projectId } as never)).toMatchObject({ ok: false, error: { code: "invalid_params" } });
+  });
+
   it("the unimplemented methods answer internal until their steps land", async () => {
     const stubs: [RpcMethod, Record<string, unknown>][] = [
       ["project.restartSidecar", { projectId }],
-      ["run.delete", { projectId, run: "baseline/abc" }],
     ];
     for (const [method, params] of stubs) {
       expect(await c.request(method, params as never), method).toMatchObject({ ok: false, error: { code: "internal" } });

@@ -325,6 +325,22 @@
       "properties": {
         "command": {
           "type": "string",
+          "const": "run_delete"
+        },
+        "output": {
+          "$ref": "#/$defs/MutationOut"
+        }
+      },
+      "required": [
+        "command",
+        "output"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "command": {
+          "type": "string",
           "const": "model_diff"
         },
         "output": {

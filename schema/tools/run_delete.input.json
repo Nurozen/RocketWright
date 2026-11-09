@@ -1,0 +1,20 @@
+{
+  "type": "object",
+  "properties": {
+    "run": {
+      "type": "string",
+      "description": "The run: <sim>/<run-id>, rw:run/<run-id>, or its full run id. A sim\nid or a shortened run id is refused: deleting takes an exact name."
+    },
+    "dry_run": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "run"
+  ],
+  "description": "`run_delete`: one flight or visual run.",
+  "title": "RunDeleteIn",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rocketwright.dev/schema/1/tools/run_delete.input.json"
+}

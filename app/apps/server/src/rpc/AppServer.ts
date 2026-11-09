@@ -664,8 +664,7 @@ export class AppServer {
 
     "motor.show": (_c, params) => this.hostOf(params).tool<schema.MotorShowOut>("motor_show", { id: str(params, "id") }),
 
-    // U43 adds `run_delete`.
-    "run.delete": () => notYet("run.delete"),
+    "run.delete": (_c, params) => this.hostOf(params).deleteRun(str(params, "run"), optBool(params, "dry_run") ?? false),
 
     "broker.hostRegister": (conn, params) => {
       const p = this.hostOf(params);

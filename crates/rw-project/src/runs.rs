@@ -300,14 +300,15 @@ impl RunStore {
     /// Resolves a run ref: `rw:run/<id>`, `<sim>/<id>`, `runs/<sim>/<id>`,
     /// a bare run id (or unique prefix of one), or a sim id (its latest run).
     pub fn find(&self, r: &str) -> Option<RunManifest> {
-        let r = r.trim().trim_end_matches('/');
-        let r = r.strip_prefix("rw:run/").unwrap_or(r);
-        let r = r.strip_prefix("./").unwrap_or(r);
-        let r = r.strip_prefix("runs/").unwrap_or(r);
+        let r = run_ref(r);
         if r.is_empty() {
             return None;
         }
         if let Some((sim, id)) = r.split_once('/') {
+            // A ref comes from a caller: `../..` must not read outside `runs/`.
+            if !is_run_segment(sim) || !is_run_segment(id) {
+                return None;
+            }
             return self.manifest(sim, id).ok();
         }
         let all = self.manifests();
@@ -321,6 +322,90 @@ impl RunStore {
         }
         self.latest(r)
     }
+
+    /// [`RunStore::find`] for a destructive caller: the ref must spell out
+    /// the run, so a sim id (its latest run) or a shortened id never resolves.
+    pub fn find_exact(&self, r: &str) -> Option<RunManifest> {
+        let named = run_ref(r);
+        let m = self.find(r)?;
+        let exact = match named.split_once('/') {
+            Some((sim, id)) => m.sim == sim && m.run_id == id,
+            None => m.run_id == named,
+        };
+        exact.then_some(m)
+    }
+
+    /// The directory of a run that may be deleted. `sim` and `id` come from a
+    /// manifest on disk, so each must be one plain name; neither directory
+    /// may be a symlink; and only flight and visual runs qualify (engine and
+    /// CFD records have no manifest and are not this tool's to remove).
+    fn deletable_dir(&self, sim: &str, id: &str) -> std::io::Result<PathBuf> {
+        let refuse = |why: String| std::io::Error::new(std::io::ErrorKind::InvalidInput, why);
+        if !is_run_segment(sim) || !is_run_segment(id) {
+            return Err(refuse(format!("`{sim}/{id}` is not a run directory name")));
+        }
+        let sim_dir = self.root.join(RUNS_DIR).join(sim);
+        let dir = sim_dir.join(id);
+        for d in [&sim_dir, &dir] {
+            if !std::fs::symlink_metadata(d)?.is_dir() {
+                return Err(refuse(format!("{} is not a directory", d.display())));
+            }
+        }
+        if !(self.has(sim, id) || self.has_visual(sim, id)) {
+            return Err(refuse(format!(
+                "`{sim}/{id}` is not a flight or visual run"
+            )));
+        }
+        Ok(dir)
+    }
+
+    /// Project-relative paths of every file in a deletable run, sorted.
+    /// Symlinks are listed, never followed.
+    pub fn run_files(&self, sim: &str, id: &str) -> std::io::Result<Vec<String>> {
+        fn walk(dir: &Path, rel: &str, out: &mut Vec<String>) -> std::io::Result<()> {
+            for e in std::fs::read_dir(dir)? {
+                let e = e?;
+                let path = format!("{rel}/{}", e.file_name().to_string_lossy());
+                if e.file_type()?.is_dir() {
+                    walk(&e.path(), &path, out)?;
+                } else {
+                    out.push(path);
+                }
+            }
+            Ok(())
+        }
+        let dir = self.deletable_dir(sim, id)?;
+        let mut out = Vec::new();
+        walk(&dir, &Self::rel_dir(sim, id), &mut out)?;
+        out.sort();
+        Ok(out)
+    }
+
+    /// Deletes a flight or visual run. The directory is first renamed to a
+    /// hidden name, so a crash mid-delete never leaves a partial run listed.
+    pub fn remove(&self, sim: &str, id: &str) -> std::io::Result<()> {
+        let dir = self.deletable_dir(sim, id)?;
+        let seq = TMP_SEQ.fetch_add(1, Ordering::Relaxed);
+        let hidden = dir.with_file_name(format!(".{id}.rw-del-{}-{seq}", std::process::id()));
+        std::fs::rename(&dir, &hidden)?;
+        let _ = std::fs::remove_dir_all(&hidden);
+        Ok(())
+    }
+}
+
+/// A run ref without its optional `rw:run/`, `./`, and `runs/` prefixes.
+fn run_ref(r: &str) -> &str {
+    let r = r.trim().trim_end_matches('/');
+    let r = r.strip_prefix("rw:run/").unwrap_or(r);
+    let r = r.strip_prefix("./").unwrap_or(r);
+    r.strip_prefix("runs/").unwrap_or(r)
+}
+
+/// True for a single plain directory name under `runs/`. A leading dot is
+/// refused too: that covers `.` and `..`, and the store's own hidden temp
+/// and delete directories.
+fn is_run_segment(s: &str) -> bool {
+    !s.is_empty() && !s.starts_with('.') && !s.contains(['/', '\\', ':', '\0'])
 }
 
 #[cfg(test)]

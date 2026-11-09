@@ -66,6 +66,7 @@ const MCP_TOOLS: &[&str] = &[
     "job_cancel",
     "run_list",
     "run_diff",
+    "run_delete",
     "model_diff",
     "history_list",
     "history_show",

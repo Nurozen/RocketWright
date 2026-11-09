@@ -241,6 +241,8 @@ commands! {
         "Runs per sim with computed status (Complete/Outdated/...).";
     RunDiff = "run_diff" (RunDiffIn) -> RunDiffOut, mcp: true, ToolHints::READ, Approval::Never,
         "Compare two runs or a run and an oracle golden (rw diff run).";
+    RunDelete = "run_delete" (RunDeleteIn) -> MutationOut, mcp: true, ToolHints::DESTROY, Approval::Always,
+        "Delete one flight or visual run from runs/; the model, its history, and other runs are untouched.";
     ModelDiff = "model_diff" (ModelDiffIn) -> ModelDiff, mcp: true, ToolHints::READ, Approval::Never,
         "Semantic model diff keyed by component id (rw diff model).";
     HistoryList = "history_list" (HistoryListIn) -> HistoryListOut, mcp: true, ToolHints::READ, Approval::Never,

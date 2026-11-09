@@ -212,6 +212,10 @@ fn always_tools_ask_and_name_the_path() {
         why("cfd_import", json!({})).as_deref(),
         Some("CFD import reads files outside the model")
     );
+    assert_eq!(
+        why("run_delete", json!({"run": "baseline/f8eb21388e28"})).as_deref(),
+        Some("Permanently deletes run baseline/f8eb21388e28")
+    );
     assert!(why("import_file", json!({"path": "motors/c6.eng"})).is_some());
 }
 
@@ -234,6 +238,7 @@ fn reasons_are_plain_prose() {
         ),
         why("import_file", json!({"path": "motors/c6.eng"})),
         why("cfd_import", json!({})),
+        why("run_delete", json!({"run": "baseline/f8eb21388e28"})),
     ];
     for r in reasons {
         let r = r.expect("asks");
@@ -242,6 +247,7 @@ fn reasons_are_plain_prose() {
             "export_file",
             "import_file",
             "cfd_import",
+            "run_delete",
             "simulate ",
         ];
         assert!(!id.iter().any(|t| r.contains(t)), "{r}: names a tool id");

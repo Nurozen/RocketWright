@@ -438,6 +438,20 @@ fn real_session_tool_bodies() {
         json!({"a": run_id, "golden": golden.display().to_string()}),
     );
     assert_eq!(diff["pass"], true, "{diff}");
+    let dry = ok(
+        &mut s,
+        "run_delete",
+        json!({"run": format!("simulation_5/{run_id}"), "dry_run": true}),
+    );
+    assert_eq!(dry["delta"]["changed"], json!({}), "{dry}");
+    assert!(
+        dry["files"].as_array().is_some_and(|f| !f.is_empty()),
+        "{dry}"
+    );
+    assert!(
+        p.0.join(format!("runs/simulation_5/{run_id}/manifest.json"))
+            .is_file()
+    );
 
     ok(&mut s, "project_validate", json!({}));
     let sub = ok(&mut s, "model_get", json!({"path": "/components/0"}));
