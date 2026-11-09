@@ -90,6 +90,12 @@
   "s-check-issues": {
     "title": "Check issues",
     "boot": "project",
+    "seed": {
+      "fixture": "research-vehicle",
+      "name": "Research vehicle",
+      "label": "Check issues fixture",
+      "ops": [{ "op": "replace", "path": "/c/nose/shoulder/od", "value": "53.5 mm" }]
+    },
     "mockup": "06-check-issues.png",
     "existing": "design-assembly.png",
     "ready": "[data-testid=\"header.check-model\"]",

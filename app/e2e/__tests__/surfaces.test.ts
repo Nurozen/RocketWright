@@ -3,7 +3,7 @@
  * the surface table, the "not built yet" report, the seeded Recents, and the
  * surface critic packet.
  */
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -13,7 +13,7 @@ import { OVERLAY_SELECTOR } from "../../apps/web/src/embed/bridge.ts";
 import { buildSurfacePacket } from "../bar/packet.ts";
 import { BAR_DATA_DIR, isSurfaceId, SURFACE_CRITIC_PROMPT_PATH, SURFACES, type SurfaceId } from "../bar/paths.ts";
 import { loadSurfaces, surfaceFailures, type SurfaceSpec } from "../bar/surfaces.ts";
-import { notBuiltLine, parseArgs, SEEDED_RECENTS, seedSurfaceFixture, SURFACE_CAPTURE_DIR, SURFACE_CLOCK_MS, surfaceDesktopArgs, surfaceReport, surfaceScript } from "../bar/visual.ts";
+import { notBuiltLine, parseArgs, SEEDED_RECENTS, seedSurfaceFixture, SURFACE_CAPTURE_DIR, SURFACE_CLOCK_MS, surfaceDesktopArgs, surfaceReport, surfaceScript, writeSurfaceSeed } from "../bar/visual.ts";
 
 const specs = loadSurfaces();
 const temps: string[] = [];
@@ -116,6 +116,45 @@ describe("seeded surface fixture", () => {
     expect(made.at(-1)).toBe("Sample rocket:sample");
     const parsed = parseRecents(readFileSync(join(f.profile, "recents.json"), "utf8"));
     expect(parsed.recents.map((r) => r.dir)).not.toContain(f.project);
+  });
+
+  it("opens a surface's seeded project in place of the sample, never in Recents", () => {
+    const made: string[] = [];
+    const written: string[] = [];
+    const f = seedSurfaceFixture("project", SURFACE_CLOCK_MS, init(made), { name: "Research vehicle", write: (dir) => written.push(dir) });
+    temps.push(f.scratch);
+    expect(f.project).toBe(join(f.documents, "RocketWright", "Research vehicle"));
+    expect(written).toEqual([f.project]);
+    expect(made).toEqual(["weekend-flyer:empty", "altitude-study:empty"]);
+    expect(parseRecents(readFileSync(join(f.profile, "recents.json"), "utf8")).recents.map((r) => r.dir)).not.toContain(f.project);
+  });
+
+  it("copies the fixture without its seeding files and applies the ops through the CLI", () => {
+    const fixtures = temp();
+    const from = join(fixtures, "vehicle");
+    mkdirSync(join(from, "parts"), { recursive: true });
+    for (const name of ["rocket.rw.toml", "parts/fin_can.rw.toml", "seed.sh", "seed.expected.json"]) writeFileSync(join(from, name), "");
+    const log = join(temp(), "args");
+    const rw = join(temp(), "rw");
+    writeFileSync(rw, `#!/bin/sh\nprintf '%s\\n' "$@" > '${log}'\n`);
+    chmodSync(rw, 0o755);
+    const dir = join(temp(), "Vehicle");
+    const ops = [{ op: "replace", path: "/c/nose/shoulder/od", value: "53.5 mm" }];
+    writeSurfaceSeed({ fixture: "vehicle", name: "Vehicle", label: "Broken", ops }, dir, rw, fixtures);
+    expect(readdirSync(dir).sort()).toEqual(["parts", "rocket.rw.toml"]);
+    expect(readFileSync(log, "utf8").trim().split("\n")).toEqual(["-C", dir, "call", "--label", "Broken", "model_patch", JSON.stringify({ ops })]);
+  });
+});
+
+describe("surface scripts", () => {
+  // Captures run the real app with RW_TEST_HOOKS off (`captureSurface`), where `Hooks.open` throws.
+  it("never open the test hooks", () => {
+    const scripts = SURFACES.map((id) => surfaceScript(id, SURFACE_CAPTURE_DIR)).filter((s) => s !== null);
+    expect(scripts.filter((s) => /\bHooks\.open\b/.test(readFileSync(s, "utf8")))).toEqual([]);
+  });
+
+  it("seeds Check issues from the research vehicle, with one edit", () => {
+    expect(specs["s-check-issues"].seed).toMatchObject({ fixture: "research-vehicle", ops: [{ path: "/c/nose/shoulder/od" }] });
   });
 });
 
