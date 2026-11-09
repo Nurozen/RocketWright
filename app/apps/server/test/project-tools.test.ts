@@ -286,6 +286,24 @@ describe("project tools: branches (U37)", () => {
       expect(outcome(await tools().call("project_new", newArgs(), CALLER))).toMatchObject(refusedBeforeDialog("conflict", /symbolic link/));
     });
 
+    it("project_open fails when the project that opened is not the approved folder", async () => {
+      const elsewhere = projectAt("elsewhere");
+      const dir = projectAt("approved");
+      const r = await tools({ open: () => Promise.resolve(info(elsewhere)) }).call("project_open", { path: dir }, CALLER);
+      expect(r.isError).toBe(true);
+      expect(errorCode(r)).toBe("conflict");
+      expect(text(r)).toContain(`not at the approved ${realpathSync(dir)}`);
+      expect(shown).toEqual([]);
+      expect(starts).toEqual([]);
+    });
+
+    it("project_open accepts a project reported by a linked path that resolves to the approved folder", async () => {
+      const dir = projectAt("real");
+      symlinkSync(dir, join(base, "alias"));
+      const r = await tools({ open: () => Promise.resolve(info(join(base, "alias"))) }).call("project_open", { path: dir }, CALLER);
+      expect(r.isError).toBeUndefined();
+    });
+
     it("project_open names and opens the real folder behind a link", async () => {
       const real = projectAt("real-project");
       symlinkSync(real, join(base, "planted"));

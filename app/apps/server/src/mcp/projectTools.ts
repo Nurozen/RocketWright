@@ -396,7 +396,12 @@ export class ProjectTools {
     // The dialog named this folder: nothing may have turned it into another one while the person read it.
     const now = plan.tool === "project_new" ? projectedRealpath(plan.target) : realTarget(plan.target);
     if (now !== plan.target) throw new RpcFail("conflict", `${plan.target} changed to ${now} while the confirmation was open; nothing was done`);
-    if (plan.tool === "project_open") return this.deps.open(plan.target);
+    if (plan.tool === "project_open") {
+      const project = await this.deps.open(plan.target);
+      const opened = realTarget(project.dir);
+      if (opened !== plan.target) throw new RpcFail("conflict", `the project opened at ${opened}, not at the approved ${plan.target}; do not retry, tell the person`);
+      return project;
+    }
     const dir = await this.deps.create(displayUnits === undefined ? plan.create : { ...plan.create, displayUnits });
     if (dir !== plan.target) throw new RpcFail("conflict", `the project was created at ${dir}, not at the approved ${plan.target}; do not retry, tell the person`);
     try {

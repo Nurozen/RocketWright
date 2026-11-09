@@ -61,7 +61,8 @@ pub struct MassModel {
 }
 
 /// Ids of the components in stages that the active configuration disables.
-fn inactive_members(model: &EvaluatedModel) -> BTreeSet<&str> {
+/// cite: n/a selects model parts, no physics
+pub fn inactive_members(model: &EvaluatedModel) -> BTreeSet<&str> {
     let Some(cfg) = model.config.as_deref().and_then(|c| model.configs.get(c)) else {
         return BTreeSet::new();
     };

@@ -137,6 +137,10 @@ export function createDraftSlice(ctx: SliceCtx): DraftSlice {
       return queued;
     },
 
+    noteLanded(hash: string): void {
+      noteLanded(ctx, hash);
+    },
+
     async settled(): Promise<string | null> {
       let last: string | null = null;
       // Each wait can start the queued write, so the loop re-reads both.

@@ -67,6 +67,8 @@ export interface DraftSlice {
   commit(): Promise<MutationOut>;
   /** Resolves when no commit is on its way, to the `model_hash` the mirror still has to show (a landed write whose push has not come), or null. */
   settled(): Promise<string | null>;
+  /** A direct write answered with this `model_hash`: `settled` reports it until the push that shows it arrives. */
+  noteLanded(hash: string): void;
   /** What `ops` would do, written nowhere; leaves the open draft alone. */
   dryRun(ops: readonly PatchOp[]): Promise<MutationOut>;
   /** Commits one direct edit after settling any open draft; rejects with a user-facing message. */

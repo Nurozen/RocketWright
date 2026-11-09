@@ -24,7 +24,7 @@ import { RunSnapshots } from "../pages/results/RunSnapshots.tsx";
 import { RunsRail } from "../pages/results/RunsRail.tsx";
 import type { RunDataSource } from "../pages/results/source.ts";
 import { ThumbnailBaker } from "../render/ThumbnailBaker.tsx";
-import { anyDirtyField, flushProject, onDirtyFieldsChanged, watchDirty } from "../state/dirtyFields.ts";
+import { flushProject, hasUnsavedWork, onDirtyFieldsChanged, watchDirty } from "../state/dirtyFields.ts";
 import { exportChoices } from "../state/selectors.ts";
 import type { RpcLike } from "../state/rpc.ts";
 import { createAppStore, useAppState } from "../state/store.ts";
@@ -136,7 +136,7 @@ export function ProjectSurface({ client, projectId, initialPage, runSource, http
   useEffect(() => {
     if (host === undefined) return;
     return watchDirty({
-      isDirty: () => anyDirtyField() || store.getState().draft.ops.length > 0,
+      isDirty: () => hasUnsavedWork(store.getState()),
       send: (dirty) => void host.setDirty(dirty).catch((e: unknown) => console.error("setDirty", e)),
       target: document,
       sources: [store.subscribe, onDirtyFieldsChanged],

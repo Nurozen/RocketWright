@@ -5,6 +5,7 @@ import { MockRpc } from "@rw/contracts/mock";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { resetDirtyFields, trackWrite } from "../state/dirtyFields.ts";
 import type { RpcLike } from "../state/rpc.ts";
 import { createAppStore, type AppStore } from "../state/store.ts";
 import { ConnectedShell } from "./ConnectedShell.tsx";
@@ -52,6 +53,29 @@ describe("settleForHistory", () => {
     s.setState((x) => ({ ...x, project: { ...x.project, snapshot: { evaluated: { model_hash: "h1" }, files: {} } as never } }));
     await vi.waitFor(() => expect(done).toBe(true));
     await expect(settle).resolves.toBe(true);
+  });
+
+  it("does not wait on the mirror for a write that failed: nothing landed, so nothing is coming", async () => {
+    resetDirtyFields();
+    const s = store();
+    const failing = trackWrite(Promise.reject(new Error("refused")));
+    failing.catch(() => undefined);
+    await expect(Promise.race([settleForHistory(s, "undo"), new Promise((r) => setTimeout(() => r("waited"), 200))])).resolves.toBe(true);
+  });
+
+  it.each([
+    ["undo", /nothing was undone.*press Undo again/i],
+    ["redo", /nothing was redone.*press Redo again/i],
+    ["revert", /nothing was reverted.*press Revert again/i],
+  ] as const)("a mirror that has not caught up leaves %s alone and says to try again", async (kind, notice) => {
+    const s = store({ settled: () => Promise.resolve("h9") });
+    await expect(settleForHistory(s, kind)).rejects.toThrow(notice);
+  });
+
+  it("a timed-out move leaves an open draft alone", async () => {
+    const s = store({ ops: [span], stale: true, baseHash: "h0", settled: () => Promise.resolve("h9") });
+    await expect(settleForHistory(s, "undo")).rejects.toThrow(/press Undo again/i);
+    expect(s.getState().draft.ops).toEqual([span]);
   });
 });
 
@@ -121,6 +145,14 @@ describe("a write that answered before Undo, with its push still on the way", ()
     await expect(settle).resolves.toBe(true);
   });
 
+  it("the mirror still behind after the wait: no move now, and the next Undo goes once the push has come", async () => {
+    const { s, push } = await connected(() => ({ model_hash: "h1" }));
+    await s.getState().draft.mutate([span], "Edit");
+    await expect(settleForHistory(s, "undo")).rejects.toThrow(/press Undo again/i);
+    push("h1");
+    await expect(settleForHistory(s, "undo")).resolves.toBe(true);
+  });
+
   it("does not wait when the push already arrived", async () => {
     const { s, push } = await connected(() => ({ model_hash: "h1" }));
     push("h1");
@@ -137,7 +169,7 @@ describe("Cmd-Z in the shell", () => {
     document.body.replaceChildren();
   });
 
-  function setup() {
+  function setup(onError?: (message: string) => void) {
     const s = createAppStore();
     const snapshot = new MockRpc().snapshot();
     const history = { ...snapshot.history, steps: [{ seq: 1, title: "One", tool: "model_patch" }, { seq: 2, title: "Two", tool: "model_patch" }] };
@@ -155,7 +187,7 @@ describe("Cmd-Z in the shell", () => {
     document.body.append(host);
     act(() => {
       root = createRoot(host);
-      root.render(<ConnectedShell store={s} client={client} />);
+      root.render(<ConnectedShell store={s} client={client} onError={onError} />);
     });
     return { s, restores };
   }
@@ -175,6 +207,15 @@ describe("Cmd-Z in the shell", () => {
     document.body.append(box);
     await cmdZ();
     await new Promise((r) => setTimeout(r, 5));
+    expect(restores).toEqual([]);
+  });
+
+  it("with the mirror still behind, restores nothing and says so", async () => {
+    const notices: string[] = [];
+    const { s, restores } = setup((m) => notices.push(m));
+    s.setState((x) => ({ ...x, draft: { ...x.draft, settled: () => Promise.resolve("h9") } }));
+    await cmdZ();
+    await vi.waitFor(() => expect(notices.join()).toMatch(/press Undo again/i), { timeout: 3000 });
     expect(restores).toEqual([]);
   });
 

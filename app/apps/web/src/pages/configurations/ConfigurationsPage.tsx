@@ -224,7 +224,8 @@ function ConfigurationsWorkspace({ store, client, ui }: { store: AppStore; clien
   const write = async (ops: PatchOp[], label: string): Promise<boolean> => {
     setPending(true);
     try {
-      await client!.call("model.patch", { projectId: projectId!, ops, label });
+      const out = await client!.call("model.patch", { projectId: projectId!, ops, label });
+      store.getState().draft.noteLanded(out.model_hash);
       ui.setState({ error: null });
       return true;
     } catch (e) {

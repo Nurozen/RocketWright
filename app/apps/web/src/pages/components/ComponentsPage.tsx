@@ -223,7 +223,7 @@ function ComponentsWorkspace({ store, client, glbDeps, ui }: { store: AppStore; 
   const run = (p: Promise<unknown>) => void p.catch((e: unknown) => ui.setState({ error: message(e) }));
   const patch = (ops: PatchOp[], label: string) => {
     if (client === null || projectId === null || ops.length === 0) return;
-    run(client.call("model.patch", { projectId, ops, label }));
+    run(client.call("model.patch", { projectId, ops, label }).then((out) => store.getState().draft.noteLanded(out.model_hash)));
   };
   const materials = shown?.materials ?? {};
 
