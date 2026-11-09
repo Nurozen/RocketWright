@@ -147,6 +147,13 @@ h2 {
   white-space: nowrap;
 }
 
+/* The open state: an outline, so opening the menu cannot move the header. */
+.rw-project[aria-expanded="true"] {
+  border-radius: var(--rw-radius-sm);
+  outline: var(--rw-hairline) solid var(--rw-accent);
+  outline-offset: 2px;
+}
+
 .rw-project__name {
   min-width: 0;
   overflow: hidden;
@@ -1005,13 +1012,18 @@ button:disabled {
 /* The window with no project to show: Welcome until it lands, and startup failures. */
 /* ---- Welcome (R0.2) -------------------------------------------------------- */
 
+:root {
+  /* Where the logo starts. The New project dialog is placed from it too, and portals live outside .rw-welcome. */
+  --rw-welcome-top: clamp(32px, 18vh, 186px);
+}
+
 .rw-welcome {
   display: flex;
   flex-direction: column;
   align-items: center;
   height: 100%;
   overflow: auto;
-  padding: clamp(32px, 18vh, 186px) 24px 0;
+  padding: var(--rw-welcome-top) 24px 0;
   background: var(--rw-bg-viewport-bottom);
 }
 
@@ -1113,12 +1125,14 @@ button:disabled {
 .rw-welcome__recent-row {
   display: flex;
   align-items: center;
+  gap: 16px;
   border-bottom: var(--rw-hairline) solid var(--rw-line);
 }
 
 .rw-welcome__recent-open {
   display: grid;
   flex: 1;
+  min-width: 0;
   grid-template-columns: 56px 187px minmax(0, 1fr) auto;
   align-items: center;
   height: 52px;
@@ -1156,6 +1170,13 @@ button:disabled {
   color: var(--rw-text-secondary);
 }
 
+/* A margin, not padding, so the path box and this one stay apart however long the path is. */
+.rw-welcome__recent-age {
+  margin-left: 24px;
+  text-align: right;
+  white-space: nowrap;
+}
+
 .rw-welcome__recent-row:not([data-status="ok"]) .rw-welcome__recent-age {
   color: var(--rw-warning);
 }
@@ -1165,6 +1186,21 @@ button:disabled {
   padding: 40px 0 56px;
   color: var(--rw-text-secondary);
   font-size: 15px;
+}
+
+/*
+ * Mockup 02 sits this dialog below Welcome's tagline. The first row is a spacer
+ * that reaches the tagline's foot when the window has room and gives way before
+ * the dialog does when it has not; a max-height on the dialog keeps it inside
+ * the window, because a percentage would resolve against its own auto row.
+ */
+.rw-ui-scrim:has(> .rw-new-project-dialog) {
+  grid-template-rows: minmax(0, calc(var(--rw-welcome-top) + 120px)) auto minmax(0, 1fr);
+}
+
+.rw-ui-modal.rw-new-project-dialog {
+  grid-row: 2;
+  max-height: calc(100vh - 32px);
 }
 
 .rw-new-project {
