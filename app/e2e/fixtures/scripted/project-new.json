@@ -1,0 +1,24 @@
+{
+  "description": "B2-a plumbing: the calling turn's rw_project_new, by run ordinal of the calling thread. 1: with remaining work, carried as a fenced scripted block inside `request` so the new thread's first turn replays it and not this file (a new thread whose request had no block would replay entry 1 and call rw_project_new again). 2: no `request`, so the new thread stays empty and takes no turn.",
+  "prompt": "Create a new project called solstice-rocket and add a nose cone.",
+  "scripts": {
+    "1": [
+      { "assistantText": "Creating the project." },
+      {
+        "toolCall": {
+          "name": "rw_project_new",
+          "arguments": {
+            "name": "solstice-rocket",
+            "request": "Add a nose cone to the new rocket.\n\n```scripted\n[{\"toolCall\":{\"name\":\"rw_model_get\",\"arguments\":{}}},{\"assistantText\":\"Inner turn read the new project.\"}]\n```\n"
+          }
+        }
+      },
+      { "assistantText": "Calling turn finished." }
+    ],
+    "2": [
+      { "assistantText": "Creating the project." },
+      { "toolCall": { "name": "rw_project_new", "arguments": { "name": "solstice-rocket" } } },
+      { "assistantText": "Calling turn finished." }
+    ]
+  }
+}
