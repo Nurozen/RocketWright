@@ -6,7 +6,7 @@ import type { PageLike } from "../regions.ts";
 import measureEntry, { measureCapture } from "../bar/measure-dom.ts";
 import { encodePng } from "../bar/png.ts";
 import { embeddedRegions } from "../regions.ts";
-import { measureDom, measureImage, measurePanePixels, sampleMedian, scoreColor, tokenRefs } from "../visual-tokens.ts";
+import { measureDom, measureImage, measurePanePixels, sampleMedian, scoreColor, tokenRefs, type TokenReport } from "../visual-tokens.ts";
 
 // Sharma, Wu, Dalal (2005), Table 1: the 34 CIEDE2000 test pairs.
 const SHARMA: [number, number, number, number, number, number, number][] = [
@@ -401,14 +401,14 @@ describe("DOM mode with the Lecturn embed (D31)", () => {
         }
       },
     };
-    const r = await measureEntry(wrapped, fakePage(guestDom01()));
+    const r = (await measureEntry(wrapped, fakePage(guestDom01()))) as TokenReport;
     expect(r.panePixels?.length).toBe(3);
     const done = measureCapture(r, encodePng(compositeImage()));
     expect(done.panePixels).toBeUndefined();
     expect(done.colors.filter((c) => c.where.startsWith("pane ")).every((c) => c.pass)).toBe(true);
     // No embed rect in the page: the old chat's single pass.
     delete main['[data-testid="agent.embed"]'];
-    const legacy = await measureEntry(wrapped, fakePage(guestDom01()));
+    const legacy = (await measureEntry(wrapped, fakePage(guestDom01()))) as TokenReport;
     expect(legacy.panePixels).toBeUndefined();
   });
 });

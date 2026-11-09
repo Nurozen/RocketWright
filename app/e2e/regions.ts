@@ -65,6 +65,11 @@ export function embeddedRegions(spec: RegionsSpec, pageId: PageId): RegionsSpec 
   return { ...spec, pages: { ...spec.pages, [pageId]: merged } };
 }
 
+/** Bounding boxes of arbitrary selectors (`s-*` surfaces have no region table; null when absent or not rendered). */
+export function measureSelectorRects(page: PageLike, selectors: Record<string, string>): Promise<Record<string, Rect | null>> {
+  return page.evaluate(domRectsProbe, selectors);
+}
+
 /** Measures every region named in the page's rects from the live DOM (with `embed`, `embed`-selector regions in the guest). */
 export async function measureDomRegions(
   page: PageLike,

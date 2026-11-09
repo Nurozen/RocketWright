@@ -47,6 +47,10 @@
  *   interactive runs (dev: `RW_REGISTER_PROTOCOL=1`) register the scheme and
  *   take the single-instance lock; a link opens the project (`project.open`)
  *   and then the thread in the pane. Hidden runs never do.
+ * - `--zero-project` (B3 surface captures): a hidden run that boots a server
+ *   with no project open, as an interactive launch with none does, so the
+ *   page shows Welcome. `RW_SEEDED_PROFILE` (unpackaged) is the profile to use
+ *   instead of a fresh temp one: its `recents.json` supplies Recents.
  * - `--hidden`: the same hidden window without a PNG (captures that only
  *   measure). `--smoke` (`make dev SMOKE=1`) = `--hidden --ready __rwShell
  *   --query page=01` plus a check that the header shows the opened project.
@@ -74,13 +78,14 @@ import { waitGuestSized } from "./guestSize.ts";
 import { openHiddenWindow } from "./hiddenWindow.ts";
 import { captureComposite, createPaneController, droppedCapture, GUEST_WEB_PREFERENCES, isGuestUrl, type EmbedBridgeLike, type MountArgs, type PaneController } from "./lecturn.ts";
 import { connectMainRpc, type MainRpc } from "./mainRpc.ts";
-import { bootProjects, buildPreload, desktopArg, documentsDirOverride, lecturnBaseDirFor, parseDesktopArgs, REPO_ROOT, resolveDevProject, startBackend, userDataOverride, waitForHttp, type Backend, type DevProject } from "./backend.ts";
+import { bootProjects, buildPreload, desktopArg, documentsDirOverride, lecturnBaseDirFor, parseDesktopArgs, REPO_ROOT, resolveDevProject, seededProfileDir, startBackend, userDataOverride, waitForHttp, type Backend, type DevProject } from "./backend.ts";
 import { registerDesktopServices } from "./nativeDialogs.ts";
 import { packagedLayout, packagedServerOptions, userArgv } from "./packaged.ts";
 import { installProtocol, linkInArgv, linkQueue, openFromLink, parseOpenUrl } from "./protocol.ts";
 import { once, shutdownOnQuit } from "./quit.ts";
 import { createRecents } from "./recents.ts";
 import { reopenLast } from "./reopen.ts";
+import { classifyPane, PANE_DOM_VIEW_SCRIPT, SNAPSHOT_SHOWN_SCRIPT, waitOverlaySnapshot, type PaneDomView } from "./surfacePane.ts";
 
 const packaged = app.isPackaged ? packagedLayout(process.resourcesPath) : null;
 const argv = userArgv(process.argv, process.defaultApp);
@@ -118,6 +123,8 @@ const readyGlobal = str(args.ready) ?? (desk.smoke ? "__rwShell" : "__rwProbe");
 if (!/^[A-Za-z_$][\w$]*$/.test(readyGlobal)) throw new Error(`--ready: not an identifier: ${readyGlobal}`);
 const measureModule = str(args.measure);
 const driveModule = str(args.drive);
+/** `?surface=` of a B3 capture (`--query surface=s-welcome`), else null. */
+const surfaceId = new URLSearchParams(query).get("surface");
 const pagePath = str(args["page-path"]);
 const freezeClockArg = str(args["freeze-clock"]);
 const freezeClock = freezeClockArg === undefined ? undefined : Number(freezeClockArg);
@@ -201,6 +208,20 @@ interface DriveContext {
   rpcUrl: string | null;
   serverUrl: string | null;
   guest: () => GuestLike | null;
+  /** The pane's guest mounted, ready and laid out at its bounds; null once it is, otherwise why not. */
+  paneReady: () => Promise<string | null>;
+}
+
+/** Waits for the pane to mount and its guest to be ready and sized (bounded by the run's timeout). Returns why it is not, or null. */
+async function paneReady(pane: PaneController | null): Promise<string | null> {
+  if (pane === null) return "no agent pane in this window";
+  const deadline = Date.now() + timeoutMs;
+  while (pane.mounted === null) {
+    if (Date.now() > deadline) return "the agent pane never mounted its guest";
+    await new Promise((r) => setTimeout(r, 100));
+  }
+  if (!(await pane.whenReady(Math.max(0, deadline - Date.now())))) return "the agent pane's guest never sent lecturn/ready";
+  return guestSized(pane);
 }
 
 const callText = (fn: { toString(): string }, arg: unknown): string => `(${fn.toString()})(${JSON.stringify(arg)})`;
@@ -247,7 +268,7 @@ function guestOf(pane: PaneController | null): GuestLike | null {
 async function runDrive(path: string, win: BrowserWindow, backend: Backend, pane: PaneController | null): Promise<unknown> {
   const mod = (await import(pathToFileURL(resolve(path)).href)) as { default?: (ctx: DriveContext) => Promise<unknown> };
   if (typeof mod.default !== "function") throw new Error(`--drive ${path}: no default export function`);
-  return mod.default({ page: pageLike(win), rpcUrl: backend.server?.rpcUrl ?? null, serverUrl: backend.server?.serverUrl ?? null, guest: () => guestOf(pane) });
+  return mod.default({ page: pageLike(win), rpcUrl: backend.server?.rpcUrl ?? null, serverUrl: backend.server?.serverUrl ?? null, guest: () => guestOf(pane), paneReady: () => paneReady(pane) });
 }
 
 type PageProbe = { status: "pending" } | { status: "ready"; probe: unknown } | { status: "error"; error: string };
@@ -402,8 +423,18 @@ async function renderHidden(backend: Backend, preload: string | undefined, out: 
       code = 1;
     }
   }
+  // B3: a surface capture says where the pane is. Only an overlay over it needs the page's guest snapshot, and then no guest blit on top.
+  const paneCase = surfaceId !== null && page.status === "ready" && result.driveError === undefined ? classifyPane((await win.webContents.executeJavaScript(PANE_DOM_VIEW_SCRIPT)) as PaneDomView) : null;
+  if (paneCase !== null) result.surfacePane = paneCase;
+  if (paneCase === "overlay") {
+    const why = await waitOverlaySnapshot(async () => (await win.webContents.executeJavaScript(SNAPSHOT_SHOWN_SCRIPT)) as boolean, deadline);
+    if (why !== null) {
+      result.lecturnError = why;
+      code = 1;
+    }
+  }
   // D15: a page that shows the embed is measured and captured only once its guest is ready.
-  const wantsPane = page.status === "ready" && pane !== null && (out !== undefined || measureModule !== undefined) && ((await win.webContents.executeJavaScript(`document.querySelector('[data-testid="agent.embed"]') !== null`)) as boolean);
+  const wantsPane = page.status === "ready" && pane !== null && (out !== undefined || measureModule !== undefined) && (paneCase === null ? ((await win.webContents.executeJavaScript(`document.querySelector('[data-testid="agent.embed"]') !== null`)) as boolean) : paneCase === "visible");
   if (wantsPane && pane !== null) {
     const ready = await pane.whenReady(Math.max(0, deadline - Date.now()));
     if (!ready) {
@@ -473,9 +504,11 @@ async function main(): Promise<void> {
     // to reopen windows, which hangs a headless render. Spawners also pass
     // `-ApplePersistenceIgnoreState YES`; this covers direct launches.
     if (process.platform === "darwin") systemPreferences.registerDefaults({ ApplePersistenceIgnoreState: "YES" });
-    // Isolated profile: never share or lock the user's Electron profile (removed on exit).
-    tempUserData = await mkdtemp(join(tmpdir(), "rw-render-"));
-    app.setPath("userData", tempUserData);
+    // Isolated profile: never share or lock the user's Electron profile. A bar capture's
+    // seeded profile (Recents) belongs to the harness, which removes it; only our temp one goes on exit.
+    const seeded = seededProfileDir(app.isPackaged);
+    if (seeded === undefined) tempUserData = await mkdtemp(join(tmpdir(), "rw-render-"));
+    app.setPath("userData", seeded ?? tempUserData!);
   } else {
     // Harness windows run on a temp profile (RW_USER_DATA_DIR, `app/e2e/lecturn-env.ts`):
     // nothing writes under the real Electron userData.
@@ -513,7 +546,7 @@ async function main(): Promise<void> {
   // `make dev` only: a release never opens a `/tmp` copy, and ships no fixture to copy.
   const dev: DevProject | null = desk.projects.length === 0 && desk.devProject && packaged === null ? resolveDevProject() : null;
   if (dev !== null) process.stderr.write(`dev project (${dev.source}): ${dev.dir}\n`);
-  const projects = bootProjects(dev !== null ? [dev.dir] : desk.projects, hidden);
+  const projects = bootProjects(dev !== null ? [dev.dir] : desk.projects, hidden, desk.zeroProject);
   const live = projects !== null;
   // The preload only matters with a server; the spike render path stays preload-free.
   const scratch = live ? await mkdtemp(join(tmpdir(), "rw-desktop-")) : undefined;

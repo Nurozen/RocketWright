@@ -50,6 +50,17 @@ One command per round: it builds the sidecar (no doubles) and the web bundle, th
 
 UI contract for builders: shell regions carry `data-rw-region` with the names in `regions.json`; elements named by checklist `testid`s and token `bindings` carry `data-testid`. The active header tab draws its underline as `border-bottom-color`, and selected rows set `aria-selected="true"`.
 
+### Surface captures (`make bar-visual SURFACES=s-welcome,s-new-project`)
+
+New surfaces of the usability pass (Welcome, New project, the project menu, and the rest as they land) have no concept art, token tables or checklists. Their spec is `tests/bar/surfaces.json`, separate from the frozen checklists; ids are `s-*`, a key type of their own beside page ids.
+
+- `SURFACES=` takes any of the eight ids. A surface whose capture script is not yet in `app/e2e/capture/surfaces/<id>.ts` is reported as not built, nothing is captured for it, and the run exits 3 (a failed capture exits 1).
+- Each capture runs the real app on the plain sidecar at 1536×1024 with a seeded profile (`RW_SEEDED_PROFILE`, holding three Recents, one missing) and a frozen clock (`--freeze-clock`). A zero-project surface boots with `--zero-project`; a project surface opens the sample rocket with `--project`. Recent omits projects open in the window, so the seeded entries are never the sample.
+- A surface's script reaches its state by clicking visible controls (`s-welcome`: none; `s-new-project`: New project; `s-project-menu`: the header's project control). Every check in a script throws, so a state not reached fails the capture.
+- Measurement is readiness plus overlay presence instead of a token table (`measureSurface`). The agent pane has three cases, found at capture time: absent, a visible guest (composited as on any page), or an overlay over the pane, which waits for the page's `agent.embed-snapshot` and skips the guest blit. The expected case for a surface is in `surfaces.json`; a mismatch fails the capture.
+- Output is `dist/bar-visual/<surface>/{capture.png,probe.json,drive.json,report.txt}` and a critic packet in `packet/` (`capture.png`, `mockup.png`, `existing.png`, `checks.json`, `critic-prompt.md` from `tests/bar/surface-critic-prompt.md`, `manifest.json`). Critics tick `checks` before judging, and mockup copy, numbers and pixel positions are direction only.
+- The mockups and existing-page captures are maintainer-only and come from `$RW_USABILITY_BAR` (default `artifacts/features/rocketwright-usability/bar`); they stay out of the repository, and the copies in `packet/` stay under the gitignored `dist/`.
+
 ## Parity scoreboard (B2)
 
 `make bar-parity [CASE=…] [KEYS=…] [GATE=1]` runs `scripts/bar/parity.ts`: two matrices

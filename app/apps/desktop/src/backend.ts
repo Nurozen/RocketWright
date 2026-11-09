@@ -79,6 +79,17 @@ export function documentsDirOverride(isPackaged: boolean, env: NodeJS.ProcessEnv
 }
 
 /**
+ * A bar capture's seeded Electron profile (B3: `recents.json` for Welcome and
+ * the project menu), replacing the hidden run's fresh temp one: `RW_SEEDED_PROFILE`
+ * when set and unpackaged. Never honoured by a shipped app. The harness owns the
+ * directory and removes it; the hidden run leaves it alone.
+ */
+export function seededProfileDir(isPackaged: boolean, env: NodeJS.ProcessEnv = process.env): string | undefined {
+  const dir = env.RW_SEEDED_PROFILE;
+  return isPackaged || dir === undefined || dir === "" ? undefined : resolve(dir);
+}
+
+/**
  * The Lecturn sidecar base dir main passes as `--lecturn-base-dir`:
  * `RW_LECTURN_BASE_DIR` when set (the server takes it too, so its args and
  * env agree), else `<userData>/lecturn`.
@@ -255,10 +266,12 @@ export interface DevProject {
  * What the app server should open (seam 1): the explicit projects, `[]` for an
  * interactive window with none (a server with nothing open, then reopen or
  * Welcome), or null for a hidden run with none, which stays server-free.
+ * `zeroProject` (`--zero-project`, B3 captures) makes a hidden run boot like
+ * the interactive case, so the page shows Welcome.
  */
-export function bootProjects(explicit: readonly string[], hidden: boolean): string[] | null {
+export function bootProjects(explicit: readonly string[], hidden: boolean, zeroProject = false): string[] | null {
   if (explicit.length > 0) return [...explicit];
-  return hidden ? null : [];
+  return hidden && !zeroProject ? null : [];
 }
 
 /** A directory holds a project if it has a `*.toml` at its top level. */
@@ -383,6 +396,8 @@ export interface DesktopArgs {
   open: boolean;
   smoke: boolean;
   hidden: boolean;
+  /** `--zero-project`: a hidden run with a server and no project (`bootProjects`). */
+  zeroProject: boolean;
   page: string | undefined;
 }
 
@@ -397,6 +412,7 @@ export function parseDesktopArgs(argv: string[]): DesktopArgs & { rest: Record<s
       open: { type: "boolean" },
       smoke: { type: "boolean" },
       hidden: { type: "boolean" },
+      "zero-project": { type: "boolean" },
       page: { type: "string" },
     },
   });
@@ -408,6 +424,7 @@ export function parseDesktopArgs(argv: string[]): DesktopArgs & { rest: Record<s
     open: values.open === true,
     smoke: values.smoke === true,
     hidden: values.hidden === true || values.smoke === true,
+    zeroProject: values["zero-project"] === true,
     page: typeof values.page === "string" ? values.page : undefined,
     rest: values,
   };

@@ -29,20 +29,29 @@
  * that checkpoint's milestone, with fidelity on from BC5; `--milestone`
  * (`MILESTONE=`) overrides the milestone. Default: M1, fidelity off.
  *
+ * `make bar-visual SURFACES=s-welcome[,…]` captures B3's surfaces instead
+ * (`tests/bar/surfaces.json`, scripts in `app/e2e/capture/surfaces/`): real
+ * app boots (no project, or the sample open) on a seeded profile with a frozen
+ * clock, driven to the surface by DOM clicks. A surface without a script is
+ * reported as not built, and nothing is captured for it. Output goes to
+ * `<out>/<surface>/` with a critic packet (`buildSurfacePacket`).
+ *
  * The Makefile builds the web bundle and the sidecar (`RW_SIDECAR_BIN`) first.
- * Exit 1 when any gated row fails or a capture script fails.
+ * Exit 1 when any gated row fails or a capture script fails; exit 3 when the
+ * only shortfall is a surface that is not built yet.
  */
-import { spawn } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { execFileSync, spawn } from "node:child_process";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join, resolve } from "node:path";
 import type { TokenReport } from "../visual-tokens.ts";
-import { buildPacket } from "./packet.ts";
-import { isPageId, REPO_ROOT, stableStringify, type PageId } from "./paths.ts";
+import { buildPacket, buildSurfacePacket } from "./packet.ts";
+import { isPageId, isSurfaceId, REPO_ROOT, stableStringify, SURFACES, type PageId, type SurfaceId } from "./paths.ts";
 import { gateReport, type RowsMode } from "./shell-rows.ts";
 import { MILESTONES, type Milestone } from "./spec.ts";
+import { surfaceFailures, surfaceSpec, type SurfaceBoot, type SurfaceMeasure, type SurfacePane, type SurfaceSpec } from "./surfaces.ts";
 import { lecturnEnv } from "../lecturn-env.ts";
-import { PROJECT_NAME, seedTemp } from "../live.ts";
+import { PROJECT_NAME, SCRATCH, seedTemp } from "../live.ts";
 
 const DESKTOP = join(REPO_ROOT, "app/apps/desktop");
 const MEASURE = join(REPO_ROOT, "app/e2e/bar/measure-dom.ts");
@@ -67,7 +76,7 @@ export interface Probe {
  * the probe gives, `lecturnError` included; it once printed only
  * "page 02: shell ready").
  */
-export function probeFailure(page: string, probe: Probe): string {
+export function probeFailure(page: string, probe: Omit<Probe, "measure">): string {
   const reasons = [
     probe.page.error,
     probe.lecturnError === undefined ? undefined : `agent pane: ${probe.lecturnError}`,
@@ -101,17 +110,15 @@ export function parseTarget(s: string): CaptureTarget | null {
 
 export const targetName = (t: CaptureTarget): string => (t.variant === null ? t.page : `${t.page}-${t.variant}`);
 
-/** Desktop arguments for one page (`project` set: the live app driven by `drive`). */
-export function desktopArgs(page: PageId, outDir: string, live: { project: string; drive: string } | null): string[] {
+/** The hidden-window arguments every capture shares. */
+function renderArgs(outDir: string, query: string): string[] {
   return [
-    join(DESKTOP, "src/main.ts"),
-    ...(live === null ? [] : ["--project", live.project, "--drive", live.drive, "--timeout-ms", "120000"]),
     "--render-out",
     join(outDir, "capture.png"),
     "--probe-out",
     join(outDir, "probe.json"),
     "--query",
-    `page=${page}`,
+    query,
     "--ready",
     "__rwShell",
     "--measure",
@@ -121,6 +128,162 @@ export function desktopArgs(page: PageId, outDir: string, live: { project: strin
     "-ApplePersistenceIgnoreState",
     "YES",
   ];
+}
+
+/** Desktop arguments for one page (`project` set: the live app driven by `drive`). */
+export function desktopArgs(page: PageId, outDir: string, live: { project: string; drive: string } | null): string[] {
+  return [join(DESKTOP, "src/main.ts"), ...(live === null ? [] : ["--project", live.project, "--drive", live.drive, "--timeout-ms", "120000"]), ...renderArgs(outDir, `page=${page}`)];
+}
+
+/** Where `s-*` capture scripts live. A surface is built when its script exists. */
+export const SURFACE_CAPTURE_DIR = join(REPO_ROOT, "app/e2e/capture/surfaces");
+
+/** The instant every surface capture sees as "now", so Recents' ages read the same run to run. */
+export const SURFACE_CLOCK_MS = Date.UTC(2026, 10, 8, 12);
+
+export function surfaceScript(id: SurfaceId, dir = SURFACE_CAPTURE_DIR): string | null {
+  const p = join(dir, `${id}.ts`);
+  return existsSync(p) ? p : null;
+}
+
+/** Desktop arguments for one surface: a seeded profile, and either no project or the sample open (`project`). */
+export function surfaceDesktopArgs(id: SurfaceId, outDir: string, drive: string, project: string | null): string[] {
+  return [
+    join(DESKTOP, "src/main.ts"),
+    ...(project === null ? ["--zero-project"] : ["--project", project]),
+    "--drive",
+    drive,
+    "--timeout-ms",
+    "120000",
+    "--freeze-clock",
+    String(SURFACE_CLOCK_MS),
+    ...renderArgs(outDir, `surface=${id}`),
+  ];
+}
+
+export interface SurfaceFixture {
+  scratch: string;
+  /** The Electron profile holding `recents.json`, exempt from the hidden run's temp-profile cleanup. */
+  profile: string;
+  /** The stand-in for the OS Documents folder. */
+  documents: string;
+  /** The sample rocket's folder (`project` boot), else null. */
+  project: string | null;
+}
+
+const DAY_MS = 86_400_000;
+export const SEEDED_RECENTS = [
+  { name: "weekend-flyer", ageMs: 2 * 3_600_000, exists: true },
+  { name: "altitude-study", ageMs: 3 * DAY_MS, exists: true },
+  { name: "old-prototype", ageMs: 18 * DAY_MS, exists: false },
+] as const;
+
+/**
+ * A seeded profile (three Recents, one of them missing) under a fresh
+ * `/tmp` scratch dir, plus the sample rocket for a `project` boot. Recent
+ * omits what the window has open, so none of these is the sample: the same
+ * three rows show whichever way the window boots.
+ * `init` runs `rw init <dir> --name=<name> --template=<template>`.
+ */
+export function seedSurfaceFixture(boot: SurfaceBoot, clockMs: number, init: (dir: string, name: string, template: string) => void): SurfaceFixture {
+  const scratch = realpathSync(mkdtempSync(join(SCRATCH, "rw-bar-surface-")));
+  const documents = join(scratch, "Documents");
+  const profile = join(scratch, "profile");
+  const location = join(documents, "RocketWright");
+  mkdirSync(location, { recursive: true });
+  mkdirSync(profile);
+  const recents = SEEDED_RECENTS.map((r) => {
+    const dir = join(location, r.name);
+    if (r.exists) init(dir, r.name, "empty");
+    return { dir, name: r.name, lastOpened: new Date(clockMs - r.ageMs).toISOString() };
+  });
+  writeFileSync(join(profile, "recents.json"), `${JSON.stringify({ version: 1, recents, lastActive: null }, null, 2)}\n`);
+  let project: string | null = null;
+  if (boot === "project") {
+    project = join(location, "Sample rocket");
+    init(project, "Sample rocket", "sample");
+  }
+  return { scratch, profile, documents, project };
+}
+
+/** What the capture ends with: `not-built` is a surface no step has delivered yet (no script), never a fake capture. */
+export type SurfaceOutcome = "ok" | "failed" | "not-built";
+
+export const notBuiltLine = (id: SurfaceId): string => `surface ${id}: not built yet (no capture script app/e2e/capture/surfaces/${id}.ts); nothing captured`;
+
+interface SurfaceProbe extends Omit<Probe, "measure"> {
+  measure?: SurfaceMeasure;
+  surfacePane?: SurfacePane;
+}
+
+/** Report lines and failures of a finished surface capture. */
+export function surfaceReport(id: SurfaceId, spec: SurfaceSpec, probe: SurfaceProbe): { pass: boolean; lines: string[] } {
+  const failures = surfaceFailures(id, spec, { measure: probe.measure, pane: probe.surfacePane });
+  const lines = [
+    `surface ${id} (${spec.title}): ${failures.length === 0 ? "reached" : "FAILED"}`,
+    `  state ${JSON.stringify(probe.drive ?? null)}`,
+    `  agent pane ${String(probe.surfacePane)}`,
+    ...(probe.measure?.overlay ? [`  overlay ${probe.measure.overlay.selector}: ${probe.measure.overlay.present ? "shown" : "absent"}`] : []),
+    ...failures.map((f) => `  ${f}`),
+    `  capture ${probe.capture?.path ?? "(none)"}`,
+  ];
+  return { pass: failures.length === 0, lines };
+}
+
+async function captureSurface(id: SurfaceId, dir: string, packets: boolean): Promise<SurfaceOutcome> {
+  rmSync(dir, { recursive: true, force: true });
+  mkdirSync(dir, { recursive: true });
+  const drive = surfaceScript(id);
+  if (drive === null) {
+    const line = notBuiltLine(id);
+    writeFileSync(join(dir, "report.txt"), `${line}\n`);
+    console.log(line);
+    return "not-built";
+  }
+  const spec = surfaceSpec(id);
+  const env = { ...process.env };
+  delete env["ELECTRON_RUN_AS_NODE"];
+  const lecturn = lecturnEnv(env, "rw-bar-lecturn-", { scripted: true });
+  Object.assign(env, lecturn.env);
+  const rw = env["RW_SIDECAR_BIN"] || "rocketwright";
+  const fixture = seedSurfaceFixture(spec.boot, SURFACE_CLOCK_MS, (projectDir, name, template) => {
+    execFileSync(rw, ["init", projectDir, `--name=${name}`, `--template=${template}`, "--json"], { stdio: "ignore" });
+  });
+  env["RW_SEEDED_PROFILE"] = fixture.profile;
+  env["RW_DOCUMENTS_DIR"] = fixture.documents;
+  env["RW_BAR_CAPTURE_DIR"] = dir;
+  try {
+    const run = await runPage(surfaceDesktopArgs(id, dir, drive, fixture.project), env, 480_000);
+    let probe: SurfaceProbe;
+    try {
+      probe = JSON.parse(readFileSync(join(dir, "probe.json"), "utf8")) as SurfaceProbe;
+    } catch {
+      console.error(`surface ${id}: no probe (electron exit ${String(run.code)})\n${run.err.slice(-2000)}`);
+      return "failed";
+    }
+    if (probe.driveError !== undefined) {
+      console.error(`surface ${id}: capture script failed\n${probe.driveError}\n${(probe.console ?? []).join("\n")}`);
+      return "failed";
+    }
+    if (probe.page.status !== "ready" || probe.measureError !== undefined || probe.lecturnError !== undefined) {
+      console.error(probeFailure(id, probe));
+      return "failed";
+    }
+    if (probe.drive !== undefined) writeFileSync(join(dir, "drive.json"), stableStringify(probe.drive));
+    const { pass, lines } = surfaceReport(id, spec, probe);
+    if (packets && pass && probe.capture !== undefined) {
+      const out = join(dir, "packet");
+      buildSurfacePacket({ surface: id, capture: join(dir, "capture.png"), out });
+      lines.push(`  packet ${out}`);
+    }
+    const text = lines.join("\n");
+    writeFileSync(join(dir, "report.txt"), `${text}\n`);
+    console.log(text);
+    return pass ? "ok" : "failed";
+  } finally {
+    rmSync(fixture.scratch, { recursive: true, force: true });
+    lecturn.cleanup();
+  }
 }
 
 function runPage(args: string[], env: NodeJS.ProcessEnv, timeoutMs: number): Promise<{ code: number | null; err: string }> {
@@ -178,12 +341,16 @@ export function packetScope(page: PageId, req: ScopeRequest = {}): { milestone: 
   return { milestone, fidelity };
 }
 
-export function parseArgs(argv: string[]): { pages: CaptureTarget[]; rows: RowsMode; out: string; packets: boolean; scope: ScopeRequest } {
+export function parseArgs(argv: string[]): { pages: CaptureTarget[]; surfaces: SurfaceId[]; rows: RowsMode; out: string; packets: boolean; scope: ScopeRequest } {
   const arg = (name: string): string | undefined => {
     const i = argv.indexOf(name);
     return i >= 0 ? argv[i + 1] : undefined;
   };
-  const pages = (arg("--pages") || "01").split(",").map((s) => s.trim()).filter(Boolean);
+  const surfaces = (arg("--surfaces") ?? "").split(",").map((s) => s.trim()).filter(Boolean).map((s) => {
+    if (!isSurfaceId(s)) throw new Error(`--surfaces: unknown surface ${s} (${SURFACES.join(", ")})`);
+    return s;
+  });
+  const pages = (arg("--pages") || (surfaces.length > 0 ? "" : "01")).split(",").map((s) => s.trim()).filter(Boolean);
   const targets = pages.map((p) => {
     const t = parseTarget(p);
     if (t === null) throw new Error(`--pages: unknown page ${p} (01..06, or <page>-<variant>)`);
@@ -194,7 +361,7 @@ export function parseArgs(argv: string[]): { pages: CaptureTarget[]; rows: RowsM
   const scope: ScopeRequest = { fidelity: argv.includes("--fidelity"), bc: arg("--bc") || null, milestone: arg("--milestone") || null };
   // Fail early on a bad checkpoint or milestone (before any capture runs).
   for (const t of targets) packetScope(t.page, scope);
-  return { pages: targets, rows, out: resolve(arg("--out") ?? join(REPO_ROOT, "dist/bar-visual")), packets: !argv.includes("--no-packet"), scope };
+  return { pages: targets, surfaces, rows, out: resolve(arg("--out") ?? join(REPO_ROOT, "dist/bar-visual")), packets: !argv.includes("--no-packet"), scope };
 }
 
 /** The motion clip a capture script wrote (`drive.clip`, inside the page's output directory), if any. */
@@ -301,10 +468,18 @@ async function capturePage(target: CaptureTarget, dir: string, rows: RowsMode, p
 }
 
 async function main(argv: string[]): Promise<number> {
-  const { pages, rows, out, packets, scope } = parseArgs(argv);
+  const { pages, surfaces, rows, out, packets, scope } = parseArgs(argv);
   let failed = 0;
+  let notBuilt = 0;
   for (const t of pages) if (!(await capturePage(t, join(out, targetName(t)), rows, packets, scope))) failed++;
-  return failed === 0 ? 0 : 1;
+  for (const id of surfaces) {
+    const outcome = await captureSurface(id, join(out, id), packets);
+    if (outcome === "failed") failed++;
+    else if (outcome === "not-built") notBuilt++;
+  }
+  // A request for an undelivered surface did not produce what was asked, so it is never exit 0; 3 tells it apart from a failed capture.
+  if (failed > 0) return 1;
+  return notBuilt > 0 ? 3 : 0;
 }
 
 if (import.meta.main) {
