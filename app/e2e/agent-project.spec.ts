@@ -382,30 +382,25 @@ test.describe("B2-a a person's own first thread", () => {
     run = undefined;
   });
 
-  test("a project with no threads can start one from the New thread button", async () => {
-    test.setTimeout(180_000);
-    run = new ProjectRun({ "1": [{ assistantText: "Hello from the first thread." }] });
-    await run.launch();
-    const guest = await embedGuest(run.app);
-    // Before any click: the pane says there are no threads, and that is all it offers.
-    await until("the embed's empty project", 120_000, async () => ((await guest.evaluate(readGuestView, null)).empty ? true : undefined), () => guest.evaluate(readGuestView, null));
-    const view = await guest.evaluate(readGuestView, null);
-    expect(view.empty).toBe(true);
-    // Lecturn's guest drops a host command that lands before its handshake settles, with no error
-    // and nothing on screen (a click in the first seconds after the pane appears); a later click works.
-    await until(
-      "a thread from the New thread button",
-      40_000,
-      async () => {
-        if ((await guest.evaluate(readGuestView, null)).composer) return true;
-        await run!.page.getByRole("button", { name: "New thread" }).click();
-        await run!.page.waitForTimeout(4_000);
-        return undefined;
-      },
-      () => guest.evaluate(readGuestView, null),
-    );
-    await until("the composer in the new thread", 60_000, async () => ((await guest.evaluate(readGuestView, null)).composer ? true : undefined), () => guest.evaluate(readGuestView, null));
-    await draftAndSend(run.app, run.page, "Say hello.");
-    await until("the first reply", 60_000, async () => ((await guest.evaluate(readGuestView, null)).text.includes("Hello from the first thread.") ? true : undefined), () => guest.evaluate(readGuestView, null));
-  });
+  const controls = [
+    ["Start a chat, the pane's own next step", (p: Page) => p.getByRole("button", { name: "Start a chat" })],
+    ["the rail's New thread", (p: Page) => p.getByRole("button", { name: "New thread" })],
+  ] as const;
+
+  for (const [name, control] of controls) {
+    test(`a project with no threads starts one on one early click of ${name}`, async () => {
+      test.setTimeout(180_000);
+      run = new ProjectRun({ "1": [{ assistantText: "Hello from the first thread." }] });
+      await run.launch();
+      // A click in the moments after the pane appears: the guest is still connecting, and its own
+      // thread.new would fail there (one passing toast, no thread, whatever holding for its ready said).
+      await control(run.page).click();
+      const guest = await embedGuest(run.app);
+      await until("the composer in the new thread", 60_000, async () => ((await guest.evaluate(readGuestView, null)).composer ? true : undefined), () => guest.evaluate(readGuestView, null));
+      expect((await liveThreads(run)).length, "one click makes one thread").toBe(1);
+      await expect(run.page.getByTestId("agent.start-chat")).toHaveCount(0);
+      await draftAndSend(run.app, run.page, "Say hello.");
+      await until("the first reply", 60_000, async () => ((await guest.evaluate(readGuestView, null)).text.includes("Hello from the first thread.") ? true : undefined), () => guest.evaluate(readGuestView, null));
+    });
+  }
 });

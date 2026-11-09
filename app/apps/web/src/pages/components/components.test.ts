@@ -360,7 +360,7 @@ describe("thread history", () => {
 
   it("is the embed's open Lecturn thread, and empty while the embed is not the pane", () => {
     const imported = lt("copy:rw-fixtures:fin", { appData: '{"page":"components","steps":[3]}' });
-    const chat = { lecturn: { embedded: true, threads: [imported], activeThreadId: imported.threadId, activeKey: null } };
+    const chat = { lecturn: { embedded: true, threads: [imported], activeThreadId: imported.threadId, activeKey: null, threadStart: { state: "idle" as const } } };
     expect(openThreadSteps(steps, chat, 3).map((i) => [i.seq, i.current])).toEqual([
       [2, false],
       [3, true],

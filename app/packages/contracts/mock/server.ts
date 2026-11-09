@@ -787,6 +787,18 @@ export class MockRpc {
       return {};
     },
 
+    "embed.createThread": (_c, params, after) => {
+      const p = this.project(str(params, "projectId")!);
+      const title = str(params, "title")!;
+      const appData = params.appData;
+      if (typeof appData !== "string" || Buffer.byteLength(appData) > 1024) throw new RpcFail("invalid_params", "appData: expected a string of at most 1024 bytes");
+      const at = new Date(CLOCK0).toISOString();
+      const threadId = `lt-${this.lecturnEnv}-${p.info.projectId}-${++this.counter}`;
+      p.embedThreads = [{ threadId, projectId: `lp-${this.lecturnEnv}-${p.info.projectId}`, workspaceRoot: p.info.dir, title, createdAt: at, updatedAt: at, historyRevision: 0, state: "idle", appData, subtitle: null }, ...p.embedThreads];
+      after(() => this.broadcastEmbedThreads(p));
+      return { threadId };
+    },
+
     "embed.setHostContext": (_c, params) => {
       const p = this.project(str(params, "projectId")!);
       const text = params.text;

@@ -372,7 +372,7 @@ describe("chat", () => {
     store.getState().project.disconnect();
     const s = store.getState();
     expect(s.project).toMatchObject({ connection: "idle", snapshot: null, projectId: null });
-    expect(s.chat.lecturn).toEqual({ embedded: true, threads: null, activeThreadId: null, activeKey: null });
+    expect(s.chat.lecturn).toEqual({ embedded: true, threads: null, activeThreadId: null, activeKey: null, threadStart: { state: "idle" } });
     expect(s.selection.refs).toEqual([]);
     srv.mock.playStep({ afterMs: 0, commit: "after disconnect" });
     await new Promise((r) => setTimeout(r, 30));

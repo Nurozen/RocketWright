@@ -129,6 +129,7 @@ export function AppShell({
       />
       <LeftRail
         threads={model.threads}
+        threadStart={model.threadStart}
         selectedThreadId={model.selectedThreadId}
         nav={model.nav}
         selectedNavId={model.selectedNavId}

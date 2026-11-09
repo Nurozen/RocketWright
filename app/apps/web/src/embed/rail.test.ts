@@ -10,7 +10,7 @@
 import type { EmbedThread, EvaluatedModel, PaneEvent, PaneEvents, PatchOp, RpcMethod, RpcParams } from "@rw/contracts";
 import { SEED_PROJECT_ID, startMockServer, type MockServer } from "@rw/contracts/mock";
 import { afterEach, describe, expect, it } from "vitest";
-import { ensurePageThread, navigatePage, newPageThread, openArtifactThread, openThread, railThreads, selectedRailId } from "./rail.ts";
+import { ensurePageThread, navigatePage, newPageThread, openArtifactThread, openThread, railThreads, selectedRailId, showStartChat } from "./rail.ts";
 import { MENTION_EVENT } from "./mention.ts";
 import { shellModelFrom } from "../shell/connect.ts";
 import { RpcClient } from "../state/rpc.ts";
@@ -47,7 +47,6 @@ function fakeBridge() {
     insertMention: (params: MentionParams) => void sent.push({ method: "insertMention", params }),
     setDraft: (text) => void sent.push({ method: "setDraft", params: { text } }),
     openThread: (threadId) => void sent.push({ method: "openThread", params: { threadId } }),
-    newThread: (params = {}) => void sent.push({ method: "newThread", params }),
     openProviders: () => void sent.push({ method: "openProviders", params: {} }),
     on: (event, l) => {
       let set = listeners.get(event);
@@ -192,10 +191,60 @@ describe("rail threads through the embed (B12, contracts mock)", () => {
     expect(selectedRailId(store.getState())).toBe(seed!.id);
 
     await navigatePage(store, "results");
-    newPageThread(store);
-    expect(pane.sent.at(-1)).toEqual({ method: "newThread", params: { title: "New thread", appData: '{"page":"results"}' } });
+    await newPageThread(store);
+    expect(pane.sent.at(-1)).toMatchObject({ method: "openThread" });
+    let made = (await until(store, (x) => x.chat.lecturn.threads?.some((t) => t.appData === '{"page":"results"}') === true)).chat.lecturn.threads!.find((t) => t.appData === '{"page":"results"}')!;
+    expect(made.title).toBe("New thread");
+    expect(pane.sent.at(-1)).toEqual({ method: "openThread", params: { threadId: made.threadId } });
     await openArtifactThread(store, "rw:sim/baseline");
-    expect(pane.sent.at(-1)).toEqual({ method: "newThread", params: { title: "Baseline", appData: '{"artifact":"rw:sim/baseline"}' } });
+    made = (await until(store, (x) => x.chat.lecturn.threads?.some((t) => t.appData === '{"artifact":"rw:sim/baseline"}') === true)).chat.lecturn.threads!.find((t) => t.appData === '{"artifact":"rw:sim/baseline"}')!;
+    expect(made.title).toBe("Baseline");
+    expect(pane.sent.at(-1)).toEqual({ method: "openThread", params: { threadId: made.threadId } });
+  });
+
+  it("makes a new thread through the app server, one at a time, and says why when it cannot (first-click bug)", async () => {
+    const { srv, store, pane, client } = await setup();
+    await until(store, (x) => x.chat.lecturn.threads !== null);
+    const before = srv.mock.embedThreads().length;
+    let release!: () => void;
+    const held = new Promise<void>((r) => (release = r));
+    const call = client.call.bind(client) as RpcClient["call"];
+    let calls = 0;
+    (client as { call: unknown }).call = async (method: RpcMethod, params: never) => {
+      if (method === "embed.createThread") {
+        calls++;
+        await held;
+      }
+      return call(method, params);
+    };
+    const first = newPageThread(store);
+    expect(store.getState().chat.lecturn.threadStart).toEqual({ state: "starting" });
+    expect(shellModelFrom(store.getState(), Date.now(), {}).threadStart).toEqual({ state: "starting" });
+    await newPageThread(store); // A second click while the first is on its way makes nothing.
+    release();
+    await first;
+    expect(calls).toBe(1);
+    expect(srv.mock.embedThreads()).toHaveLength(before + 1);
+    expect(store.getState().chat.lecturn.threadStart).toEqual({ state: "idle" });
+    expect(pane.sent.filter((m) => m.method === "openThread")).toHaveLength(1);
+
+    (client as { call: unknown }).call = async (method: RpcMethod, params: never) => {
+      if (method === "embed.createThread") throw new Error("Lecturn is not available");
+      return call(method, params);
+    };
+    await newPageThread(store);
+    expect(store.getState().chat.lecturn.threadStart).toEqual({ state: "error", message: "Could not start a thread: Lecturn is not available" });
+    expect(pane.sent.filter((m) => m.method === "openThread")).toHaveLength(1);
+  });
+
+  it("offers a first chat only when the project is known to have no threads", async () => {
+    const { store } = await setup();
+    const s = await until(store, (x) => x.chat.lecturn.threads !== null);
+    expect(showStartChat(s)).toBe(false);
+    const empty = { ...s, chat: { ...s.chat, lecturn: { ...s.chat.lecturn, threads: [], activeThreadId: null } } };
+    expect(showStartChat(empty)).toBe(true);
+    expect(showStartChat({ ...empty, chat: { ...empty.chat, lecturn: { ...empty.chat.lecturn, threads: null } } })).toBe(false);
+    expect(showStartChat({ ...empty, chat: { ...empty.chat, lecturn: { ...empty.chat.lecturn, activeThreadId: "lt-new" } } })).toBe(false);
   });
 
   it("opens the page's newest thread on a page change, and leaves a just-made thread alone", async () => {

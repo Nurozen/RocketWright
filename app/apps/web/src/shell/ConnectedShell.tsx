@@ -11,18 +11,19 @@
  * outside its rect. B17 removed the old chat that used to stand in for it.
  *
  * The rail (B12) lists the project's Lecturn threads and its
- * actions go through the pane's bridge (`lecturn/thread.open`,
- * `lecturn/thread.new {title, appData}`); Settings opens Lecturn's providers
+ * actions go through the pane's bridge (`lecturn/thread.open`), and new
+ * threads through the app server (`embed.createThread`); Settings opens Lecturn's providers
  * panel; `embed/wiring.ts` handles navigate, mentions, the D12 fallback,
  * run subtitles and the host context.
  */
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
 import type { PageId, RwRef } from "@rw/contracts";
-import { ensurePageThread, navigatePage, newPageThread, openArtifactThread, openProviders, openThread } from "../embed/rail.ts";
+import { ensurePageThread, navigatePage, newPageThread, openArtifactThread, openProviders, openThread, showStartChat } from "../embed/rail.ts";
 import { setPane } from "../embed/threads.ts";
 import { wirePane } from "../embed/wiring.ts";
 import type { PaneBridge } from "../embed/bridge.ts";
 import { EmbedPane } from "../embed/EmbedPane.tsx";
+import { StartChatPrompt } from "../embed/StartChatPrompt.tsx";
 import { defaultCompare, versionLabel } from "../pages/compare/model.ts";
 import type { RpcLike } from "../state/rpc.ts";
 import { type AppStore, useAppState } from "../state/store.ts";
@@ -211,7 +212,7 @@ export function ConnectedShell({ store, client = null, renderPage, renderCompare
     },
     onSwitchProject: (id) => onSwitchProject?.(id),
     onSelectThread: (id) => run(openThread(store, id)),
-    onNewThread: () => newPageThread(store),
+    onNewThread: () => run(newPageThread(store)),
     onSelectNav: (row: ShellNavRow) => {
       if (row.ref === undefined) return;
       if (page === "results") {
@@ -291,6 +292,14 @@ export function ConnectedShell({ store, client = null, renderPage, renderCompare
   const snap = s.project.snapshot;
   const compareOpen = s.ui.compare !== null && renderCompare !== undefined;
 
+  // The pane's own "no threads" line is Lecturn's, and offers nothing to do.
+  const startChat = showStartChat(s) ? <StartChatPrompt start={s.chat.lecturn.threadStart} onStart={() => run(newPageThread(store))} /> : null;
+  const agentExtras = startChat === null ? slots?.agentExtra : (
+    <>
+      {startChat}
+      {slots?.agentExtra}
+    </>
+  );
   const embed = embedded ? <EmbedPane key={projectId} projectId={projectId} client={client} onBridge={onBridge} /> : undefined;
   // Without an embed (no project yet): the page's hint, or what went wrong.
   const hint = error ?? (slots?.agentExtra !== undefined ? null : HINTS[page]);
@@ -317,7 +326,7 @@ export function ConnectedShell({ store, client = null, renderPage, renderCompare
       projectMenu={projectMenu === undefined || projectsError === null ? projectMenu : { ...projectMenu, errors: [...projectMenu.errors, projectsError] }}
       agent={agent}
       agentEmbed={embed}
-      agentExtras={slots?.agentExtra}
+      agentExtras={agentExtras}
       compareOpen={compareOpen}
       reverting={reverting}
       revertLabel={model.currentStepId !== null && model.currentStepId !== model.shownStepId ? `Revert to ${versionLabel(model.currentStepId, snap)}` : null}

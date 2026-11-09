@@ -144,6 +144,7 @@ export const RESULT_SCHEMAS: { [M in RpcMethod]: S } = {
   "embed.target": def("EmbedTarget"),
   "embed.refreshToken": def("EmbedTarget"),
   "embed.setThreadAppData": empty,
+  "embed.createThread": obj({ threadId: { type: "string" } }),
   "embed.setHostContext": obj({ applied: { type: "boolean" } }),
   "host.register": empty,
   "host.respond": empty,

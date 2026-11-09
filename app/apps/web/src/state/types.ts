@@ -133,7 +133,16 @@ export interface ChatSlice {
   setEmbedded(on: boolean): void;
   /** The thread the embed shows now (the guest's `thread.changed`/`ready`, or a rail click). */
   setLecturnThread(threadId: string | null): void;
+  /**
+   * Asks the app server for a new thread (`embed.createThread`) and records
+   * how that went in `lecturn.threadStart`. Resolves its id, or null when one
+   * is already being made or it failed (the reason is on screen, not thrown).
+   */
+  createThread(input: { title: string; appData: string }): Promise<string | null>;
 }
+
+/** A new thread on its way: what the rail and the empty pane's prompt show meanwhile, and why it did not arrive. */
+export type ThreadStart = { state: "idle" } | { state: "starting" } | { state: "error"; message: string };
 
 /**
  * The project's Lecturn threads (B12; `embed.threads` pushes) and the one the
@@ -147,6 +156,7 @@ export interface LecturnThreads {
   threads: EmbedThread[] | null;
   activeThreadId: string | null;
   activeKey: string | null;
+  threadStart: ThreadStart;
 }
 
 /** Series colours for the overlay: A teal, B sand (C §2). */

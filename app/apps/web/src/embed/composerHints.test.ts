@@ -35,7 +35,6 @@ const bridgeBase = (): PaneBridge => ({
   insertMention: () => undefined,
   setDraft: () => undefined,
   openThread: () => undefined,
-  newThread: () => undefined,
   openProviders: () => undefined,
   on: () => () => undefined,
 });

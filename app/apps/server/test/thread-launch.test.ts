@@ -49,6 +49,22 @@ function onCall(tag: string, n: number, outcome: RpcOutcome): (c: FakeRpcCall) =
   return (c) => (c.tag === tag && ++seen === n ? outcome : undefined);
 }
 
+describe("createThread: a thread a person asked for in the window", () => {
+  it("creates it on the project's server with the title and binding, and answers its id", async () => {
+    const { fake, link } = await setup();
+    const threadId = await link.createThread(PROJECT.projectId, "New thread", '{"page":"components"}');
+    const made = fake.rpcCalls.find((c) => c.tag === CREATE);
+    expect(made?.payload).toMatchObject({ title: "New thread", appData: '{"page":"components"}' });
+    expect(typeof threadId).toBe("string");
+    expect(fake.rpcThreads.has(threadId)).toBe(true);
+  });
+
+  it("fails visibly when Lecturn gives no thread id", async () => {
+    const { link } = await setup({ rpc: async () => ({ nope: 1 }) });
+    await expect(link.createThread(PROJECT.projectId, "New thread", "{}")).rejects.toThrow(/answered/);
+  });
+});
+
 describe("startThreadInProject: the caller's settings (R1.3, D12)", () => {
   it("copies model, runtime and interaction mode, and carries the request", async () => {
     const { fake, start, newProjectId, commands, launches, created } = await setup();
