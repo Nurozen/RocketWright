@@ -166,6 +166,21 @@ describe("main RPC client (B6)", () => {
     expect(opened.map((x) => x.projectId)).toEqual([SEED_PROJECT_ID, "second-rocket", "second-rocket"]);
   });
 
+  it("reports every change to the open projects, so the native menu can rebuild Recent", async () => {
+    const srv = await startMockServer({ tickMs: 5 });
+    servers.push(srv);
+    let changes = 0;
+    const rpc = await connectMainRpc(srv.url, { onProjectsChanged: () => (changes += 1) });
+    clients.push(rpc);
+    const other = await connectMainRpc(srv.url);
+    clients.push(other);
+    const p = (await other.call("project.open", { dir: "/tmp/Second Rocket" })).project;
+    await until(() => changes === 1);
+    await other.call("project.close", { projectId: p.projectId });
+    await until(() => changes === 2);
+    expect(rpc.projects().map((x) => x.projectId)).toEqual([SEED_PROJECT_ID]);
+  });
+
   it("keeps the last lecturn.status and reports each push, live switches included (B10, D25)", async () => {
     const srv = await startMockServer({ tickMs: 5 });
     servers.push(srv);

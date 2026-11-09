@@ -324,6 +324,126 @@ describe("closing and commands", () => {
   });
 });
 
+describe("native menu commands", () => {
+  const quickStart = () => document.querySelector('[data-testid="quick-start"]');
+  const history = () => vi.fn<() => void>();
+
+  it("opens the quick start from the native Help menu with a project showing", async () => {
+    const h = fakeHost();
+    await mount(fakeClient(["a"]), h);
+    expect(quickStart()).toBeNull();
+    await act(async () => h.send({ id: "help.quickStart" }));
+    expect(quickStart()).not.toBeNull();
+  });
+
+  it("opens the quick start from Welcome too", async () => {
+    const h = fakeHost();
+    await mount(fakeClient([]), h);
+    expect(el.querySelector('[data-testid="welcome"]')).not.toBeNull();
+    await act(async () => h.send({ id: "help.quickStart" }));
+    expect(quickStart()).not.toBeNull();
+  });
+
+  it("opens the same quick start from the header's Help", async () => {
+    await mount(fakeClient(["a"]), fakeHost());
+    await act(async () => shown()!.onOpenHelp!());
+    expect(quickStart()).not.toBeNull();
+  });
+
+  it("zooms the whole page and reports a resize, across a project switch", async () => {
+    const h = fakeHost();
+    await mount(fakeClient(["a"]), h);
+    const resized = vi.fn<() => void>();
+    window.addEventListener("resize", resized);
+    await act(async () => h.send({ id: "view.zoom", direction: "in" }));
+    window.removeEventListener("resize", resized);
+    expect(document.documentElement.style.getPropertyValue("zoom")).toBe("1.1");
+    expect(resized).toHaveBeenCalledOnce();
+    await act(async () => h.send({ id: "view.zoom", direction: "reset" }));
+    expect(document.documentElement.style.getPropertyValue("zoom")).toBe("1");
+  });
+
+  describe("Undo and Redo", () => {
+    let execCommand: ReturnType<typeof vi.fn<(command: string) => boolean>>;
+
+    beforeEach(() => {
+      execCommand = vi.fn<(command: string) => boolean>(() => true);
+      (document as unknown as { execCommand: unknown }).execCommand = execCommand;
+    });
+    afterEach(() => {
+      delete (document as unknown as { execCommand?: unknown }).execCommand;
+    });
+
+    async function withShell() {
+      const h = fakeHost();
+      await mount(fakeClient(["a"]), h);
+      const undo = history();
+      const redo = history();
+      shown()!.commandsRef!.current = { "edit.undo": undo, "edit.redo": redo };
+      return { h, undo, redo };
+    }
+
+    it("goes to the focused text field, not the design history", async () => {
+      const { h, undo, redo } = await withShell();
+      const input = document.createElement("input");
+      document.body.append(input);
+      input.focus();
+      await act(async () => h.send({ id: "edit.undo" }));
+      await act(async () => h.send({ id: "edit.redo" }));
+      input.remove();
+      expect(execCommand.mock.calls.map(([c]) => c)).toEqual(["undo", "redo"]);
+      expect(undo).not.toHaveBeenCalled();
+      expect(redo).not.toHaveBeenCalled();
+    });
+
+    it("goes to the design history with no text field focused", async () => {
+      const { h, undo, redo } = await withShell();
+      await act(async () => h.send({ id: "edit.undo" }));
+      await act(async () => h.send({ id: "edit.redo" }));
+      expect(undo).toHaveBeenCalledOnce();
+      expect(redo).toHaveBeenCalledOnce();
+      expect(execCommand).not.toHaveBeenCalled();
+    });
+
+    it("still undoes typing on Welcome, which has no design history", async () => {
+      const h = fakeHost();
+      await mount(fakeClient([]), h);
+      const input = document.createElement("input");
+      document.body.append(input);
+      input.focus();
+      await act(async () => h.send({ id: "edit.undo" }));
+      input.remove();
+      expect(execCommand).toHaveBeenCalledWith("undo");
+    });
+
+    it("does nothing with no field and no project", async () => {
+      const h = fakeHost();
+      await mount(fakeClient([]), h);
+      await act(async () => h.send({ id: "edit.undo" }));
+      expect(execCommand).not.toHaveBeenCalled();
+    });
+  });
+
+  it("hands tab and settings commands to the project's shell", async () => {
+    const h = fakeHost();
+    await mount(fakeClient(["a"]), h);
+    const tab = vi.fn<(c: { id: "view.tab"; tab: string }) => void>();
+    const settings = history();
+    shown()!.commandsRef!.current = { "view.tab": tab, "app.settings": settings };
+    await act(async () => h.send({ id: "view.tab", tab: "results" }));
+    await act(async () => h.send({ id: "app.settings" }));
+    expect(tab).toHaveBeenCalledWith({ id: "view.tab", tab: "results" });
+    expect(settings).toHaveBeenCalledOnce();
+  });
+
+  it("ignores a tab command with no project showing", async () => {
+    const h = fakeHost();
+    await mount(fakeClient([]), h);
+    await act(async () => h.send({ id: "view.tab", tab: "results" }));
+    expect(el.querySelector('[data-testid="welcome"]')).not.toBeNull();
+  });
+});
+
 describe("the project menu", () => {
   const order = (t: ReturnType<typeof fakeClient>) => t.calls.map((c) => c.method).filter((m) => m === "project.unsubscribe" || m === "project.close" || m === "model.patch");
   const dialog = (name: string) => document.querySelector(`[role="dialog"][aria-labelledby] h2`)?.textContent === name;
@@ -453,6 +573,34 @@ describe("the project menu", () => {
     await settled();
     await settled();
     expect(banner()).toContain("its folder is gone");
+  });
+
+  it("says why a recent project did not open while another project action is running", async () => {
+    const t = fakeClient(["a"]);
+    let finishPick!: (dir: string | null) => void;
+    const pickFolder = () => new Promise<string | null>((resolve) => (finishPick = resolve));
+    const h = fakeHost({ pickFolder });
+    await mount(t, h);
+    await act(async () => h.send({ id: "project.open" }));
+    await settled();
+    await act(async () => h.send({ id: "project.openRecent", dir: "/p/b" }));
+    await settled();
+    expect(t.calls.filter((c) => c.method === "project.open")).toEqual([]);
+    expect(banner()).toContain("another project action is still running");
+    await act(async () => finishPick(null));
+    await settled();
+  });
+
+  it("says why a recent project did not open before the window has connected", async () => {
+    let finishConnect!: (c: RpcLike) => void;
+    const t = fakeClient(["a"]);
+    const h = fakeHost();
+    await mount(t, h, { connect: () => new Promise<RpcLike>((resolve) => (finishConnect = resolve)) });
+    await act(async () => h.send({ id: "project.openRecent", dir: "/p/b" }));
+    await settled();
+    expect(banner()).toContain("still connecting");
+    await act(async () => finishConnect(t.client));
+    await settled();
   });
 
   it("reads Recent from the host each time the menu opens, and shows a failure there", async () => {

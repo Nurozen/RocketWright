@@ -42,15 +42,61 @@ export const DESKTOP_COMMAND_IDS = [
   "edit.undo",
   "edit.redo",
   "view.tab",
+  "view.zoom",
   "help.quickStart",
   "app.settings",
 ] as const;
 export type DesktopCommandId = (typeof DESKTOP_COMMAND_IDS)[number];
 
+export type ZoomDirection = "in" | "out" | "reset";
+
 export type DesktopCommand =
-  | { id: Exclude<DesktopCommandId, "project.openRecent" | "view.tab"> }
+  | { id: Exclude<DesktopCommandId, "project.openRecent" | "view.tab" | "view.zoom"> }
   | { id: "project.openRecent"; dir: string }
-  | { id: "view.tab"; tab: string };
+  | { id: "view.tab"; tab: string }
+  | { id: "view.zoom"; direction: ZoomDirection };
+
+export interface AppCommand {
+  id: DesktopCommandId;
+  label: string;
+  menu: "File" | "Edit" | "View" | "Help" | "App";
+}
+
+/**
+ * The one table of app commands (seam 6): the native menu (`D/menu.ts`), the
+ * header menus and the shortcuts all read it, so a command cannot exist in one
+ * and be missing from another. Here rather than in the web app because Electron
+ * main has to read it too.
+ */
+export const APP_COMMANDS: readonly AppCommand[] = [
+  { id: "project.new", label: "New project…", menu: "File" },
+  { id: "project.open", label: "Open folder…", menu: "File" },
+  { id: "project.openSample", label: "Open sample rocket", menu: "File" },
+  { id: "project.openRecent", label: "Recent", menu: "File" },
+  { id: "project.close", label: "Close project", menu: "File" },
+  { id: "project.rename", label: "Rename project…", menu: "File" },
+  { id: "file.import", label: "Import…", menu: "File" },
+  { id: "file.export", label: "Export…", menu: "File" },
+  { id: "edit.undo", label: "Undo", menu: "Edit" },
+  { id: "edit.redo", label: "Redo", menu: "Edit" },
+  { id: "view.tab", label: "Tab", menu: "View" },
+  { id: "view.zoom", label: "Zoom", menu: "View" },
+  { id: "help.quickStart", label: "Quick start", menu: "Help" },
+  { id: "app.settings", label: "Settings…", menu: "App" },
+];
+
+/** A command's label as every menu shows it. */
+export function commandLabel(id: DesktopCommandId): string {
+  return APP_COMMANDS.find((c) => c.id === id)?.label ?? id;
+}
+
+/** The header's tabs, which the native View menu lists too. */
+export const TOP_TABS = [
+  { id: "design", label: "Design" },
+  { id: "propulsion", label: "Propulsion" },
+  { id: "simulate", label: "Simulate" },
+  { id: "results", label: "Results" },
+] as const;
 
 /** Pulled by the page once it can show it (a `send` before React listens is lost). */
 export interface DesktopBoot {

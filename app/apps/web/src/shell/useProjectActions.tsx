@@ -55,6 +55,10 @@ interface UnsavedQuestion {
   answer: (leave: boolean) => void;
 }
 
+// A pick from the native Recent menu has no control of its own to stay disabled, so a refusal has to be said.
+const RECENT_BUSY = "Could not open the recent project: another project action is still running. Try again when it finishes.";
+const RECENT_NOT_CONNECTED = "Could not open the recent project: the window is still connecting. Try again in a moment.";
+
 function UnsavedPrompt({ question }: { question: UnsavedQuestion }) {
   const keep = () => question.answer(false);
   return (
@@ -97,8 +101,11 @@ export function useProjectActions({ client, host, lifecycle, surface, info, show
 
   const report = useCallback((message: string) => setError(message), []);
 
-  const perform = (work: (rpc: RpcLike) => Promise<void>) => {
-    if (running.current || client === null) return;
+  const perform = (work: (rpc: RpcLike) => Promise<void>, onRefused?: () => void) => {
+    if (running.current || client === null) {
+      onRefused?.();
+      return;
+    }
     running.current = true;
     setError(null);
     work(client)
@@ -124,10 +131,10 @@ export function useProjectActions({ client, host, lifecycle, surface, info, show
     });
   };
 
-  const leaveThen = (work: (rpc: RpcLike) => Promise<void>) =>
+  const leaveThen = (work: (rpc: RpcLike) => Promise<void>, onRefused?: () => void) =>
     perform(async (rpc) => {
       if (await mayLeave()) await work(rpc);
-    });
+    }, onRefused);
 
   const close = async (rpc: RpcLike) => {
     const shown = lifecycle.current;
@@ -167,7 +174,7 @@ export function useProjectActions({ client, host, lifecycle, surface, info, show
       leaveThen(async (rpc) => {
         setStatus("Opening the project…");
         show((await openRecent(rpc, dir)).projectId);
-      }),
+      }, () => setError(client === null ? RECENT_NOT_CONNECTED : RECENT_BUSY)),
     "project.rename": () => {
       const shown = lifecycle.current;
       if (shown.phase === "project" && info.current?.projectId === shown.projectId) setRenaming(info.current);

@@ -33,6 +33,8 @@ export interface MainRpcOptions {
    * the socket closes, since nobody can receive the answer then.
    */
   onHostRequest?: (request: HostRequest, signal: AbortSignal) => HostAnswer | Promise<HostAnswer>;
+  /** Called after the open-project list changes (opened, renamed, or closed). */
+  onProjectsChanged?: () => void;
   /** Called once when the socket closes or errors after connecting. */
   onClose?: () => void;
   /** Connect + hello + `project.list` deadline (default 30 s). */
@@ -124,14 +126,21 @@ export async function connectMainRpc(rpcUrl: string, opts: MainRpcOptions = {}):
       else r.fail(new MainRpcError(r.method, f.error));
     } else if (f.kind === "push" && f.topic === "project.opened") {
       const { project } = f.payload as { project: ProjectInfo };
-      apply(() => see(project));
+      apply(() => {
+        see(project);
+        opts.onProjectsChanged?.();
+      });
     } else if (f.kind === "push" && f.topic === "project.closed") {
       const { projectId } = f.payload as { projectId: string };
-      apply(() => seen.delete(projectId));
+      apply(() => {
+        seen.delete(projectId);
+        opts.onProjectsChanged?.();
+      });
     } else if (f.kind === "push" && f.topic === "project.updated") {
       const { project } = f.payload as { project: ProjectInfo };
       apply(() => {
         if (seen.has(project.projectId)) seen.set(project.projectId, { ...project });
+        opts.onProjectsChanged?.();
       });
     } else if (f.kind === "push" && f.topic === "lecturn.status") {
       status = f.payload as LecturnStatus;

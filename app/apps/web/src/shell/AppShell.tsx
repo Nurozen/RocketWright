@@ -34,6 +34,8 @@ export interface ShellHandlers {
   onRedo?: () => void;
   /** Header and agent-pane Settings (B12: `lecturn/providers.open` with the embed). */
   onOpenSettings?: () => void;
+  /** Header Help (the same quick start as the native Help menu). */
+  onOpenHelp?: () => void;
 }
 
 export interface AppShellProps {
@@ -123,6 +125,7 @@ export function AppShell({
         {...(h.onUndo ? { onUndo: h.onUndo } : {})}
         {...(h.onRedo ? { onRedo: h.onRedo } : {})}
         {...(h.onOpenSettings ? { onOpenSettings: h.onOpenSettings } : {})}
+        {...(h.onOpenHelp ? { onOpenHelp: h.onOpenHelp } : {})}
       />
       <LeftRail
         threads={model.threads}
