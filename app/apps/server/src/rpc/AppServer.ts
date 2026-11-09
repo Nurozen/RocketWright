@@ -111,7 +111,7 @@ export interface AppServerOptions {
    * absent: no Lecturn, and the `embed.*` methods answer `internal`.
    */
   lecturn?: (events: LecturnLinkEvents) => LecturnLink | null;
-  /** Starts the new thread `project_new` and `project_open` promise (default: none yet, U38). */
+  /** Starts the new thread `project_new` and `project_open` promise (default: the Lecturn link's, or none without one). */
   startThread?: ProjectThreadStarter;
   /** The dialog's and the whole call's time limits (tests; defaults in `projectTools.ts`). */
   projectToolLimits?: { dialogMs?: number; guardMs?: number };
@@ -237,7 +237,7 @@ export class AppServer {
       collisions: (dir) => this.creator.collisions(dir),
       open: (dir) => this.openProject(dir),
       isOpen: (dir) => this.openHost(dir) !== undefined,
-      startThread: opts.startThread ?? threadLaunchUnavailable,
+      startThread: opts.startThread ?? (this.lecturn === null ? threadLaunchUnavailable : (start) => this.lecturn!.startThreadInProject(start)),
       ...opts.projectToolLimits,
     });
     this.liveHandler = createLiveMcpRequestHandler({ broker: this.broker, projectTools, bearer: this.liveBearer, projectOf: (root) => this.projectForWorkspaceRoot(root) });

@@ -16,8 +16,30 @@ import type {
   PendingConnectionLike,
   ThreadsStreamEvent,
 } from "../../src/lecturn/connection.ts";
+import { LecturnRpcError, type LecturnRpcOptions } from "../../src/lecturn/appsRpc.ts";
 
 type Pairing = "none" | "pending" | "denied";
+
+export interface FakeRpcCall {
+  origin: string;
+  token: string;
+  tag: string;
+  payload: Record<string, unknown>;
+}
+
+export interface FakeThreadRecord {
+  modelSelection: Record<string, unknown>;
+  runtimeMode: string;
+  interactionMode: string;
+  messages: string[];
+}
+
+/**
+ * How one fake RPC ends: an `Error` rejects without acting, `reply-lost` acts
+ * and then loses the answer, `never-arrived` loses the request after it was
+ * sent, and `stall` answers nothing until the call's own limit fires.
+ */
+export type RpcOutcome = Error | "reply-lost" | "never-arrived" | "stall" | undefined;
 
 /** A Lecturn server stand-in: ids carry the environment, so a switch changes every one. */
 export class FakeConnection implements LecturnConnectionLike {
@@ -33,6 +55,24 @@ export class FakeConnection implements LecturnConnectionLike {
   readonly liveTools: (LiveTools | null)[] = [];
   /** Every `updateHostContext` the server received (the helper's carry on a switch included), in order. */
   readonly hostContexts: [HostContextTarget, string][] = [];
+  /** Every embed-token RPC, in order. */
+  readonly rpcCalls: FakeRpcCall[] = [];
+  /** Decides how each RPC ends; undefined acts and answers. */
+  rpcOutcome: (call: FakeRpcCall) => RpcOutcome = () => undefined;
+  /** The threads the fake RPC serves, by id. */
+  readonly rpcThreads = new Map<string, FakeThreadRecord>();
+  /** What `apps.createEmbedThread` gives a new thread (the project's defaults). */
+  threadDefaults: Omit<FakeThreadRecord, "messages"> = { modelSelection: { instanceId: "default-instance", model: "default-model" }, runtimeMode: "full-access", interactionMode: "default" };
+  /** Provider instances Lecturn refuses a launch on. */
+  readonly disabledInstances = new Set<string>();
+  /** Accepted launch commandIds (Lecturn's receipts). */
+  readonly launchReceipts = new Set<string>();
+  /** Project ids whose mint fails, or never answers. */
+  readonly mintFailures = new Set<string>();
+  readonly mintStalls = new Set<string>();
+  /** Environment → the server origin its embed targets carry (default `http://127.0.0.1:9`). */
+  readonly origins = new Map<string, string>();
+  private nextThread = 1;
   /** Project id (any environment) → workspace root, as the helper's `workspaceRootOf`. */
   private readonly roots = new Map<string, string>();
   /** Root → last project host context, carried on a switch. */
@@ -68,7 +108,66 @@ export class FakeConnection implements LecturnConnectionLike {
     return { projectId };
   }
   async embedTarget(projectId: string, threadId?: string) {
-    return { url: `http://127.0.0.1:9/embed/${this.env}/${projectId}${threadId === undefined ? "" : `/${threadId}`}`, token: "t", expiresAt: "2026-10-25T00:00:00.000Z" };
+    if (this.mintStalls.has(projectId)) await new Promise(() => undefined);
+    if (this.mintFailures.has(projectId)) throw new Error(`no token for ${projectId}`);
+    const origin = this.origins.get(projectId.split(":")[0]!) ?? "http://127.0.0.1:9";
+    return { url: `${origin}/embed/${this.env}/${projectId}${threadId === undefined ? "" : `/${threadId}`}`, token: "t", expiresAt: "2026-10-25T00:00:00.000Z" };
+  }
+
+  /** `LecturnLinkOptions.rpc`: the embed-token surface a thread start uses. */
+  readonly rpc = async (origin: string, token: string, tag: string, payload: unknown, o: LecturnRpcOptions = {}): Promise<unknown> => {
+    const call: FakeRpcCall = { origin, token, tag, payload: payload as Record<string, unknown> };
+    this.rpcCalls.push(call);
+    const outcome = this.rpcOutcome(call);
+    if (outcome instanceof Error) throw outcome;
+    if (outcome === "stall") {
+      const signal = o.signal === undefined ? AbortSignal.timeout(o.timeoutMs ?? 60_000) : AbortSignal.any([o.signal, AbortSignal.timeout(o.timeoutMs ?? 60_000)]);
+      await new Promise((_, reject) => signal.addEventListener("abort", () => reject(new LecturnRpcError(`${tag}: no answer`, { ambiguous: true, aborted: true })), { once: true }));
+    }
+    if (outcome === "never-arrived") throw new LecturnRpcError(`${tag}: the socket closed before the answer`, { ambiguous: true });
+    const value = this.answer(call);
+    if (outcome === "reply-lost") throw new LecturnRpcError(`${tag}: the socket closed before the answer`, { ambiguous: true });
+    return value;
+  };
+
+  private rpcThread(id: unknown): FakeThreadRecord {
+    const thread = this.rpcThreads.get(id as string);
+    if (thread === undefined) throw new LecturnRpcError(`no thread ${String(id)}`);
+    return thread;
+  }
+
+  private answer({ tag, payload }: FakeRpcCall): unknown {
+    switch (tag) {
+      case "apps.createEmbedThread": {
+        const threadId = `thread-${this.nextThread++}`;
+        this.rpcThreads.set(threadId, { ...structuredClone(this.threadDefaults), messages: [] });
+        return { threadId };
+      }
+      case "orchestration.getThreadProjection": {
+        const t = this.rpcThread(payload.threadId);
+        return { thread: { modelSelection: t.modelSelection, runtimeMode: t.runtimeMode, interactionMode: t.interactionMode }, messages: t.messages.map((text) => ({ text })), runs: t.messages.map(() => ({})) };
+      }
+      case "orchestration.dispatchCommand": {
+        const t = this.rpcThread(payload.threadId);
+        if (payload.type === "thread.runtime-mode.set") t.runtimeMode = payload.runtimeMode as string;
+        if (payload.type === "thread.interaction-mode.set") t.interactionMode = payload.interactionMode as string;
+        if (payload.type === "thread.model-selection.set") t.modelSelection = payload.modelSelection as Record<string, unknown>;
+        return { sequence: 1 };
+      }
+      case "orchestration.launchThread": {
+        const t = this.rpcThread(payload.threadId);
+        const model = payload.modelSelection as Record<string, unknown>;
+        if (this.disabledInstances.has(model.instanceId as string)) throw new LecturnRpcError(`orchestration.launchThread failed: {"message":"Provider instance \\"${String(model.instanceId)}\\" is disabled for project p."}`);
+        if (!this.launchReceipts.has(payload.commandId as string)) {
+          this.launchReceipts.add(payload.commandId as string);
+          t.modelSelection = model;
+          t.messages.push((payload.initialMessage as { text: string }).text);
+        }
+        return { threadId: payload.threadId, resumed: false };
+      }
+      default:
+        throw new LecturnRpcError(`${tag}: unknown to the fake`);
+    }
   }
   async refreshEmbedToken(projectId: string) {
     return { url: `http://127.0.0.1:9/embed/${this.env}/${projectId}`, token: "t2", expiresAt: "2026-10-25T00:05:00.000Z" };

@@ -15,9 +15,9 @@
  * work continues behind that answer, and the tools stay busy until it ends:
  * one consent, one project.
  *
- * Starting the thread is `ProjectThreadStarter`; U38 supplies the Lecturn
- * launch. The server's "already created" prefix on the first message is U38's
- * too: `request` here is exactly what the dialog showed.
+ * Starting the thread is `ProjectThreadStarter` (`LecturnLink.startThreadInProject`).
+ * The server's "already created" prefix on the first message is added there:
+ * `request` here is exactly what the dialog showed.
  */
 import { isAbsolute, join, resolve } from "node:path";
 import {
@@ -61,15 +61,23 @@ export interface ProjectThreadStart {
   project: ProjectInfo;
   /** The new thread's work, as the person saw it; null makes an empty thread with no turn. */
   request: string | null;
+  /** The call made this project, rather than opening one that was there. */
+  created: boolean;
   caller: ProjectToolCaller;
   /** Fires at the overall guard, when the agent is told the thread is not confirmed. */
   signal: AbortSignal;
 }
 
-/** Starts the new thread in a project that is already open. Rejecting reports "opened, no thread". */
-export type ProjectThreadStarter = (start: ProjectThreadStart) => Promise<{ threadId: string }>;
+export interface ProjectThreadStarted {
+  threadId: string;
+  /** Why the thread exists but its first message did not start, or could not be confirmed. */
+  unstarted?: string;
+}
 
-/** The seam until U38 fills it: the project still opens, and the agent is told no thread started. */
+/** Starts the new thread in a project that is already open. Rejecting reports "opened, no thread". */
+export type ProjectThreadStarter = (start: ProjectThreadStart) => Promise<ProjectThreadStarted>;
+
+/** With no Lecturn link: the project still opens, and the agent is told no thread started. */
 export const threadLaunchUnavailable: ProjectThreadStarter = () => Promise.reject(new Error("starting a thread in another project is not available in this build"));
 
 export interface ProjectToolsDeps {
@@ -276,10 +284,13 @@ export class ProjectTools {
     // The guard has already told the agent no thread started, so none may appear now.
     if (guard.aborted) return openedWithoutThread(project, "the call ran out of time");
     const started = await this.startThread(plan, project, caller, guard);
-    if (typeof started !== "string") return openedWithoutThread(project, started.why);
-    this.deps.show({ projectId: project.projectId, threadId: started });
-    const result: ProjectToolResult = { project, threadId: started };
-    return success(`Project "${project.name}" is open at ${project.dir}, and thread ${started} was started there. This thread stays in its own project. ${NOT_RETRY}`, { ...result });
+    if ("why" in started) return openedWithoutThread(project, started.why);
+    this.deps.show({ projectId: project.projectId, threadId: started.threadId });
+    const result: ProjectToolResult = { project, threadId: started.threadId };
+    if (started.unstarted !== undefined) {
+      return success(`Project "${project.name}" is open at ${project.dir} and thread ${started.threadId} exists there, but it did not start as asked (${started.unstarted}). ${NOT_RETRY} Tell the person so they can continue in that thread.`, { ...result });
+    }
+    return success(`Project "${project.name}" is open at ${project.dir}, and thread ${started.threadId} was started there. This thread stays in its own project. ${NOT_RETRY}`, { ...result });
   }
 
   private async planNew(args: JsonObject): Promise<NewProject> {
@@ -344,13 +355,12 @@ export class ProjectTools {
     }
   }
 
-  /** The thread's id, or why there is none. The guard ends the wait even if the launch never settles. */
-  private async startThread(plan: Plan, project: ProjectInfo, caller: ProjectToolCaller, signal: AbortSignal): Promise<string | { why: string }> {
+  /** The thread, or why there is none. The guard ends the wait even if the launch never settles. */
+  private async startThread(plan: Plan, project: ProjectInfo, caller: ProjectToolCaller, signal: AbortSignal): Promise<ProjectThreadStarted | { why: string }> {
     const timedOut = new Promise<{ why: string }>((answer) => {
       signal.addEventListener("abort", () => answer({ why: "the thread did not finish starting in time" }), { once: true });
     });
-    const launch = this.deps.startThread({ project, request: plan.request, caller, signal }).then(
-      (r) => r.threadId,
+    const launch = this.deps.startThread({ project, request: plan.request, created: plan.tool === "project_new", caller, signal }).catch(
       (e: unknown) => ({ why: e instanceof Error ? e.message : String(e) }),
     );
     return Promise.race([launch, timedOut]);
