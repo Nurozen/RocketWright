@@ -34,8 +34,6 @@ export interface ProjectSlice {
   /** Deep-frozen; replaced per key by `project.patch` pushes. */
   snapshot: DeepReadonly<ProjectSnapshot> | null;
   subscriptionId: string | null;
-  /** Clock ms of the last snapshot or patch (header "Saved N minutes ago"). */
-  updatedAt: number | null;
   error: string | null;
   /** Subscribes to `projectId`, loads threads, and loads + handshakes the wasm core. */
   connect(client: RpcLike, projectId: string): Promise<void>;

@@ -283,3 +283,13 @@ export function runSnapshots(s: AppState, rows: readonly ResultsRow[], timeZone?
     return { key: r.key, sim: r.sim, ref: rowRef(r), title: `${r.name} run`, modelRev: rev.label, when: fmtWhen(rev.step?.ts, timeZone), series: r.series, color: r.color };
   });
 }
+
+/** Scrolls a tab strip the least it takes to show `tab` whole. */
+export function revealTab(
+  strip: Pick<HTMLElement, "scrollLeft" | "clientWidth">,
+  tab: Pick<HTMLElement, "offsetLeft" | "offsetWidth">,
+): void {
+  const end = tab.offsetLeft + tab.offsetWidth;
+  if (tab.offsetLeft < strip.scrollLeft) strip.scrollLeft = tab.offsetLeft;
+  else if (end > strip.scrollLeft + strip.clientWidth) strip.scrollLeft = end - strip.clientWidth;
+}

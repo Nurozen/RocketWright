@@ -17,16 +17,24 @@ export interface InspectorProps {
   noParts?: boolean;
   /** Controls for the selected part, below its cards. */
   actions?: ReactNode;
+  /** A card's `›`: opens the selected part in the Components editor. Without it the cards have no chevron. */
+  onOpenCard?: () => void;
 }
 
 export const INSPECTOR_WIDTH = 224;
 
-function Card({ title, testid, rows }: { title: string; testid: string; rows: InspectorRow[] }) {
+function Card({ title, testid, rows, onOpen }: { title: string; testid: string; rows: InspectorRow[]; onOpen: (() => void) | undefined }) {
   return (
     <section className="rw-insp-card" data-testid={testid} aria-label={title}>
       <h3 className="rw-insp-card__title">
-        <span>{title}</span>
-        <Icon name="chevron-right" size={16} />
+        {onOpen === undefined ? (
+          <span>{title}</span>
+        ) : (
+          <button type="button" className="rw-insp-card__open" title="Edit this part on the Components page" onClick={onOpen}>
+            <span>{title}</span>
+            <Icon name="chevron-right" size={16} />
+          </button>
+        )}
       </h3>
       <dl className="rw-insp-card__rows">
         {rows.map((r) => (
@@ -48,7 +56,7 @@ function Card({ title, testid, rows }: { title: string; testid: string; rows: In
   );
 }
 
-export function Inspector({ view, thumb = null, noParts = false, actions }: InspectorProps) {
+export function Inspector({ view, thumb = null, noParts = false, actions, onOpenCard }: InspectorProps) {
   const [open, setOpen] = useState(true);
   return (
     <aside
@@ -78,9 +86,9 @@ export function Inspector({ view, thumb = null, noParts = false, actions }: Insp
         (view ? (
           <>
             {thumb && <PartThumb url={thumb.url} icon={thumb.icon} size={96} width={INSPECTOR_WIDTH - 28} testId="insp.thumbnail" className="rw-inspector__thumb" />}
-            <Card title="Attachment" testid="insp.attachment" rows={view.attachment} />
-            <Card title="Mass" testid="insp.mass" rows={view.mass} />
-            <Card title="Clearance" testid="insp.clearance" rows={view.clearance} />
+            <Card title="Attachment" testid="insp.attachment" rows={view.attachment} onOpen={onOpenCard} />
+            <Card title="Mass" testid="insp.mass" rows={view.mass} onOpen={onOpenCard} />
+            <Card title="Clearance" testid="insp.clearance" rows={view.clearance} onOpen={onOpenCard} />
             {actions !== undefined && <div className="rw-inspector__actions">{actions}</div>}
           </>
         ) : (

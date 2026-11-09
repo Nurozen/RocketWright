@@ -17,6 +17,7 @@ import type { RwRef } from "@rw/contracts";
 import { useStore } from "zustand";
 import { createStore, type StoreApi } from "zustand/vanilla";
 import { Icon } from "../../shell/Icon.tsx";
+import { matchesRailSearch, NO_RAIL_MATCHES, useRailSearch } from "../../shell/railSearch.ts";
 import { diagnosticPlainText } from "../../ui/DiagnosticText.tsx";
 import type { RpcLike } from "../../state/rpc.ts";
 import { NO_LIQUID_ENGINE, useAppState, type AppStore } from "../../state/index.ts";
@@ -28,7 +29,7 @@ import type { AssemblyModel } from "../../viewport/scene.ts";
 import { cameraBasis, type ViewPose } from "../../viewport/views.ts";
 import { ThreadHistory, useOpenThreadHistory } from "../components/AgentExtras.tsx";
 import { ConnectivityDiagram } from "./Diagram.tsx";
-import { EngineEditor, NewEngineButton, type EngineEditorProps } from "./EngineEditor.tsx";
+import { AddEngineRailButton, EngineEditor, NewEngineButton, type EngineEditorProps } from "./EngineEditor.tsx";
 import { designKey, type DesignEntry } from "./engineOps.ts";
 import {
   CATEGORIES,
@@ -100,9 +101,17 @@ export function createLiquidUi(): LiquidStore {
   return createStore<LiquidUi>()(() => ({ engine: null, inspectorTab: "connection", sourcesOpen: false, designs: {}, analysis: {} }));
 }
 
+/** Opens a new or duplicated engine where it can be edited. The selection goes too: a feed ref would keep the old engine on screen. */
+function showNewEngine(store: AppStore, ui: LiquidStore, id: string): void {
+  ui.setState({ engine: id });
+  store.getState().selection.select([], "inspector");
+  store.getState().ui.navigate("liquid", "properties");
+}
+
 export interface LiquidSlots {
   content: ReactNode;
   nav: ReactNode;
+  navAdd: ReactNode;
   agentExtra: ReactNode;
 }
 
@@ -110,6 +119,7 @@ export function liquidSlots(store: AppStore, client: RpcLike | null, glbDeps: Gl
   return {
     content: <LiquidWorkspace store={store} client={client} glbDeps={glbDeps} ui={ui} />,
     nav: <PropulsionTree store={store} ui={ui} />,
+    navAdd: <AddEngineRailButton app={store} onShow={(id) => showNewEngine(store, ui, id)} />,
     agentExtra: <LiquidAgentExtra store={store} ui={ui} />,
   };
 }
@@ -244,12 +254,7 @@ function LiquidWorkspace({ store, client, glbDeps, ui }: { store: AppStore; clie
   const entry = useStore(ui, (s) => (view === null ? null : (s.designs[view.id] ?? null)));
   const out = entry?.out ?? null;
   const setTab = (t: LiquidTab) => store.getState().ui.navigate("liquid", t);
-  // A new or duplicated engine opens where it can be edited. The selection goes too: a feed ref would keep the old engine on screen.
-  const showEngine = (id: string) => {
-    ui.setState({ engine: id });
-    store.getState().selection.select([], "inspector");
-    store.getState().ui.navigate("liquid", "properties");
-  };
+  const showEngine = (id: string) => showNewEngine(store, ui, id);
   const engineDeleted = (id: string) => {
     ui.setState((s) => {
       const { [id]: _gone, ...designs } = s.designs;
@@ -716,17 +721,20 @@ export function PropulsionTree({ store, ui }: { store: AppStore; ui: LiquidStore
     const ref: RwRef | null = categoryTarget(view.engine, view.id, c);
     if (ref !== null) store.getState().selection.select([ref], "tree");
   };
+  const query = useRailSearch();
   // The categories are an engine's; with no engine the rows and their eyes would act on nothing.
   if (view === null && hasSnapshot) {
     return (
       <p className="rw-rail__empty" data-testid="propulsion.tree-empty">
-        No liquid engine yet.
+        No liquid engine yet. Press + to add one.
       </p>
     );
   }
+  const shownCategories = CATEGORIES.filter((c) => matchesRailSearch(c.label, query));
+  if (shownCategories.length === 0) return <p className="rw-rail__empty">{NO_RAIL_MATCHES}</p>;
   return (
     <ul className="rw-list" role="listbox" aria-label="Propulsion system" data-testid="propulsion.tree">
-      {CATEGORIES.map((c) => {
+      {shownCategories.map((c) => {
         const off = hidden.includes(hiddenKey(c.id));
         return (
           <li key={c.id} className="rw-nav-row" role="option" data-testid="rail.nav-row" data-category={c.id} data-hidden={off ? "true" : undefined} aria-selected={selected === c.id} onClick={() => select(c.id)}>

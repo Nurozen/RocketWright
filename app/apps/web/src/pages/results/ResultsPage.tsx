@@ -17,7 +17,7 @@ import { legendFigure, PLOT_TABS, plotAxis, plotTab, plotValues, type PlotTabId 
 import { seriesColumn } from "../../plots/series.ts";
 import { TimePlot, type PlotLine } from "../../plots/TimePlot.tsx";
 import { downloadText, exportFileName, exportRunsCsv, type ExportRun } from "./csv.ts";
-import { defaultOverlay, legendRows, outdatedBanner, plotPrompt, primaryRow, rowRef, runDetails, type ResultsRow } from "./model.ts";
+import { defaultOverlay, legendRows, outdatedBanner, plotPrompt, primaryRow, revealTab, rowRef, runDetails, type ResultsRow } from "./model.ts";
 import { Banner } from "../../ui/Banner.tsx";
 import { MenuButton } from "../../ui/Menu.tsx";
 import { useResultsRows } from "./parts.tsx";
@@ -50,6 +50,13 @@ export function ResultsPage({ app, source }: ResultsPageProps) {
   const sheetOpen = useResultsUi(app, (u) => u.conditions) !== null;
   const ui = resultsUiStore(app);
   const system = useAppState(app, unitSystemOf);
+  const tabStrip = useRef<HTMLDivElement>(null);
+  // The strip scrolls when it cannot fit its tabs: the active one stays in view, also when the sheet narrows the page.
+  useEffect(() => {
+    const strip = tabStrip.current;
+    const tab = strip?.querySelector<HTMLElement>('[aria-selected="true"]');
+    if (strip != null && tab != null) revealTab(strip, tab);
+  }, [tabId, sheetOpen]);
 
   // First visit with runs: plot the first two Complete runs and select series A.
   useEffect(() => {
@@ -227,7 +234,7 @@ export function ResultsPage({ app, source }: ResultsPageProps) {
 
       <div className="rw-results__card">
         <section className="rw-results__plot" data-rw-region="plot" data-testid="plot">
-          <div className="rw-plot-tabs" role="tablist" aria-label="Plot">
+          <div className="rw-plot-tabs" role="tablist" aria-label="Plot" ref={tabStrip}>
             {PLOT_TABS.map((t) => (
               <button
                 key={t.id}

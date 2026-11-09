@@ -14,7 +14,9 @@ import type { ReactNode } from "react";
 import type { HostApi } from "../../host/HostApi.ts";
 import { Icon } from "../../shell/Icon.tsx";
 import type { RpcLike } from "../../state/rpc.ts";
+import { matchesRailSearch, NO_RAIL_MATCHES, useRailSearch } from "../../shell/railSearch.ts";
 import { useAppState, type AppStore } from "../../state/index.ts";
+import { newSimulation } from "../results/SimConditionsSheet.tsx";
 import type { RunDataSource } from "../results/source.ts";
 import { AnalysisPage } from "./analysis.tsx";
 import { ANALYSIS_VIEWS, isAnalysisView } from "./analysisModel.ts";
@@ -34,6 +36,7 @@ export const isTierTab = (t: string | null | undefined): t is TierTab => TIER_TA
 export interface PropSimSlots {
   content: ReactNode;
   nav: ReactNode;
+  navAdd: ReactNode;
 }
 
 export function propSimSlots(
@@ -49,6 +52,7 @@ export function propSimSlots(
   return {
     content: <PropSimWorkspace store={store} client={client} httpBase={httpBase} ui={ui} visualUi={visualUi} cfdUi={cfdUi} runSource={runSource} host={host} />,
     nav: <SimulationNav store={store} />,
+    navAdd: <AddSimulationButton store={store} />,
   };
 }
 
@@ -122,7 +126,29 @@ export const SIM_ROWS = [
 export const simRowOf = (tab: string | null | undefined): string => (isAnalysisView(tab) ? tab : "propulsion");
 
 /** The `Simulation` rail section: Propulsion simulation (the tiers) and the Trajectory, Stability, and Thermal analysis pages. */
+/** The Simulation rail's "+": a new flight simulation, edited in the Results page's conditions sheet. */
+function AddSimulationButton({ store }: { store: AppStore }) {
+  const noConfigs = useAppState(store, (s) => Object.keys(s.project.snapshot?.evaluated?.configs ?? {}).length === 0);
+  return (
+    <button
+      type="button"
+      className="rw-icon-button"
+      aria-label="New simulation"
+      title="New simulation (opens on Results)"
+      data-testid="rail.new-simulation"
+      disabled={noConfigs}
+      onClick={() => {
+        store.getState().ui.navigate("results");
+        void newSimulation(store);
+      }}
+    >
+      <Icon name="plus" size={18} />
+    </button>
+  );
+}
+
 function SimulationNav({ store }: { store: AppStore }) {
+  const query = useRailSearch();
   const page = useAppState(store, (s) => s.ui.page);
   const tab = useAppState(store, (s) => s.ui.tab);
   const active = page === "propulsion-sim" ? simRowOf(tab) : null;
@@ -131,9 +157,11 @@ function SimulationNav({ store }: { store: AppStore }) {
     store.getState().ui.navigate("propulsion-sim", id === "propulsion" ? (lastTier.get(store) ?? "visual") : id);
   };
   if (page === "propulsion-sim" && isTierTab(tab)) lastTier.set(store, tab);
+  const shown = SIM_ROWS.filter((r) => matchesRailSearch(r.label, query));
+  if (shown.length === 0) return <p className="rw-rail__empty">{NO_RAIL_MATCHES}</p>;
   return (
     <ul className="rw-list" role="listbox" aria-label="Simulation" data-testid="simulation.nav">
-      {SIM_ROWS.map((r) => (
+      {shown.map((r) => (
         <li key={r.id} className="rw-nav-row" role="option" data-testid="rail.nav-row" data-row={r.id} aria-selected={r.id === active} onClick={() => open(r.id)}>
           <span className="rw-thumb" data-testid="rail.thumb">
             <Icon name={r.icon} size={20} className="rw-nav-row__part" />

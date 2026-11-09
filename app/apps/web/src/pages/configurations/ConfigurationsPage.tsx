@@ -458,7 +458,7 @@ function MotorPanel({
   const cfg = model.configs[config.id];
   const mounts = motorMounts(model);
   const addMountHint = (
-    <span className="rw-motor__add-mount" data-testid="motor.add-mount" title="Motors go in an inner tube marked as a motor mount. Ask the agent to add one, then assign a motor here.">
+    <span className="rw-motor__add-mount" data-testid="motor.add-mount" title="Motors go in an inner tube marked as a motor mount. Add an inner tube with + beside Components, turn on Motor mount in its editor on the Components page, then assign a motor here.">
       {ADD_MOUNT_FIRST}
     </span>
   );

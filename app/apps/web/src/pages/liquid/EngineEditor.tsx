@@ -50,6 +50,32 @@ async function createEngine(app: AppStore, onShow: (id: string) => void): Promis
   onShow(id);
 }
 
+/** The Propulsion system rail's "+": the same add as New engine. */
+export function AddEngineRailButton({ app, onShow }: { app: AppStore; onShow: (id: string) => void }) {
+  const [saving, setSaving] = useState(false);
+  const [problem, setProblem] = useState<string | null>(null);
+  const hasProject = useAppState(app, (s) => s.project.snapshot !== null);
+  const add = () => {
+    setSaving(true);
+    setProblem(null);
+    createEngine(app, onShow)
+      .catch((e: unknown) => setProblem(message(e)))
+      .finally(() => setSaving(false));
+  };
+  return (
+    <>
+      <button type="button" className="rw-icon-button" aria-label="Add engine" title="Add engine" data-testid="rail.add-engine" disabled={saving || !hasProject} aria-busy={saving} onClick={add}>
+        <Icon name="plus" size={18} />
+      </button>
+      {problem !== null && (
+        <p className="rw-rail__empty rw-rail__alert" role="alert">
+          {problem}
+        </p>
+      )}
+    </>
+  );
+}
+
 /** New engine, on the toolbar and in the empty state. */
 export function NewEngineButton({ app, onShow, primary = false }: { app: AppStore; onShow: (id: string) => void; primary?: boolean }) {
   const [saving, setSaving] = useState(false);

@@ -231,7 +231,7 @@ export function VisualFlowView({ studies, selected, onSelect, record, state, err
               {state === "error"
                 ? `The study could not run: ${error ?? ""}`
                 : state === "empty"
-                  ? "No visual flow study in this project. Add one under sims/<id>.rw.toml with kind = \"visual_flow\"."
+                  ? "No visual flow study in this project. Ask the agent to add one."
                   : state === "idle"
                     ? "No run yet for this study. Press Run to simulate it."
                     : state === "cancelled"

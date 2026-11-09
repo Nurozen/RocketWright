@@ -124,7 +124,7 @@ describe("project: read-only mirror", () => {
   it("mirrors the subscribed snapshot, deep-frozen", async () => {
     const { store, srv } = await setup();
     const s = store.getState();
-    expect(s.project).toMatchObject({ projectId: P, connection: "open", updatedAt: 1000, error: null });
+    expect(s.project).toMatchObject({ projectId: P, connection: "open", error: null });
     expect(s.project.snapshot).toEqual(srv.mock.snapshot(P));
     const snap = s.project.snapshot as unknown as ProjectSnapshot;
     expect(Object.isFrozen(snap)).toBe(true);
@@ -194,7 +194,6 @@ describe("project: read-only mirror", () => {
     } as unknown as Parameters<typeof applySnapshot>[0];
     applySnapshot(ctx, ctxSnap);
     expect(store.getState().project.snapshot).toBe(before);
-    expect(store.getState().project.updatedAt).toBe(2000);
     applySnapshot(ctx, { ...ctxSnap, sidecar: { state: "restarting", version: ctxSnap.sidecar.version } });
     const after = store.getState().project.snapshot!;
     expect(after).not.toBe(before);

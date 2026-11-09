@@ -8,6 +8,7 @@
 import type { schema } from "@rw/contracts";
 import { Icon, type IconName } from "../../shell/Icon.tsx";
 import { PartThumb } from "../../render/PartThumb.tsx";
+import { matchesRailSearch } from "../../shell/railSearch.ts";
 import type { DeepReadonly } from "../../state/index.ts";
 import type { PartKind } from "../../state/ops/parts.ts";
 
@@ -208,4 +209,20 @@ export function ComponentTree({ rows, onSelect, onToggleHidden, onToggleCollapse
       ))}
     </ul>
   );
+}
+
+/** The rows the rail search keeps: the matches and every ancestor, so the tree shape stays readable. */
+export function matchingTreeRows(rows: readonly TreeRow[], query: string): TreeRow[] {
+  if (query === "") return [...rows];
+  const keep = new Set<number>();
+  const ancestors: number[] = [];
+  rows.forEach((r, i) => {
+    ancestors.length = Math.min(ancestors.length, r.depth);
+    if (matchesRailSearch(r.label, query)) {
+      keep.add(i);
+      for (const a of ancestors) keep.add(a);
+    }
+    ancestors.push(i);
+  });
+  return rows.filter((_, i) => keep.has(i));
 }

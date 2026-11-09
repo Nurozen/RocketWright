@@ -631,7 +631,7 @@ function PartsLibrary({
       {lib.state === "error" && <p className="rw-library__empty">{lib.error ?? "The library is unavailable."}</p>}
       {lib.state === "ready" && lib.items.length === 0 && (
         <p className="rw-library__empty" data-testid="editor.library-empty">
-          No presets in the library yet. Presets come only from the Apache-2.0 openrocket-database once they are imported.
+          No presets found in the parts library.
         </p>
       )}
       {lib.state === "ready" && lib.items.length > 0 && (
