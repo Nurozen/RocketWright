@@ -111,6 +111,7 @@ const SOURCE_UNITS: Record<string, number> = {
   bar: 1e5,
   mbar: 1e2,
   atm: 101325,
+  inHg: 3386.389,
   psi: (0.45359237 * 9.80665) / 0.0254 ** 2,
   J: 1,
   kJ: 1e3,

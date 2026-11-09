@@ -82,6 +82,169 @@ async function type(field: HTMLInputElement, value: string) {
 }
 const click = (el: HTMLElement) => act(async () => el.click());
 
+describe("a run row with nothing current to show", () => {
+  const rowOf = (el: HTMLElement, sim: string) => el.querySelector<HTMLElement>(`[data-testid="runs.table-row"][data-sim="${sim}"]`)!;
+  const failed = () =>
+    makeStore((snap) => {
+      const fin = snap.runs.runs.find((r) => r.sim === "fin_revision")!;
+      fin.status = "failed";
+      fin.job_id = "job-9";
+      snap.jobs = [{ job_id: "job-9", kind: "simulate", state: "failed", progress: 1, sim: "fin_revision", error: "the integrator diverged" }] as never;
+    });
+
+  it("offers Run on an Outdated row and keeps its dashes", async () => {
+    const { app, run } = makeStore();
+    const el = await mount(app, null);
+    const row = rowOf(el, "fin_revision");
+    expect(row.querySelector<HTMLElement>('[data-testid="runs.apogee"]')!.textContent).toBe("—");
+    await click(row.querySelector<HTMLElement>('button[aria-label="Run Fin revision again"]')!);
+    expect(run).toHaveBeenCalledWith("fin_revision");
+  });
+
+  it("shows why a flight failed and offers Run", async () => {
+    const { app, run } = failed();
+    const el = await mount(app, null);
+    const row = rowOf(el, "fin_revision");
+    expect(row.querySelector('[data-testid="runs.failure"]')?.textContent).toBe("the integrator diverged");
+    await click(button(row, "Run"));
+    expect(run).toHaveBeenCalledWith("fin_revision");
+  });
+
+  it("offers no Run for a sim that was deleted", async () => {
+    const { app } = makeStore((snap) => void delete (snap.evaluated!.sims as Record<string, unknown>)["fin_revision"]);
+    const el = await mount(app, null);
+    expect(rowOf(el, "fin_revision").querySelector('button[aria-label="Run Fin revision again"]')).toBeNull();
+  });
+
+  it("shows a cached run as Complete once it answers, though the mirror did not change", async () => {
+    const { app, snap } = makeStore((s) => {
+      const base = s.runs.runs.find((r) => r.sim === "baseline")!;
+      base.job_id = "job-c";
+      s.jobs = [{ job_id: "job-c", kind: "simulate", state: "cancelled", progress: 0.2, sim: "baseline" }] as never;
+    });
+    const el = await mount(app, null);
+    expect(rowOf(el, "baseline").dataset["status"]).toBe("cancelled");
+    const runId = snap.runs.runs.find((r) => r.sim === "baseline")!.run_id;
+    await act(async () => app.setState((s) => ({ ...s, runs: { ...s.runs, started: { baseline: { cached: true, run_id: runId } as never } } })));
+    expect(rowOf(el, "baseline").dataset["status"]).toBe("complete");
+  });
+});
+
+describe("leaving with typed values", () => {
+  const press = (el: Element, key: string) =>
+    act(async () => {
+      el.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }));
+    });
+  const prompt = () => document.querySelector<HTMLElement>('[data-testid="sim-conditions.unsaved"]');
+
+  it("Escape in a field that was changed reverts that field and keeps the sheet", async () => {
+    const { app } = makeStore();
+    await mount(app, "baseline");
+    const speed = input(group("Wind"), "Speed");
+    const before = speed.value;
+    await type(speed, "9");
+    await press(speed, "Escape");
+    expect(sheet()).not.toBeNull();
+    expect(prompt()).toBeNull();
+    expect(input(group("Wind"), "Speed").value).toBe(before);
+  });
+
+  it("Escape with nothing typed closes the sheet at once", async () => {
+    const { app } = makeStore();
+    await mount(app, "baseline");
+    await press(document.body, "Escape");
+    expect(sheet()).toBeNull();
+  });
+
+  it("closing with typed values asks first; Keep editing keeps them", async () => {
+    const { app, mutate } = makeStore();
+    await mount(app, "baseline");
+    await type(input(group("Wind"), "Speed"), "9");
+    await press(document.body, "Escape");
+    expect(prompt()).not.toBeNull();
+    expect(mutate).not.toHaveBeenCalled();
+    await click(button(prompt()!, "Keep editing"));
+    expect(prompt()).toBeNull();
+    expect(input(group("Wind"), "Speed").value).toBe("9");
+  });
+
+  it("Save from the prompt writes the typed values and closes", async () => {
+    const { app, mutate } = makeStore();
+    await mount(app, "baseline");
+    await type(input(group("Wind"), "Speed"), "9");
+    await press(document.body, "Escape");
+    await click(button(prompt()!, "Save"));
+    expect(mutate).toHaveBeenCalledTimes(1);
+    expect(sheet()).toBeNull();
+  });
+
+  it("Don't save drops them and writes nothing", async () => {
+    const { app, mutate } = makeStore();
+    await mount(app, "baseline");
+    await type(input(group("Wind"), "Speed"), "9");
+    await press(document.body, "Escape");
+    await click(button(prompt()!, "Don't save"));
+    expect(sheet()).toBeNull();
+    expect(mutate).not.toHaveBeenCalled();
+  });
+
+  it("the close button asks too", async () => {
+    const { app } = makeStore();
+    await mount(app, "baseline");
+    await type(input(group("Wind"), "Speed"), "9");
+    await click(sheet()!.querySelector<HTMLElement>("[data-rw-close]")!);
+    expect(prompt()).not.toBeNull();
+  });
+
+  it("changing page saves what was typed", async () => {
+    const { app, mutate, run } = makeStore();
+    await mount(app, "baseline");
+    await type(input(group("Wind"), "Speed"), "9");
+    await act(async () => root?.unmount());
+    root = null;
+    await act(async () => undefined);
+    expect(mutate).toHaveBeenCalledTimes(1);
+    expect(run).not.toHaveBeenCalled();
+  });
+
+  it("changing page with text that cannot be saved says so on Results", async () => {
+    const { app, mutate } = makeStore();
+    await mount(app, "baseline");
+    await type(input(group("Wind"), "Speed"), "abc");
+    await act(async () => root?.unmount());
+    root = null;
+    expect(mutate).not.toHaveBeenCalled();
+    expect(resultsUiStore(app).getState().notice).toMatch(/Speed needs a number/);
+  });
+
+  it("does not save twice when Save is already on its way", async () => {
+    const { app, mutate } = makeStore();
+    await mount(app, "baseline");
+    await type(input(group("Wind"), "Speed"), "9");
+    await click(button(sheet()!, "Save"));
+    await act(async () => root?.unmount());
+    root = null;
+    await act(async () => undefined);
+    expect(mutate).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("a sim stored as JSON", () => {
+  it("writes only the changed field, so its other conditions survive", async () => {
+    const text = JSON.stringify({ name: "Baseline", config: "default", launch: { rail_length: "3 m", rod_angle: "4 deg" }, wind: { speed: "2 m/s", direction: "90 deg" }, atmosphere: { model: "isa_custom", base_temperature: "20 degC", base_pressure: "1000 hPa" } });
+    const { app, mutate } = makeStore((snap) => {
+      const files = snap.files.files as Record<string, string | undefined>;
+      delete files["sims/baseline.rw.toml"];
+      files["sims/baseline.rw.json"] = text;
+    });
+    await mount(app, "baseline");
+    await type(input(group("Wind"), "Speed"), "4");
+    await click(button(sheet()!, "Save"));
+    const ops = (mutate.mock.calls[0] as unknown[])[0] as { op: string; path: string }[];
+    expect(ops.map((o) => [o.op, o.path])).toEqual([["replace", "/sims/baseline/wind/speed"]]);
+  });
+});
+
 describe("the sheet", () => {
   it("marks the page while it is open, so the shell narrows the page beside the sheet", async () => {
     const { app } = makeStore();
@@ -95,6 +258,19 @@ describe("the sheet", () => {
     expect(page.dataset["conditions"]).toBe("open");
     await act(async () => resultsUiStore(app).getState().set({ conditions: null }));
     expect(page.dataset["conditions"]).toBeUndefined();
+  });
+
+  it("shows and writes the project's units", async () => {
+    const { app, mutate } = makeStore((snap) => {
+      (snap.files.files as Record<string, string>)["rocketwright.toml"] = '[project]\nname = "x"\n\n[display_units]\naltitude = "ft"\n';
+    });
+    await mount(app, "baseline");
+    const speed = input(group("Wind"), "Speed");
+    expect(document.getElementById(speed.getAttribute("aria-describedby")!)!.textContent).toBe("mph");
+    await type(speed, "10");
+    await click(button(sheet()!, "Save"));
+    const ops = (mutate.mock.calls[0] as unknown[])[0] as { path: string; value: unknown }[];
+    expect(JSON.stringify(ops.filter((o) => o.path.startsWith("/sims/baseline/wind")))).toContain("10 mph");
   });
 
   it("is a dialog named for the sim, with labelled groups and units found by role and name (D27)", async () => {

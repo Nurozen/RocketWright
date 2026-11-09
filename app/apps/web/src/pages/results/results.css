@@ -255,13 +255,25 @@
 }
 
 .rw-runtable td.rw-runtable__menu {
-  width: 56px;
+  width: 124px;
   overflow: visible;
-  text-align: center;
+  text-align: right;
+  white-space: nowrap;
 }
 
 .rw-runtable th.rw-runtable__menu {
-  width: 56px;
+  width: 124px;
+}
+
+.rw-runtable__rerun {
+  margin-right: 4px;
+}
+
+.rw-runtable__failure {
+  color: var(--rw-danger);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .rw-runtable__menu .rw-menu-button {
@@ -930,8 +942,9 @@
     overflow-x: auto;
   }
 
+  /* Wide enough that an Outdated row's Run in the pinned column leaves the metric columns room. */
   .rw-runtable table {
-    min-width: 540px;
+    min-width: 610px;
   }
 
   .rw-runtable th,
@@ -964,7 +977,7 @@
   .rw-runtable td.rw-runtable__menu {
     position: sticky;
     right: 0;
-    width: 36px;
+    width: 100px;
     padding: 0;
     border-left: var(--rw-hairline) solid var(--rw-line);
     background: var(--rw-bg-canvas);

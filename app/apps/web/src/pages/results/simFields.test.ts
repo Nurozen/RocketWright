@@ -7,7 +7,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { newConfigOps, duplicateOps } from "../configurations/model.ts";
 import { newSimOps } from "../../state/ops/sims.ts";
 import { fromRwWasm, type PreviewCore } from "../../state/wasm.ts";
-import { appliesToModel, conditionsOps, fieldKeyOfPath, fieldProblems, formFromSim, isFormDirty, nextSimName, SIM_FIELDS, validateForm, type SimForm } from "./simFields.ts";
+import { appliesToModel, conditionsOps, fieldKeyOfPath, fieldProblems, fieldUnit, formFromSim, isFormDirty, nextSimName, SIM_FIELDS, simSource, validateForm, type NumberField, type SimForm } from "./simFields.ts";
 
 const repo = new URL("../../../../../../", import.meta.url).pathname;
 
@@ -69,6 +69,94 @@ describe("the fields", () => {
 
   it("names fields in the words the sheet shows", () => {
     expect(SIM_FIELDS.map((f) => f.label)).toEqual(["Rail length", "Rail angle", "Rail direction", "Latitude", "Longitude", "Elevation", "Speed", "Direction", "Turbulence", "Temperature", "Pressure", "Model", "Time step", "Max time", "Integrator"]);
+  });
+});
+
+describe("a sim stored as JSON", () => {
+  const TOML = `[launch]
+rail_length = "2 m"
+rod_angle = "5 deg"
+
+[wind]
+speed = "3 m/s"
+direction = "90 deg"
+
+[atmosphere]
+model = "isa_custom"
+base_temperature = "20 degC"
+base_pressure = "1000 hPa"
+`;
+  const JSON_TEXT = JSON.stringify({
+    name: "S",
+    config: "default",
+    launch: { rail_length: "2 m", rod_angle: "5 deg" },
+    wind: { speed: "3 m/s", direction: "90 deg" },
+    atmosphere: { model: "isa_custom", base_temperature: "20 degC", base_pressure: "1000 hPa" },
+  });
+
+  it("finds the file under either extension", () => {
+    expect(simSource({ "sims/s.rw.json": JSON_TEXT }, "s")).toEqual({ text: JSON_TEXT, format: "json" });
+    expect(simSource({ "sims/s.rw.toml": TOML }, "s")).toEqual({ text: TOML, format: "toml" });
+    expect(simSource({}, "s")).toEqual({ text: "", format: "toml" });
+  });
+
+  it("changing one field writes that field and leaves the rest of the sim alone", () => {
+    const src = withSim(TOML);
+    const f = set(form(src), { "wind.speed": "4" });
+    expect(conditionsOps(f, JSON_TEXT, "json")).toEqual([{ op: "replace", path: "/sims/s/wind/speed", value: "4 m/s" }]);
+  });
+
+  it("treats a table the JSON lacks as absent", () => {
+    const src = withSim("");
+    const f = form(src);
+    const ops = conditionsOps(f, JSON.stringify({ name: "S", config: "default" }), "json");
+    expect(ops.map((o) => o.path)).toEqual(["/sims/s/launch", "/sims/s/wind", "/sims/s/atmosphere"]);
+  });
+});
+
+describe("imperial units", () => {
+  const SRC = `[launch]
+rail_length = "2 m"
+
+[wind]
+speed = "3 m/s"
+
+[atmosphere]
+model = "isa_custom"
+base_temperature = "20 degC"
+base_pressure = "1000 hPa"
+`;
+  const imperial = (src: Record<string, string>): SimForm => formFromSim(evaluated(src, []).sims["s"]!, "imperial");
+  const field = (key: string) => SIM_FIELDS.find((d) => d.key === key)! as NumberField;
+
+  it("shows the sheet in the project's units", () => {
+    const f = imperial(withSim(SRC));
+    expect(f.values["launch.rail_length"]).toBe("6.562");
+    expect(f.values["wind.speed"]).toBe("6.711");
+    expect(f.values["atmosphere.base_temperature"]).toBe("68");
+    expect(f.values["atmosphere.base_pressure"]).toBe("29.53");
+    expect(fieldUnit(field("launch.rail_length"), "imperial")).toBe("ft");
+    expect(fieldUnit(field("wind.speed"), "imperial")).toBe("mph");
+    expect(fieldUnit(field("atmosphere.base_temperature"), "imperial")).toBe("°F");
+    expect(fieldUnit(field("atmosphere.base_pressure"), "imperial")).toBe("inHg");
+    expect(fieldUnit(field("launch.rod_angle"), "imperial")).toBe("deg");
+  });
+
+  it("writes an edit in the unit the field showed", () => {
+    const src = withSim(SRC);
+    const ops = conditionsOps(set(imperial(src), { "wind.speed": "10" }), src["sims/s.rw.toml"]!);
+    expect(ops).toEqual([{ op: "replace", path: "/sims/s/wind/speed", value: "10 mph" }]);
+    expect(evaluated(src, ops).sims["s"]!.conditions.wind_speed_ms).toBeCloseTo(4.4704, 6);
+  });
+
+  it("states an untouched required value exactly, not through the display rounding", () => {
+    const src = withSim("");
+    const ops = conditionsOps(imperial(src), src["sims/s.rw.toml"]!);
+    expect(ops).toEqual([
+      { op: "add", path: "/sims/s/launch", value: { rail_length: "1 m" } },
+      { op: "add", path: "/sims/s/wind", value: { speed: "0 m/s" } },
+      { op: "add", path: "/sims/s/atmosphere", value: { model: "ussa1976" } },
+    ]);
   });
 });
 

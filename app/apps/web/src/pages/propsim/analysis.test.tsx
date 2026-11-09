@@ -11,7 +11,7 @@ import type { Series } from "../../plots/series.ts";
 import { createAppStore } from "../../state/store.ts";
 import type { ResultsRow } from "../results/model.ts";
 import { AnalysisPage } from "./analysis.tsx";
-import { analysisRuns, isAnalysisView, stabilityFigures, stabilityStats, stabilityToApogee, trajectoryStats, valueAt } from "./analysisModel.ts";
+import { analysisRuns, isAnalysisView, runLabel, stabilityFigures, stabilityStats, stabilityToApogee, trajectoryStats, valueAt } from "./analysisModel.ts";
 import { propSimSlots, SIM_ROWS, simRowOf } from "./PropSimPage.tsx";
 
 const row = (sim: string, over: { key?: string; series?: ResultsRow["series"]; kind?: string; state?: string; runId?: string | null; superseded?: string } = {}): ResultsRow =>
@@ -54,6 +54,19 @@ describe("analysis runs and figures", () => {
     const overlaid = [row("baseline"), row("fins", { state: "outdated", series: "a" }), row("higher", { series: "b" })];
     expect(analysisRuns(overlaid).map((r) => r.sim)).toEqual(["fins", "higher"]);
     expect(analysisRuns([row("recovery", { runId: null, state: "not_run" })])).toEqual([]);
+  });
+  it("falls back to the latest flown runs when an edit has outdated every one (never superseded runs, failed ones, or runs that never flew)", () => {
+    const rows = [row("fins", { state: "outdated" }), row("nose", { state: "outdated" }), row("older", { state: "outdated", superseded: "x" }), row("broken", { state: "failed", runId: null }), row("never", { state: "not_run", runId: null })];
+    expect(analysisRuns(rows).map((r) => r.sim)).toEqual(["fins", "nose"]);
+    expect(analysisRuns([row("a"), row("fins", { state: "outdated" })]).map((r) => r.sim)).toEqual(["a"]);
+  });
+  it("names an outdated run so a chart built from one says so", () => {
+    expect(runLabel(row("fins", { state: "outdated" }))).toBe("fins (Outdated)");
+    expect(runLabel(row("fins"))).toBe("fins");
+  });
+  it("reads trajectory figures in the project's units", () => {
+    const stats = Object.fromEntries(trajectoryStats([{ apogee_m: 1000, time_to_apogee_s: 12, max_velocity_ms: 100, max_mach: 0.5, flight_time_s: 80, drift_m: 30.48 } as never], "imperial").map((s) => [s.key, s.values[0]]));
+    expect(stats).toEqual({ apogee: "3,281 ft", time_to_apogee: "12.0 s", max_velocity: "328 ft/s", max_mach: "0.50", flight_time: "80.0 s", drift: "100 ft" });
   });
   it("reads trajectory figures from each run's summary", () => {
     const stats = trajectoryStats([{ apogee_m: 1234.4, time_to_apogee_s: 12.34, max_velocity_ms: 201.6, max_mach: 0.59, flight_time_s: 80.0, drift_m: 312 } as never, null]);

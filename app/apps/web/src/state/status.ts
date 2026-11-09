@@ -122,7 +122,7 @@ function ofRun(run: RunListEntry | null | undefined, modelHash: string | null | 
     case "running":
       return view(S.running);
     case "failed":
-      return view(S.failed);
+      return view(S.failed, job?.error ? { reason: job.error } : {});
     case "complete":
     case "outdated": {
       // Computed, never stored (I7): only a run on the current model hash is Complete.

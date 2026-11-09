@@ -9,6 +9,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { schema } from "@rw/contracts";
 import { trackWrite, useDirtyField } from "../../state/dirtyFields.ts";
+import { unitSystemOf } from "../../state/displayUnits.ts";
 import type { DeepReadonly } from "../../state/index.ts";
 import { deleteSimOps, duplicateSimOps, newSimOps, renameSimOps } from "../../state/ops/sims.ts";
 import { useAppState, type AppStore } from "../../state/store.ts";
@@ -21,7 +22,7 @@ import { SideSheet } from "../../ui/SideSheet.tsx";
 import { TextField } from "../../ui/TextField.tsx";
 import { ResultsIcon } from "./ResultsIcon.tsx";
 import { resultsUiStore, useResultsUi } from "./resultsUi.ts";
-import { appliesToModel, conditionsOps, copySimName, fieldProblems, fieldUnit, formFromSim, isFormDirty, nextSimName, SIM_FIELDS, SIM_GROUPS, validateForm, type SimField, type SimForm } from "./simFields.ts";
+import { appliesToModel, conditionsOps, copySimName, fieldProblems, fieldUnit, formFromSim, isFormDirty, nextSimName, SIM_FIELDS, SIM_GROUPS, simSource, validateForm, type SimField, type SimForm } from "./simFields.ts";
 
 type EvalSim = DeepReadonly<schema.EvalSim>;
 
@@ -82,15 +83,20 @@ export function SimConditionsSheet({ app }: { app: AppStore }) {
 function Sheet({ app, sim }: { app: AppStore; sim: EvalSim }) {
   const ui = resultsUiStore(app);
   const configs = useAppState(app, (s) => s.project.snapshot?.evaluated?.configs ?? null);
-  const simFile = useAppState(app, (s) => s.project.snapshot?.files.files[`sims/${sim.id}.rw.toml`] ?? "");
+  const system = useAppState(app, unitSystemOf);
   const diagnostics = useAppState(app, (s) => s.project.snapshot?.evaluated?.diagnostics ?? null);
-  const [form, setFormState] = useState<SimForm>(() => formFromSim(sim));
+  const [form, setFormState] = useState<SimForm>(() => formFromSim(sim, system));
   const formRef = useRef(form);
   const [typed, setTyped] = useState<Record<string, string>>({});
   const [refused, setRefused] = useState<Record<string, string>>({});
   const [failure, setFailure] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [dialog, setDialog] = useState<"rename" | "delete" | null>(null);
+  const [leaving, setLeaving] = useState(false);
+  // The typed values are saved or deliberately dropped, so leaving has nothing left to do.
+  const settled = useRef(false);
+  const writing = useRef(false);
+  const mounted = useRef(true);
 
   const setForm = (next: SimForm) => {
     formRef.current = next;
@@ -98,10 +104,18 @@ function Sheet({ app, sim }: { app: AppStore; sim: EvalSim }) {
   };
   const close = () => ui.getState().set({ conditions: null });
 
-  // The model moved (an undo, the agent): follow it, unless the person is mid-edit.
+  // Close, Escape and the header's X ask first: typed values are not in the model until Save.
+  const requestClose = () => {
+    if (saving) return;
+    if (isFormDirty(formRef.current)) setLeaving(true);
+    else close();
+  };
+
+  // The model or the units moved (an undo, the agent): follow, unless the person is mid-edit,
+  // whose text stays in the units it was typed in.
   useEffect(() => {
-    if (!isFormDirty(formRef.current)) setForm(formFromSim(sim));
-  }, [sim]);
+    if (!isFormDirty(formRef.current)) setForm(formFromSim(sim, system));
+  }, [sim, system]);
 
   const edit = (next: SimForm) => {
     setForm(next);
@@ -122,7 +136,9 @@ function Sheet({ app, sim }: { app: AppStore; sim: EvalSim }) {
     const typedProblem = Object.values(problems)[0];
     if (typedProblem !== undefined) return typedProblem;
     const st = app.getState();
-    const ops = conditionsOps(f, simFile);
+    const source = simSource(st.project.snapshot?.files.files, f.sim);
+    const ops = conditionsOps(f, source.text, source.format);
+    writing.current = true;
     setSaving(true);
     setFailure(null);
     setRefused({});
@@ -138,7 +154,8 @@ function Sheet({ app, sim }: { app: AppStore; sim: EvalSim }) {
         }
         await st.draft.mutate(ops, `Edit conditions of ${sim.name}`);
       }
-      close();
+      settled.current = true;
+      if (mounted.current) close();
       // The page shows a run that could not start (`runs.error`); the conditions are saved either way.
       if (run) await st.runs.run(f.sim).catch(() => undefined);
       return null;
@@ -146,13 +163,38 @@ function Sheet({ app, sim }: { app: AppStore; sim: EvalSim }) {
       setFailure(message(e));
       return message(e);
     } finally {
+      writing.current = false;
       setSaving(false);
     }
   };
+  const latestWrite = useRef(write);
+  latestWrite.current = write;
 
   const save = (run: boolean): void => {
     if (!saving) void trackWrite(write(run), (reason) => reason);
   };
+
+  // Leaving Results or opening another sim unmounts the sheet with no chance to ask, so what was typed is saved.
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      const f = formRef.current;
+      if (settled.current || writing.current || !isFormDirty(f)) return;
+      // Deleted, or the project closed: there is nothing left to save it to.
+      if (app.getState().project.snapshot?.evaluated?.sims[f.sim] == null) return;
+      const name = app.getState().project.snapshot?.evaluated?.sims[f.sim]?.name ?? f.sim;
+      const notice = (why: string) => ui.getState().set({ notice: `Your changes to the conditions of ${name} were not saved: ${why}` });
+      const typedProblem = Object.values(validateForm(f))[0];
+      if (typedProblem !== undefined) {
+        notice(typedProblem);
+        return;
+      }
+      void trackWrite(latestWrite.current(false), (reason) => reason).then((reason) => {
+        if (reason !== null) notice(reason);
+      });
+    };
+  }, [app, ui]);
 
   // D22: text typed here is not in the model until Save, and leaving the project may not blur.
   useDirtyField({
@@ -180,12 +222,20 @@ function Sheet({ app, sim }: { app: AppStore; sim: EvalSim }) {
     const error = errorOf(f.key);
     const off = !appliesToModel(f.key, model);
     return (
-      <div key={f.key} className="rw-simcond__cell" data-invalid={error !== null ? "true" : undefined}>
+      <div
+        key={f.key}
+        className="rw-simcond__cell"
+        data-invalid={error !== null ? "true" : undefined}
+        // Runs before the field's own Escape, which reverts it: keeps the Escape from also closing the sheet.
+        onKeyDownCapture={(e) => {
+          if (e.key === "Escape" && f.kind === "number" && (formRef.current.values[f.key] ?? "").trim() !== (formRef.current.baseline[f.key] ?? "").trim()) e.preventDefault();
+        }}
+      >
         {f.kind === "number" ? (
           <SpinField
             testid="sim-conditions.field"
             field={{ key: f.key, label: f.label }}
-            unit={fieldUnit(f)}
+            unit={fieldUnit(f, form.system)}
             value={form.values[f.key] ?? ""}
             placeholder=""
             step={f.step}
@@ -223,7 +273,7 @@ function Sheet({ app, sim }: { app: AppStore; sim: EvalSim }) {
     <>
       <SideSheet
         open
-        onClose={close}
+        onClose={requestClose}
         title={`Simulation conditions: ${sim.name}`}
         testId="sim-conditions"
         className="rw-simcond"
@@ -283,7 +333,54 @@ function Sheet({ app, sim }: { app: AppStore; sim: EvalSim }) {
         ))}
       </SideSheet>
       {dialog === "rename" && <RenameDialog app={app} sim={sim} onClose={() => setDialog(null)} />}
-      {dialog === "delete" && <DeleteDialog app={app} sim={sim} onClose={() => setDialog(null)} />}
+      {dialog === "delete" && (
+        <DeleteDialog
+          app={app}
+          sim={sim}
+          onDeleted={() => {
+            settled.current = true;
+          }}
+          onClose={() => setDialog(null)}
+        />
+      )}
+      {leaving && (
+        <Modal
+          open
+          onClose={() => setLeaving(false)}
+          title="Unsaved changes"
+          testId="sim-conditions.unsaved"
+          footer={
+            <>
+              <button type="button" className="rw-button" onClick={() => setLeaving(false)}>
+                Keep editing
+              </button>
+              <button
+                type="button"
+                className="rw-button"
+                onClick={() => {
+                  settled.current = true;
+                  setLeaving(false);
+                  close();
+                }}
+              >
+                Don't save
+              </button>
+              <button
+                type="button"
+                className="rw-button rw-button--primary"
+                onClick={() => {
+                  setLeaving(false);
+                  save(false);
+                }}
+              >
+                Save
+              </button>
+            </>
+          }
+        >
+          <p>{`Save your changes to the conditions of ${sim.name}?`}</p>
+        </Modal>
+      )}
     </>
   );
 }
@@ -336,7 +433,7 @@ function RenameDialog({ app, sim, onClose }: { app: AppStore; sim: EvalSim; onCl
   );
 }
 
-function DeleteDialog({ app, sim, onClose }: { app: AppStore; sim: EvalSim; onClose: () => void }) {
+function DeleteDialog({ app, sim, onClose, onDeleted }: { app: AppStore; sim: EvalSim; onClose: () => void; onDeleted: () => void }) {
   const ui = resultsUiStore(app);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -349,6 +446,7 @@ function DeleteDialog({ app, sim, onClose }: { app: AppStore; sim: EvalSim; onCl
       .draft.mutate(deleteSimOps(sim.id), `Delete ${sim.name}`)
       .then(
         () => {
+          onDeleted();
           onClose();
           ui.getState().set({ conditions: null });
         },
