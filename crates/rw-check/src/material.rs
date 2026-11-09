@@ -14,8 +14,7 @@ use rw_model::{Diagnostic, EvalComponent, EvaluatedModel, diag as model_diag};
 /// configuration disables take no part, and neither does an override set on
 /// one, even over a subtree that still flies. A mass of zero stays zero, and
 /// a `cg` or `cd` override changes no mass, so neither of those counts.
-fn mass_overridden(model: &EvaluatedModel) -> BTreeSet<&str> {
-    let skip = inactive_members(model);
+fn mass_overridden<'a>(model: &'a EvaluatedModel, skip: &BTreeSet<&'a str>) -> BTreeSet<&'a str> {
     let by_id: BTreeMap<&str, &EvalComponent> = model
         .components
         .iter()
@@ -28,33 +27,32 @@ fn mass_overridden(model: &EvaluatedModel) -> BTreeSet<&str> {
             .take(model.components.len() + 1)
             .any(|a| a.id == root)
     };
-    let mut last: BTreeMap<&str, f64> = BTreeMap::new();
-    for c in model.components.iter().rev() {
-        let Some(o) = c.overrides.as_ref() else {
-            continue;
-        };
-        let Some(mass) = o.mass else { continue };
-        if skip.contains(c.id.as_str()) {
-            continue;
-        }
-        let members = model.components.iter().filter(|p| {
-            !skip.contains(p.id.as_str()) && (p.id == c.id || (o.subtree && within(p, &c.id)))
+    // The override applied last is the first one met walking that order
+    // backward: stages from the end, then components from the start. A lookup
+    // per part keeps another map instantiation out of the size-gated WASM.
+    let last_mass = |p: &EvalComponent| {
+        let from_stage = model.stages.iter().rev().find_map(|st| {
+            let mass = st.overrides.as_ref()?.mass?;
+            st.members.contains(&p.id).then_some(mass)
         });
-        for member in members {
-            last.insert(member.id.as_str(), mass);
-        }
-    }
-    for st in &model.stages {
-        let Some(mass) = st.overrides.as_ref().and_then(|o| o.mass) else {
-            continue;
-        };
-        for id in st.members.iter().filter(|id| !skip.contains(id.as_str())) {
-            last.insert(id.as_str(), mass);
-        }
-    }
-    last.into_iter()
-        .filter(|&(_, mass)| mass > 0.0)
-        .map(|(id, _)| id)
+        from_stage.or_else(|| {
+            model
+                .components
+                .iter()
+                .filter(|c| !skip.contains(c.id.as_str()))
+                .find_map(|c| {
+                    let o = c.overrides.as_ref()?;
+                    let mass = o.mass?;
+                    (p.id == c.id || (o.subtree && within(p, &c.id))).then_some(mass)
+                })
+        })
+    };
+    model
+        .components
+        .iter()
+        .filter(|p| !skip.contains(p.id.as_str()))
+        .filter(|p| last_mass(p).is_some_and(|mass| mass > 0.0))
+        .map(|p| p.id.as_str())
         .collect()
 }
 
@@ -63,8 +61,8 @@ fn mass_overridden(model: &EvaluatedModel) -> BTreeSet<&str> {
 /// override gets its mass from that, and a part whose stage is switched off
 /// does not fly at all.
 pub(crate) fn missing_material_diags(model: &EvaluatedModel) -> Vec<Diagnostic> {
-    let overridden = mass_overridden(model);
     let skip = inactive_members(model);
+    let overridden = mass_overridden(model, &skip);
     model
         .components
         .iter()
