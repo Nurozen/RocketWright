@@ -20,6 +20,7 @@ import { ViewportToolbar, type ViewChip } from "../../shell/ViewportToolbar.tsx"
 import type { RpcLike } from "../../state/rpc.ts";
 import { useAppState, type AppStore, type DeepReadonly, type Units } from "../../state/index.ts";
 import { UNITS, formatLength } from "../assembly/inspector-model.ts";
+import { AddPartButton } from "../assembly/AddPartPopover.tsx";
 import { ComponentTreeSlot } from "../assembly/AssemblyPage.tsx";
 import { CasingThumb, MountSilhouette, ThrustPlot } from "./MotorGraphics.tsx";
 import { CasingView } from "./CasingView.tsx";
@@ -110,6 +111,7 @@ export interface ConfigurationsSlots {
   content: ReactNode;
   toolbar: ReactNode;
   nav: ReactNode;
+  navAdd: ReactNode;
   agentExtra: ReactNode;
 }
 
@@ -118,6 +120,7 @@ export function configurationsSlots(store: AppStore, client: RpcLike | null, ui:
     content: <ConfigurationsWorkspace store={store} client={client} ui={ui} />,
     toolbar: <ConfigurationsToolbar store={store} ui={ui} />,
     nav: <ComponentTreeSlot store={store} />,
+    navAdd: <AddPartButton store={store} />,
     agentExtra: <RunConfigurations store={store} ui={ui} />,
   };
 }

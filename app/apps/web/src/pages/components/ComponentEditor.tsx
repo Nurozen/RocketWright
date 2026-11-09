@@ -14,6 +14,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { PatchOp, schema } from "@rw/contracts";
 import { Icon } from "../../shell/Icon.tsx";
 import { ADD_FIRST_PART, FIRST_PART_HINT, type DeepReadonly, type Units } from "../../state/index.ts";
+import { partLabel } from "../../state/ops/parts.ts";
 import { displayUnit, fromDisplay, limitsOf, rangeError, sharedFields, tabsFor, toDisplay, toSource, type EditorTab, type FieldSpec } from "./fields.ts";
 import { FinOutlineEditor } from "./FinOutlineEditor.tsx";
 import { PartProfile } from "./PartProfile.tsx";
@@ -71,22 +72,6 @@ export function linkTitle(param: { name: string; doc?: string } | null, expressi
   if (expression !== null) return "Computed from other values in the model; typing a number here replaces the formula.";
   return doc;
 }
-
-const KIND_LABEL: Record<string, string> = {
-  trapezoidal_fin_set: "Trapezoidal fin set",
-  elliptical_fin_set: "Elliptical fin set",
-  freeform_fin_set: "Freeform fin set",
-  tube_fin_set: "Tube fin set",
-  nose_cone: "Nose cone",
-  body_tube: "Body tube",
-  inner_tube: "Inner tube",
-  centering_ring: "Centering ring",
-  mass_component: "Mass component",
-  launch_lug: "Launch lug",
-  rail_button: "Rail button",
-  shock_cord: "Shock cord",
-};
-const kindLabel = (t: string) => KIND_LABEL[t] ?? t.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
 
 /** The evaluated value behind a field (SI number, enum text, or null). */
 export function evaluatedValue(c: Comp, key: string): number | string | null {
@@ -148,7 +133,7 @@ export function ComponentEditor(props: ComponentEditorProps) {
         <h2 className="rw-editor__title" data-testid="editor.title">
           {title}
         </h2>
-        <span className="rw-editor__kind">{comps.length > 1 && new Set(types).size > 1 ? "Mixed selection" : kindLabel(first.shape.type)}</span>
+        <span className="rw-editor__kind">{comps.length > 1 && new Set(types).size > 1 ? "Mixed selection" : partLabel(first.shape.type)}</span>
         <button
           type="button"
           className="rw-icon-button rw-editor__collapse"

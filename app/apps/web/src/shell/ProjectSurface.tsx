@@ -105,11 +105,11 @@ export function ProjectSurface({ client, projectId, initialPage, runSource, http
   );
   const pageSlots = (p: PageId): PageSlots | null =>
     p === "assembly"
-      ? { toolbar: assembly.toolbar, nav: assembly.nav }
+      ? { toolbar: assembly.toolbar, nav: assembly.nav, navAdd: assembly.navAdd }
       : p === "components"
-        ? { nav: components.nav, railFooter: components.railFooter, agentExtra: components.agentExtra }
+        ? { nav: components.nav, navAdd: components.navAdd, railFooter: components.railFooter, agentExtra: components.agentExtra }
         : p === "configurations"
-          ? { toolbar: configurations.toolbar, nav: configurations.nav, agentExtra: configurations.agentExtra }
+          ? { toolbar: configurations.toolbar, nav: configurations.nav, navAdd: configurations.navAdd, agentExtra: configurations.agentExtra }
           : p === "results"
             ? results
             : p === "liquid"

@@ -54,6 +54,34 @@ const PART_FIELDS: PartFields = {
 /** Every part kind the model supports, in schema order. */
 export const PART_KINDS = Object.keys(SCHEMA_META["Component"]?.variants ?? {}) as PartKind[];
 
+const KIND_LABEL: Record<string, string> = {
+  trapezoidal_fin_set: "Trapezoidal fin set",
+  elliptical_fin_set: "Elliptical fin set",
+  freeform_fin_set: "Freeform fin set",
+  tube_fin_set: "Tube fin set",
+  nose_cone: "Nose cone",
+  body_tube: "Body tube",
+  inner_tube: "Inner tube",
+  centering_ring: "Centering ring",
+  mass_component: "Mass component",
+  launch_lug: "Launch lug",
+  rail_button: "Rail button",
+  shock_cord: "Shock cord",
+};
+
+/** A part kind in words: the palette tile and the editor's kind line. */
+export const partLabel = (kind: string): string => KIND_LABEL[kind] ?? kind.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
+
+/** `name`, numbered if a part already has it (`Body tube`, `Body tube 2`, ...), so tree rows and Attach to choices stay distinct. */
+export function uniquePartName(name: string, taken: Iterable<string>): string {
+  const used = new Set(taken);
+  if (!used.has(name)) return name;
+  for (let i = 2; ; i++) {
+    const candidate = `${name} ${i}`;
+    if (!used.has(candidate)) return candidate;
+  }
+}
+
 /** A complete, valid part of `kind` with no placement. */
 export function defaultPart(kind: PartKind): Component {
   return { type: kind, ...structuredClone(PART_FIELDS[kind]) } as Component;

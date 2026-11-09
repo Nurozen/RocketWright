@@ -13,6 +13,7 @@ import { selectedComponentIds } from "../../state/slices/selection.ts";
 import { AssemblyViewport } from "../../viewport/AssemblyViewport.tsx";
 import type { EngineState, FitMargin } from "../../viewport/engine.ts";
 import type { GlbDeps } from "../../viewport/glb-source.ts";
+import { AddPartButton } from "./AddPartPopover.tsx";
 import { AssemblyToolbar } from "./AssemblyToolbar.tsx";
 import { thumbKey } from "../../render/thumbnails.ts";
 import { ComponentTree, iconFor, treeRows } from "./ComponentTree.tsx";
@@ -24,6 +25,7 @@ export interface AssemblySlots {
   content: ReactNode;
   toolbar: ReactNode;
   nav: ReactNode;
+  navAdd: ReactNode;
 }
 
 export function assemblySlots(store: AppStore, glbDeps: GlbDeps): AssemblySlots {
@@ -31,6 +33,7 @@ export function assemblySlots(store: AppStore, glbDeps: GlbDeps): AssemblySlots 
     content: <AssemblyWorkspace store={store} glbDeps={glbDeps} />,
     toolbar: <AssemblyToolbarSlot store={store} />,
     nav: <ComponentTreeSlot store={store} />,
+    navAdd: <AddPartButton store={store} />,
   };
 }
 
