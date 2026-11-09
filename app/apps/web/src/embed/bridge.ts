@@ -201,6 +201,15 @@ export function onOpenProject(globals: DesktopPaneGlobals, cb: (projectId: strin
   });
 }
 
+/** Files the page imports, dropped on the agent pane (R3.1); main has already checked them. */
+export function onPaneFileDrop(globals: DesktopPaneGlobals, onPath: (path: string) => void, onMany: () => void): () => void {
+  return globals.lecturn.onMessage((raw) => {
+    const m = parsePaneMainMessage(raw);
+    if (m?.type === "file.drop") onPath(m.path);
+    else if (m?.type === "file.drop.many") onMany();
+  });
+}
+
 // ---- plain web ----------------------------------------------------------------------------
 
 /** The slice of `@lecturn/embed/browser`'s `EmbedBridge` this module uses. */

@@ -29,6 +29,7 @@ export const REPO_ROOT = resolve(here, "../../../..");
 export const SERVER_CLI = resolve(REPO_ROOT, "app/apps/server/src/rpc/cli.ts");
 export const WEB_DIST = resolve(REPO_ROOT, "app/apps/web/dist");
 export const PRELOAD_SRC = resolve(here, "preload.ts");
+export const PANE_DROP_PRELOAD_SRC = resolve(here, "paneDropPreload.ts");
 /** Additional-argument prefix carrying the preload's JSON config. */
 export const DESKTOP_ARG = "--rw-desktop=";
 

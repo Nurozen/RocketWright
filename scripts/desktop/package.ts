@@ -17,6 +17,7 @@
  *
  *   app/apps/desktop/src/main.mjs      Electron main and its imports (rolldown bundle)
  *   app/apps/desktop/src/preload.ts    type-stripped at runtime (backend.ts buildPreload)
+ *   app/apps/desktop/src/paneDropPreload.ts    likewise (the agent pane's drop listener)
  *   app/apps/server/src/rpc/cli.mjs    the app server (rolldown bundle)
  *   app/apps/web/dist/                 the web bundle
  *   app/packages/ui/generated/         the Lecturn embed theme
@@ -211,6 +212,7 @@ await bundle("apps/server/src/rpc/cli.ts", PACKAGED_SERVER_CLI);
 
 const copies: Array<[string, string]> = [
   ["app/apps/desktop/src/preload.ts", "app/apps/desktop/src/preload.ts"],
+  ["app/apps/desktop/src/paneDropPreload.ts", "app/apps/desktop/src/paneDropPreload.ts"],
   ["app/apps/web/dist", "app/apps/web/dist"],
   ["app/packages/ui/generated/lecturn-theme.json", "app/packages/ui/generated/lecturn-theme.json"],
   ["app/packages/ui/generated/lecturn-theme-host.json", "app/packages/ui/generated/lecturn-theme-host.json"],

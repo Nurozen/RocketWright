@@ -24,6 +24,15 @@ export const EMBED_HOST_BRIDGE_CHANNEL = "lecturn-embed:bridge";
 export const PANE_HOST_CHANNEL = "lecturn-embed:rw-host";
 /** Main → renderer: `PaneMainMessage`. */
 export const PANE_MAIN_CHANNEL = "lecturn-embed:rw-to-host";
+/**
+ * The agent pane's guest → main: a drop of files the page imports (R3.1). Sent
+ * only by `paneDropPreload.ts`, in the guest's isolated world, and heard only
+ * on the guest's own `webContents.ipc`; never part of `PANE_SEND_CHANNELS`,
+ * and the guest's page has no way to reach it.
+ */
+export const PANE_GUEST_DROP_CHANNEL = "lecturn-embed:rw-guest-drop";
+/** What a drop on the pane may import, the page's own import formats. */
+export const PANE_DROP_NAME = /\.(ork|eng|rse)$/i;
 /** The only channels the host preload sends on. */
 export const PANE_SEND_CHANNELS: readonly string[] = [EMBED_PANE_RECT_CHANNEL, EMBED_HOST_BRIDGE_CHANNEL, PANE_HOST_CHANNEL];
 
@@ -75,7 +84,10 @@ export type PaneHostMessage =
  * - `open-project`: a `rocketwright://open` asked for this project (the page
  *   switches to it; main opens the thread once the pane mounts);
  * - `refs.describe`: the guest asked for labels of these `refs` (at most
- *   `DESCRIBE_REFS_MAX`); the page answers with `refs.labels` and the same `id`.
+ *   `DESCRIBE_REFS_MAX`); the page answers with `refs.labels` and the same `id`;
+ * - `file.drop` / `file.drop.many`: a file the page imports was dropped on the
+ *   agent pane (R3.1), which main has checked; several of them are refused as
+ *   a drop on the page is.
  */
 export type PaneMainMessage =
   | { type: "snapshot"; token: string; dataUrl: string; rect: PaneRect }
@@ -83,7 +95,9 @@ export type PaneMainMessage =
   | { [E in PaneEvent]: { type: "event"; event: E; payload: PaneEvents[E] } }[PaneEvent]
   | { type: "state"; projectId: string; state: "mounting" | "ready" | "error"; message?: string }
   | { type: "open-project"; projectId: string; threadId?: string }
-  | { type: "refs.describe"; id: string; refs: string[] };
+  | { type: "refs.describe"; id: string; refs: string[] }
+  | { type: "file.drop"; path: string }
+  | { type: "file.drop.many" };
 
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null;
 
@@ -147,6 +161,10 @@ export function parsePaneMainMessage(v: unknown): PaneMainMessage | null {
       return typeof v.projectId === "string" && (v.state === "mounting" || v.state === "ready" || v.state === "error")
         ? { type: "state", projectId: v.projectId, state: v.state, ...(typeof v.message === "string" ? { message: v.message } : {}) }
         : null;
+    case "file.drop":
+      return typeof v.path === "string" && v.path !== "" ? { type: "file.drop", path: v.path } : null;
+    case "file.drop.many":
+      return { type: "file.drop.many" };
     case "open-project":
       return typeof v.projectId === "string" ? { type: "open-project", projectId: v.projectId, ...(typeof v.threadId === "string" ? { threadId: v.threadId } : {}) } : null;
     case "refs.describe":

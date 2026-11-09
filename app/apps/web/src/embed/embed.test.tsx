@@ -25,6 +25,7 @@ import { RpcClient } from "../state/rpc.ts";
 import { AgentPane } from "../shell/AgentPane.tsx";
 import {
   desktopPaneGlobals,
+  onPaneFileDrop,
   OVERLAY_SELECTOR,
   overlayDiff,
   startBrowserPane,
@@ -176,6 +177,22 @@ describe("desktop pane", () => {
     expect(d.listeners.size).toBe(0);
     pane.snapshotShown("ov-2");
     expect(d.sent.at(-1)).toEqual([PANE_HOST_CHANNEL, { type: "unmount" }]);
+  });
+
+  it("hears files dropped on the pane; ignores other messages and a malformed path", () => {
+    const d = fakeDesktop();
+    const paths: string[] = [];
+    let many = 0;
+    const off = onPaneFileDrop(d.globals, (p) => void paths.push(p), () => void (many += 1));
+    d.fromMain({ type: "file.drop", path: "/out/motor.eng" });
+    d.fromMain({ type: "file.drop", path: "" });
+    d.fromMain({ type: "file.drop.many" });
+    d.fromMain({ type: "snapshot.clear" });
+    expect(paths).toEqual(["/out/motor.eng"]);
+    expect(many).toBe(1);
+    off();
+    d.fromMain({ type: "file.drop", path: "/out/late.eng" });
+    expect(paths).toEqual(["/out/motor.eng"]);
   });
 
   it("delivers main's guest events, snapshots and its own state; ignores malformed messages and other projects", () => {

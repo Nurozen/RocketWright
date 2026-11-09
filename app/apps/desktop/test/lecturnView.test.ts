@@ -18,6 +18,7 @@ import {
   EMBED_HOST_BRIDGE_CHANNEL,
   EMBED_PANE_RECT_CHANNEL,
   embedThemeInput,
+  PANE_GUEST_DROP_CHANNEL,
   PANE_HOST_CHANNEL,
   PANE_MAIN_CHANNEL,
   type LecturnHostThemeJson,
@@ -249,6 +250,8 @@ function setup(opts: { overlayMode?: "snapshot" | "hide"; maxReloads?: number; l
       });
     },
     workspaceRootOf: (p) => ROOTS[p] ?? null,
+    guestOrigin: () => `http://127.0.0.1:${4100 + env}`,
+    isFile: (p) => !p.includes("missing"),
     capture: (b) => captureEmbedView(b as never, { attempts: 2, retryDelayMs: 1, attemptTimeoutMs: 500 }),
     defer: (fn) => void deferQ.push(fn),
     log: (l) => void logs.push(l),
@@ -736,6 +739,61 @@ describe("composite capture", () => {
     expect(droppedCapture({ reason: "stale" })).toMatch(/^the agent pane's capture was dropped \(stale\): the guest navigated, reloaded or switched threads/);
     expect(droppedCapture({ reason: "gone" })).toBe("the agent pane's capture was dropped (gone): the guest closed or crashed");
     expect(droppedCapture({ reason: "failed", error: "the pane rect is empty" })).toBe("the agent pane's capture was dropped (failed): the pane rect is empty");
+  });
+});
+
+describe("files dropped on the pane (R3.1)", () => {
+  const dropFrom = (v: View, message: unknown, event: Partial<{ sender: unknown; senderFrame: { parent: unknown; url: string } | null }> = {}): void => {
+    v.webContents.ipc.emit(PANE_GUEST_DROP_CHANNEL, { sender: v.webContents, senderFrame: { parent: null, url: v.webContents.url }, ...event }, message);
+  };
+
+  it("hands a checked file to the page and moves focus there for its dialogs", async () => {
+    const t = setup();
+    const v = await t.mounted();
+    const before = t.win.webContents.focused;
+    dropFrom(v, { paths: ["/outside/motor.eng"] });
+    expect(t.toHost()).toContainEqual({ type: "file.drop", path: "/outside/motor.eng" });
+    expect(before).toBe(false);
+    expect(t.win.webContents.focused).toBe(true);
+  });
+
+  it("refuses several importable files the way a drop on the page does", async () => {
+    const t = setup();
+    const v = await t.mounted();
+    dropFrom(v, { paths: ["/a/one.eng", "/a/two.rse"] });
+    expect(t.toHost()).toContainEqual({ type: "file.drop.many" });
+  });
+
+  it("ignores a drop that is not from the mounted guest's top frame at its origin", async () => {
+    const t = setup();
+    const v = await t.mounted();
+    const ok = { paths: ["/a/one.eng"] };
+    dropFrom(v, ok, { senderFrame: { parent: {}, url: v.webContents.url } }); // a card frame
+    dropFrom(v, ok, { senderFrame: { parent: null, url: "http://127.0.0.1:9/embed/x" } }); // another loopback server
+    dropFrom(v, ok, { senderFrame: { parent: null, url: "file:///etc/passwd" } });
+    dropFrom(v, ok, { senderFrame: null });
+    dropFrom(v, ok, { sender: t.win.webContents });
+    expect(t.toHost().filter((m) => m.type === "file.drop" || m.type === "file.drop.many")).toEqual([]);
+  });
+
+  it("ignores a drop naming anything but existing files the import takes", async () => {
+    const t = setup();
+    const v = await t.mounted();
+    for (const message of [null, {}, { paths: [] }, { paths: "/a/one.eng" }, { paths: [7] }, { paths: ["relative/one.eng"] }, { paths: ["/a/notes.txt"] }, { paths: ["/a/missing.eng"] }, { paths: ["/a/\0.eng"] }, { paths: [`/${"a".repeat(5000)}.eng`] }, { paths: Array.from({ length: 33 }, () => "/a/one.eng") }]) {
+      dropFrom(v, message);
+    }
+    dropFrom(v, { paths: ["/a/one.eng", "/a/notes.txt"] }); // one bad path condemns the drop
+    expect(t.toHost().filter((m) => m.type === "file.drop" || m.type === "file.drop.many")).toEqual([]);
+    expect(t.logs.filter((l) => l.includes("refused a file drop"))).toHaveLength(12);
+  });
+
+  it("stops listening to a guest it has unmounted", async () => {
+    const t = setup();
+    const v = await t.mounted();
+    expect(v.webContents.ipc.count(PANE_GUEST_DROP_CHANNEL)).toBe(1);
+    t.host({ type: "unmount" });
+    t.flush();
+    expect(v.webContents.ipc.count(PANE_GUEST_DROP_CHANNEL)).toBe(0);
   });
 });
 

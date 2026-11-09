@@ -3,7 +3,9 @@
  * the window navigate to it, so `dragover` and `drop` are cancelled for every
  * file; main's `will-navigate` guard is the backstop for a drop that lands
  * before this listens. Only drags that carry files are touched, so text still
- * drags into a field. A drop over the agent pane lands in its guest, not here.
+ * drags into a field. A drop over the agent pane lands in its guest, not here:
+ * `paneDropPreload.ts` hands the imports back through main and `AppRoot` runs
+ * them through the same `importPath`.
  */
 import { useEffect, useRef } from "react";
 import type { HostApi } from "../host/HostApi.ts";

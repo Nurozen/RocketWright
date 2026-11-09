@@ -84,7 +84,7 @@ import { openHiddenWindow } from "./hiddenWindow.ts";
 import { captureComposite, createPaneController, droppedCapture, GUEST_WEB_PREFERENCES, isGuestUrl, type EmbedBridgeLike, type MountArgs, type PaneController } from "./lecturn.ts";
 import { connectMainRpc, type MainRpc, type MainRpcOptions } from "./mainRpc.ts";
 import { APP_NAME, createMenuController, linkAction, type MenuController } from "./menu.ts";
-import { bootProjects, buildPreload, desktopArg, documentsDirOverride, harnessModule, lecturnBaseDirFor, parseDesktopArgs, REPO_ROOT, resolveDevProject, seededProfileDir, startBackend, userDataOverride, waitForHttp, type Backend, type DevProject } from "./backend.ts";
+import { bootProjects, buildPreload, PANE_DROP_PRELOAD_SRC, desktopArg, documentsDirOverride, harnessModule, lecturnBaseDirFor, parseDesktopArgs, REPO_ROOT, resolveDevProject, seededProfileDir, startBackend, userDataOverride, waitForHttp, type Backend, type DevProject } from "./backend.ts";
 import { createConsentDialogs, registerDesktopServices } from "./nativeDialogs.ts";
 import { packagedLayout, packagedServerOptions, userArgv } from "./packaged.ts";
 import { createPreferences, restorableBounds } from "./preferences.ts";
@@ -342,15 +342,20 @@ const GUEST_CAPTURE = { attempts: 4, attemptTimeoutMs: 5_000 } as const;
  * over main's RPC, keyed by each project's workspace root. Null without an
  * RPC client (no server: no pane).
  */
-function startPane(win: BrowserWindow, rpc: MainRpc | null): PaneController | null {
+function startPane(win: BrowserWindow, rpc: MainRpc | null, dropPreload: string | undefined): PaneController | null {
   if (rpc === null) return null;
   const theme = loadEmbedTheme();
+  let guestOrigin: string | null = null;
   const source = {
-    embedTarget: async (projectId: string, threadId?: string) => checkedTarget(await rpc.call("embed.target", threadId === undefined ? { projectId } : { projectId, threadId })),
+    embedTarget: async (projectId: string, threadId?: string) => {
+      const target = checkedTarget(await rpc.call("embed.target", threadId === undefined ? { projectId } : { projectId, threadId }));
+      guestOrigin = new URL(target.url).origin;
+      return target;
+    },
     refreshEmbedToken: async (projectId: string) => checkedTarget(await rpc.call("embed.refreshToken", { projectId })),
   };
-  const mount = (a: MountArgs): EmbedBridgeLike =>
-    mountEmbedView(win, {
+  const mount = (a: MountArgs): EmbedBridgeLike => {
+    const bridge = mountEmbedView(win, {
       target: source,
       projectId: a.projectId,
       ...(a.threadId !== undefined ? { threadId: a.threadId } : {}),
@@ -362,11 +367,16 @@ function startPane(win: BrowserWindow, rpc: MainRpc | null): PaneController | nu
       webPreferences: GUEST_WEB_PREFERENCES,
       ...(freezeClock !== undefined ? { freezeClock } : {}),
     });
+    // The helper loads the guest only after an await on its target, so this is in place for the first document. Each mount has its own partition.
+    if (dropPreload !== undefined) bridge.webContents.session.registerPreloadScript({ type: "frame", id: "rw-pane-drop", filePath: dropPreload });
+    return bridge;
+  };
   return createPaneController({
     win,
     ipc: ipcMain,
     mount,
     workspaceRootOf: (projectId) => rpc.projects().find((p) => p.projectId === projectId)?.dir ?? null,
+    guestOrigin: () => guestOrigin,
     // The bridge handed back is the helper's own object (`mount` above).
     capture: (b) => captureEmbedView(b as unknown as EmbedBridge, GUEST_CAPTURE),
     log: (line) => process.stderr.write(`${line}\n`),
@@ -379,7 +389,7 @@ const MIN_WINDOW_WIDTH = 1024;
 let appWindow: BrowserWindow | null = null;
 
 /** The hidden window: load, wait for `readyGlobal`, optionally measure and capture (`out`), print the probe JSON. */
-async function renderHidden(backend: Backend, preload: string | undefined, out: string | undefined, rpc: MainRpc | null, onPane: (pane: PaneController | null) => void): Promise<number> {
+async function renderHidden(backend: Backend, preload: string | undefined, dropPreload: string | undefined, out: string | undefined, rpc: MainRpc | null, onPane: (pane: PaneController | null) => void): Promise<number> {
   app.dock?.hide();
   const deadline = Date.now() + timeoutMs;
   const consoleLines: string[] = [];
@@ -403,7 +413,7 @@ async function renderHidden(backend: Backend, preload: string | undefined, out: 
       if (freezeClock !== undefined) await installFreezeClock(debuggerSessions.session(w.webContents), freezeClock);
     },
     startPane: (w) => {
-      const p = startPane(w, rpc);
+      const p = startPane(w, rpc, dropPreload);
       onPane(p);
       return p;
     },
@@ -568,6 +578,8 @@ async function main(): Promise<void> {
   const scratch = live ? await mkdtemp(join(tmpdir(), "rw-desktop-")) : undefined;
   const preload = scratch !== undefined ? join(scratch, "preload.cjs") : undefined;
   if (preload !== undefined) await writeFile(preload, buildPreload());
+  const dropPreload = scratch !== undefined ? join(scratch, "pane-drop-preload.cjs") : undefined;
+  if (dropPreload !== undefined) await writeFile(dropPreload, buildPreload(PANE_DROP_PRELOAD_SRC));
   // Runs in the exit hook, so it must never throw: an uncaught error there
   // opens Electron's modal error box and the process never exits. Chromium
   // can still be writing the temp profile (ENOTEMPTY), hence the retries.
@@ -716,7 +728,7 @@ async function main(): Promise<void> {
   if (hidden) {
     let code = 1;
     try {
-      code = await renderHidden(backend, preload, renderOut !== undefined ? resolve(renderOut) : undefined, mainRpc, (p) => (pane = p));
+      code = await renderHidden(backend, preload, dropPreload, renderOut !== undefined ? resolve(renderOut) : undefined, mainRpc, (p) => (pane = p));
     } catch (e) {
       process.stderr.write(`render failed: ${e instanceof Error ? (e.stack ?? e.message) : String(e)}\n`);
     }
@@ -754,7 +766,7 @@ async function main(): Promise<void> {
     win.show();
     win.focus();
   };
-  pane = startPane(win, mainRpc);
+  pane = startPane(win, mainRpc, dropPreload);
   app.setAboutPanelOptions({ applicationName: APP_NAME, applicationVersion: app.getVersion() });
   menu = createMenuController({
     win,

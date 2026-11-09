@@ -5,7 +5,7 @@
  */
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import type { DesktopCommand, DesktopPrefs, PageId, ProjectInfo, SidecarState } from "@rw/contracts";
-import { desktopPaneGlobals, onOpenProject } from "../embed/bridge.ts";
+import { desktopPaneGlobals, onOpenProject, onPaneFileDrop } from "../embed/bridge.ts";
 import { trackLecturnStatus } from "../embed/status.ts";
 import { createPathPrompts } from "../host/browserHost.ts";
 import { hostFor, type HostApi } from "../host/HostApi.ts";
@@ -24,7 +24,7 @@ import { ProjectSurface } from "./ProjectSurface.tsx";
 import { QuickStart } from "./QuickStart.tsx";
 import { SettingsDialog } from "./SettingsDialog.tsx";
 import { undoInField } from "./undo.ts";
-import { useFileDrop } from "./useFileDrop.ts";
+import { DROP_ONE_FILE, useFileDrop } from "./useFileDrop.ts";
 import { useProjectActions, type SurfaceHandle } from "./useProjectActions.tsx";
 import { Welcome } from "./Welcome.tsx";
 import { applyZoom, nextZoom, ZOOM_DEFAULT } from "./zoom.ts";
@@ -203,6 +203,11 @@ export function AppRoot({ url, requestedProjectId, initialPage, pageForced = fal
   }, [desktop, client]);
 
   useFileDrop(window, host, (path) => latest.current.importPath(path), (message) => latest.current.report(message));
+  // The pane is a separate view, so its drops never reach this page's listeners (`paneDropPreload.ts`).
+  useEffect(() => {
+    if (desktop === null) return;
+    return onPaneFileDrop(desktop, (path) => latest.current.importPath(path), () => latest.current.report(DROP_ONE_FILE));
+  }, [desktop]);
 
   const surfaceCommands = useRef<CommandHandlers | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
