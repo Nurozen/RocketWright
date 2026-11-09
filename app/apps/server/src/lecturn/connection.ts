@@ -477,7 +477,9 @@ export class LecturnLink {
 
     if (start.request === null) {
       // No launch will carry the model, and no turn runs on it: the thread still works on its default.
-      if (copied !== null) await command("thread.model-selection.set", { modelSelection: copied.modelSelection }).catch((e: unknown) => this.events.log?.(`lecturn: copying the model to ${threadId}: ${message(e)}`));
+      if (copied !== null && (await this.modelEnabled(call, projectId, copied))) {
+        await command("thread.model-selection.set", { modelSelection: copied.modelSelection }).catch((e: unknown) => this.events.log?.(`lecturn: copying the model to ${threadId}: ${message(e)}`));
+      }
       return null;
     }
 
@@ -513,6 +515,29 @@ export class LecturnLink {
       if (copied === null || !isDisabledModel(e)) throw e;
       this.events.log?.(`lecturn: ${message(e)}; starting ${threadId} on the project's default model`);
       return launch(`rw:launch-default-model:${threadId}`, (await defaults()).modelSelection);
+    }
+  }
+
+  /**
+   * Whether this project lets a turn run on the copied model. Lecturn accepts
+   * `thread.model-selection.set` for a disabled provider and refuses the
+   * person's first message instead, so with no launch to fall back on this has
+   * to be asked first. True when the settings cannot be read: the copy is then
+   * what it always was.
+   */
+  private async modelEnabled(call: EmbedCall, projectId: string, copied: ThreadSettings): Promise<boolean> {
+    const instanceId = isRecord(copied.modelSelection) ? copied.modelSelection["instanceId"] : undefined;
+    if (typeof instanceId !== "string") return true;
+    try {
+      const config = await call("server.getConfig", {});
+      const settings = isRecord(config) ? config["settings"] : undefined;
+      if (!isRecord(settings)) return true;
+      const enabled = providerInstanceEnabled(settings, projectId, instanceId);
+      if (!enabled) this.events.log?.(`lecturn: ${instanceId} is disabled in this project; the new thread keeps the project's default model`);
+      return enabled;
+    } catch (e) {
+      this.events.log?.(`lecturn: reading whether ${instanceId} is enabled: ${message(e)}`);
+      return true;
     }
   }
 
@@ -724,6 +749,34 @@ function hasTurn(projection: unknown): boolean {
   if (!isRecord(projection)) return false;
   const count = (v: unknown): number => (Array.isArray(v) ? v.length : 0);
   return count(projection["messages"]) > 0 || count(projection["runs"]) > 0;
+}
+
+const DEFAULT_ENABLED_INSTANCES: ReadonlySet<string> = new Set(["codex", "claudeAgent"]);
+const DEFAULT_DISABLED_DRIVERS: ReadonlySet<string> = new Set(["cursor", "grok", "githubCopilot", "muse", "pi", "opencode", "antigravity"]);
+
+/**
+ * Whether a provider instance is enabled for a project, as Lecturn decides it
+ * from `server.getConfig`'s settings (which an embed token sees filtered to its
+ * own project). The two sets above change only with the pin.
+ *
+ * Ported from Lecturn (MIT) packages/contracts/src/settings.ts:resolveProjectProviderInstanceEnabled
+ */
+function providerInstanceEnabled(settings: Record<string, unknown>, projectId: string, instanceId: string): boolean {
+  const overrides = settings["projectSettingsOverrides"];
+  const ownProject = isRecord(overrides) ? overrides[projectId] : undefined;
+  const ownInstances = isRecord(ownProject) ? ownProject["providerInstances"] : undefined;
+  const override = isRecord(ownInstances) ? ownInstances[instanceId] : undefined;
+  if (isRecord(override) && typeof override["enabled"] === "boolean") return override["enabled"];
+
+  const instances = settings["providerInstances"];
+  const instance = isRecord(instances) && Object.hasOwn(instances, instanceId) ? instances[instanceId] : undefined;
+  if (!isRecord(instance)) return DEFAULT_ENABLED_INSTANCES.has(instanceId);
+  const config = instance["config"];
+  const configEnabled = isRecord(config) && typeof config["enabled"] === "boolean" ? config["enabled"] : undefined;
+  const enabled = instance["enabled"];
+  if (enabled === false || configEnabled === false) return false;
+  if (typeof enabled === "boolean") return enabled;
+  return configEnabled ?? !(typeof instance["driver"] === "string" && DEFAULT_DISABLED_DRIVERS.has(instance["driver"]));
 }
 
 /** Lecturn's refusal of a provider instance turned off here (`ThreadManagementProviderInstanceDisabledError`). */

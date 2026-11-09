@@ -3,7 +3,7 @@
  * recent one. A browser has no Recents, so the section simply has no rows
  * (R0.12). Every failure lands in the one error line here.
  */
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import type { RecentProject } from "@rw/contracts";
 import type { HostApi } from "../host/HostApi.ts";
 import type { RpcLike } from "../state/rpc.ts";
@@ -21,12 +21,17 @@ export interface WelcomeProps {
   onOpened: (projectId: string) => void;
   /** Import a design as a new project (D17); a browser has no native menu to find it in. */
   onImport?: (() => void) | undefined;
+  /** Default units apply to the projects to come, so Settings belongs here too. */
+  onOpenSettings?: (() => void) | undefined;
+  /** The window's one action lock, so a menu command cannot start the same work at once. */
+  running?: RefObject<boolean> | undefined;
+  onActionSettled?: (() => void) | undefined;
 }
 
 /** Null: closed. An empty object: plain New project. */
 type DialogState = { offer?: NewProjectOffer } | null;
 
-export function Welcome({ client, host, notice, onOpened, onImport }: WelcomeProps) {
+export function Welcome({ client, host, notice, onOpened, onImport, onOpenSettings, running: sharedRunning, onActionSettled }: WelcomeProps) {
   const [recents, setRecents] = useState<RecentProject[]>([]);
   // The clock for the rows' ages, read when the list is, not on every render.
   const [loadedAt, setLoadedAt] = useState(0);
@@ -35,7 +40,8 @@ export function Welcome({ client, host, notice, onOpened, onImport }: WelcomePro
   const [error, setError] = useState<string | null>(null);
   const [dismissedNotice, setDismissedNotice] = useState<string | null>(null);
   // A native picker leaves this page clickable behind it.
-  const running = useRef(false);
+  const ownRunning = useRef(false);
+  const running = sharedRunning ?? ownRunning;
 
   const loadRecents = useCallback(
     () =>
@@ -59,6 +65,7 @@ export function Welcome({ client, host, notice, onOpened, onImport }: WelcomePro
       .finally(() => {
         running.current = false;
         setStatus(null);
+        onActionSettled?.();
       });
   };
 
@@ -120,6 +127,12 @@ export function Welcome({ client, host, notice, onOpened, onImport }: WelcomePro
       {onImport !== undefined && (
         <button type="button" className="rw-button rw-button--quiet rw-welcome__import" disabled={busy} onClick={onImport}>
           Import an .ork file…
+        </button>
+      )}
+
+      {onOpenSettings !== undefined && (
+        <button type="button" className="rw-button rw-button--quiet rw-welcome__settings" disabled={busy} onClick={onOpenSettings}>
+          Settings…
         </button>
       )}
 

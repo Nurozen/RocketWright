@@ -303,6 +303,11 @@ describe("New project", () => {
 describe("Recent", () => {
   const ROW = (over: Partial<RecentProject>): RecentProject => ({ dir: "/work/a", name: "alpha", lastOpened: "2026-01-01T00:00:00.000Z", status: "ok", ...over });
 
+  it("offers a project already open behind Welcome, which nothing else can reach", async () => {
+    await mount({ kind: "desktop", recents: () => Promise.resolve([{ ...ROW({}), open: true }]) });
+    expect(el.querySelector(".rw-welcome__recent-name")).not.toBeNull();
+  });
+
   it("lists recent projects and opens one", async () => {
     await mount({ kind: "desktop", recents: () => Promise.resolve([ROW({})]) });
     expect(el.textContent).toContain("Recent");

@@ -202,6 +202,29 @@ describe("startThreadInProject: falling back to the project's defaults, capped (
 });
 
 describe("startThreadInProject: a disabled model (D12)", () => {
+  it("does not copy a model disabled here when there is no request, so the first message is not refused", async () => {
+    const { fake, start, commands, created } = await setup();
+    fake.disabledInstances.add("caller-instance");
+    await expect(start({ request: null })).resolves.toEqual({ threadId: "thread-1" });
+    expect(commands().map((c) => c.type)).toEqual(["thread.runtime-mode.set", "thread.interaction-mode.set"]);
+    expect(created()!.modelSelection).toEqual(fake.threadDefaults.modelSelection);
+  });
+
+  it("honours a project's own override of the provider", async () => {
+    const { fake, start, created } = await setup();
+    const { projectId } = await fake.ensureWorkspace(PROJECT.dir, "project");
+    fake.projectOverrides = { [projectId]: { providerInstances: { "caller-instance": { enabled: false } } } };
+    await expect(start({ request: null })).resolves.toEqual({ threadId: "thread-1" });
+    expect(created()!.modelSelection).toEqual(fake.threadDefaults.modelSelection);
+  });
+
+  it("still copies the model when the settings cannot be read", async () => {
+    const { fake, start, created } = await setup();
+    fake.rpcOutcome = (c) => (c.tag === "server.getConfig" ? new LecturnRpcError("no config") : undefined);
+    await expect(start({ request: null })).resolves.toEqual({ threadId: "thread-1" });
+    expect(created()).toMatchObject({ modelSelection: expect.objectContaining({ instanceId: "caller-instance" }) });
+  });
+
   it("starts on the project's default model and keeps the caller's modes", async () => {
     const { fake, start, launches, created } = await setup();
     fake.disabledInstances.add("caller-instance");

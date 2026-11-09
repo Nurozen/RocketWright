@@ -164,6 +164,36 @@ describe("motors", () => {
       };
     }
 
+    it("marks the curve Rust flies for a multi-curve file with no designation (file order, not impulse order)", async () => {
+      const multi = (designation: string, impulse: number) => ({ ...curve(designation, "H", 0.029, impulse), source: { kind: "library", path: "lib/motors/multi.rse" } }) as schema.ThrustCurve;
+      const smaller = multi("H100", 200);
+      const larger = multi("H200", 300);
+      const listed = [
+        info("lib:motors/multi.rse#H100", { kind: "library", path: "lib/motors/multi.rse" }),
+        info("lib:motors/multi.rse#H200", { kind: "library", path: "lib/motors/multi.rse" }),
+      ];
+      const shown: string[] = [];
+      const c = {
+        call: ((method: string, params: { id?: string }) => {
+          if (method === "motor.search") return Promise.resolve({ motors: listed });
+          shown.push(params.id!);
+          // `motor_show` with a bare file answers the first curve in the file: the larger one here.
+          return Promise.resolve({ curve: params.id!.endsWith("#H100") ? smaller : larger });
+        }) as never,
+      };
+      const curves = await loadProjectMotors(c, "p", new Map());
+      expect(findMotor(curves, "lib:motors/multi.rse")?.designation).toBe("H200");
+      expect(findMotor(curves, "lib:motors/multi.rse#H100")?.designation).toBe("H100");
+      expect(curves.map((m) => m.designation).sort()).toEqual(["H100", "H200"]);
+      // Not asked again while the file is unchanged.
+      const before = shown.length;
+      const cache = new Map();
+      await loadProjectMotors(c, "p", cache);
+      const firstAsk = shown.length - before;
+      await loadProjectMotors(c, "p", cache);
+      expect(shown.length - before).toBe(firstAsk);
+    });
+
     it("loads curves for project motors only; the built-ins come from WASM", async () => {
       const c = client(() => LISTED);
       expect(await loadProjectMotors(c, "p", new Map())).toEqual([lib]);

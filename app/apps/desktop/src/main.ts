@@ -742,7 +742,9 @@ async function main(): Promise<void> {
     quit: () => app.quit(),
     log: (line) => process.stderr.write(`${line}\n`),
   });
-  await menu.refresh();
+  // A Recent on a stalled mount must never hold up the window: the rows fill in once their probes settle.
+  menu.install();
+  void menu.refresh().catch((e: unknown) => process.stderr.write(`menu: ${e instanceof Error ? e.message : String(e)}\n`));
   guardLinks(win, new URL(backend.url).origin);
   if (freezeClock !== undefined) {
     await win.loadURL("about:blank");

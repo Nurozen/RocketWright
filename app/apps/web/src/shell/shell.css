@@ -1117,7 +1117,8 @@ button:disabled {
   color: var(--rw-accent);
 }
 
-.rw-welcome__import {
+.rw-welcome__import,
+.rw-welcome__settings {
   margin-top: 16px;
 }
 

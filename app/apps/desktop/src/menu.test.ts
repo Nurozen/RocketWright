@@ -104,7 +104,8 @@ describe("the native menu", () => {
 
   it("only offers project-bound items with a project open", () => {
     const t = buildMenuTemplate(state({ projectOpen: false }), fakeActions());
-    for (const id of ["project.close", "project.rename", "file.export", "app.settings", "view.tab:design"]) expect(byId(t, id).enabled, id).toBe(false);
+    for (const id of ["project.close", "project.rename", "file.export", "view.tab:design"]) expect(byId(t, id).enabled, id).toBe(false);
+    expect(byId(t, "app.settings").enabled, "default units are settable from Welcome").not.toBe(false);
     expect(byId(t, "project.new").enabled).toBeUndefined();
     expect(byId(t, "file.import").enabled, "an .ork starts a new project (D17)").toBeUndefined();
     expect(byId(t, "project.openSample").enabled).toBeUndefined();
@@ -270,6 +271,28 @@ describe("createMenuController", () => {
     expect(byId(h.applied.at(-1)!, "project.close").enabled).toBe(true);
     await h.controller.setProjectOpen(false);
     expect(byId(h.applied.at(-1)!, "project.close").enabled).toBe(false);
+  });
+
+  it("installs a working menu at once, with Recent still loading", () => {
+    const h = harness(() => new Promise(() => undefined));
+    h.controller.install();
+    expect(h.applied).toHaveLength(1);
+    expect(children(byId(h.applied[0]!, "project.openRecent")).map((r) => r.label)).toEqual(["Loading recent projects…"]);
+  });
+
+  it("applies whether a project is showing before Recents have been read", () => {
+    const h = harness(() => new Promise(() => undefined));
+    void h.controller.setProjectOpen(true);
+    expect(byId(h.applied.at(-1)!, "project.close").enabled).toBe(true);
+  });
+
+  it("hides a project already in the header's list, but not on Welcome", async () => {
+    const open = { ...recent("open"), open: true } as RecentProject;
+    const h = harness(() => Promise.resolve([recent("a"), open]));
+    await h.controller.setProjectOpen(true);
+    expect(children(byId(h.applied.at(-1)!, "project.openRecent")).map((r) => r.label)).toEqual(["a"]);
+    await h.controller.setProjectOpen(false);
+    expect(children(byId(h.applied.at(-1)!, "project.openRecent")).map((r) => r.label)).toEqual(["a", "open"]);
   });
 
   it("drops a slow rebuild once a newer one has been asked for", async () => {
