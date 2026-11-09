@@ -10,7 +10,7 @@ import { deleteEngineOps, duplicateEngineOps, newEngineOps, renameEngineOps } fr
 import { ID_PATTERN, slugify, uniqueId } from "./ids.ts";
 import { addMaterialOps, setMaterialOps } from "./materials.ts";
 import { addPartOps, defaultPart, duplicatePartOps, PART_KINDS, type PartKind } from "./parts.ts";
-import { deleteSimOps, duplicateSimOps, newSimOps, renameSimOps } from "./sims.ts";
+import { deleteSimOps, duplicateSimOps, newSimOps, newStudyOps, nextStudyName, renameSimOps } from "./sims.ts";
 
 const repo = new URL("../../../../../../", import.meta.url).pathname;
 
@@ -198,6 +198,23 @@ describe("sims", () => {
     expect(sims["high_wind_2"]!.name).toBe("High Wind");
     expect(sims[id]!.name).toBe("Gusty");
     expect(apply(empty, [...all, ...deleteSimOps(id)]).evaluated.sims[id]).toBeUndefined();
+  });
+});
+
+describe("visual flow studies", () => {
+  it("makes a study from an engine and a configuration, on the core's defaults", () => {
+    const src = files("fixtures/research-vehicle");
+    const { id, ops } = newStudyOps("Study 3", "baseline", "demo", ["study_01"]);
+    expect(id).toBe("study_3");
+    const { evaluated } = apply(src, ops);
+    expect(evaluated.sims[id]).toMatchObject({ name: "Study 3", kind: "visual_flow", visual_flow: { engine: "demo", attitude: "scripted_tilt", duration: 10, tilt_deg: 50, swing_deg: 10, period: 4 } });
+    expect(newErrors(src, ops)).toEqual([]);
+    expect(apply(src, ops).check.diagnostics.filter((d) => d.path?.startsWith(`/sims/${id}`))).toEqual([]);
+  });
+
+  it("names the next free study", () => {
+    expect(nextStudyName([])).toBe("Study 1");
+    expect(nextStudyName(["Study 2", "Flow overview"])).toBe("Study 3");
   });
 });
 

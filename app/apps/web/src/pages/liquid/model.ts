@@ -273,7 +273,7 @@ export const FLUID_MODELS: Record<string, string> = { single_phase_liquid: "Sing
 const BC_LABELS: Record<string, string> = { open: "Open", closed: "Closed", check_valve: "Check valve", orifice: "Orifice" };
 export const bcLabel = (bc: string | null | undefined): string => (bc == null ? "Required" : (BC_LABELS[bc] ?? bc));
 
-export type AnalysisState = { kind: "not_run" } | { kind: "running" } | { kind: "complete"; summary: string } | { kind: "failed"; message: string };
+export type AnalysisState = { kind: "not_run" } | { kind: "running" } | { kind: "complete"; summary: string; key?: string } | { kind: "failed"; message: string };
 
 /** Fluid model, boundary conditions (of the selected connection, else the engine), and analysis. */
 export function inputRows(engine: EvalEngine, engineId: string, missing: readonly Diagnostic[], connection: Connection | null, analysis: AnalysisState): InputRow[] {

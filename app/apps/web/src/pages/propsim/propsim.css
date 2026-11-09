@@ -237,6 +237,20 @@
   overflow: hidden;
 }
 
+.rw-vis-side__new {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 0 12px;
+}
+
+.rw-vis-side__hint {
+  margin: 0;
+  color: var(--rw-text-secondary);
+  font-size: var(--rw-font-size-secondary);
+}
+
 .rw-vis-side__run {
   display: flex;
   gap: 8px;
