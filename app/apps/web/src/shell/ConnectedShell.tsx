@@ -25,6 +25,8 @@ import type { PaneBridge } from "../embed/bridge.ts";
 import { EmbedPane } from "../embed/EmbedPane.tsx";
 import { StartChatPrompt } from "../embed/StartChatPrompt.tsx";
 import { defaultCompare, versionLabel } from "../pages/compare/model.ts";
+import { deleteKeyTarget, isPartDeleteKey, overlayOpen } from "../pages/assembly/partOps.ts";
+import { PartDialogs } from "../pages/assembly/PartActions.tsx";
 import type { RpcLike } from "../state/rpc.ts";
 import { openRef } from "../state/navigation.ts";
 import { type AppStore, useAppState } from "../state/store.ts";
@@ -288,14 +290,21 @@ export function ConnectedShell({ store, client = null, renderPage, renderCompare
   useEffect(() => {
     const on = (e: KeyboardEvent) => {
       const k = undoKey(e);
-      if (k === null) return;
+      if (k !== null) {
+        e.preventDefault();
+        if (k === "undo") keys.current.onUndo?.();
+        else keys.current.onRedo?.();
+        return;
+      }
+      if (!isPartDeleteKey(e) || overlayOpen(document)) return;
+      const id = deleteKeyTarget(store.getState());
+      if (id === null) return;
       e.preventDefault();
-      if (k === "undo") keys.current.onUndo?.();
-      else keys.current.onRedo?.();
+      store.getState().ui.setPartDialog({ kind: "delete", id });
     };
     window.addEventListener("keydown", on);
     return () => window.removeEventListener("keydown", on);
-  }, []);
+  }, [store]);
 
   const snap = s.project.snapshot;
   const compareOpen = s.ui.compare !== null && renderCompare !== undefined;
@@ -362,6 +371,7 @@ export function ConnectedShell({ store, client = null, renderPage, renderCompare
       page={page}
     >
       {compareOpen ? renderCompare() : renderPage?.(page)}
+      <PartDialogs store={store} />
     </AppShell>
   );
 }

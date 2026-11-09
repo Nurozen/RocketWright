@@ -2,7 +2,7 @@
  * Collapsible inspector strip at the right edge of the 01 workspace (concepts
  * §4.1): `<Part> ›` title, then the Attachment, Mass, and Clearance cards.
  */
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Icon, type IconName } from "../../shell/Icon.tsx";
 import { PartThumb } from "../../render/PartThumb.tsx";
 import { ADD_FIRST_PART } from "../../state/empty-text.ts";
@@ -14,6 +14,8 @@ export interface InspectorProps {
   thumb?: { url: string | undefined; icon: IconName } | null;
   /** The project has no parts: there is nothing to select yet (R0.3a). */
   noParts?: boolean;
+  /** Controls for the selected part, below its cards. */
+  actions?: ReactNode;
 }
 
 export const INSPECTOR_WIDTH = 224;
@@ -43,7 +45,7 @@ function Card({ title, testid, rows }: { title: string; testid: string; rows: In
   );
 }
 
-export function Inspector({ view, thumb = null, noParts = false }: InspectorProps) {
+export function Inspector({ view, thumb = null, noParts = false, actions }: InspectorProps) {
   const [open, setOpen] = useState(true);
   return (
     <aside
@@ -76,6 +78,7 @@ export function Inspector({ view, thumb = null, noParts = false }: InspectorProp
             <Card title="Attachment" testid="insp.attachment" rows={view.attachment} />
             <Card title="Mass" testid="insp.mass" rows={view.mass} />
             <Card title="Clearance" testid="insp.clearance" rows={view.clearance} />
+            {actions !== undefined && <div className="rw-inspector__actions">{actions}</div>}
           </>
         ) : (
           <p className="rw-inspector__empty">{noParts ? `${ADD_FIRST_PART}.` : "Select a part in the tree or the viewport."}</p>

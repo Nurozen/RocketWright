@@ -85,12 +85,17 @@ export function undoState(steps: readonly Step[], revisions: readonly Rev[] = []
   return { shown: line[at]!, undo: at > 0 ? line[at - 1]! : null, redo: at < line.length - 1 ? line[at + 1]! : null };
 }
 
+/** True when a key event belongs to the control it landed in: a shortcut must leave these alone. */
+export function isEditableTarget(target: EventTarget | null): boolean {
+  const el = target as { tagName?: string; isContentEditable?: boolean } | null;
+  const tag = el?.tagName?.toUpperCase();
+  return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || el?.isContentEditable === true;
+}
+
 /** The shortcut an undo/redo key event means, or null (text fields keep their own undo). */
 export function undoKey(e: Pick<KeyboardEvent, "key" | "metaKey" | "ctrlKey" | "shiftKey" | "altKey" | "target">): "undo" | "redo" | null {
   if (e.altKey || !(e.metaKey || e.ctrlKey)) return null;
-  const el = e.target as { tagName?: string; isContentEditable?: boolean } | null;
-  const tag = el?.tagName?.toUpperCase();
-  if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || el?.isContentEditable === true) return null;
+  if (isEditableTarget(e.target)) return null;
   const k = e.key.toLowerCase();
   if (k === "z") return e.shiftKey ? "redo" : "undo";
   if (k === "y" && e.ctrlKey && !e.metaKey) return "redo";
