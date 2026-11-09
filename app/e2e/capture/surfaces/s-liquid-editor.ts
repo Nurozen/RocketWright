@@ -48,7 +48,7 @@ export default async function drive({ page, paneReady }: DriveContext): Promise<
   await page.evaluate(() => document.querySelector<HTMLElement>('[aria-label="Increase Thrust"]')?.click(), null);
   await waitFor(page, "the Modified line", () => document.querySelector('[data-testid="liquid.modified"]') !== null, null);
   const state = await page.evaluate(readEditor, null);
-  if (state.cards.join() !== "Propellants,Chamber,Nozzle,Injector,Tanks") throw new Error(`capture: cards are ${state.cards.join()}`);
+  if (state.cards.join() !== "Propellants,Chamber,Nozzle,Injector,Tanks,Feed graph") throw new Error(`capture: cards are ${state.cards.join()}`);
   if (!state.actions.includes("New engine") || !state.actions.includes("Duplicate")) throw new Error(`capture: actions are ${state.actions.join()}`);
   if (state.modified !== "Modified, needs recompute" || !state.stale) throw new Error(`capture: the page reads ${String(state.modified)}, stale ${String(state.stale)}`);
   if (state.results.join() !== "Isp,Chamber diameter,Throat diameter" || !state.compute) throw new Error(`capture: the result strip is ${state.results.join()}, Compute ${String(state.compute)}`);
