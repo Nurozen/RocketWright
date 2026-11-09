@@ -10,6 +10,7 @@ import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/cli
 import { PROJECT_TOOLS, type HostRequest, type HostResponse, type HostShow, type JsonObject, type ProjectInfo } from "@rw/contracts";
 import { TestClient, makeValidator } from "@rw/contracts/mock/harness";
 import { ProjectTools, cleanRequest, threadLaunchUnavailable, type ProjectThreadStart, type ProjectToolsDeps } from "../src/mcp/projectTools.ts";
+import { MAX_PROJECT_REALPATH } from "../src/project/create.ts";
 import { RpcFail } from "../src/rpc/errors.ts";
 import { HostChannelError } from "../src/rpc/HostChannel.ts";
 import { AppServer } from "../src/rpc/AppServer.ts";
@@ -150,7 +151,7 @@ describe("project tools: branches (U37)", () => {
     });
 
     it("project_new refuses a path too long to create", async () => {
-      const deep = `/${"d".repeat(200)}`.repeat(6);
+      const deep = `/${"d".repeat(200)}`.repeat(Math.ceil(MAX_PROJECT_REALPATH / 201) + 1);
       const r = await tools().call("project_new", newArgs({ location: deep }), CALLER);
       expect(outcome(r)).toMatchObject(refusedBeforeDialog("invalid_args", /a project's path can be at most/));
     });
