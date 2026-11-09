@@ -127,7 +127,7 @@ describe("driveRow", () => {
     expect(fake.log).toEqual([
       "click tab:Design",
       "click tab:Components",
-      "click treeitem:Nose cone",
+      "click treeitem:/Nose cone(?! \\d)/i",
       "click tab:Geometry",
       "fill(100) label:Length",
       "press label:Length",

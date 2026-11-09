@@ -240,6 +240,7 @@ function ComponentsWorkspace({ store, client, glbDeps, ui }: { store: AppStore; 
       <ComponentEditor
         noParts={shown?.components.length === 0}
         comps={comps}
+        allComps={shown?.components ?? comps}
         files={files}
         units={units}
         materials={materials}

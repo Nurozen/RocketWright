@@ -36,7 +36,7 @@ export const STAGE_NEEDS: Readonly<Record<StageId, readonly StageId[]>> = {
 };
 
 /** The enabled stages: the steps that make a stage reachable add it. */
-export const B1_STAGES: ReadonlySet<StageId> = new Set<StageId>(["launch", "welcome", "choose", "new", "materials", "nose", "body", "others", "block", "sim", "quit", "reopen", "compare"]);
+export const B1_STAGES: ReadonlySet<StageId> = new Set<StageId>(["launch", "welcome", "choose", "new", "materials", "nose", "body", "others", "block", "fields", "motor", "deploy", "sim", "run", "quit", "reopen", "compare"]);
 
 /** One message per stage enabled without a stage it needs. */
 export function validateStages(enabled: ReadonlySet<StageId>): string[] {
@@ -99,12 +99,15 @@ export function enabledRowKeys(enabled: ReadonlySet<StageId>, rows: readonly Bou
 
 const exactly = (name: string) => ({ name, exact: true });
 
+/** A tree row by the name it shows: not a row whose name continues with a number (`Centering ring 2`). */
+const treeName = (name: string) => new RegExp(`${name.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&")}(?! \\d)`, "i");
+
 async function navigate(ctx: DriveContext, row: BoundRow): Promise<void> {
   const { page } = ctx;
   if (row.page !== undefined) await page.getByRole("tab", exactly(row.page)).click();
   if (row.local !== undefined) await page.getByRole("tab", exactly(row.local)).click();
   if (row.local === "Components" && row.part !== undefined && row.control !== "add-part" && row.control !== "material") {
-    await page.getByRole("treeitem", { name: row.part }).nth(row.nth ?? 0).click();
+    await page.getByRole("treeitem", { name: treeName(row.part) }).first().click();
   }
   if (row.tab !== undefined) await page.getByRole("tab", exactly(row.tab)).click();
 }
@@ -120,7 +123,7 @@ function scopeOf(page: Page, row: BoundRow): Page | Locator {
 
 async function pressAdd(ctx: DriveContext, row: BoundRow): Promise<void> {
   if (row.add === undefined) return;
-  const once = `${row.part ?? ""}#${row.nth ?? 0}/${row.add}`;
+  const once = `${row.part ?? ""}/${row.add}`;
   if (row.control !== "material" && ctx.added.has(once)) return;
   await ctx.page.getByRole("button", exactly(row.add)).click();
   ctx.added.add(once);
@@ -138,7 +141,8 @@ async function addPart(ctx: DriveContext, row: BoundRow): Promise<void> {
 async function assignMotor(ctx: DriveContext, row: BoundRow): Promise<void> {
   const { page } = ctx;
   await page.getByLabel(row.label, { exact: true }).fill(row.option ?? "");
-  await page.getByRole("button", { name: row.option ?? "" }).first().click();
+  // The row in the Motors list: its own About button also names the motor, and picks nothing.
+  await page.getByRole("listbox", exactly("Motors")).getByRole("option", { name: row.option ?? "" }).first().click();
   await page.getByRole("button", exactly("Assign to configuration")).click();
 }
 
@@ -162,6 +166,11 @@ async function assertLabelAndUnit(ctx: DriveContext, scope: Page | Locator, inpu
 
 async function enterField(ctx: DriveContext, row: BoundRow): Promise<void> {
   const scope = scopeOf(ctx.page, row);
+  if (row.turnOff !== undefined) {
+    const box = scope.getByRole("checkbox", exactly(row.turnOff));
+    await box.click();
+    await ctx.expect(box).toBeChecked({ checked: false, timeout: ctx.timeouts.row });
+  }
   // Unscoped rows take the first match: the part's own field comes before its nested groups.
   const input = row.group === undefined && row.dialog === undefined && row.inRow !== true ? scope.getByLabel(row.label, { exact: true }).first() : scope.getByLabel(row.label, { exact: true });
   await assertLabelAndUnit(ctx, scope, input, row);

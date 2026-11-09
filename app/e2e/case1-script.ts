@@ -35,14 +35,14 @@ export interface RowWords {
   local?: "Components" | "Configurations";
   /** Part as named in the tree (or in a table row) when this row runs. */
   part?: string;
-  /** Which of the tree rows sharing `part`, in tree order. */
-  nth?: number;
   /** Tab that holds the field. */
   tab?: string;
   /** Named group (`role="group"`, from its visible heading) around the field. */
   group?: string;
   /** Add affordance that reveals an absent optional group or field. */
   add?: string;
+  /** A checkbox to turn off first, because the field only takes a typed value with it off. */
+  turnOff?: string;
   /** Unit shown beside the value; the input's accessible description. */
   unit?: string;
   /** Visible option text, for `select` and the motor picker. */
@@ -126,13 +126,12 @@ const ANGLE = "deg";
 interface PartRef {
   id: string;
   name: string;
-  nth?: number;
 }
 
-const part = (id: string, name: string, nth?: number): PartRef => ({ id, name, ...(nth === undefined ? {} : { nth }) });
+const part = (id: string, name: string): PartRef => ({ id, name });
 
 function partRow(p: PartRef, leaf: string, stage: StageId, words: Partial<RowWords>): ScriptRow {
-  const base: RowWords = { control: "text", label: "", page: "Design", local: "Components", part: p.name, ...(p.nth === undefined ? {} : { nth: p.nth }) };
+  const base: RowWords = { control: "text", label: "", page: "Design", local: "Components", part: p.name };
   return { ...base, ...words, key: `c.${p.id}.${leaf}`, stage };
 }
 
@@ -159,8 +158,10 @@ const cord = part("cord", "Shock cord");
 const wadding = part("wadding", "Wadding");
 const lug = part("lug", "Launch lug");
 const fins = part("fins", "Trapezoidal fin set");
-const ringFore = part("ring_fore", "Centering ring", 0);
-const ringAft = part("ring_aft", "Centering ring", 1);
+// The palette numbers a second part of one kind. The tree lists parts in evaluated order, which changes as they
+// move, so the two rings are told apart by those names until the aft ring's rename, its last row.
+const ringFore = part("ring_fore", "Centering ring");
+const ringAft = part("ring_aft", "Centering ring 2");
 const mmt = part("mmt", "Inner Tube");
 const block = part("block", "Engine block");
 
@@ -296,13 +297,13 @@ export const SCRIPT_ROWS: readonly ScriptRow[] = [
   num(ringFore, "id", "fields", G, "Inner diameter", LENGTH),
   pick(ringFore, "material", M, "Material", "cardboard"),
 
-  rename(ringAft, "Centering ring"),
   pick(ringAft, "attach.to", P, "Attach to", "Body tube: Aft"),
   pick(ringAft, "attach.at", P, "Anchor", "Aft"),
   num(ringAft, "length", "fields", G, "Length", LENGTH),
   num(ringAft, "od", "fields", G, "Outer diameter", LENGTH),
   num(ringAft, "id", "fields", G, "Inner diameter", LENGTH),
   pick(ringAft, "material", M, "Material", "cardboard"),
+  rename(ringAft, "Centering ring 2"),
 
   rename(mmt, "Inner tube"),
   pick(mmt, "attach.to", P, "Attach to", "Body tube: Aft"),
@@ -324,11 +325,12 @@ export const SCRIPT_ROWS: readonly ScriptRow[] = [
   num(block, "id", "fields", G, "Inner diameter", LENGTH),
   pick(block, "material", M, "Material", "cardboard"),
 
-  { key: "config.motors.mmt.motor", stage: "motor", control: "motor", page: "Design", local: "Configurations", part: "Inner Tube", label: "Search motors", option: "RW_C6G" },
-  { key: "config.motors.mmt.delay", stage: "motor", control: "number", page: "Design", local: "Configurations", part: "Inner Tube", label: "Ejection delay", unit: "s" },
+  { key: "config.motors.mmt.motor", stage: "motor", control: "motor", page: "Design", local: "Configurations", tab: "Motors", part: "Inner Tube", label: "Search motors", option: "RW_C6G" },
+  // The fixture flies a 4 s delay; RW_C6G lists 3, 5 and 7 s, so Assign shows the list and only a typed value can say 4.
+  { key: "config.motors.mmt.delay", stage: "motor", control: "number", page: "Design", local: "Configurations", tab: "Motors", part: "Inner Tube", label: "Ejection delay", turnOff: "Use manufacturer data", unit: "s" },
 
-  { key: "config.deploy.chute.event", stage: "deploy", control: "select", page: "Design", local: "Configurations", part: "Parachute", inRow: true, label: "Deploys", option: "Ejection" },
-  { key: "config.deploy.chute.altitude", stage: "deploy", control: "number", page: "Design", local: "Configurations", part: "Parachute", inRow: true, label: "Altitude", unit: "m" },
+  { key: "config.deploy.chute.event", stage: "deploy", control: "select", page: "Design", local: "Configurations", tab: "Recovery", part: "Parachute", inRow: true, label: "Deploys", option: "Ejection" },
+  { key: "config.deploy.chute.altitude", stage: "deploy", control: "number", page: "Design", local: "Configurations", tab: "Recovery", part: "Parachute", inRow: true, label: "Altitude", unit: "m" },
 
   { key: "sim.launch.rail_length", stage: "sim", control: "number", dialog: SHEET, group: "Launch", label: "Rail length", unit: "m" },
   { key: "sim.wind.speed", stage: "sim", control: "number", dialog: SHEET, group: "Wind", label: "Speed", unit: "m/s" },

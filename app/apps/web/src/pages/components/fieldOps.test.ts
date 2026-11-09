@@ -4,7 +4,7 @@ import type { EvaluatedModel, PatchOp, schema } from "@rw/contracts";
 import { loadRwWasm } from "@rw/rw-wasm";
 import { describe, expect, it } from "vitest";
 import { editorFields, groupsOf, rangeError, limitsOf, type FieldGroup, type FieldSpec } from "../../ui/fields/index.ts";
-import { evaluatedValue, fieldWriteOps, groupAddOps, tablePresent } from "./fieldOps.ts";
+import { evaluatedValue, fieldValue, fieldWriteOps, groupAddOps, tablePresent } from "./fieldOps.ts";
 import { fieldTarget, sourceHasTable, tableScalars } from "./source.ts";
 
 const repo = new URL("../../../../../../", import.meta.url);
@@ -161,5 +161,65 @@ describe("Add writes the whole group", () => {
     const again = (comp(edited.evaluated, "nose").shape as unknown as { shoulder: { length: number; capped: boolean } }).shoulder;
     expect(again.capped).toBe(true);
     expect(again.length).toBeCloseTo(0.025, 9);
+  });
+});
+
+describe("the bore of a tube", () => {
+  const tube = { id: "body", name: "Body", shape: { type: "body_tube", length: 0.3, od: 0.025, id: 0.023 } } as unknown as Comp;
+  const withId = { "rocket.rw.toml": '[c.body]\nid = "23 mm"\n' };
+  const withThickness = { "rocket.rw.toml": '[c.body]\nthickness = "1 mm"\n' };
+
+  it("clears the id when a thickness is typed, because the model reads the id first", () => {
+    expect(fieldWriteOps([tube], withId, field("body_tube", "thickness"), "1 mm")).toEqual([
+      { op: "add", path: "/c/body/thickness", value: "1 mm" },
+      { op: "remove", path: "/c/body/id" },
+    ]);
+  });
+
+  it("clears the thickness when an id is typed", () => {
+    expect(fieldWriteOps([tube], withThickness, field("body_tube", "id"), "20 mm")).toEqual([
+      { op: "add", path: "/c/body/id", value: "20 mm" },
+      { op: "remove", path: "/c/body/thickness" },
+    ]);
+  });
+
+  it("leaves another kind's id alone: a ring's id and thickness are not alternatives", () => {
+    const ring = { id: "r", name: "R", shape: { type: "centering_ring", length: 0.002, od: 0.023, id: 0.019 } } as unknown as Comp;
+    expect(fieldWriteOps([ring], { "rocket.rw.toml": '[c.r]\nthickness = "1 mm"\n' }, field("centering_ring", "id"), "19 mm")).toEqual([{ op: "add", path: "/c/r/id", value: "19 mm" }]);
+  });
+
+  it("shows the wall a bore implies when no thickness is written", () => {
+    expect(fieldValue(tube, withId, field("body_tube", "thickness"))).toBeCloseTo(0.001, 9);
+  });
+});
+
+describe("what a field shows", () => {
+  it("reads a field the evaluated model does not carry from the source", () => {
+    const part = { id: "lug", name: "Lug", shape: { type: "launch_lug" }, attach: { to: "body.mid", at: "fore", offset: 0 } } as unknown as Comp;
+    const files = { "rocket.rw.toml": '[c.lug]\nattach = { to = "body.mid", spin = "19 deg" }\n' };
+    expect(fieldValue(part, files, field("launch_lug", "attach.spin"))).toBeCloseTo((19 * Math.PI) / 180, 9);
+  });
+
+  it("does not take an anchor the model filled in for one a person chose", () => {
+    const part = { id: "lug", name: "Lug", shape: { type: "launch_lug" }, attach: { to: "body.mid", at: "mid", offset: 0 } } as unknown as Comp;
+    expect(fieldValue(part, { "rocket.rw.toml": '[c.lug]\nattach = { to = "body.mid" }\n' }, field("launch_lug", "attach.at"))).toBeNull();
+  });
+});
+
+describe("groups the editor adds", () => {
+  it("starts a custom finish at the part's own roughness, in micrometres", () => {
+    const part = nose({ roughness: 0.00002 });
+    expect(groupAddOps([part], {}, group("nose_cone", "finish"), "mm")).toEqual([{ op: "add", path: "/c/nose/finish", value: { roughness: "20 um" } }]);
+  });
+
+  it("writes instances and a joint whole, with their required members", () => {
+    expect(groupAddOps([nose()], {}, group("nose_cone", "instances"), "mm")).toEqual([{ op: "add", path: "/c/nose/instances", value: { count: 2, pattern: "radial" } }]);
+    expect(groupAddOps([nose()], {}, group("nose_cone", "joint"), "mm")).toEqual([{ op: "add", path: "/c/nose/joint", value: { type: "friction" } }]);
+  });
+
+  it("offers instances until the source has them: every part evaluates to at least one", () => {
+    const part = nose({ instances: [{ x: 0, roll: 0 }] });
+    expect(tablePresent({}, part, ["instances"])).toBe(false);
+    expect(tablePresent({ "rocket.rw.toml": '[c.nose]\ninstances = { count = 2, pattern = "radial" }\n' }, part, ["instances"])).toBe(true);
   });
 });
