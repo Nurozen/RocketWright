@@ -5,9 +5,10 @@
  * - `ws://…/rpc`: IF10 WebSocket RPC (`@rw/contracts` `rpc.ts`): a `hello`
  *   frame, then exactly one response per request, plus pushes on
  *   subscriptions;
- * - `/mcp/live`: the live tools Lecturn calls (B9, D20): the broker tools
- *   only, one static bearer leased with `setLiveTools`, each call routed by
- *   `realpath(_meta["lecturn/context"].workspaceRoot)` to the open project;
+ * - `/mcp/live`: the live tools Lecturn calls (B9, D20): the broker tools and
+ *   the project tools, one static bearer leased with `setLiveTools`, each
+ *   broker call routed by `realpath(_meta["lecturn/context"].workspaceRoot)` to
+ *   the open project;
  * - `GET /api/projects/:projectId/runs/:sim/:runId/series.csv` (G §4.2) and
  *   `.../events.json` (the run's flight events, for the plots' event lines), and
   *   `.../engine.json` (an engine run's record: provenance, design, samples),
@@ -72,6 +73,7 @@ import { workspaceRootOf, type LecturnLink, type LecturnLinkEvents } from "../le
 import { RW_APP_ID } from "../lecturn/registration.ts";
 import { BrokerArgsError, ViewportBroker } from "../broker/ViewportBroker.ts";
 import { LIVE_MCP_PATH, createLiveMcpRequestHandler } from "../mcp/http.ts";
+import { ProjectTools, threadLaunchUnavailable, type ProjectThreadStarter } from "../mcp/projectTools.ts";
 import { LiveToolsBearer } from "../mcp/session-registry.ts";
 import { ProjectHost } from "../project/ProjectHost.ts";
 import { ProjectCreator, defaultProjectLocation, expandHome } from "../project/create.ts";
@@ -109,6 +111,10 @@ export interface AppServerOptions {
    * absent: no Lecturn, and the `embed.*` methods answer `internal`.
    */
   lecturn?: (events: LecturnLinkEvents) => LecturnLink | null;
+  /** Starts the new thread `project_new` and `project_open` promise (default: none yet, U38). */
+  startThread?: ProjectThreadStarter;
+  /** The dialog's and the whole call's time limits (tests; defaults in `projectTools.ts`). */
+  projectToolLimits?: { dialogMs?: number; guardMs?: number };
   /** Diagnostics (default: stderr). */
   log?: (line: string) => void;
 }
@@ -224,7 +230,17 @@ export class AppServer {
     this.broker = new ViewportBroker({ testHooks: this.testHooks, log: this.log, ...(opts.brokerTimeoutMs === undefined ? {} : { timeoutMs: opts.brokerTimeoutMs }) });
     this.coreVersion = coreVersion;
     this.rpcToken = opts.rpcToken ?? randomBytes(32).toString("base64url");
-    this.liveHandler = createLiveMcpRequestHandler({ broker: this.broker, bearer: this.liveBearer, projectOf: (root) => this.projectForWorkspaceRoot(root) });
+    const projectTools = new ProjectTools({
+      askHost: (request, signal) => this.hostChannel.request(request, signal),
+      show: (show) => this.broadcast("host.show", show, (c) => c.role === "main"),
+      create: (args) => this.creator.create(args),
+      collisions: (dir) => this.creator.collisions(dir),
+      open: (dir) => this.openProject(dir),
+      isOpen: (dir) => this.openHost(dir) !== undefined,
+      startThread: opts.startThread ?? threadLaunchUnavailable,
+      ...opts.projectToolLimits,
+    });
+    this.liveHandler = createLiveMcpRequestHandler({ broker: this.broker, projectTools, bearer: this.liveBearer, projectOf: (root) => this.projectForWorkspaceRoot(root) });
     this.http = createServer((req, res) => this.request(req, res));
     this.http.on("upgrade", (req: IncomingMessage, socket: Duplex) => this.upgrade(req, socket));
   }

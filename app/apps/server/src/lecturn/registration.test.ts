@@ -7,7 +7,7 @@
 import { chmodSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { AGENT_OPS } from "@rw/contracts";
+import { AGENT_OPS, PROJECT_TOOLS } from "@rw/contracts";
 import { afterAll, describe, expect, it } from "vitest";
 import { APP_ICON_PATH, absoluteSidecarBinary, iconDataUrl, rocketwrightRegistration, RW_LECTURN_INSTRUCTIONS } from "./registration.ts";
 
@@ -78,7 +78,7 @@ describe("Lecturn registration (B8, W2.1)", () => {
 
   it("names only tools the sidecar or the window serves, with the rw_ prefix", () => {
     const sidecarTools = readdirSync(join(REPO, "fixtures/contracts/tools")).map((f) => f.split(".")[0]!);
-    const known = new Set([...sidecarTools, ...AGENT_OPS]);
+    const known = new Set([...sidecarTools, ...AGENT_OPS, ...PROJECT_TOOLS]);
     // Tool names are plain text (CPW2B): no backticks model code formatting for identifiers.
     const named = [...RW_LECTURN_INSTRUCTIONS.matchAll(/\brw_([a-z_]+)\b/g)].map((m) => m[1]!);
     expect(named.length).toBeGreaterThan(5);

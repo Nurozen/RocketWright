@@ -1,12 +1,12 @@
 /**
  * The app server's MCP route for Lecturn's live tier, `/mcp/live` (B9, D20):
- * what Lecturn calls with `setLiveTools({url, bearer})`. It lists only the
+ * what Lecturn calls with `setLiveTools({url, bearer})`. It lists the
  * `ViewportBroker` tools (`viewport_*`, `plot_render`; `app_*` only with
- * `RW_TEST_HOOKS=1`) and serves the `ui://rw/render-card` resource the render
- * tools declare. MCP v2 (`createMcpHandler`, one low-level `Server` per
+ * `RW_TEST_HOOKS=1`) and the project tools (`project_new`, `project_open`), and
+ * serves the `ui://rw/render-card` resource the render tools declare. MCP v2 (`createMcpHandler`, one low-level `Server` per
  * request), bound to 127.0.0.1, with localhost Host/Origin guards (DNS
- * rebinding) and one static per-launch bearer (`LiveToolsBearer`); each call
- * is routed by `realpath(_meta["lecturn/context"].workspaceRoot)`.
+ * rebinding) and one static per-launch bearer (`LiveToolsBearer`); each broker
+ * call is routed by `realpath(_meta["lecturn/context"].workspaceRoot)`.
  *
  * B17 removed the old chat's thread-scoped `/mcp` route (the sidecar tools
  * proxied with its approval check): Lecturn reaches the CLI tools through
@@ -18,6 +18,7 @@
 import { readFileSync } from "node:fs";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { resolve } from "node:path";
+import type { JsonObject } from "@rw/contracts";
 import { ResourceNotFoundError, Server, createMcpHandler, type AuthInfo } from "@modelcontextprotocol/server";
 import {
   localhostHostValidation,
@@ -26,21 +27,11 @@ import {
   type NodeIncomingMessageLike,
 } from "@modelcontextprotocol/node";
 import { RENDER_CARD_URI, brokerToolResult, lecturnContextOf, type ViewportBroker } from "../broker/ViewportBroker.ts";
-import type { SidecarLike } from "../sidecar/SidecarClient.ts";
+import { toolError, type CallResult, type ProjectTools } from "./projectTools.ts";
 import { bearerToken, type LiveToolsBearer } from "./session-registry.ts";
 
 /** The live tools route published to Lecturn (B9). */
 export const LIVE_MCP_PATH = "/mcp/live";
-
-type CallResult = Awaited<ReturnType<SidecarLike["callTool"]>>;
-
-function toolError(code: string, message: string): CallResult {
-  return {
-    isError: true,
-    content: [{ type: "text", text: `${code}: ${message}` }],
-    _meta: { "rw/error": { code, message } },
-  };
-}
 
 /** The 401 the route answers without a valid bearer. */
 export function unauthorized(res: ServerResponse, message: string): void {
@@ -65,6 +56,7 @@ export function renderCardHtml(): string {
 
 export interface LiveMcpDeps {
   broker: ViewportBroker;
+  projectTools: ProjectTools;
   bearer: LiveToolsBearer;
   /** The open RocketWright project whose directory's realpath is `workspaceRoot`. */
   projectOf(workspaceRoot: string): string | undefined;
@@ -82,13 +74,15 @@ const RENDER_CARD_RESOURCE = {
 function buildLiveServer(deps: LiveMcpDeps): Server {
   const server = new Server({ name: "rocketwright-live", version: "0.1.0" }, { capabilities: { tools: {}, resources: {} } });
 
-  server.setRequestHandler("tools/list", async () => ({ tools: deps.broker.tools() }));
+  server.setRequestHandler("tools/list", async () => ({ tools: [...deps.broker.tools(), ...deps.projectTools.tools()] }));
 
   server.setRequestHandler("tools/call", async (req) => {
     const { name } = req.params;
     const args = (req.params.arguments ?? {}) as Record<string, unknown>;
-    if (!deps.broker.serves(name)) return toolError("not_found", `no tool named ${name}`);
     const context = lecturnContextOf(req.params._meta as Record<string, unknown> | undefined);
+    // Ahead of the workspace-root check: a project tool needs no open project to act on.
+    if (deps.projectTools.serves(name)) return deps.projectTools.call(name, args as JsonObject, { threadId: context?.threadId ?? null, projectId: context?.projectId ?? null });
+    if (!deps.broker.serves(name)) return toolError("not_found", `no tool named ${name}`);
     if (context === undefined) return toolError("invalid_args", `${name} needs _meta["lecturn/context"].workspaceRoot`);
     const r = await deps.broker.requestForWorkspace(context, name, args as never, deps.projectOf);
     return brokerToolResult(name, r, args) as CallResult;

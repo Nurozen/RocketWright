@@ -6,7 +6,7 @@
  * - the lease: `setLiveTools({url, bearer})` once connected, cleared on close;
  * - guards: localhost Host/Origin, the static bearer and its 401 shape (the
  *   old `/mcp` route is gone, B17);
- * - `tools/list` is exactly `broker.tools()`, and `viewport_render` /
+ * - `tools/list` is `broker.tools()` then the project tools, and `viewport_render` /
  *   `plot_render` declare `ui://rw/render-card`, which the route serves;
  * - routing by `realpath(_meta["lecturn/context"].workspaceRoot)` (a symlinked
  *   project, either spelling) with the thread from the same meta; a closed
@@ -18,7 +18,7 @@ import { request as httpRequest } from "node:http";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/client";
-import { AGENT_OPS, type BrokerRequest, type ProjectInfo } from "@rw/contracts";
+import { AGENT_OPS, PROJECT_TOOLS, type BrokerRequest, type ProjectInfo } from "@rw/contracts";
 import { BROKER_TOOLS, PROJECT_NOT_OPEN, RENDER_CARD_URI, ViewportBroker, lecturnContextOf } from "../src/broker/ViewportBroker.ts";
 import { LecturnLink } from "../src/lecturn/connection.ts";
 import { LIVE_MCP_PATH, RENDER_CARD_PATH, UI_MIME } from "../src/mcp/http.ts";
@@ -179,14 +179,14 @@ describe("live tools route (B9)", () => {
     expect((await rawPost(server.liveMcpUrl, { ...auth, origin: `http://127.0.0.1:${port}` })).status).toBe(200);
   });
 
-  it("lists exactly broker.tools(); the render tools declare ui://rw/render-card", async () => {
+  it("lists broker.tools() then the project tools; the render tools declare ui://rw/render-card", async () => {
     const c = await connect(server.liveMcpUrl, server.liveBearer.token);
     try {
       const { tools } = await c.listTools();
-      expect(tools.map((t) => t.name)).toEqual([...AGENT_OPS]);
-      expect(tools).toEqual(server.broker.tools());
+      expect(tools.map((t) => t.name)).toEqual([...AGENT_OPS, ...PROJECT_TOOLS]);
+      expect(tools.slice(0, AGENT_OPS.length)).toEqual(server.broker.tools());
       const ui = Object.fromEntries(tools.map((t) => [t.name, (t._meta?.ui as { resourceUri?: string } | undefined)?.resourceUri]));
-      expect(ui).toEqual({ viewport_render: RENDER_CARD_URI, viewport_select: undefined, viewport_set_camera: undefined, plot_render: RENDER_CARD_URI });
+      expect(ui).toEqual({ viewport_render: RENDER_CARD_URI, viewport_select: undefined, viewport_set_camera: undefined, plot_render: RENDER_CARD_URI, project_new: undefined, project_open: undefined });
       expect(BROKER_TOOLS.viewport_render._meta?.["rw/approval"]).toBe("never");
     } finally {
       await c.close();
@@ -294,8 +294,8 @@ describe("live tools route (B9)", () => {
 
 describe("lecturnContextOf / LiveToolsBearer (B9)", () => {
   it("reads the workspace root and thread; anything else is ignored", () => {
-    expect(lecturnContextOf({ "lecturn/context": { workspaceRoot: "/w", threadId: "t", projectId: "p", turnId: "u" } })).toEqual({ workspaceRoot: "/w", threadId: "t" });
-    expect(lecturnContextOf({ "lecturn/context": { workspaceRoot: "/w" } })).toEqual({ workspaceRoot: "/w", threadId: null });
+    expect(lecturnContextOf({ "lecturn/context": { workspaceRoot: "/w", threadId: "t", projectId: "p", turnId: "u" } })).toEqual({ workspaceRoot: "/w", threadId: "t", projectId: "p" });
+    expect(lecturnContextOf({ "lecturn/context": { workspaceRoot: "/w" } })).toEqual({ workspaceRoot: "/w", threadId: null, projectId: null });
     expect(lecturnContextOf({ "lecturn/context": { workspaceRoot: "" } })).toBeUndefined();
     expect(lecturnContextOf({ "lecturn/context": "nope" })).toBeUndefined();
     expect(lecturnContextOf(undefined)).toBeUndefined();
