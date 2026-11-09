@@ -11,7 +11,7 @@ import { Banner } from "../ui/Banner.tsx";
 import { BRAND } from "./brand.ts";
 import { Icon } from "./Icon.tsx";
 import { NewProjectDialog, type NewProjectOffer } from "./NewProjectDialog.tsx";
-import { errorText, openFolder, openRecent, openSample, RECENT_STATUS_TEXT, recentAge } from "./projectActions.ts";
+import { defaultUnits, errorText, openFolder, openRecent, openSample, RECENT_STATUS_TEXT, recentAge } from "./projectActions.ts";
 
 export interface WelcomeProps {
   client: RpcLike;
@@ -76,7 +76,7 @@ export function Welcome({ client, host, notice, onOpened, onImport }: WelcomePro
   const onOpenSample = () =>
     perform(async () => {
       setStatus("Creating the sample rocket…");
-      onOpened((await openSample(client)).projectId);
+      onOpened((await openSample(client, await defaultUnits(host))).projectId);
     });
 
   const onOpenRecent = (dir: string) =>

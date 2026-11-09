@@ -146,7 +146,7 @@ export function AssemblyToolbarSlot({ store, client = null, httpBase = "" }: { s
         onSection={(section) => set({ section })}
         onShowInternals={(showInternals) => set({ showInternals })}
         onShadows={(shadows) => set({ shadows })}
-        onUnits={(u: Units) => store.getState().ui.setUnits(u)}
+        onUnits={(u: Units) => void store.getState().ui.setProjectUnits(u)}
         onDrawing={client !== null && projectId !== null ? () => setDrawing(true) : undefined}
       />
       {drawing && client !== null && projectId !== null && <DrawingDialog client={client} projectId={projectId} httpBase={httpBase} onClose={() => setDrawing(false)} />}

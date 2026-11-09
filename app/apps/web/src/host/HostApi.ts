@@ -4,7 +4,7 @@
  * everything else calls a `HostApi` and shows whatever comes back, so a
  * browser's empty Recents and typed paths need no second code path.
  */
-import type { DesktopBoot, DesktopBridge, DesktopCommand, ExportFileRequest, ExportFileResult, FileFilter, PickFileOptions, PickFolderOptions, RecentProject, SaveAsOptions, ProjectInfo, schema } from "@rw/contracts";
+import type { DesktopBoot, DesktopBridge, DesktopCommand, DesktopPrefs, ExportFileRequest, ExportFileResult, FileFilter, PickFileOptions, PickFolderOptions, RecentProject, SaveAsOptions, ProjectInfo, schema } from "@rw/contracts";
 import { createBrowserHost } from "./browserHost.ts";
 import { createElectronHost } from "./electronHost.ts";
 
@@ -33,6 +33,11 @@ export interface HostApi {
   pathForFile(file: File): string | null;
   /** A new instance of the app, after this one's server has gone (D19); a browser reloads the page, which is all it can do. */
   relaunch(): Promise<void>;
+  /** Saved preferences (R3.4). A browser keeps them only for this tab (R0.12: no store is added for it). */
+  prefs(): Promise<DesktopPrefs>;
+  setPrefs(patch: Partial<DesktopPrefs>): Promise<void>;
+  /** Lecturn's providers panel: main drives the mounted pane on the desktop; a browser uses the page's own bridge, `inPane`. */
+  openProviders(inPane: () => void): Promise<void>;
 }
 
 /** `window.rwDesktop` as the preload exposes it (`apps/desktop/src/preload.ts`). */

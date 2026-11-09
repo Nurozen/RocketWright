@@ -1140,7 +1140,7 @@ function ConfigurationsToolbar({ store, ui }: { store: AppStore; ui: Configurati
       view={chipOf(view)}
       units={units}
       unitOptions={UNITS}
-      onUnitsChange={(u) => store.getState().ui.setUnits(u as Units)}
+      onUnitsChange={(u) => void store.getState().ui.setProjectUnits(u as Units)}
       onViewChange={(v) => store.getState().ui.setView({ view: v.toLowerCase() as typeof view })}
     >
       <span className="rw-toolbar__sep" aria-hidden />

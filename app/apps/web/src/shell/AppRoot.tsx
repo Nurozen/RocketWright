@@ -4,7 +4,7 @@
  * survives a switch and keeps the socket.
  */
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
-import type { PageId, ProjectInfo, SidecarState } from "@rw/contracts";
+import type { DesktopPrefs, PageId, ProjectInfo, SidecarState } from "@rw/contracts";
 import { desktopPaneGlobals, onOpenProject } from "../embed/bridge.ts";
 import { trackLecturnStatus } from "../embed/status.ts";
 import { createPathPrompts } from "../host/browserHost.ts";
@@ -17,10 +17,12 @@ import { dispatchCommand, type CommandHandlers } from "./commands.ts";
 import { RECONNECT_DELAYS_MS, type LinkStatus } from "./connection.ts";
 import { ErrorBoundary } from "./ErrorBoundary.tsx";
 import { INITIAL_LIFECYCLE, lifecycle, shellOutcome, type LifecycleState } from "./lifecycle.ts";
+import { isPageId } from "./model.ts";
 import { PathPromptModal } from "./PathPromptModal.tsx";
 import { errorText, nextOpen } from "./projectActions.ts";
 import { ProjectSurface } from "./ProjectSurface.tsx";
 import { QuickStart } from "./QuickStart.tsx";
+import { SettingsDialog } from "./SettingsDialog.tsx";
 import { undoInField } from "./undo.ts";
 import { useFileDrop } from "./useFileDrop.ts";
 import { useProjectActions, type SurfaceHandle } from "./useProjectActions.tsx";
@@ -32,6 +34,8 @@ export interface AppRootProps {
   /** `?project=`: show this one rather than what main reopened. */
   requestedProjectId: string | null;
   initialPage: PageId;
+  /** The URL named the page (`?page=`): it wins, and the last tab is neither restored nor recorded. */
+  pageForced?: boolean | undefined;
   runSource: RunDataSource;
   httpBase: string;
   /** Called whenever the window settles (or fails); publishes `window.__rwShell`. */
@@ -58,7 +62,7 @@ export function FatalScreen({ error, relaunchLabel = "Relaunch", onRelaunch }: {
   );
 }
 
-export function AppRoot({ url, requestedProjectId, initialPage, runSource, httpBase, onOutcome, connect = connectRpc, host: hostProp }: AppRootProps) {
+export function AppRoot({ url, requestedProjectId, initialPage, pageForced = false, runSource, httpBase, onOutcome, connect = connectRpc, host: hostProp }: AppRootProps) {
   const [prompts] = useState(createPathPrompts);
   const [host] = useState<HostApi>(() => hostProp ?? hostFor(window, prompts.prompt));
   const [state, dispatch] = useReducer(lifecycle, INITIAL_LIFECYCLE);
@@ -69,9 +73,22 @@ export function AppRoot({ url, requestedProjectId, initialPage, runSource, httpB
   stateRef.current = state;
   // A switch keeps the page the person is on; only the first surface starts on `?page=`.
   const page = useRef(initialPage);
-  const onPageChange = useCallback((p: PageId) => {
-    page.current = p;
-  }, []);
+  // A ref: a drag of the explode slider must not re-render the window for this.
+  const viewOptions = useRef<DesktopPrefs["view"] | undefined>(undefined);
+  const onPageChange = useCallback(
+    (p: PageId) => {
+      page.current = p;
+      if (!pageForced) host.setPrefs({ lastTab: p }).catch(() => undefined);
+    },
+    [host, pageForced],
+  );
+  const onViewOptions = useCallback(
+    (view: DesktopPrefs["view"]) => {
+      viewOptions.current = view;
+      host.setPrefs({ view }).catch(() => undefined);
+    },
+    [host],
+  );
 
   useEffect(() => {
     let live = true;
@@ -112,8 +129,12 @@ export function AppRoot({ url, requestedProjectId, initialPage, runSource, httpB
       if (!live) return c.close();
       adopt(c);
       dispatch({ type: "connected" });
-      const [boot, list] = await Promise.all([host.boot(), c.call("project.list", {})]);
+      const [boot, list, saved] = await Promise.all([host.boot(), c.call("project.list", {}), host.prefs().catch(() => null)]);
       if (!live) return;
+      if (saved !== null) {
+        viewOptions.current = saved.view;
+        if (!pageForced && isPageId(saved.lastTab)) page.current = saved.lastTab;
+      }
       dispatch({ type: "listed", requested: requestedProjectId, active: boot.activeProjectId, projects: list.projects.map((p) => p.projectId), notice: boot.notice });
     })().catch((e: unknown) => {
       if (!live) return;
@@ -126,7 +147,7 @@ export function AppRoot({ url, requestedProjectId, initialPage, runSource, httpB
       if (retry !== null) clearTimeout(retry);
       conn?.close();
     };
-  }, [url, requestedProjectId, host, connect]);
+  }, [url, requestedProjectId, host, connect, pageForced]);
 
   useEffect(() => {
     const outcome = shellOutcome(state);
@@ -186,6 +207,8 @@ export function AppRoot({ url, requestedProjectId, initialPage, runSource, httpB
   const surfaceCommands = useRef<CommandHandlers | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
   const openHelp = useCallback(() => setHelpOpen(true), []);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const openSettings = useCallback(() => setSettingsOpen(true), []);
   const zoom = useRef(ZOOM_DEFAULT);
   // Registered once, not per connection: a pick made while still connecting is told why it did nothing rather than vanishing.
   useEffect(() => {
@@ -197,13 +220,14 @@ export function AppRoot({ url, requestedProjectId, initialPage, runSource, httpB
       "edit.undo": () => edit("undo", () => dispatchCommand({ id: "edit.undo" }, surfaceCommands.current ?? {})),
       "edit.redo": () => edit("redo", () => dispatchCommand({ id: "edit.redo" }, surfaceCommands.current ?? {})),
       "help.quickStart": openHelp,
+      "app.settings": openSettings,
       "view.zoom": ({ direction }) => {
         zoom.current = nextZoom(zoom.current, direction);
         applyZoom(window, zoom.current);
       },
     };
     return host.onCommand((command) => void dispatchCommand(command, { ...latest.current.commands, ...surfaceCommands.current, ...windowCommands }));
-  }, [host, openHelp]);
+  }, [host, openHelp, openSettings]);
 
   const relaunchLabel = host.kind === "desktop" ? "Relaunch" : "Reload";
   const relaunch = () => void host.relaunch().catch((e: unknown) => report(`Could not relaunch: ${errorText(e)}`));
@@ -236,6 +260,9 @@ export function AppRoot({ url, requestedProjectId, initialPage, runSource, httpB
         surfaceRef={surfaceRef}
         commandsRef={surfaceCommands}
         onOpenHelp={openHelp}
+        onOpenSettings={openSettings}
+        initialView={viewOptions.current}
+        onViewOptions={onViewOptions}
         host={host}
       />
     );
@@ -281,6 +308,20 @@ export function AppRoot({ url, requestedProjectId, initialPage, runSource, httpB
       </div>
       {actions.overlays}
       {helpOpen && <QuickStart onClose={() => setHelpOpen(false)} />}
+      {settingsOpen && (
+        <SettingsDialog
+          host={host}
+          onClose={() => setSettingsOpen(false)}
+          // The panel lives in the agent pane, which needs a project: on Welcome there is none to open it in.
+          onOpenProviders={
+            state.phase !== "project"
+              ? undefined
+              : () => {
+                  host.openProviders(() => surfaceRef.current?.openProviders()).catch((e: unknown) => report(`Could not open Agent providers: ${errorText(e)}`));
+                }
+          }
+        />
+      )}
       <PathPromptModal prompts={prompts} />
     </>
   );

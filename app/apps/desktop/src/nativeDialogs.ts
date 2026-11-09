@@ -13,9 +13,10 @@
  * `createConsentDialogs` is the native dialog behind the agent's project tools
  * (R1.3, D10, D11). The host channel brings it the request; no page is involved.
  */
-import { DESKTOP_INVOKE_CHANNELS, EXPORT_FILE_TYPES, type DesktopBoot, type ExportFileRequest, type FileFilter, type HostRequest, type schema } from "@rw/contracts";
+import { DESKTOP_INVOKE_CHANNELS, EXPORT_FILE_TYPES, type DesktopBoot, type DisplayUnits, type ExportFileRequest, type FileFilter, type HostRequest, type schema } from "@rw/contracts";
 import { basename, isAbsolute, join } from "node:path";
 import type { HostAnswer } from "./mainRpc.ts";
+import { prefsPatch, type Preferences } from "./preferences.ts";
 import type { Recents } from "./recents.ts";
 
 interface OpenOptions {
@@ -64,6 +65,9 @@ export interface DesktopServices<W extends WindowLike> {
   headless?: boolean;
   /** Starts a new instance of the app and ends this one (R3.3, D19). */
   relaunch: () => void;
+  prefs: Pick<Preferences, "get" | "update">;
+  /** Opens Lecturn's providers panel in the agent pane; throws without a mounted pane. */
+  openProviders: () => void;
 }
 
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null;
@@ -159,6 +163,9 @@ export function registerDesktopServices<W extends WindowLike>(deps: DesktopServi
   });
   handle(c.setActiveProject, (_win, project) => recents.see(activeProject(project)));
   handle(c.relaunch, () => deps.relaunch());
+  handle(c.prefs, () => deps.prefs.get());
+  handle(c.setPrefs, (_win, patch) => deps.prefs.update(prefsPatch(patch)));
+  handle(c.openProviders, () => deps.openProviders());
   return () => {
     for (const channel of channels) ipc.removeHandler(channel);
   };
@@ -200,6 +207,8 @@ export interface ConsentDeps<W extends WindowLike> {
   focus: () => void;
   /** A hidden run: nobody can answer, so every request is refused. */
   headless?: boolean;
+  /** The default-units preference, read when a `project_new` is accepted (R3.4). */
+  displayUnits?: () => DisplayUnits | null;
 }
 
 export interface ConsentDialogs {
@@ -267,7 +276,9 @@ export function createConsentDialogs<W extends WindowLike>(deps: ConsentDeps<W>)
       try {
         // The race answers on time even if a box ignores its signal.
         const result = await Promise.race([turn, cancelled]);
-        return { accepted: result?.response === CONSENT_ACCEPT_BUTTON };
+        if (result?.response !== CONSENT_ACCEPT_BUTTON) return REFUSED;
+        const displayUnits = request.tool === "project_new" ? deps.displayUnits?.() : null;
+        return displayUnits === null || displayUnits === undefined ? { accepted: true } : { accepted: true, displayUnits };
       } finally {
         clearTimeout(deadline);
         signal.removeEventListener("abort", abort);

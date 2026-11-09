@@ -3,7 +3,7 @@
  * against fake deps, where a dialog can be held open; the last block drives
  * the real route, host channel and `rw init`. Projects stay under `/tmp`.
  */
-import { existsSync, mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/client";
@@ -509,6 +509,15 @@ describe("project tools: the real route and host channel (U37)", () => {
     expect(page.pushes("host.request")).toEqual([]);
     expect(starts.at(-1)).toMatchObject({ request: "Add a nose cone.", caller: { threadId: "lecturn-t", projectId: "lecturn-p" }, project: { projectId: "solstice-rocket" } });
     expect(r.structuredContent).toMatchObject({ project: { projectId: "solstice-rocket", dir: join(base, "solstice-rocket") }, threadId: "launched" });
+  });
+
+  it("writes main's default units with the project: the consent path (R3.4)", async () => {
+    const pending = call("project_new", { name: "inch-units", location: base, template: "empty" });
+    const asked = await main.push("host.request", (q) => q.name === "inch-units");
+    await main.call("host.respond", { requestId: asked.requestId, accepted: true, displayUnits: { length: "in" } });
+    const r = await pending;
+    expect(r.isError, text(r)).not.toBe(true);
+    expect(readFileSync(join(base, "inch-units", "rocketwright.toml"), "utf8")).toMatch(/^\[display_units\][\s\S]*^length = "in"$/m);
   });
 
   it("works with no workspace root: the caller is simply unknown", async () => {

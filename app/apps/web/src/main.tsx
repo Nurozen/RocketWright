@@ -199,6 +199,7 @@ function start(): void {
         url={rpc!}
         requestedProjectId={params.get("project")}
         initialPage={pageOfBar(page)}
+        pageForced={surface !== null || isBarPage(requested)}
         runSource={cachedSource(httpRunSource(http))}
         httpBase={http}
         onOutcome={(o) => {

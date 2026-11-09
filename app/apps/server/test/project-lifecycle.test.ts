@@ -86,6 +86,51 @@ describe("project lifecycle (U14)", () => {
     await c.call("project.close", { projectId: project.projectId });
   });
 
+  it("writes the default units with the project: the renderer's path (R3.4)", async () => {
+    const location = freshLocation("units");
+    const { project } = await c.call("project.create", { name: "Inch rocket", location, template: "empty", displayUnits: { length: "in" } });
+    expect(readFileSync(join(project.dir, "rocketwright.toml"), "utf8")).toMatch(/^\[display_units\][\s\S]*^length = "in"$/m);
+    await c.call("project.close", { projectId: project.projectId });
+  });
+
+  it("creates without a table's value when no units are given", async () => {
+    const location = freshLocation("no-units");
+    const { project } = await c.call("project.create", { name: "Plain", location, template: "empty" });
+    expect(readFileSync(join(project.dir, "rocketwright.toml"), "utf8")).not.toMatch(/length = "in"/);
+    await c.call("project.close", { projectId: project.projectId });
+  });
+
+  it("refuses units the flag could not carry, before any process", async () => {
+    const location = freshLocation("bad-units");
+    expect(await c.request("project.create", { name: "Bad", location, displayUnits: { length: "in,mass=kg" } })).toMatchObject({ ok: false, error: { code: "invalid_params" } });
+    expect(await c.request("project.create", { name: "Bad", location, displayUnits: { length: 1 } })).toMatchObject({ ok: false, error: { code: "invalid_params" } });
+    expect(existsSync(join(location, "Bad"))).toBe(false);
+  });
+
+  it("the units control's edit changes the manifest and not the model hash (R3.4)", async () => {
+    const location = freshLocation("units-hash");
+    const { project } = await c.call("project.create", { name: "Hash", location, template: "simple-rocket" });
+    const before = await c.call("project.subscribe", { projectId: project.projectId });
+    const hash = before.snapshot.files.model_hash;
+    // Same shape as `displayLengthOps` builds for a table that exists, then one that does not.
+    await c.call("model.patch", { projectId: project.projectId, ops: [{ op: "add", path: "/project/display_units/length", value: "in" }], label: "Set units to in" });
+    const manifest = readFileSync(join(project.dir, "rocketwright.toml"), "utf8");
+    expect(manifest).toMatch(/^length = "in"$/m);
+    expect(manifest).toMatch(/^mass = "g"$/m);
+    const after = await c.call("project.subscribe", { projectId: project.projectId });
+    expect(after.snapshot.files.model_hash).toBe(hash);
+    await c.call("project.close", { projectId: project.projectId });
+  });
+
+  it("adds a display_units table to a project that has none", async () => {
+    const location = freshLocation("no-table");
+    const { project } = await c.call("project.create", { name: "Bare", location, template: "empty" });
+    expect(readFileSync(join(project.dir, "rocketwright.toml"), "utf8")).not.toContain("[display_units]");
+    await c.call("model.patch", { projectId: project.projectId, ops: [{ op: "add", path: "/project/display_units", value: { length: "cm" } }] });
+    expect(readFileSync(join(project.dir, "rocketwright.toml"), "utf8")).toMatch(/^\[display_units\]$/m);
+    await c.call("project.close", { projectId: project.projectId });
+  });
+
   it("creates missing parent folders through rw init and expands ~", async () => {
     const home = freshLocation("home");
     vi.stubEnv("HOME", home);

@@ -9,7 +9,7 @@ import { Banner } from "../ui/Banner.tsx";
 import { Modal } from "../ui/Modal.tsx";
 import { RadioCardGroup } from "../ui/RadioCard.tsx";
 import { TextField } from "../ui/TextField.tsx";
-import { createProject, DEFAULT_TEMPLATE, errorText, fileBase, fileStem, locationProblem, nameProblem, targetPreview, TEMPLATE_CARDS, type NewProjectTemplate, type ProjectRpc } from "./projectActions.ts";
+import { createProject, DEFAULT_TEMPLATE, defaultUnits, errorText, fileBase, fileStem, locationProblem, nameProblem, targetPreview, TEMPLATE_CARDS, type NewProjectTemplate, type ProjectRpc } from "./projectActions.ts";
 
 /** A folder Open found empty of projects: the dialog starts on it and says why (R0.4). */
 export interface NewProjectOffer {
@@ -20,7 +20,7 @@ export interface NewProjectOffer {
 
 export interface NewProjectDialogProps {
   client: ProjectRpc;
-  host: Pick<HostApi, "pickFolder">;
+  host: Pick<HostApi, "pickFolder" | "prefs">;
   offer?: NewProjectOffer | undefined;
   /** Create from this `.ork` (D17): the dialog names the file and has no template to choose. */
   ork?: string | undefined;
@@ -84,7 +84,7 @@ export function NewProjectDialog({ client, host, offer, ork, onClose, onCreated 
     setError(null);
     if (badName !== null || badLocation !== null) return;
     setCreating(true);
-    createProject(client, { name, location, template, ork }).then(
+    defaultUnits(host).then((displayUnits) => createProject(client, { name, location, template, ork, displayUnits })).then(
       (project) => onCreated(project.projectId),
       (err: unknown) => {
         setCreating(false);

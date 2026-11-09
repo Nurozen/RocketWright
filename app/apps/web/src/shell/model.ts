@@ -71,6 +71,10 @@ export const PAGE_TABS: Readonly<Record<PageId, { tab: TopTab; local: DesignTab 
 };
 
 /** Header tab (and Design local tab) → state page. */
+export function isPageId(page: unknown): page is PageId {
+  return typeof page === "string" && Object.hasOwn(PAGE_TABS, page);
+}
+
 export function pageOf(tab: TopTab, local: DesignTab | null = null): PageId {
   switch (tab) {
     case "design":

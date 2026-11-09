@@ -176,6 +176,10 @@ test("the motor picker searches and filters the generic library and plots the cu
   await expect(page.getByTestId("motor.mount-pill")).toHaveText("1.8 cm mount");
   await page.getByTestId("toolbar.view-chip").filter({ hasText: "Side" }).click();
   await expect(page.getByTestId("motor.casing")).toHaveAttribute("data-view", "side");
+  // The control writes `[display_units]` (R3.4), so it would outlast this test on the shared project.
+  await page.getByTestId("toolbar.units").selectOption("mm");
+  await expect(page.getByTestId("motor.mount-pill")).toHaveText("18 mm mount");
+  await expect.poll(() => readFileSync(join(PROJECT, "rocketwright.toml"), "utf8")).toMatch(/^length = "mm"$/m);
 });
 
 test("New, Duplicate, Rename, Assign, deployment, and Delete write the project", async ({ page }) => {
@@ -266,6 +270,7 @@ test("altitude, delay, and timer deployments are editable and validated", async 
   await expect(alt).toHaveValue("492.1");
   await expect(chute.getByTestId("recovery.altitude-cell")).toContainText("ft");
   await page.getByTestId("toolbar.units").selectOption("mm");
+  await expect.poll(() => readFileSync(join(PROJECT, "rocketwright.toml"), "utf8")).toMatch(/^length = "mm"$/m);
 
   // A delay after the event.
   const delay = chute.getByTestId("recovery.delay");
@@ -276,7 +281,7 @@ test("altitude, delay, and timer deployments are editable and validated", async 
   // Timer: the time after launch is required, then written.
   await streamer.getByTestId("recovery.event").selectOption("timer");
   await expect(streamer).toHaveAttribute("data-event", "timer");
-  await expect(page.getByTestId("recovery.validation")).toContainText("deploys on a timer but no `delay` is given");
+  await expect(page.getByTestId("recovery.validation")).toContainText("deploys on a timer but no delay is given");
   const timer = streamer.getByTestId("recovery.delay");
   await expect(timer).toHaveAttribute("aria-label", "Streamer time after launch");
   await timer.fill("-2");

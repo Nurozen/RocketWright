@@ -2,6 +2,7 @@
 import type { ProjectInfo, ProjectPatch, ProjectSnapshot, RwRef, SnapshotKey } from "@rw/contracts";
 import { RpcCallError, type RpcLike } from "../rpc.ts";
 import type { AppState, DeepReadonly, ProjectSlice, SliceCtx } from "../types.ts";
+import { isLengthUnit, manifestDisplayUnits, MANIFEST } from "../displayUnits.ts";
 import { handshake, loadWasm } from "../wasm.ts";
 import { onEmbedThreads, onLecturnSwitch } from "./chat.ts";
 import { followRerun, rowKey } from "./runs.ts";
@@ -171,6 +172,12 @@ function afterMirrorChange(ctx: SliceCtx, prev: AppState["project"]["snapshot"])
   const s = ctx.get();
   const snap = s.project.snapshot;
   if (snap === null) return;
+
+  // Units: the project's `[display_units]` is what the toolbar shows (R3.4), including an undo or an agent's edit of it.
+  if (snap.files !== prev?.files) {
+    const length = manifestDisplayUnits(snap.files.files[MANIFEST])["length"];
+    if (isLengthUnit(length) && length !== s.ui.units) s.ui.setUnits(length);
+  }
 
   // Draft: another writer committed underneath unsaved edits.
   const hash = snap.evaluated?.model_hash ?? snap.files.model_hash;

@@ -4,7 +4,8 @@
  * for creating and opening. The server repeats every check; a failure it
  * reports is thrown as-is so the caller can show its message.
  */
-import { EXPORT_FILE_TYPES, type FileFilter, type ProjectInfo, type ProjectTemplate, type RecentStatus, type schema } from "@rw/contracts";
+import { EXPORT_FILE_TYPES, type DisplayUnits, type FileFilter, type ProjectInfo, type ProjectTemplate, type RecentStatus, type schema } from "@rw/contracts";
+import type { HostApi } from "../host/HostApi.ts";
 import { exportFileName } from "../pages/results/csv.ts";
 import type { RpcLike } from "../state/rpc.ts";
 import type { RadioCardOption } from "../ui/RadioCard.tsx";
@@ -71,11 +72,23 @@ export interface CreateRequest {
   template: NewProjectTemplate;
   /** Build it from this `.ork` instead of the template (D17). */
   ork?: string | undefined;
+  /** The default-units preference (R3.4). */
+  displayUnits?: DisplayUnits | null | undefined;
 }
 
-export async function createProject(rpc: ProjectRpc, { name, location, template, ork }: CreateRequest): Promise<ProjectInfo> {
+/** The default-units preference, if any. Failing to read it must not stop a project being made. */
+export async function defaultUnits(host: Pick<HostApi, "prefs">): Promise<DisplayUnits | null> {
+  return host.prefs().then(
+    (p) => p.defaultDisplayUnits,
+    () => null,
+  );
+}
+
+const unitsParam = (displayUnits: DisplayUnits | null | undefined): { displayUnits?: DisplayUnits } => (displayUnits === null || displayUnits === undefined ? {} : { displayUnits });
+
+export async function createProject(rpc: ProjectRpc, { name, location, template, ork, displayUnits }: CreateRequest): Promise<ProjectInfo> {
   const from = ork === undefined ? { template } : { source: { ork } };
-  const { project } = await rpc.call("project.create", { name: name.trim(), location: location.trim(), ...from });
+  const { project } = await rpc.call("project.create", { name: name.trim(), location: location.trim(), ...from, ...unitsParam(displayUnits) });
   return project;
 }
 
@@ -152,8 +165,8 @@ export async function nextOpen(rpc: ProjectRpc, closed: string): Promise<string 
 }
 
 /** A durable copy in the default location, numbered if one is already there (R0.8). */
-export async function openSample(rpc: ProjectRpc): Promise<ProjectInfo> {
-  const { project } = await rpc.call("project.create", { name: SAMPLE_NAME, template: "sample" });
+export async function openSample(rpc: ProjectRpc, displayUnits?: DisplayUnits | null): Promise<ProjectInfo> {
+  const { project } = await rpc.call("project.create", { name: SAMPLE_NAME, template: "sample", ...unitsParam(displayUnits) });
   return project;
 }
 

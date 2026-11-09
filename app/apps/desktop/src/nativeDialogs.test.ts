@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { DESKTOP_INVOKE_CHANNELS, type DesktopBoot, type HostRequest } from "@rw/contracts";
+import { DESKTOP_INVOKE_CHANNELS, type DesktopBoot, type DisplayUnits, type HostRequest } from "@rw/contracts";
 import { CONSENT_ACCEPT_BUTTON, CONSENT_CANCEL_BUTTON, CONSENT_DEADLINE_MS, createConsentDialogs, registerDesktopServices, type ConsentBoxOptions, type ConsentDialogLike, type DesktopServices, type DialogLike, type HandlerIpc } from "./nativeDialogs.ts";
+import type { Preferences } from "./preferences.ts";
 import type { Recents } from "./recents.ts";
 
 type Handler = (event: { sender: unknown }, ...args: unknown[]) => unknown;
@@ -31,6 +32,8 @@ function setup(opts: { headless?: boolean; window?: FakeWindow | null; exportFil
   let documents = "/docs";
   const boot: { value: DesktopBoot } = { value: { activeProjectId: null, notice: null } };
   const documentsCalls = { count: 0 };
+  const prefs = { get: vi.fn<Preferences["get"]>(() => ({ window: null, view: {}, lastTab: "results", defaultDisplayUnits: null })), update: vi.fn<Preferences["update"]>(() => Promise.resolve()) };
+  const openProviders = vi.fn<() => void>();
   const dispose = registerDesktopServices({
     ipc,
     dialog,
@@ -42,6 +45,8 @@ function setup(opts: { headless?: boolean; window?: FakeWindow | null; exportFil
     recents,
     boot: () => boot.value,
     relaunch,
+    prefs,
+    openProviders,
     ...(opts.headless !== undefined ? { headless: opts.headless } : {}),
     ...(opts.exportFile !== undefined ? { exportFile: opts.exportFile } : {}),
   });
@@ -51,11 +56,11 @@ function setup(opts: { headless?: boolean; window?: FakeWindow | null; exportFil
     return Promise.resolve().then(() => handler({ sender: win.webContents }, ...args));
   };
   const callAs = (sender: unknown, channel: string, ...args: unknown[]): Promise<unknown> => Promise.resolve().then(() => handlers.get(channel)!({ sender }, ...args));
-  return { handlers, win, dialog, recents, boot, relaunch, documentsCalls, setDocuments: (d: string) => (documents = d), call, callAs, dispose };
+  return { handlers, win, dialog, recents, boot, relaunch, prefs, openProviders, documentsCalls, setDocuments: (d: string) => (documents = d), call, callAs, dispose };
 }
 
 const c = DESKTOP_INVOKE_CHANNELS;
-const OWNED = [c.boot, c.pickFolder, c.pickFile, c.saveAs, c.exportFile, c.recents, c.removeRecent, c.setActiveProject, c.relaunch];
+const OWNED = [c.boot, c.pickFolder, c.pickFile, c.saveAs, c.exportFile, c.recents, c.removeRecent, c.setActiveProject, c.relaunch, c.prefs, c.setPrefs, c.openProviders];
 
 describe("sender check", () => {
   it("registers the services it owns and removes them", () => {
@@ -79,6 +84,34 @@ describe("sender check", () => {
     await expect(setup({ window: null }).callAs({}, c.boot)).rejects.toThrow("not the app window");
     const gone = setup({ window: { webContents: {}, isDestroyed: () => true } });
     await expect(gone.callAs(gone.win.webContents, c.boot)).rejects.toThrow("not the app window");
+  });
+});
+
+describe("preferences and Agent providers (R3.4)", () => {
+  it("answers prefs from what main holds", async () => {
+    const t = setup();
+    await expect(t.call(c.prefs)).resolves.toMatchObject({ lastTab: "results" });
+  });
+
+  it("passes a checked patch on, never the window bounds", async () => {
+    const t = setup();
+    await t.call(c.setPrefs, { lastTab: "results", window: { x: 0, y: 0, width: 1, height: 1 } });
+    expect(t.prefs.update).toHaveBeenCalledWith({ lastTab: "results" });
+  });
+
+  it("refuses a patch that is not an object", async () => {
+    const t = setup();
+    await expect(t.call(c.setPrefs, "nope")).rejects.toThrow(TypeError);
+  });
+
+  it("opens the providers panel, and reports a failure to the page", async () => {
+    const t = setup();
+    await t.call(c.openProviders);
+    expect(t.openProviders).toHaveBeenCalledOnce();
+    t.openProviders.mockImplementationOnce(() => {
+      throw new Error("the agent pane is not open");
+    });
+    await expect(t.call(c.openProviders)).rejects.toThrow("not open");
   });
 });
 
@@ -244,7 +277,7 @@ describe("consent dialog", () => {
   }
 
   /** Like Electron: an aborted box closes as if its Cancel was pressed, unless told to ignore the signal. */
-  function consent(opts: { headless?: boolean; window?: FakeWindow | null; ignoreAbort?: boolean } = {}) {
+  function consent(opts: { headless?: boolean; window?: FakeWindow | null; ignoreAbort?: boolean; displayUnits?: () => DisplayUnits | null } = {}) {
     const win: FakeWindow = { webContents: {}, isDestroyed: () => false };
     const boxes: Box[] = [];
     const order: string[] = [];
@@ -261,6 +294,7 @@ describe("consent dialog", () => {
       window: () => (opts.window === undefined ? win : opts.window),
       focus: () => void order.push("focus"),
       ...(opts.headless !== undefined ? { headless: opts.headless } : {}),
+      ...(opts.displayUnits !== undefined ? { displayUnits: opts.displayUnits } : {}),
     });
     const socket = new AbortController();
     const ask = (request: HostRequest, signal: AbortSignal = socket.signal) => dialogs.ask(request, signal);
@@ -370,6 +404,36 @@ describe("consent dialog", () => {
       t.boxes[0]!.answer(CONSENT_CANCEL_BUTTON);
       await answer;
       expect(vi.getTimerCount()).toBe(0);
+    });
+  });
+
+  describe("default units on the reply (R3.4)", () => {
+    it("adds the preference to an accepted project_new", async () => {
+      const t = consent({ displayUnits: () => ({ length: "in" }) });
+      const answer = t.ask(NEW);
+      await settle();
+      t.boxes[0]!.answer(CONSENT_ACCEPT_BUTTON);
+      await expect(answer).resolves.toEqual({ accepted: true, displayUnits: { length: "in" } });
+    });
+
+    it("leaves it off when there is no preference", async () => {
+      const t = consent({ displayUnits: () => null });
+      const answer = t.ask(NEW);
+      await settle();
+      t.boxes[0]!.answer(CONSENT_ACCEPT_BUTTON);
+      await expect(answer).resolves.toEqual({ accepted: true });
+    });
+
+    it("never adds it to a cancel or to project_open", async () => {
+      const t = consent({ displayUnits: () => ({ length: "in" }) });
+      const refused = t.ask(NEW);
+      await settle();
+      t.boxes[0]!.answer(CONSENT_CANCEL_BUTTON);
+      await expect(refused).resolves.toEqual({ accepted: false });
+      const opened = t.ask(OPEN);
+      await settle();
+      t.boxes[1]!.answer(CONSENT_ACCEPT_BUTTON);
+      await expect(opened).resolves.toEqual({ accepted: true });
     });
   });
 
