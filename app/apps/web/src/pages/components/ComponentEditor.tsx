@@ -170,84 +170,88 @@ export function ComponentEditor(props: ComponentEditorProps) {
           ) : (
           <div className="rw-editor__body">
             <div className="rw-editor__main">
-              <div className="rw-editor__fields" data-tab={active} style={active === "Geometry" ? { gridTemplateRows: `repeat(${Math.max(1, Math.ceil(primary.length / 2))}, auto)` } : undefined}>
-                {primary.map(row)}
-              </div>
-              {extra.length > 0 && (
-                <div className="rw-editor__fields rw-editor__fields--extra" data-tab={active}>
-                  {extra.map(row)}
+              <div className="rw-editor__scroll" data-testid="editor.scroll">
+                <div className="rw-editor__fields" data-tab={active} style={active === "Geometry" ? { gridTemplateRows: `repeat(${Math.max(1, Math.ceil(primary.length / 2))}, auto)` } : undefined}>
+                  {primary.map(row)}
                 </div>
-              )}
-              {groups.map((g) =>
-                comps.every((c) => tablePresent(files, c, [g.key])) ? (
-                  <FieldGroupFrame key={g.key} heading={g.heading} group={g.key}>
-                    <div className="rw-editor__fields rw-editor__fields--extra" data-tab={active}>
-                      {g.fields.map(row)}
-                    </div>
-                  </FieldGroupFrame>
-                ) : (
-                  <button
-                    key={g.key}
-                    type="button"
-                    className="rw-button rw-editor__add-group"
-                    data-testid="editor.add-group"
-                    data-group={g.key}
-                    onClick={() => {
-                      props.onEdit(groupAddOps(comps, files, g, units), `${g.add} to ${title}`);
-                      props.onCommit();
-                    }}
-                  >
-                    <Icon name="plus" size={18} />
-                    {g.add}
-                  </button>
-                ),
-              )}
-              {outline && <FinOutlineEditor comp={first} units={units} diagnostics={props.diagnostics} onEdit={props.onEdit} onCommit={props.onCommit} onDiscard={props.onDiscard} />}
-              <div className="rw-editor__notes">
-                {active === "Mass override" && <p className="rw-editor__note">Leave a field empty to use the value derived from the geometry and material.</p>}
-              </div>
-              {(diags.length > 0 || Object.values(errors).some((e) => e)) && (
-                <ul className="rw-editor__diags" data-testid="editor.validation">
-                  {Object.entries(errors)
-                    .filter(([, e]) => e)
-                    .map(([k, e]) => (
-                      <li key={`local-${k}`} data-severity="error" data-field={k}>
-                        <Icon name="alert" size={14} /> {e}
+                {extra.length > 0 && (
+                  <div className="rw-editor__fields rw-editor__fields--extra" data-tab={active}>
+                    {extra.map(row)}
+                  </div>
+                )}
+                {groups.map((g) =>
+                  comps.every((c) => tablePresent(files, c, [g.key])) ? (
+                    <FieldGroupFrame key={g.key} heading={g.heading} group={g.key}>
+                      <div className="rw-editor__fields rw-editor__fields--extra" data-tab={active}>
+                        {g.fields.map(row)}
+                      </div>
+                    </FieldGroupFrame>
+                  ) : (
+                    <button
+                      key={g.key}
+                      type="button"
+                      className="rw-button rw-editor__add-group"
+                      data-testid="editor.add-group"
+                      data-group={g.key}
+                      onClick={() => {
+                        props.onEdit(groupAddOps(comps, files, g, units), `${g.add} to ${title}`);
+                        props.onCommit();
+                      }}
+                    >
+                      <Icon name="plus" size={18} />
+                      {g.add}
+                    </button>
+                  ),
+                )}
+                {outline && <FinOutlineEditor comp={first} units={units} diagnostics={props.diagnostics} onEdit={props.onEdit} onCommit={props.onCommit} onDiscard={props.onDiscard} />}
+                <div className="rw-editor__notes">
+                  {active === "Mass override" && <p className="rw-editor__note">Leave a field empty to use the value derived from the geometry and material.</p>}
+                </div>
+                {(diags.length > 0 || Object.values(errors).some((e) => e)) && (
+                  <ul className="rw-editor__diags" data-testid="editor.validation">
+                    {Object.entries(errors)
+                      .filter(([, e]) => e)
+                      .map(([k, e]) => (
+                        <li key={`local-${k}`} data-severity="error" data-field={k}>
+                          <Icon name="alert" size={14} /> {e}
+                        </li>
+                      ))}
+                    {diags.map((d, i) => (
+                      <li key={`${d.code}-${i}`} data-severity={d.severity} data-code={d.code} title={d.hint ?? d.code}>
+                        <Icon name="alert" size={14} /> {d.message}
                       </li>
                     ))}
-                  {diags.map((d, i) => (
-                    <li key={`${d.code}-${i}`} data-severity={d.severity} data-code={d.code} title={d.hint ?? d.code}>
-                      <Icon name="alert" size={14} /> {d.message}
-                    </li>
-                  ))}
-                </ul>
-              )}
-              <div className="rw-editor__status" data-testid="editor.status" data-kind={status.kind} title={status.title}>
-                <span className="rw-editor__status-dot" data-testid="editor.status-dot" aria-hidden />
-                <span>{status.kind === "clean" ? "No changes" : status.kind === "unsaved" ? "Modified · Not saved" : "Modified"}</span>
-                {status.detail !== "" && <span className="rw-editor__status-detail"> · {status.detail}</span>}
+                  </ul>
+                )}
               </div>
-              <div className="rw-editor__actions">
-                <div className="rw-editor__lib-wrap">
-                  <button
-                    type="button"
-                    className="rw-button"
-                    data-testid="editor.parts-library"
-                    aria-expanded={libOpen}
-                    onClick={() => {
-                      if (!libOpen) props.onOpenLibrary();
-                      setLibOpen(!libOpen);
-                    }}
-                  >
-                    <Icon name="folder-open" size={18} />
-                    Parts library
-                  </button>
-                  {libOpen && <PartsLibrary lib={props.library} kind={first.shape.type} onApply={(i) => (props.onApplyPreset(i), setLibOpen(false))} onClose={() => setLibOpen(false)} />}
+              <div className="rw-editor__foot" data-testid="editor.foot">
+                <div className="rw-editor__status" data-testid="editor.status" data-kind={status.kind} title={status.title}>
+                  <span className="rw-editor__status-dot" data-testid="editor.status-dot" aria-hidden />
+                  <span>{status.kind === "clean" ? "No changes" : status.kind === "unsaved" ? "Modified · Not saved" : "Modified"}</span>
+                  {status.detail !== "" && <span className="rw-editor__status-detail"> · {status.detail}</span>}
                 </div>
-                <button type="button" className="rw-button" data-testid="editor.revert" disabled={!props.canRevert} onClick={props.onRevert} title={props.canRevert ? "Step back to the previous revision of this part" : "No change to revert"}>
-                  <Icon name="undo" size={18} />
-                  Revert change
-                </button>
+                <div className="rw-editor__actions">
+                  <div className="rw-editor__lib-wrap">
+                    <button
+                      type="button"
+                      className="rw-button"
+                      data-testid="editor.parts-library"
+                      aria-expanded={libOpen}
+                      onClick={() => {
+                        if (!libOpen) props.onOpenLibrary();
+                        setLibOpen(!libOpen);
+                      }}
+                    >
+                      <Icon name="folder-open" size={18} />
+                      Parts library
+                    </button>
+                    {libOpen && <PartsLibrary lib={props.library} kind={first.shape.type} onApply={(i) => (props.onApplyPreset(i), setLibOpen(false))} onClose={() => setLibOpen(false)} />}
+                  </div>
+                  <button type="button" className="rw-button" data-testid="editor.revert" disabled={!props.canRevert} onClick={props.onRevert} title={props.canRevert ? "Step back to the previous revision of this part" : "No change to revert"}>
+                    <Icon name="undo" size={18} />
+                    Revert change
+                  </button>
+                </div>
               </div>
             </div>
             {comps.length === 1 && <PartProfile comp={first} units={units} />}
