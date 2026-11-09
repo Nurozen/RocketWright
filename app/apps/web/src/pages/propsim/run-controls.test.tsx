@@ -164,6 +164,69 @@ describe("Engineering", () => {
   });
 });
 
+describe("New study", () => {
+  /** A project as the store holds it; `mutate` is the test's, and lands the study in the mirror as a push would. */
+  function withModel(model: { engines: Record<string, unknown>; configs?: Record<string, unknown>; sims?: Record<string, unknown> }, mutate = vi.fn<(ops: unknown, label: string) => Promise<unknown>>()) {
+    const store = makeStore();
+    const state = store.getState();
+    const evaluated = { ...state.project.snapshot!.evaluated!, sims: {}, configs: { default: {} }, ...model };
+    const next = createStore<AppState>()(() => ({ ...state, draft: { ...state.draft, mutate }, project: { ...state.project, snapshot: { ...state.project.snapshot!, evaluated } } }) as AppState);
+    return { store: next as unknown as AppStore, push: (sims: Record<string, unknown>) => next.setState((s) => ({ project: { ...s.project, snapshot: { ...s.project.snapshot!, evaluated: { ...s.project.snapshot!.evaluated!, sims, model_hash: "h2" } } } }) as never), mutate };
+  }
+  const mountTab = (store: AppStore, ui: VisualStore = createVisualUi()) => render(<VisualFlowTab store={store} client={pendingClient().client} ui={ui} httpBase="" />);
+
+  it("adds a study from the engine, opens it, and Run appears", async () => {
+    const { store, push, mutate } = withModel({ engines: { demo: { name: "Demo" } } });
+    mutate.mockImplementation(async () => {
+      push({ study_1: { id: "study_1", name: "Study 1", kind: "visual_flow" } });
+      return { model_hash: "h2" };
+    });
+    await mountTab(store);
+    expect(byId("propsim.visual")!.dataset["state"]).toBe("empty");
+    expect(byId("visual.run")).toBeNull();
+    expect(byId("visual.loading")!.textContent).toContain("New study");
+    await click("visual.new-study");
+    await flush();
+    expect(mutate).toHaveBeenCalledWith([{ op: "add", path: "/sims/study_1", value: { name: "Study 1", config: "default", kind: "visual_flow", visual_flow: { engine: "demo", attitude: "scripted_tilt" } } }], "Add study Study 1");
+    expect(byId("propsim.visual")!.dataset["study"]).toBe("study_1");
+    expect(byId("propsim.visual")!.dataset["state"]).toBe("idle");
+    expect(byId<HTMLButtonElement>("visual.run")!.disabled).toBe(false);
+  });
+
+  it("asks for the engine when there are several", async () => {
+    const { store, mutate } = withModel({ engines: { a: { name: "A" }, b: { name: "B" } } });
+    mutate.mockResolvedValue(null);
+    await mountTab(store);
+    const select = byId<HTMLSelectElement>("visual.new-study-engine")!;
+    await act(async () => {
+      select.value = "b";
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    await click("visual.new-study");
+    expect(mutate.mock.calls[0]![0]).toMatchObject([{ value: { visual_flow: { engine: "b" } } }]);
+  });
+
+  it("says why it cannot, with no engine or no configuration", async () => {
+    await mountTab(withModel({ engines: {} }).store);
+    expect(byId<HTMLButtonElement>("visual.new-study")!.disabled).toBe(true);
+    expect(byId("visual.new-study-unavailable")!.textContent).toContain("liquid engine");
+    await act(async () => root!.unmount());
+    root = null;
+    await mountTab(withModel({ engines: { demo: { name: "Demo" } }, configs: {} }).store);
+    expect(byId("visual.new-study-unavailable")!.textContent).toContain("configuration");
+  });
+
+  it("shows the sidecar's refusal", async () => {
+    const { store, mutate } = withModel({ engines: { demo: { name: "Demo" } } });
+    mutate.mockRejectedValue(new Error("project is read-only"));
+    await mountTab(store);
+    await click("visual.new-study");
+    await flush();
+    expect(document.querySelector('[role="alert"]')!.textContent).toContain("read-only");
+    expect(byId<HTMLButtonElement>("visual.new-study")!.disabled).toBe(false);
+  });
+});
+
 describe("Visual flow", () => {
   function mount(client: RpcLike, store = makeStore(), ui: VisualStore = createVisualUi()) {
     return render(<VisualFlowTab store={store} client={client} ui={ui} httpBase="" />);

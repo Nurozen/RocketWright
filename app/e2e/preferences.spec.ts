@@ -16,7 +16,17 @@ import { SCRATCH, sidecarBinary } from "./live.ts";
 import { killOrphans } from "./orphans.ts";
 
 const DESKTOP = join(REPO_ROOT, "app/apps/desktop");
-const BOUNDS = { x: 140, y: 90, width: 1180, height: 820 };
+
+/**
+ * Where to leave the window: inside this display's work area, so nothing the
+ * app legitimately clamps on restore (a 1024-wide CI display) reads as a lost
+ * preference, and off the default placement, so a restore that did nothing fails.
+ */
+function savedBounds(area: { x: number; y: number; width: number; height: number }, minWidth: number) {
+  const width = Math.max(minWidth, Math.min(1180, area.width));
+  const height = Math.min(820, area.height - 40);
+  return { x: area.x + Math.min(140, Math.max(0, area.width - width)), y: area.y + Math.min(90, area.height - height), width, height };
+}
 
 const clickMenuItem = (app: ElectronApplication, id: string): Promise<void> =>
   app.evaluate(({ Menu }, itemId) => {
@@ -91,7 +101,13 @@ test("default units reach a new project, Units edits it, and a relaunch restores
   await first.page.getByTestId("toolbar.section").check();
   await first.page.getByTestId("toolbar.view-chip").filter({ hasText: "Top" }).click();
   await first.page.getByRole("tab", { name: "Results", exact: true }).click();
-  await first.running.evaluate(({ BrowserWindow }, b) => BrowserWindow.getAllWindows()[0]!.setBounds(b), BOUNDS);
+  const { before, area, minWidth } = await first.running.evaluate(({ BrowserWindow, screen }) => {
+    const win = BrowserWindow.getAllWindows()[0]!;
+    return { before: win.getBounds(), area: screen.getDisplayMatching(win.getBounds()).workArea, minWidth: win.getMinimumSize()[0]! };
+  });
+  const saved = savedBounds(area, minWidth);
+  expect(saved).not.toEqual(before);
+  await first.running.evaluate(({ BrowserWindow }, b) => BrowserWindow.getAllWindows()[0]!.setBounds(b), saved);
   await first.running.close();
   app = undefined;
 
@@ -102,10 +118,7 @@ test("default units reach a new project, Units edits it, and a relaunch restores
   await expect(second.page.getByTestId("header.project-switcher")).toHaveText("Inches", { timeout: 120_000 });
   await expect(second.page.getByRole("tab", { name: "Results", exact: true })).toHaveAttribute("aria-selected", "true");
   const bounds = await second.running.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]!.getBounds());
-  expect(bounds.width).toBe(BOUNDS.width);
-  expect(bounds.x).toBe(BOUNDS.x);
-  expect(bounds.y).toBe(BOUNDS.y);
-  expect(bounds.height).toBe(BOUNDS.height);
+  expect(bounds).toEqual(saved);
 
   await second.page.getByRole("tab", { name: "Design", exact: true }).click();
   await expect(second.page.getByTestId("toolbar.units")).toHaveValue("cm");

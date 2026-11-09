@@ -331,6 +331,11 @@ export function EngineEditor({ app, engineId, engine, entry, canCompute, onCompu
               {problem}
             </p>
           )}
+          {entry?.state === "error" && (
+            <p className="rw-liq-editor__error" role="alert" data-testid="liquid.design-error">
+              Compute failed: {entry.error}
+            </p>
+          )}
           <div className="rw-liq-editor__grid">
             {ENGINE_CARDS.map((card) => (
               <FieldGroupFrame key={card} heading={card} group={card}>

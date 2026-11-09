@@ -300,6 +300,7 @@ export function mirrorAt(store: MirrorStore, hash: string | null, waitMs = MIRRO
 }
 
 export interface DesignEntry {
+  /** The engine `out` was computed from: it moves only when a new result lands, so a failed Compute still reads as Modified. */
   key: string;
   state: "loading" | "ready" | "error";
   out: EngineDesignOut | null;
@@ -312,4 +313,9 @@ export interface DesignEntry {
 export function isModified(entry: DesignEntry | null | undefined, engineId: string, engine: EvalEngine): boolean {
   if (entry === null || entry === undefined || entry.state === "loading") return false;
   return entry.key !== designKey(engineId, engine);
+}
+
+/** The result, only if it was computed from this very engine: a number quoted about the engine as it stands cannot come from an older design. */
+export function designFor(entry: DesignEntry | null | undefined, engineId: string, engine: EvalEngine): EngineDesignOut | null {
+  return entry?.out != null && entry.key === designKey(engineId, engine) ? entry.out : null;
 }

@@ -11,7 +11,7 @@
  * selected study and Cancel abandons its result here (D16); only the agent's
  * deep link to a study (`rw:sim/<study>`) runs it unasked.
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useStore } from "zustand";
 import { createStore, type StoreApi } from "zustand/vanilla";
 import { parseRef, VISUAL_RUN_PATH } from "@rw/contracts";
@@ -20,8 +20,10 @@ import { DEFAULT_LAYERS, FluidStage, type SnapshotFit, type AnchorId, type Fluid
 import { FLUID_TEAL } from "../../fluid/surface.ts";
 import { poolCss } from "../../viewport/stage.ts";
 import { parseVisualRun, traces, type VisualRun } from "../../fluid/timeline.ts";
+import { newStudyOps, nextStudyName } from "../../state/ops/sims.ts";
 import type { RpcLike } from "../../state/rpc.ts";
 import { useAppState, type AppStore } from "../../state/index.ts";
+import { mirrorAt } from "../liquid/engineOps.ts";
 import type { FetchText } from "./engineering.tsx";
 import { ResultsIcon } from "../results/ResultsIcon.tsx";
 import { LayersPanel, orderStudies, StudyList, type StudyRow } from "./layers.tsx";
@@ -141,6 +143,7 @@ export function VisualFlowTab({ store, client, ui, httpBase, fetchText = (u) => 
       error={mine?.error ?? null}
       {...(study !== null && client !== null && projectId !== null ? { onRun: () => start(study) } : {})}
       onCancel={cancel}
+      newStudy={<NewStudyControl app={store} ui={ui} />}
       ui={ui}
       onOpenEngineering={() => store.getState().ui.navigate("propulsion-sim", "engineering")}
       onImportCfd={() => store.getState().ui.navigate("propulsion-sim", "cfd")}
@@ -155,6 +158,65 @@ export function VisualFlowTab({ store, client, ui, httpBase, fetchText = (u) => 
   );
 }
 
+/**
+ * Adds a scripted-tilt study of one engine (duration, tilt and swing are the core's defaults), on the
+ * first configuration as New simulation does, and opens it ready to Run.
+ */
+export function NewStudyControl({ app, ui }: { app: AppStore; ui: VisualStore }) {
+  const engines = useAppState(app, (s) => s.project.snapshot?.evaluated?.engines ?? null);
+  const configs = useAppState(app, (s) => s.project.snapshot?.evaluated?.configs ?? null);
+  const engineIds = useMemo(() => Object.keys(engines ?? {}).sort(), [engines]);
+  const [picked, setPicked] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [problem, setProblem] = useState<string | null>(null);
+  const engine = picked !== null && engineIds.includes(picked) ? picked : (engineIds[0] ?? null);
+  const config = Object.keys(configs ?? {}).sort()[0] ?? null;
+  const unavailable = engine === null ? "Add a liquid engine first: a study drains one of its tanks." : config === null ? "Add a configuration first: a study belongs to one." : null;
+  const add = () => {
+    const model = app.getState().project.snapshot?.evaluated;
+    if (model == null || engine === null || config === null) return;
+    const name = nextStudyName(Object.values(model.sims).flatMap((s) => (s == null ? [] : [s.name])));
+    const { id, ops } = newStudyOps(name, config, engine, Object.keys(model.sims));
+    setSaving(true);
+    setProblem(null);
+    app
+      .getState()
+      .draft.mutate(ops, `Add study ${name}`)
+      .then(async (out) => {
+        await mirrorAt(app, out?.model_hash ?? null);
+        ui.setState({ study: id });
+      })
+      .catch((e: unknown) => setProblem(message(e)))
+      .finally(() => setSaving(false));
+  };
+  return (
+    <div className="rw-vis-side__new">
+      {engineIds.length > 1 && (
+        <select aria-label="Engine for the new study" data-testid="visual.new-study-engine" value={engine ?? ""} onChange={(e) => setPicked(e.target.value)}>
+          {engineIds.map((id) => (
+            <option key={id} value={id}>
+              {engines?.[id]?.name ?? id}
+            </option>
+          ))}
+        </select>
+      )}
+      <button type="button" className="rw-button" data-testid="visual.new-study" disabled={saving || unavailable !== null} aria-busy={saving} onClick={add}>
+        New study
+      </button>
+      {unavailable !== null && (
+        <p className="rw-vis-side__hint" data-testid="visual.new-study-unavailable">
+          {unavailable}
+        </p>
+      )}
+      {problem !== null && (
+        <p className="rw-vis-side__hint" role="alert">
+          {problem}
+        </p>
+      )}
+    </div>
+  );
+}
+
 export interface VisualFlowViewProps {
   studies: readonly StudyRow[];
   selected: string | null;
@@ -163,6 +225,8 @@ export interface VisualFlowViewProps {
   state: "empty" | "idle" | "running" | "ready" | "error" | "cancelled";
   error: string | null;
   ui: VisualStore;
+  /** The New study control; the page's own, absent for a bare view (the RL1d spike). */
+  newStudy?: ReactNode;
   /** Starts the selected study; absent until it can run. */
   onRun?: () => void;
   onCancel?: () => void;
@@ -185,7 +249,7 @@ const SUB_TABS: { id: SubTab; label: string }[] = [
 ];
 
 /** The tier's layout: side column, viewport, transport, sub-tabs with the traces. */
-export function VisualFlowView({ studies, selected, onSelect, record, state, error, ui, onRun, onCancel, onOpenEngineering, onImportCfd, transport: external, stageOptions, onThumb, onTankThumb }: VisualFlowViewProps) {
+export function VisualFlowView({ studies, selected, onSelect, record, state, error, ui, newStudy, onRun, onCancel, onOpenEngineering, onImportCfd, transport: external, stageOptions, onThumb, onTankThumb }: VisualFlowViewProps) {
   const own = useMemo(() => createTransport(record?.duration ?? 10), []); // eslint-disable-line react-hooks/exhaustive-deps
   const transport = external ?? own;
   useTransportLoop(transport);
@@ -207,6 +271,7 @@ export function VisualFlowView({ studies, selected, onSelect, record, state, err
     <div className="rw-vis" data-testid="propsim.visual" data-state={state} data-study={selected ?? ""} data-run={runId ?? ""} data-provenance={provenance}>
       <aside className="rw-vis-side" data-rw-region="study-column" data-testid="study-column">
         <StudyList studies={studies} selected={selected} onSelect={onSelect} />
+        {newStudy}
         {state !== "empty" && (
           <div className="rw-vis-side__run">
             <button type="button" className="rw-button rw-button--primary" data-testid="visual.run" disabled={state === "running" || onRun === undefined} onClick={onRun}>
@@ -231,7 +296,7 @@ export function VisualFlowView({ studies, selected, onSelect, record, state, err
               {state === "error"
                 ? `The study could not run: ${error ?? ""}`
                 : state === "empty"
-                  ? "No visual flow study in this project. Ask the agent to add one."
+                  ? "No visual flow study in this project yet. Add one with New study."
                   : state === "idle"
                     ? "No run yet for this study. Press Run to simulate it."
                     : state === "cancelled"

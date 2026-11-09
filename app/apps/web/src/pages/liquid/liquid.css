@@ -597,6 +597,22 @@
   font-weight: var(--rw-font-weight-strong);
 }
 
+.rw-liq-notice {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 18px;
+}
+
+.rw-liq-notice__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
 .rw-liq-editor__actions {
   display: flex;
   flex-wrap: wrap;

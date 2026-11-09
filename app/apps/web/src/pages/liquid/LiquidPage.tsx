@@ -30,7 +30,7 @@ import { cameraBasis, type ViewPose } from "../../viewport/views.ts";
 import { ThreadHistory, useOpenThreadHistory } from "../components/AgentExtras.tsx";
 import { ConnectivityDiagram } from "./Diagram.tsx";
 import { AddEngineRailButton, EngineEditor, NewEngineButton, type EngineEditorProps } from "./EngineEditor.tsx";
-import { designKey, type DesignEntry } from "./engineOps.ts";
+import { designFor, designKey, isModified, type DesignEntry } from "./engineOps.ts";
 import {
   CATEGORIES,
   bcLabel,
@@ -163,7 +163,8 @@ let designRequests = 0;
 /**
  * Asks the sidecar for one engine's design and stores it under the engine it
  * was computed from. Only the newest request for an engine lands; a failure
- * keeps the last result beside the error.
+ * keeps the last result beside the error, still filed under its own engine,
+ * so an edited engine goes on reading as Modified.
  */
 export function requestDesign(store: AppStore, client: RpcLike | null, ui: LiquidStore, engineId: string): Promise<void> {
   const st = store.getState();
@@ -172,18 +173,20 @@ export function requestDesign(store: AppStore, client: RpcLike | null, ui: Liqui
   if (client === null || projectId === null || engine === undefined) return Promise.resolve();
   const key = designKey(engineId, engine);
   const seq = ++designRequests;
-  const last = ui.getState().designs[engineId]?.out ?? null;
-  const land = (entry: Pick<DesignEntry, "state" | "out" | "error">) => {
-    ui.setState((s) => ({ designs: { ...s.designs, [engineId]: { key, seq, ...entry } } }));
+  const prior = ui.getState().designs[engineId];
+  const last = prior?.out ?? null;
+  const lastKey = prior !== undefined && last !== null ? prior.key : key;
+  const land = (entry: Pick<DesignEntry, "key" | "state" | "out" | "error">) => {
+    ui.setState((s) => ({ designs: { ...s.designs, [engineId]: { seq, ...entry } } }));
   };
-  land({ state: "loading", out: last });
+  land({ key: lastKey, state: "loading", out: last });
   const current = () => ui.getState().designs[engineId]?.seq === seq;
   return client.call("engine.design", { projectId, engine: engineId }).then(
     (out) => {
-      if (current()) land({ state: "ready", out });
+      if (current()) land({ key, state: "ready", out });
     },
     (e: unknown) => {
-      if (current()) land({ state: "error", out: last, error: message(e) });
+      if (current()) land({ key: lastKey, state: "error", out: last, error: message(e) });
     },
   );
 }
@@ -253,6 +256,7 @@ function LiquidWorkspace({ store, client, glbDeps, ui }: { store: AppStore; clie
   const snap = useAppState(store, (s) => s.project.snapshot);
   const entry = useStore(ui, (s) => (view === null ? null : (s.designs[view.id] ?? null)));
   const out = entry?.out ?? null;
+  const compute = () => (view === null ? Promise.resolve() : requestDesign(store, client, ui, view.id));
   const setTab = (t: LiquidTab) => store.getState().ui.navigate("liquid", t);
   const showEngine = (id: string) => showNewEngine(store, ui, id);
   const engineDeleted = (id: string) => {
@@ -309,11 +313,11 @@ function LiquidWorkspace({ store, client, glbDeps, ui }: { store: AppStore; clie
           view={view}
           out={out}
           state={entry?.state ?? "loading"}
-          error={entry?.error}
-          editor={{ app: store, engineId: view.id, engine: view.engine, entry, onCompute: () => requestDesign(store, client, ui, view.id), canCompute: client !== null, onShow: showEngine, onDeleted: engineDeleted }}
+          editor={{ app: store, engineId: view.id, engine: view.engine, entry, onCompute: compute, canCompute: client !== null, onShow: showEngine, onDeleted: engineDeleted }}
         />
       ) : (
         <div className={`rw-liq__body rw-liq__body--${tab}`}>
+          <DesignNotice modified={isModified(entry, view.id, view.engine)} error={entry?.state === "error" ? (entry.error ?? "") : null} busy={entry?.state === "loading"} canCompute={client !== null} onCompute={() => void compute()} />
           <ModuleViewport store={store} view={view} out={out} glbDeps={glbDeps} />
           {tab === "system" ? (
             <div className="rw-liq__lower">
@@ -324,13 +328,38 @@ function LiquidWorkspace({ store, client, glbDeps, ui }: { store: AppStore; clie
                 onSelectNode={(id) => store.getState().selection.select([nodeRef(view.id, id)], "diagram")}
                 onSelectEdge={(i) => store.getState().selection.select([edgeRef(view.id, i)], "diagram")}
               />
-              <LiquidInspector store={store} client={client} ui={ui} view={view} out={out} />
+              <LiquidInspector store={store} client={client} ui={ui} view={view} entry={entry} />
             </div>
           ) : (
             <ParametersPanel view={view} />
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+/** Assembly and System draw with the last computed sizing: an edit since then, or a failed Compute, has to say so here. */
+function DesignNotice({ modified, error, busy, canCompute, onCompute }: { modified: boolean; error: string | null; busy: boolean; canCompute: boolean; onCompute: () => void }) {
+  if (!modified && error === null) return null;
+  return (
+    <div className="rw-liq-notice" data-testid="liquid.notice">
+      <div className="rw-liq-notice__text">
+        {modified && (
+          <p className="rw-liq-editor__modified" role="status" data-testid="liquid.notice-modified">
+            <Icon name="alert" size={18} />
+            Modified, needs recompute. This view still shows the last computed sizing.
+          </p>
+        )}
+        {error !== null && (
+          <p className="rw-liq-editor__error" role="alert" data-testid="liquid.design-error">
+            Compute failed: {error}
+          </p>
+        )}
+      </div>
+      <button type="button" className="rw-button" data-testid="liquid.notice-compute" disabled={!canCompute || busy} aria-busy={busy} onClick={onCompute}>
+        Compute
+      </button>
     </div>
   );
 }
@@ -442,22 +471,27 @@ function Endpoint({ view, ids }: { view: EngineView; ids: readonly string[] }) {
   );
 }
 
-function LiquidInspector({ store, client, ui, view, out }: { store: AppStore; client: RpcLike | null; ui: LiquidStore; view: EngineView; out: EngineDesignOut | null }) {
+function LiquidInspector({ store, client, ui, view, entry }: { store: AppStore; client: RpcLike | null; ui: LiquidStore; view: EngineView; entry: DesignEntry | null }) {
+  const out = entry?.out ?? null;
   const tab = useStore(ui, (s) => s.inspectorTab);
   const sourcesOpen = useStore(ui, (s) => s.sourcesOpen);
-  const analysis = useStore(ui, (s) => s.analysis[view.id] ?? NOT_RUN);
+  const stored = useStore(ui, (s) => s.analysis[view.id] ?? NOT_RUN);
+  const engineKey = designKey(view.id, view.engine);
+  // A completed run belongs to the engine it flew: after an edit, Run is offered again.
+  const analysis = stored.kind === "complete" && stored.key !== engineKey ? NOT_RUN : stored;
   const projectId = useAppState(store, (s) => s.project.projectId);
   const rows = inputRows(view.engine, view.id, view.missing, view.connection, analysis);
   const blocked = view.missing.length > 0;
   const runAnalysis = () => {
     if (client === null || projectId === null || blocked) return;
     ui.setState((s) => ({ analysis: { ...s.analysis, [view.id]: { kind: "running" } } }));
+    // `engine.simulate` returns no burn time, and only a design of this engine as it stands can supply one.
+    const b = designFor(entry, view.id, view.engine)?.design?.blowdown;
     client
       .call("engine.simulate", { projectId, engine: view.id })
       .then((r) => {
-        const b = out?.design?.blowdown;
         const summary = b ? `${fmt(b.burn_time, 3)} s burn` : `run ${r.run_id}`;
-        ui.setState((s) => ({ analysis: { ...s.analysis, [view.id]: { kind: "complete", summary } } }));
+        ui.setState((s) => ({ analysis: { ...s.analysis, [view.id]: { kind: "complete", summary, key: engineKey } } }));
       })
       .catch((e: unknown) => ui.setState((s) => ({ analysis: { ...s.analysis, [view.id]: { kind: "failed", message: message(e) } } })));
   };
@@ -665,11 +699,10 @@ function ParametersPanel({ view }: { view: EngineView }) {
   );
 }
 
-function PropertiesView({ view, out, state, error, editor }: { view: EngineView; out: EngineDesignOut | null; state: "loading" | "ready" | "error"; error?: string | undefined; editor: Omit<EngineEditorProps, "children"> }) {
+function PropertiesView({ view, out, state, editor }: { view: EngineView; out: EngineDesignOut | null; state: "loading" | "ready" | "error"; editor: Omit<EngineEditorProps, "children"> }) {
   const groups = propertyGroups(out);
   const details = (
     <>
-      {state === "error" && <p className="rw-liq__empty">engine_design failed: {error}</p>}
       {state === "loading" && groups.length === 0 && <p className="rw-liq__empty">Computing the design…</p>}
       {out !== null && groups.length === 0 && <p className="rw-liq__empty">The chamber cannot be sized yet: {out.missing_inputs.join(", ") || "inputs missing"}.</p>}
       <div className="rw-liq-props__grid">

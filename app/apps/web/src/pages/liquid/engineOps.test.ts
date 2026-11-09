@@ -9,6 +9,7 @@ import {
   addInjectorOps,
   cardFields,
   copyEngineName,
+  designFor,
   designKey,
   displayNumber,
   engineSource,
@@ -196,6 +197,16 @@ describe("the design's freshness", () => {
   it("says nothing before a result or while one is on its way", () => {
     expect(isModified(null, "demo", demo)).toBe(false);
     expect(isModified(entry({ key: "other", state: "loading" }), "demo", demo)).toBe(false);
+  });
+
+  it("gives a result only to the engine it was computed from", () => {
+    const out = { engine: "demo", missing_inputs: [], diagnostics: [] } as unknown as EngineDesignOut;
+    const changed = { ...demo, thrust: demo.thrust + 1 } as EvalEngine;
+    expect(designFor(entry({ out }), "demo", demo)).toBe(out);
+    expect(designFor(entry({ out, state: "loading" }), "demo", demo)).toBe(out);
+    expect(designFor(entry({ out }), "demo", changed)).toBeNull();
+    expect(designFor(entry({ out: null }), "demo", demo)).toBeNull();
+    expect(designFor(null, "demo", demo)).toBeNull();
   });
   it("is the engine's content, not the rocket's: an edit elsewhere does not change the key", () => {
     const other = core.applyAndCheck({ files, ops: [{ op: "replace", path: "/c/nose/length", value: "200 mm" }] }).evaluated;
