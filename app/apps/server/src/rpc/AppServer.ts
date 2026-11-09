@@ -50,6 +50,7 @@ import {
   type BrokerOp,
   type BrokerResponse,
   type JsonObject,
+  type MutationOut,
   type ProjectInfo,
   type RpcMethod,
   type RpcResult,
@@ -57,6 +58,7 @@ import {
   type RpcTopics,
   type SeedBundleArgs,
   type ServerFrame,
+  type schema,
 } from "@rw/contracts";
 import { acceptUpgrade } from "@rw/contracts/ws";
 import { BundleError, bundleThreadIds, completeRunIds, instantiateBundle, linkThreadSteps, parseThreadBundle } from "../lecturn/bundle.ts";
@@ -70,7 +72,7 @@ import { ThumbCacheError } from "../project/ThumbCache.ts";
 import { sidecarBinary, sidecarEnv } from "../sidecar/SidecarClient.ts";
 import type { BackoffOptions, SidecarConnection } from "../sidecar/SidecarSupervisor.ts";
 import { RpcFail, toRpcError } from "./errors.ts";
-import { isObject, libraryQuery, optBool, optStr, patchOps, str, thrustcurveFetchQuery, thrustcurveSearchQuery } from "./params.ts";
+import { componentRemoveArgs, exportFileArgs, importFileArgs, isObject, libraryQuery, motorSearchArgs, optBool, optStr, patchOps, renderArgs, str, thrustcurveFetchQuery, thrustcurveSearchQuery } from "./params.ts";
 
 /** Lecturn `apps.updateHostContext` caps the text at 4 KB. */
 const HOST_CONTEXT_MAX_BYTES = 4096;
@@ -139,6 +141,11 @@ export function allowedOrigin(origin: string | undefined): boolean {
   } catch {
     return false;
   }
+}
+
+/** A contract method whose implementation lands in a later step. */
+function notYet(method: RpcMethod): never {
+  throw new RpcFail("internal", `${method} is not implemented yet`);
 }
 
 const RUN_FILE_RE = /^\/api\/projects\/([^/]+)\/runs\/([^/]+)\/([^/]+)\/(series\.csv|events\.json|engine\.json|visual\.json|cfd\.json)$/;
@@ -520,6 +527,17 @@ export class AppServer {
       return {};
     },
 
+    // U14: project.create, project.inspect, project.defaults. U25: project.rename. U58: project.restartSidecar.
+    "project.create": () => notYet("project.create"),
+
+    "project.inspect": () => notYet("project.inspect"),
+
+    "project.defaults": () => notYet("project.defaults"),
+
+    "project.rename": () => notYet("project.rename"),
+
+    "project.restartSidecar": () => notYet("project.restartSidecar"),
+
     "project.subscribe": (conn, params, after) => {
       const p = this.hostOf(params);
       const subscriptionId = this.addSub({ conn, projectId: p.info.projectId, kind: "project" });
@@ -587,6 +605,26 @@ export class AppServer {
 
     "motor.thrustcurveFetch": (_c, params) => this.hostOf(params).thrustcurveFetch(thrustcurveFetchQuery(params)),
 
+    "component.remove": (_c, params) => this.hostOf(params).tool<MutationOut>("component_remove", { ...componentRemoveArgs(params) }, optStr(params, "label")),
+
+    "import.file": (_c, params) => this.hostOf(params).tool<schema.ImportOut>("import_file", { ...importFileArgs(params) }),
+
+    "export.file": (_c, params) => {
+      const args = exportFileArgs(params);
+      // Writing outside the project needs main's role-bound socket (D11), which U35 adds; until then no socket has it.
+      if (args.allow_outside === true) throw new RpcFail("forbidden", "export.file: allow_outside is refused on this socket");
+      return this.hostOf(params).tool<schema.ExportOut>("export_file", { ...args });
+    },
+
+    render: (_c, params) => this.hostOf(params).tool<schema.RenderResult>("render", { ...renderArgs(params) }),
+
+    "motor.search": (_c, params) => this.hostOf(params).tool<schema.MotorSearchOut>("motor_search", { ...motorSearchArgs(params) }),
+
+    // U25 lists `motor_show` over MCP; U43 adds `run_delete`.
+    "motor.show": () => notYet("motor.show"),
+
+    "run.delete": () => notYet("run.delete"),
+
     "broker.hostRegister": (conn, params) => {
       const p = this.hostOf(params);
       const hostId = str(params, "hostId");
@@ -642,6 +680,11 @@ export class AppServer {
       await this.viaLecturn("embed.setHostContext", (l) => l.updateHostContext(p.info.projectId, text));
       return { applied: true };
     },
+
+    // U35: the role-bound host channel.
+    "host.register": () => notYet("host.register"),
+
+    "host.respond": () => notYet("host.respond"),
 
     "test.call": async (_c, params) => {
       if (!this.testHooks) throw new RpcFail("hooks_disabled", "test hooks need RW_TEST_HOOKS=1");

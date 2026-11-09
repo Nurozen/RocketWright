@@ -84,6 +84,13 @@ export const AGENT_OPS = ["viewport_render", "viewport_select", "viewport_set_ca
 export const TEST_HOOK_OPS = ["app_navigate", "app_select", "app_set_view", "app_seed_thread"] as const satisfies readonly BrokerOp[];
 export type AgentOp = (typeof AGENT_OPS)[number];
 /**
+ * Live tools the app server answers itself (R1.3, `projectTools.ts`), kept off
+ * `AGENT_OPS` because no viewport host serves them and they wait on a native
+ * dialog far longer than a broker op may.
+ */
+export const PROJECT_TOOLS = ["project_new", "project_open"] as const;
+export type ProjectTool = (typeof PROJECT_TOOLS)[number];
+/**
  * Each op's MCP `title` (CPW1R4B): what Lecturn's tool row reads instead of
  * `rw_<op>`. Sentence case, a short verb phrase (the CLI's
  * `crates/rw-cli/src/mcp/presentation.rs` `TITLES` for its tools).

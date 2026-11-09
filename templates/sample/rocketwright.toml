@@ -1,0 +1,9 @@
+# A sample research vehicle: recovery bay, electronics bay, and a four-fin
+# fin can, with a complete demo liquid engine (`rw init --template sample`).
+format = 1
+name = "Research vehicle"
+default_config = "baseline"
+
+[display_units]
+length = "mm"
+mass = "g"

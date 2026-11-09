@@ -539,6 +539,125 @@ fn init_then_edit_check_and_history() {
     assert_eq!(json_out(&o)["tier"], "quick_sim");
 }
 
+/// A plain `rw` in the test's working directory, for commands that take the
+/// target as an argument.
+fn rw_bare(cwd: &Path) -> Command {
+    let mut c = Command::cargo_bin("rocketwright").unwrap();
+    c.env("RW_CLOCK", CLOCK)
+        .env_remove("RW_TEST_HOOKS")
+        .env_remove("RW_RENDER")
+        .current_dir(cwd);
+    c
+}
+
+/// D3: `rw init` lists what it would replace, changes nothing (dry run or
+/// not), and exits 1 with a conflict; unrelated files are no obstacle.
+#[test]
+fn init_refuses_files_it_would_replace() {
+    let t = TempProject::new();
+    let dir = t.0.join("mine");
+    std::fs::create_dir_all(&dir).unwrap();
+    std::fs::write(dir.join("rocket.rw.toml"), "# my notes\n").unwrap();
+    for extra in [None, Some("--dry-run")] {
+        let mut c = rw_bare(&t.0);
+        c.arg("init").arg(&dir).arg("--json");
+        if let Some(e) = extra {
+            c.arg(e);
+        }
+        let o = c.output().unwrap();
+        assert_eq!(o.status.code(), Some(1), "{}", stdout(&o));
+        let text = format!("{}{}", stdout(&o), String::from_utf8_lossy(&o.stderr));
+        assert!(text.contains("rocket.rw.toml"), "{text}");
+        assert_eq!(
+            std::fs::read_to_string(dir.join("rocket.rw.toml")).unwrap(),
+            "# my notes\n"
+        );
+        assert!(!dir.join("rocketwright.toml").exists(), "{extra:?}");
+        assert!(!dir.join(".rw").exists(), "{extra:?}");
+    }
+    std::fs::remove_file(dir.join("rocket.rw.toml")).unwrap();
+    std::fs::write(dir.join("notes.txt"), "keep\n").unwrap();
+    std::fs::write(dir.join(".gitignore"), "*.log\n").unwrap();
+    let o = rw_bare(&t.0).arg("init").arg(&dir).output().unwrap();
+    assert!(o.status.success(), "{}", stdout(&o));
+    assert_eq!(
+        std::fs::read_to_string(dir.join(".gitignore")).unwrap(),
+        "*.log\n.rw/\n"
+    );
+    assert_eq!(std::fs::read(dir.join("notes.txt")).unwrap(), b"keep\n");
+}
+
+/// D3 for `rw import ork` into a folder that is not yet a project.
+#[test]
+fn import_ork_refuses_files_it_would_replace() {
+    let t = TempProject::new();
+    let src = t.0.join("bird.ork");
+    std::fs::write(&src, include_str!("../../rw-ork/tests/data/simple.ork.xml")).unwrap();
+    let dir = t.0.join("mine");
+    std::fs::create_dir_all(&dir).unwrap();
+    std::fs::write(dir.join("rocket.rw.toml"), "# my notes\n").unwrap();
+    for extra in [None, Some("--dry-run")] {
+        let mut c = rw_bare(&t.0);
+        c.args(["import", "ork"]).arg(&src).arg(&dir);
+        if let Some(e) = extra {
+            c.arg(e);
+        }
+        let o = c.output().unwrap();
+        assert_eq!(o.status.code(), Some(1), "{}", stdout(&o));
+        let text = format!("{}{}", stdout(&o), String::from_utf8_lossy(&o.stderr));
+        assert!(text.contains("rocket.rw.toml"), "{text}");
+        assert_eq!(
+            std::fs::read_to_string(dir.join("rocket.rw.toml")).unwrap(),
+            "# my notes\n"
+        );
+        assert!(!dir.join("rocketwright.toml").exists(), "{extra:?}");
+    }
+}
+
+/// A parent directory that cannot be written is an I/O failure (exit 2), and
+/// leaves nothing behind.
+#[cfg(unix)]
+#[test]
+fn init_under_an_unwritable_parent_fails_cleanly() {
+    use std::os::unix::fs::PermissionsExt;
+    let t = TempProject::new();
+    let parent = t.0.join("locked");
+    std::fs::create_dir_all(&parent).unwrap();
+    std::fs::set_permissions(&parent, std::fs::Permissions::from_mode(0o555)).unwrap();
+    // Root ignores the mode, so the refusal cannot be observed there.
+    let probe = parent.join("probe");
+    let writable = std::fs::create_dir(&probe).is_ok();
+    let dir = parent.join("p");
+    let o = rw_bare(&t.0).arg("init").arg(&dir).output().unwrap();
+    std::fs::set_permissions(&parent, std::fs::Permissions::from_mode(0o755)).unwrap();
+    if writable {
+        return;
+    }
+    assert_eq!(o.status.code(), Some(2), "{}", stdout(&o));
+    assert!(!dir.exists());
+}
+
+/// `empty` fails the strict check by design. `rw init` still exits 0, because
+/// the project exists, and the check's status stays in `--json`.
+#[test]
+fn init_empty_exits_zero_and_keeps_the_check_status() {
+    let t = TempProject::new();
+    let dir = t.0.join("blank");
+    let o = rw_bare(&t.0)
+        .args(["init", "--template", "empty", "--json"])
+        .arg(&dir)
+        .output()
+        .unwrap();
+    assert!(o.status.success(), "{}", stdout(&o));
+    let v = json_out(&o);
+    assert!(
+        v["check_strict_status"].is_string() && v["check_strict_status"] != "clean",
+        "{v}"
+    );
+    let o = run(&dir, &["check", "--strict"], 1);
+    assert!(stdout(&o).contains("RW-E100"), "{}", stdout(&o));
+}
+
 #[test]
 fn exit_code_matrix() {
     let simple = TempProject::fixture("fixtures/simple");

@@ -28,6 +28,7 @@ const PROJECTS: &[&str] = &[
     "fixtures/research-vehicle",
     "templates/simple-rocket",
     "templates/minimum",
+    "templates/sample",
 ];
 
 const G0: f64 = 9.80665;

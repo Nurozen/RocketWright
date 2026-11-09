@@ -63,6 +63,10 @@ check. "Tests pass" alone does not show that the change works.
 - Changes that cross Rust, the schema, and TypeScript should pass
   `make check-fast`. `make check` additionally needs gfortran, cmake, and a
   GUI session; say if you could not run it.
+- A PR that touches `app/`, `crates/`, `fixtures/`, or `templates/` merges
+  only with the CI job `E2E (not required)` green, or with the failing test
+  named in the PR and linked to the issue that records it as a flake. The job
+  is not a required status in branch protection; this rule still applies.
 - Changed wire types: run `make schema` and commit the regenerated files.
 - Changed commands, flags, or diagnostics: `make docs-check` must pass, and
   `cargo xtask diag-docs` regenerates the tables in `docs/agents/`.

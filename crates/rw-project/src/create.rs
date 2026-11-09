@@ -3,7 +3,8 @@
 //! to an existing one), with `.rw/lock` taken before anything is written,
 //! then opens the project's writer `Session`, which records the initial
 //! history step. The output is a normal `MutationOut` whose delta runs from
-//! the empty model to the new one.
+//! the empty model to the new one. A folder may hold other files; creating
+//! a project refuses rather than replace any of them (D3).
 
 use std::path::Path;
 
@@ -23,6 +24,9 @@ pub const DEFAULT_TEMPLATE: &str = "minimum";
 
 /// The `.gitignore` written into new projects.
 pub const GITIGNORE: &str = ".rw/\n";
+
+/// A template's main model file, which `--name` renames with the manifest.
+const ROCKET_FILE: &str = "rocket.rw.toml";
 
 fn err(code: ApiErrorCode, message: impl Into<String>, hint: Option<String>) -> ApiError {
     ApiError {
@@ -110,16 +114,62 @@ fn conflict(dir: &Path, hint: &str) -> ApiError {
     )
 }
 
+/// The planned new files that something already in `dir` occupies, in
+/// `planned`'s order. A `.gitignore` that merges is `M`, so it never counts;
+/// one that cannot be read and merged is still `A`, so it does. A dangling
+/// symlink counts, and so does a file where the plan needs a directory.
+fn collisions(dir: &Path, planned: &[(String, Vec<u8>, FileStatus)]) -> Vec<String> {
+    if !dir.is_dir() {
+        return Vec::new();
+    }
+    planned
+        .iter()
+        .filter(|(p, _, status)| {
+            *status == FileStatus::A
+                && match std::fs::symlink_metadata(dir.join(p)) {
+                    Ok(_) => true,
+                    Err(e) => e.kind() == std::io::ErrorKind::NotADirectory,
+                }
+        })
+        .map(|(p, _, _)| p.clone())
+        .collect()
+}
+
+/// `conflict` naming every file a new project would replace (D3).
+fn refuse_collisions(
+    dir: &Path,
+    planned: &[(String, Vec<u8>, FileStatus)],
+) -> Result<(), ApiError> {
+    let taken = collisions(dir, planned);
+    if taken.is_empty() {
+        return Ok(());
+    }
+    Err(err(
+        ApiErrorCode::Conflict,
+        format!(
+            "{} already has files a new project would replace: {}",
+            dir.display(),
+            taken.join(", ")
+        ),
+        Some("move those files, or create the project in an empty directory".into()),
+    ))
+}
+
 /// Takes `.rw/lock` on `dir` (created if missing) before anything is
 /// written there: a live owner fails with `RW-E007` and nothing changes.
-fn lock_new_project(dir: &Path, hint: &str) -> Result<ProjectLock, ApiError> {
+fn lock_new_project(
+    dir: &Path,
+    hint: &str,
+    planned: &[(String, Vec<u8>, FileStatus)],
+) -> Result<ProjectLock, ApiError> {
     std::fs::create_dir_all(dir)
         .map_err(|e| err(ApiErrorCode::Io, format!("{}: {e}", dir.display()), None))?;
     let lock = ProjectLock::acquire(dir, None).map_err(|e| locked_error(&e))?;
-    // A project may have appeared while the lock was free.
+    // A project, or a colliding file, may have appeared while the lock was free.
     if layout::is_project(dir) {
         return Err(conflict(dir, hint));
     }
+    refuse_collisions(dir, planned)?;
     Ok(lock)
 }
 
@@ -141,7 +191,7 @@ pub fn template(name: &str) -> Option<Vec<(&'static str, &'static str)>> {
     (!v.is_empty()).then_some(v)
 }
 
-/// Sets the top-level `name` of `rocketwright.toml`, keeping its comments.
+/// Sets the top-level `name` of a TOML source, keeping its comments.
 fn renamed_manifest(text: &str, name: &str) -> String {
     match text.parse::<toml_edit::DocumentMut>() {
         Ok(mut doc) => {
@@ -174,8 +224,10 @@ pub fn project_files(i: &ProjectCreateIn) -> Result<Vec<(String, String)>, ApiEr
         .into_iter()
         .filter(|(p, _)| *p != "README.md")
         .map(|(p, s)| {
+            // The name lives in both files; a project must never read "Rocket"
+            // in one place and its real name in the other.
             let text = match (&i.name, p) {
-                (Some(n), layout::MANIFEST) => renamed_manifest(s, n),
+                (Some(n), layout::MANIFEST | ROCKET_FILE) => renamed_manifest(s, n),
                 _ => s.to_string(),
             };
             (p.to_string(), text)
@@ -187,8 +239,9 @@ pub fn project_files(i: &ProjectCreateIn) -> Result<Vec<(String, String)>, ApiEr
 }
 
 /// Creates a project in `dir` (created if missing). Fails with `conflict`
-/// when `dir` already holds a project. `dry_run` writes nothing and reports
-/// the files and the delta the new project would have.
+/// when `dir` already holds a project or a file the project would replace.
+/// `dry_run` writes nothing, refuses the same way, and reports the files and
+/// the delta the new project would have.
 pub fn create_project(
     dir: &Path,
     i: &ProjectCreateIn,
@@ -203,6 +256,7 @@ pub fn create_project(
         .map(|(p, t)| (p, t.into_bytes()))
         .collect();
     let planned = planned_writes(dir, files);
+    refuse_collisions(dir, &planned)?;
     let changes = changes_of(&planned);
     let tmp = std::env::temp_dir().join(format!(
         "rw-create-{}-{}",
@@ -214,7 +268,7 @@ pub fn create_project(
         write_planned(&tmp, &planned)
             .and_then(|()| Session::open(&tmp, SessionOptions::read_only()))
     } else {
-        let lock = lock_new_project(dir, HINT)?;
+        let lock = lock_new_project(dir, HINT, &planned)?;
         write_planned(dir, &planned)?;
         Session::open(
             dir,
@@ -247,7 +301,8 @@ pub fn create_project(
 /// `rw import ork <file> <dir>` when `dir` holds no project: creates the
 /// project from the `.ork` (sources, motor files, `.gitignore`), then opens
 /// its writer `Session`, whose initial history step is titled
-/// `Import <file>`. `dry_run` writes nothing.
+/// `Import <file>`. Refuses a file it would replace, as [`create_project`]
+/// does. `dry_run` writes nothing.
 pub fn import_project(
     dir: &Path,
     path: &str,
@@ -282,6 +337,7 @@ pub fn import_project(
     files.push((".gitignore".into(), GITIGNORE.as_bytes().to_vec()));
     files.sort();
     let planned = planned_writes(dir, files);
+    refuse_collisions(dir, &planned)?;
     let target = if dry_run {
         let tmp = std::env::temp_dir().join(format!(
             "rw-import-{}-{}",
@@ -296,7 +352,7 @@ pub fn import_project(
     let opts = if dry_run {
         SessionOptions::read_only()
     } else {
-        let lock = lock_new_project(dir, HINT)?;
+        let lock = lock_new_project(dir, HINT, &planned)?;
         SessionOptions::writer()
             .with_lock(LockMode::Held(lock))
             .with_snapshot_title(Some(plan.title.clone()))
@@ -344,7 +400,10 @@ mod tests {
 
     #[test]
     fn templates_are_embedded() {
-        assert_eq!(template_names(), ["minimum", "simple-rocket"]);
+        assert_eq!(
+            template_names(),
+            ["empty", "minimum", "sample", "simple-rocket"]
+        );
         assert!(template("minimal").is_some());
         assert!(template("nope").is_none());
     }
@@ -445,9 +504,159 @@ mod tests {
         assert!(!dir.join(".gitignore").exists(), "nothing written");
     }
 
+    fn snapshot(dir: &Path) -> std::collections::BTreeMap<String, Vec<u8>> {
+        fn walk(root: &Path, d: &Path, out: &mut std::collections::BTreeMap<String, Vec<u8>>) {
+            for e in std::fs::read_dir(d).unwrap().flatten() {
+                let p = e.path();
+                if p.is_dir() {
+                    walk(root, &p, out);
+                } else {
+                    let rel = p.strip_prefix(root).unwrap().display().to_string();
+                    out.insert(rel, std::fs::read(&p).unwrap());
+                }
+            }
+        }
+        let mut out = std::collections::BTreeMap::new();
+        walk(dir, dir, &mut out);
+        out
+    }
+
+    /// D3: every file a template would land on is listed, and neither a dry
+    /// run nor a real create touches the folder.
+    #[test]
+    fn a_colliding_file_is_refused_and_listed() {
+        let d = TempDir::new("create-collision");
+        let dir = d.path().join("p");
+        std::fs::create_dir_all(dir.join("configs")).unwrap();
+        std::fs::write(dir.join("rocket.rw.toml"), "# my notes, not a model\n").unwrap();
+        std::fs::write(dir.join("configs/default.rw.toml"), "name = \"Mine\"\n").unwrap();
+        std::fs::write(dir.join("notes.txt"), "keep\n").unwrap();
+        let before = snapshot(&dir);
+        for dry_run in [true, false] {
+            let i = ProjectCreateIn {
+                dry_run,
+                ..ProjectCreateIn::default()
+            };
+            let e = create_project(&dir, &i, &ctx()).unwrap_err();
+            assert_eq!(e.code, ApiErrorCode::Conflict, "{e:?}");
+            assert!(
+                e.message.contains("rocket.rw.toml")
+                    && e.message.contains("configs/default.rw.toml")
+                    && !e.message.contains("notes.txt"),
+                "{}",
+                e.message
+            );
+            assert_eq!(snapshot(&dir), before, "dry_run {dry_run}");
+            assert!(!dir.join(".rw").exists(), "no lock left behind");
+        }
+    }
+
+    /// D3: unrelated files stay, and the project is created around them.
+    #[test]
+    fn a_folder_without_a_collision_is_used() {
+        let d = TempDir::new("create-nocollision");
+        let dir = d.path().join("p");
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("notes.txt"), "keep\n").unwrap();
+        create_project(&dir, &ProjectCreateIn::default(), &ctx()).unwrap();
+        assert_eq!(std::fs::read(dir.join("notes.txt")).unwrap(), b"keep\n");
+        assert!(layout::is_project(&dir));
+    }
+
+    /// A file where the plan needs a directory, a dangling symlink, and a
+    /// `.gitignore` that cannot be merged are collisions too: each would
+    /// otherwise fail midway or lose the thing it replaced.
+    #[test]
+    fn occupied_paths_count_as_collisions() {
+        let d = TempDir::new("create-occupied");
+        let dir = d.path().join("p");
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("configs"), "a file\n").unwrap();
+        let e = create_project(&dir, &ProjectCreateIn::default(), &ctx()).unwrap_err();
+        assert!(e.message.contains("configs/default.rw.toml"), "{e:?}");
+
+        let d = TempDir::new("create-binary-gitignore");
+        let dir = d.path().join("p");
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join(".gitignore"), [0xff, 0xfe, 0x00]).unwrap();
+        let e = create_project(&dir, &ProjectCreateIn::default(), &ctx()).unwrap_err();
+        assert!(e.message.contains(".gitignore"), "{e:?}");
+
+        #[cfg(unix)]
+        {
+            let d = TempDir::new("create-dangling");
+            let dir = d.path().join("p");
+            std::fs::create_dir_all(&dir).unwrap();
+            std::os::unix::fs::symlink(d.path().join("gone"), dir.join("rocket.rw.toml")).unwrap();
+            let e = create_project(&dir, &ProjectCreateIn::default(), &ctx()).unwrap_err();
+            assert!(e.message.contains("rocket.rw.toml"), "{e:?}");
+        }
+    }
+
+    /// D3 for project-creating imports, including the dry run.
+    #[test]
+    fn an_import_refuses_a_colliding_file() {
+        let d = TempDir::new("create-import-collision");
+        let src = d.path().join("bird.ork");
+        std::fs::write(&src, include_str!("../../rw-ork/tests/data/simple.ork.xml")).unwrap();
+        let dir = d.path().join("p");
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("rocket.rw.toml"), "# mine\n").unwrap();
+        let before = snapshot(&dir);
+        for dry_run in [true, false] {
+            let e = import_project(&dir, src.to_str().unwrap(), dry_run, &ctx()).unwrap_err();
+            assert_eq!(e.code, ApiErrorCode::Conflict, "{e:?}");
+            assert!(e.message.contains("rocket.rw.toml"), "{}", e.message);
+            assert_eq!(snapshot(&dir), before, "dry_run {dry_run}");
+        }
+    }
+
+    /// `--name` reaches the manifest and the model, keeping their comments.
+    #[test]
+    fn name_is_written_to_both_files() {
+        let d = TempDir::new("create-name");
+        let dir = d.path().join("p");
+        let i = ProjectCreateIn {
+            name: Some("Solstice".into()),
+            template: Some("minimum".into()),
+            dry_run: false,
+        };
+        create_project(&dir, &i, &ctx()).unwrap();
+        let manifest = std::fs::read_to_string(dir.join(layout::MANIFEST)).unwrap();
+        assert!(manifest.contains("name = \"Solstice\""), "{manifest}");
+        assert!(manifest.starts_with("# The smallest"), "{manifest}");
+        let rocket = std::fs::read_to_string(dir.join(ROCKET_FILE)).unwrap();
+        assert!(rocket.contains("name = \"Solstice\""), "{rocket}");
+        assert!(!rocket.contains("\"Rocket\""), "{rocket}");
+    }
+
+    /// `empty` opens with no parts, one configuration and no simulation, and
+    /// the check still says there is nothing to fly yet (RW-E100).
+    #[test]
+    fn the_empty_template_opens_with_nothing_to_fly() {
+        let d = TempDir::new("create-empty");
+        let dir = d.path().join("p");
+        let i = ProjectCreateIn {
+            template: Some("empty".into()),
+            ..ProjectCreateIn::default()
+        };
+        create_project(&dir, &i, &ctx()).unwrap();
+        let s = Session::open(&dir, SessionOptions::read_only()).unwrap();
+        assert!(s.model().components.is_empty());
+        assert!(s.model().sims.is_empty());
+        assert_eq!(s.model().configs.len(), 1);
+        let (_, r) = s.evaluated(Some("default")).unwrap();
+        assert!(
+            r.diagnostics.iter().any(|d| d.code == "RW-E100"),
+            "{:?}",
+            r.diagnostics
+        );
+    }
+
     #[test]
     fn every_template_checks_clean_in_every_configuration() {
-        for t in template_names() {
+        // `empty` has no rocket to check yet; its own test pins what it reports.
+        for t in template_names().into_iter().filter(|t| *t != "empty") {
             let d = TempDir::new("create-tpl");
             let dir = d.path().join("p");
             let i = ProjectCreateIn {

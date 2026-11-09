@@ -1,0 +1,13 @@
+name = "Dual deploy"
+description = "Class D generic motor; streamer at apogee, main parachute at 100 m"
+
+[motors.motor_casing]
+motor = "generic:RW_D10G"
+delay = "5 s"
+
+[deploy.chute]
+event = "altitude"
+altitude = "100 m"
+
+[deploy.streamer]
+event = "apogee"

@@ -140,6 +140,17 @@ fn check(ops: &[PatchOp]) -> Result<bool, String> {
     Ok(true)
 }
 
+/// A complete engine, for the generator's first entry into the absent
+/// `/engines` table.
+fn engine() -> Value {
+    let path = "engines/demo.rw.toml";
+    let text = include_str!("../../../fixtures/research-vehicle/engines/demo.rw.toml");
+    let mut set = SourceSet::default();
+    set.docs
+        .insert(path.into(), parse_source(path, text).unwrap());
+    rw_model::ModelValue::from_sources(&set).0["engines"]["demo"].clone()
+}
+
 fn length() -> impl Strategy<Value = String> {
     (1u32..900).prop_map(|n| format!("{n} mm"))
 }
@@ -243,6 +254,7 @@ fn op() -> impl Strategy<Value = PatchOp> {
         1 => Just(add("/project/display_units", json!({"length": "mm", "mass": "g"}))),
         1 => Just(add("/materials/alu", json!({"density": "2700 kg/m^3"}))),
         1 => Just(add("/stage/sustainer", json!({"first": "nose"}))),
+        1 => Just(add("/engines/x", engine())),
         1 => Just(PatchOp::Test { path: "/c/fins/count".into(), value: json!(3) }),
         1 => Just(replace("/c/fins/span", json!("= params.span * 1.1"))),
         1 => Just(replace("/c/body/attach", json!({"to": "nose.base", "offset": "0 mm"}))),
@@ -290,6 +302,7 @@ fn single_ops_agree() {
         }],
         vec![add("/sims/hot", json!({"config": "baseline"}))],
         vec![add("/project/display_units", json!({"length": "mm"}))],
+        vec![add("/engines/x", engine())],
     ];
     let mut applied = 0;
     for ops in cases {
@@ -298,5 +311,55 @@ fn single_ops_agree() {
             Err(e) => panic!("{e}\nops: {ops:?}"),
         }
     }
-    assert_eq!(applied, 9);
+    assert_eq!(applied, 10);
+}
+
+/// Deletes every entry of a table in one call, then adds a first entry in a
+/// later one, for each table: the store and the model value agree at each
+/// step. (`check` cannot run this: the deletes remove its kept comments.)
+#[test]
+fn delete_all_then_add_first_agree() {
+    let keys = |sources: &SourceSet, table: &str| -> Vec<String> {
+        rw_model::ModelValue::from_sources(sources).0[table]
+            .as_object()
+            .map(|o| o.keys().cloned().collect())
+            .unwrap_or_default()
+    };
+    let firsts = [
+        (
+            "c",
+            "nose",
+            json!({"type": "nose_cone", "shape": "ogive", "length": "100 mm", "od": "54 mm"}),
+        ),
+        ("materials", "alu", json!({"density": "2700 kg/m^3"})),
+        ("sims", "first", json!({"config": "baseline"})),
+        ("engines", "first", engine()),
+    ];
+    for (table, id, value) in firsts {
+        let disk = files();
+        let mut store = TomlStore::load(&disk).unwrap();
+        let mut model = store.sources().clone();
+        let mut written = disk.clone();
+        let removes: Vec<PatchOp> = keys(&model, table)
+            .into_iter()
+            .map(|k| PatchOp::Remove {
+                path: format!("/{table}/{k}"),
+            })
+            .collect();
+        let path = format!("/{table}/{id}");
+        for ops in [removes, vec![add(&path, value.clone())]] {
+            model = rw_model::apply(&model, &ops).unwrap_or_else(|e| panic!("{table}: {e:?}"));
+            for c in store
+                .apply(&ops)
+                .unwrap_or_else(|e| panic!("{table}: {e:?}"))
+            {
+                match &c.text {
+                    Some(t) => written.insert(c.path.clone(), t.clone()),
+                    None => written.remove(&c.path),
+                };
+            }
+            assert_eq!(parse_all(&written).unwrap(), model, "{table}");
+        }
+        assert_eq!(keys(&model, table), [id], "{table}");
+    }
 }

@@ -20,6 +20,8 @@ const PROJECTS: &[&str] = &[
     "fixtures/research-vehicle",
     "templates/simple-rocket",
     "templates/minimum",
+    "templates/sample",
+    "templates/empty",
 ];
 
 fn repo_root() -> PathBuf {
@@ -92,7 +94,12 @@ fn every_project_evaluates_clean_in_every_config_and_variant() {
         let d = unexpected(m.diagnostics.clone());
         assert!(d.is_empty(), "{rel}: {d:#?}");
         assert!(m.config.is_some(), "{rel}: no default configuration");
-        assert!(!m.configs.is_empty() && !m.sims.is_empty(), "{rel}");
+        // `empty` is the one project with nothing to fly yet: no sim, no motor.
+        let empty = *rel == "templates/empty";
+        assert!(
+            !m.configs.is_empty() && (!m.sims.is_empty() || empty),
+            "{rel}"
+        );
         for cfg in m.configs.keys() {
             let opts = EvalOptions {
                 config: Some(cfg.clone()),
@@ -123,7 +130,7 @@ fn every_project_evaluates_clean_in_every_config_and_variant() {
             assert!(m.configs.contains_key(&sim.config), "{rel}: {}", sim.id);
         }
         for c in m.configs.values() {
-            assert!(!c.motors.is_empty(), "{rel} {}: no motor", c.id);
+            assert!(!c.motors.is_empty() || empty, "{rel} {}: no motor", c.id);
             for mm in &c.motors {
                 let motor = mm.motor.as_deref().unwrap_or_default();
                 assert!(motor.starts_with("generic:RW_"), "{rel} {}: {motor}", c.id);

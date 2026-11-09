@@ -34,7 +34,8 @@ code here is wrong. The tables marked "generated" come from the code
    (`rw set`, `rw add`, `rw rm`, `rw mv`, `rw import`, `rw motor import`,
    `rw init`) runs `rw check --strict` itself after it writes and prints the
    result as a `check --strict: <status>` section, with every diagnostic. It
-   exits 1 when that check is not clean (the edit is still written). Read that
+   exits 1 when that check is not clean (the edit is still written); `rw init`
+   exits 0 once the project is created, so read its section too. Read that
    section after every edit command, before the next edit, sim, or answer.
    After any other edit (your own file editor, `rw call model_patch`), run
    `rw check --strict`. A design is done only when the last strict check of
@@ -371,7 +372,7 @@ as `name`, `material`, `finish`, `appearance`, `instances`, `override`, and
 
 | Command | Use it to |
 |---|---|
-| `rw init --template simple-rocket [dir]` | start a project in the working directory (or in `dir` when you are asked for one); `minimum` is the other template |
+| `rw init --template simple-rocket [dir]` | start a project in the working directory (or in `dir` when you are asked for one); the other templates are `minimum`, `sample` (a larger worked example), and `empty` (no parts; `rw check` reports `RW-E100` until you add some) |
 | `rw check --strict` | check the design (the gate) |
 | `rw check --strict --json` | the full report: `status`, `diagnostics`, `dims` (`length`, `max_diameter`, `length_cal`, `fineness`, ...), `mass` (with the mass breakdown `mass.components[]`: `component`, `mass`, `cg`, `override`), `aero` (with the per-component terms `aero.terms[]`: `component`, `cna`, `cp`, `model`), `stability`, `motor`, `clearance`, `assertions`, `report` |
 | `rw check --strict --set <path>=<value>` | a what-if: check with overrides, writing nothing (repeat `--set`; the paths are the `rw set` paths) |

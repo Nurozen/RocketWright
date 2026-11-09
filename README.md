@@ -55,6 +55,17 @@ flight). RocketWright works offline; the only network access is a ThrustCurve
 motor search or download that you start (`rw motor thrustcurve`, or Search
 ThrustCurve in the motor picker).
 
+**Known issue:** the desktop app started with no `--project` (a release build
+or plain `make dev`) works in a temporary copy of the sample rocket under
+`/tmp`, and changes there can be lost when the system clears that folder. To
+keep your work, create a project in a real folder and open that folder:
+
+```sh
+rw init ~/my-rocket
+open -a RocketWright --args --project ~/my-rocket  # release build
+make dev PROJECT=~/my-rocket                       # from a checkout
+```
+
 ## Prerequisites
 
 See [`docs/dev/environment.md`](docs/dev/environment.md) for exact versions.
