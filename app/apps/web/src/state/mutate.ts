@@ -7,6 +7,23 @@
 import type { MutationOut, PatchOp } from "@rw/contracts";
 import type { SliceCtx } from "./types.ts";
 
+export function mirrorHash(ctx: Pick<SliceCtx, "get">): string | null {
+  const snap = ctx.get().project.snapshot;
+  return snap?.evaluated?.model_hash ?? snap?.files.model_hash ?? null;
+}
+
+/**
+ * A write answered; its push comes a moment later. Until then the mirror (and
+ * its history) is the model before this write, so anything that needs the
+ * state after it waits for `to`.
+ */
+export function noteLanded(ctx: Pick<SliceCtx, "get" | "landed">, hash: string): void {
+  const from = mirrorHash(ctx);
+  // A write before this one has not been pushed yet: its push is on the way here too.
+  const earlier = ctx.landed !== null && (ctx.landed.from === from || ctx.landed.through.includes(from ?? "")) ? [...ctx.landed.through, ctx.landed.to] : [];
+  ctx.landed = { from, to: hash, through: earlier };
+}
+
 async function settleDraft(ctx: SliceCtx): Promise<void> {
   const draft = ctx.get().draft;
   if (draft.ops.length === 0) return;
@@ -20,7 +37,9 @@ export function createMutate(ctx: SliceCtx) {
     if (ops.length === 0) return null;
     const { client, projectId } = ctx.conn();
     await settleDraft(ctx);
-    return client.call("model.patch", label === undefined ? { projectId, ops: [...ops] } : { projectId, ops: [...ops], label });
+    const out = await client.call("model.patch", label === undefined ? { projectId, ops: [...ops] } : { projectId, ops: [...ops], label });
+    noteLanded(ctx, out.model_hash);
+    return out;
   };
 }
 
@@ -33,6 +52,8 @@ export function createRemoveComponent(ctx: SliceCtx) {
   return async function removeComponent(id: string, label: string): Promise<MutationOut> {
     const { client, projectId } = ctx.conn();
     await settleDraft(ctx);
-    return client.call("component.remove", { projectId, id, recursive: true, label });
+    const out = await client.call("component.remove", { projectId, id, recursive: true, label });
+    noteLanded(ctx, out.model_hash);
+    return out;
   };
 }

@@ -182,8 +182,10 @@ function afterMirrorChange(ctx: SliceCtx, prev: AppState["project"]["snapshot"])
 
   // Draft: another writer committed underneath unsaved edits.
   const hash = snap.evaluated?.model_hash ?? snap.files.model_hash;
-  if (ctx.landed != null && hash !== ctx.landed.from) ctx.landed = null;
-  if (s.draft.ops.length > 0 && s.draft.baseHash !== null && s.draft.baseHash !== hash && !s.draft.stale && !ctx.draftWriting) {
+  // Another write of ours on the way through is not the end of the wait for the last one, and not another writer either.
+  const passing = ctx.landed?.through.includes(hash) === true;
+  if (ctx.landed != null && hash !== ctx.landed.from && !passing) ctx.landed = null;
+  if (s.draft.ops.length > 0 && s.draft.baseHash !== null && s.draft.baseHash !== hash && !s.draft.stale && !ctx.draftWriting && !passing) {
     ctx.patch("draft", { stale: true });
   }
 

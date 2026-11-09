@@ -2,7 +2,7 @@
 import type { DesktopPrefs, PageId, ViewId } from "@rw/contracts";
 import { VIEW_IDS } from "../../viewport/views.ts";
 import { displayLengthOps, MANIFEST } from "../displayUnits.ts";
-import { flushProject, hasUnsavedWork } from "../dirtyFields.ts";
+import { discardDirtyFields, flushProject, hasUnsavedWork } from "../dirtyFields.ts";
 import { createMutate } from "../mutate.ts";
 import type { SliceCtx, UiSlice } from "../types.ts";
 
@@ -42,7 +42,10 @@ export function createUiSlice(ctx: SliceCtx): UiSlice {
     answer = null;
     ctx.patch("ui", { leaving: null });
     // What could not be saved must not stay open, or it would block every direct edit on the next page.
-    if (dropped) ctx.get().draft.discard();
+    if (dropped) {
+      ctx.get().draft.discard();
+      discardDirtyFields();
+    }
     return dropped;
   };
 

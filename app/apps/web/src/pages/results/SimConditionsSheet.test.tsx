@@ -6,7 +6,7 @@ import type { MutationOut, ProjectSnapshot } from "@rw/contracts";
 import { MockRpc } from "@rw/contracts/mock";
 import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
 import { createStore } from "zustand/vanilla";
-import { resetDirtyFields } from "../../state/dirtyFields.ts";
+import { discardDirtyFields, flushProject, resetDirtyFields } from "../../state/dirtyFields.ts";
 import { createAppStore, type AppStore } from "../../state/store.ts";
 import type { AppState } from "../../state/types.ts";
 import { resultsUiStore } from "./resultsUi.ts";
@@ -215,6 +215,44 @@ describe("leaving with typed values", () => {
     root = null;
     expect(mutate).not.toHaveBeenCalled();
     expect(resultsUiStore(app).getState().notice).toMatch(/Speed needs a number/);
+  });
+
+  it("Don't save after a failed save really drops the text: leaving does not retry it", async () => {
+    const { app, mutate } = makeStore();
+    mutate.mockRejectedValueOnce(new Error("disk full"));
+    await mount(app, "baseline");
+    await type(input(group("Wind"), "Speed"), "9");
+    await act(async () => {
+      await expect(flushProject(app)).resolves.toEqual(["disk full"]);
+    });
+    expect(mutate).toHaveBeenCalledTimes(1);
+    act(() => discardDirtyFields());
+    await act(async () => root?.unmount());
+    root = null;
+    await act(async () => undefined);
+    expect(mutate).toHaveBeenCalledTimes(1);
+    expect(resultsUiStore(app).getState().notice).toBeNull();
+  });
+
+  it("Don't save with text that cannot be saved gives no notice when the sheet goes", async () => {
+    const { app, mutate } = makeStore();
+    await mount(app, "baseline");
+    await type(input(group("Wind"), "Speed"), "abc");
+    act(() => discardDirtyFields());
+    await act(async () => root?.unmount());
+    root = null;
+    expect(mutate).not.toHaveBeenCalled();
+    expect(resultsUiStore(app).getState().notice).toBeNull();
+  });
+
+  it("Don't save with the sheet still up clears what was typed", async () => {
+    const { app, mutate } = makeStore();
+    await mount(app, "baseline");
+    const before = input(group("Wind"), "Speed").value;
+    await type(input(group("Wind"), "Speed"), "9");
+    act(() => discardDirtyFields());
+    expect(input(group("Wind"), "Speed").value).toBe(before);
+    expect(mutate).not.toHaveBeenCalled();
   });
 
   it("does not save twice when Save is already on its way", async () => {

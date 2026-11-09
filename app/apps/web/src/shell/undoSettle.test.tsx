@@ -55,6 +55,80 @@ describe("settleForHistory", () => {
   });
 });
 
+describe("a write that answered before Undo, with its push still on the way", () => {
+  /** A real store whose mirror moves only when `push` says: the moment the click lands in is between the answer and the push. */
+  async function connected(answer: (method: string, params: { dry_run?: boolean }) => unknown) {
+    const snapshot = new MockRpc().snapshot();
+    const mirror = (h: string) => ({ ...snapshot, evaluated: { ...snapshot.evaluated!, model_hash: h }, files: { ...snapshot.files, model_hash: h } });
+    const handlers = new Map<string, (p: unknown) => void>();
+    const client = {
+      hello: { coreVersion: "0.0.0-mock" },
+      on: (topic: string, handler: (p: unknown) => void) => {
+        handlers.set(topic, handler);
+        return () => undefined;
+      },
+      onClose: () => () => undefined,
+      call: async (method: string, params: { dry_run?: boolean }) => (method === "project.subscribe" ? { subscriptionId: "s", snapshot: mirror("h0") } : answer(method, params)),
+    } as unknown as RpcLike;
+    const s = createAppStore({ loadWasm: async () => ({ coreVersion: () => "0.0.0-mock" }), now: () => 1000 });
+    await s.getState().project.connect(client, "p");
+    return { s, push: (h: string) => handlers.get("project.snapshot")!({ subscriptionId: "s", snapshot: mirror(h) }) };
+  }
+
+  /** Whether the move finished within a beat. */
+  async function moved(settle: Promise<boolean>): Promise<boolean> {
+    return Promise.race([settle.then(() => true), new Promise<boolean>((r) => setTimeout(() => r(false), 20))]);
+  }
+
+  it("a blur commit's answer is not enough: Undo waits for the mirror that shows it", async () => {
+    const { s, push } = await connected((_m, p) => (p.dry_run === true ? { delta: {} } : { model_hash: "h1" }));
+    await s.getState().draft.edit([span]);
+    await s.getState().draft.commit();
+    const settle = settleForHistory(s, "undo");
+    expect(await moved(settle)).toBe(false);
+    push("h1");
+    await expect(settle).resolves.toBe(true);
+  });
+
+  it("the same for a direct edit (a material, an engine field)", async () => {
+    const { s, push } = await connected(() => ({ model_hash: "h1" }));
+    await s.getState().draft.mutate([span], "Edit");
+    const settle = settleForHistory(s, "undo");
+    expect(await moved(settle)).toBe(false);
+    push("h1");
+    await expect(settle).resolves.toBe(true);
+  });
+
+  it("the same for removing a part", async () => {
+    const { s, push } = await connected(() => ({ model_hash: "h1" }));
+    await s.getState().draft.removeComponent("fins", "Delete Fins");
+    const settle = settleForHistory(s, "undo");
+    expect(await moved(settle)).toBe(false);
+    push("h1");
+    await expect(settle).resolves.toBe(true);
+  });
+
+  it("waits through a first push for the last write that landed", async () => {
+    let n = 0;
+    const { s, push } = await connected(() => ({ model_hash: `h${++n}` }));
+    await s.getState().draft.mutate([span], "First");
+    await s.getState().draft.mutate([span], "Second");
+    const settle = settleForHistory(s, "undo");
+    expect(await moved(settle)).toBe(false);
+    push("h1");
+    expect(await moved(settle)).toBe(false);
+    push("h2");
+    await expect(settle).resolves.toBe(true);
+  });
+
+  it("does not wait when the push already arrived", async () => {
+    const { s, push } = await connected(() => ({ model_hash: "h1" }));
+    push("h1");
+    await s.getState().draft.mutate([span], "Edit");
+    await expect(moved(settleForHistory(s, "undo"))).resolves.toBe(true);
+  });
+});
+
 describe("Cmd-Z in the shell", () => {
   let root: Root | null = null;
   afterEach(async () => {

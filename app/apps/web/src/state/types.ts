@@ -65,7 +65,7 @@ export interface DraftSlice {
   edit(ops: PatchOp[], label?: string): Promise<void>;
   discard(): void;
   commit(): Promise<MutationOut>;
-  /** Resolves when no commit is on its way, to the `model_hash` of the last one that landed meanwhile. */
+  /** Resolves when no commit is on its way, to the `model_hash` the mirror still has to show (a landed write whose push has not come), or null. */
   settled(): Promise<string | null>;
   /** What `ops` would do, written nowhere; leaves the open draft alone. */
   dryRun(ops: readonly PatchOp[]): Promise<MutationOut>;
@@ -258,6 +258,6 @@ export interface SliceCtx {
   cleanup: (() => void)[];
   /** A draft commit is on its way, so a mirror change may be that commit and not another writer. */
   draftWriting: boolean;
-  /** The hash the last commit produced, until the mirror moves off the hash it had when that commit landed. */
-  landed: { from: string | null; to: string } | null;
+  /** The hash the last write produced, until the mirror reaches it. `from` is the mirror when it landed; `through` the writes before it whose pushes come first. */
+  landed: { from: string | null; to: string; through: string[] } | null;
 }

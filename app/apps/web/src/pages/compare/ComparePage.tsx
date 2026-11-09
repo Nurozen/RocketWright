@@ -14,6 +14,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { CompareOut, EvaluatedModel } from "@rw/contracts";
 import { runComparison } from "./comparison.ts";
 import { componentRef, useAppState, type AppStore, type CompareSelection, type RpcLike } from "../../state/index.ts";
+import { unitSystemOf } from "../../state/displayUnits.ts";
 import { selectedComponentIds } from "../../state/slices/selection.ts";
 import { AssemblyViewport } from "../../viewport/AssemblyViewport.tsx";
 import type { EngineState } from "../../viewport/engine.ts";
@@ -47,6 +48,7 @@ export function ComparePage({ store, client, glbDeps }: ComparePageProps) {
   const projectId = useAppState(store, (s) => s.project.projectId);
   const snap = useAppState(store, (s) => s.project.snapshot);
   const units = useAppState(store, (s) => s.ui.units);
+  const system = useAppState(store, unitSystemOf);
   const view = useAppState(store, (s) => s.ui.view);
   const refs = useAppState(store, (s) => s.selection.refs);
   const modelHash = snap?.evaluated?.model_hash ?? null;
@@ -94,7 +96,7 @@ export function ComparePage({ store, client, glbDeps }: ComparePageProps) {
   );
   const counts = markCounts(marks);
   const options = useMemo(() => versionOptions(snap), [snap]);
-  const metrics = useMemo(() => metricRows(current?.cmp ?? null, units), [current, units]);
+  const metrics = useMemo(() => metricRows(current?.cmp ?? null, units, system), [current, units, system]);
   const changes = useMemo(() => changeRows(current?.cmp ?? null, units), [current, units]);
   const edits = useMemo(() => editRows(current?.cmp ?? null), [current]);
   if (sel === null) return null;

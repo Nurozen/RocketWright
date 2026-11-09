@@ -128,6 +128,7 @@ describe("a second commit while the first is on its way", () => {
     const settled = draft().settled();
     const out = await held[0]!.release();
     await expect(settled).resolves.toBe(out.model_hash);
+    await until(store, (s) => hashOf(s) === out.model_hash);
     await expect(draft().settled()).resolves.toBeNull();
   });
 });

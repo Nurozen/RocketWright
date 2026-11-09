@@ -115,8 +115,10 @@ function untilMirror(store: AppStore, ready: () => boolean): Promise<void> {
 
 /**
  * Settles the draft before the history moves. Writes already on their way (a
- * blur from clicking Undo starts one) land first and the mirror catches up, so
- * the target is worked out from the state the person is undoing. A draft still
+ * blur from clicking Undo starts one) land first, and the mirror catches up
+ * with whichever write last answered (even one that answered before this
+ * click: its push comes separately), so the target is worked out from the
+ * state the person is undoing. A draft still
  * open after that is one that could not be saved or is out of date: left open
  * across a restore it goes stale and blocks every direct edit, so it is
  * dropped. For Undo, dropping it is the whole move: it was the latest change.

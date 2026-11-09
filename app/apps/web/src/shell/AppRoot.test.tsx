@@ -1007,6 +1007,19 @@ describe("the project menu", () => {
     expect(el.querySelector('[data-testid="welcome"]')).toBeNull();
   });
 
+  it("Don't save has the fields drop their text, so nothing can write it afterwards", async () => {
+    const onDiscard = vi.fn<() => void>();
+    const t = fakeClient(["a"]);
+    await mount(t, fakeHost());
+    registerDirtyField({ dirty: () => true, commit: () => "Length needs a number.", discard: onDiscard });
+    await send({ id: "project.close" });
+    expect(onDiscard).not.toHaveBeenCalled();
+    t.projects.splice(0, 1);
+    await act(async () => button("Don't save").click());
+    await settled();
+    expect(onDiscard).toHaveBeenCalledOnce();
+  });
+
   it("Don't save goes ahead", async () => {
     const t = fakeClient(["a"]);
     await mount(t, fakeHost());
