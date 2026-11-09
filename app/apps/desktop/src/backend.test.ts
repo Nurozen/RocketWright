@@ -182,7 +182,8 @@ setInterval(() => {}, 1000);`,
     } finally {
       await server.stop();
     }
-  });
+    // Two 5 s waits plus a child's startup do not fit the default 5 s on a loaded runner.
+  }, 20_000);
 
   it("reports the child's env as seen from inside", async () => {
     let seen = "";
