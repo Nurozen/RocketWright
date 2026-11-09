@@ -11,6 +11,10 @@
 //!   `rw/error` `approval_required`, `lecturn/approval-required {reason}`);
 //!   `approved: true` runs it; no `lecturn/approval` meta behaves as today;
 //!   a gated call through a relay is answered the same way.
+//! - `project_create` (D9): refused on every call carrying `lecturn/approval`,
+//!   dry run included, approved or not, on a plain `mcp --project` (the
+//!   registration without the flag); without that meta the standalone
+//!   conflict stands, dry run included.
 #![allow(clippy::disallowed_methods, clippy::disallowed_types)]
 
 mod common;
@@ -19,7 +23,9 @@ use std::path::Path;
 
 use common::*;
 use rw_api::{ApiErrorCode, command_def};
-use rw_cli::mcp::approval::{Gate, default_engine_seconds, gate, reason, seconds};
+use rw_cli::mcp::approval::{
+    Gate, default_engine_seconds, gate, project_create_refused, reason, seconds,
+};
 use rw_project::testutil::wait_until;
 use serde_json::{Value, json};
 
@@ -450,4 +456,83 @@ fn gated_call_through_a_relay() {
     assert_gated(&r, "Burn duration not set · default 120 s");
     assert_eq!(r["_meta"]["rw/ctx"]["origin"], "mcp");
     assert_eq!(engine_runs(&p.0), 0);
+}
+
+// ---- project_create (D9) ---------------------------------------------------
+
+fn assert_create_refused(r: &Value) {
+    assert_eq!(r["isError"], true, "{r}");
+    let m = &r["_meta"];
+    assert_eq!(m["rw/error"]["code"], "conflict", "{r}");
+    let message = m["rw/error"]["message"].as_str().unwrap();
+    assert!(message.contains("rw_project_new"), "{r}");
+    assert!(
+        m.get("lecturn/approval-required").is_none(),
+        "there is nothing to approve: {r}"
+    );
+    assert!(r.get("structuredContent").is_none_or(Value::is_null), "{r}");
+}
+
+#[test]
+fn project_create_is_refused_even_when_approved() {
+    let def = command_def("project_create").unwrap();
+    for approval in [json!({"approved": true}), unapproved(), json!({})] {
+        for args in [json!({}), json!({"dry_run": true})] {
+            assert_eq!(
+                gate(def, &args, &approval),
+                Some(Gate::Refuse(project_create_refused())),
+                "{approval} {args}"
+            );
+        }
+    }
+}
+
+/// `Sidecar` starts `mcp --project` with no flag, which is also how a paired
+/// Lecturn server with a stale registration spawns the call path. An empty
+/// folder is where the call would otherwise create a project.
+#[test]
+fn a_lecturn_call_to_project_create_never_runs() {
+    let p = TempProject::new();
+    let mut s = Sidecar::started(&p.0);
+    for approval in [json!({"approved": true, "requestId": "r1"}), unapproved()] {
+        for args in [json!({}), json!({"dry_run": true})] {
+            let r = call(&mut s.rpc, "project_create", args, Some(approval.clone()));
+            assert_create_refused(&r);
+        }
+    }
+    assert!(!p.0.join("rocketwright.toml").exists(), "nothing created");
+    assert!(s.stop().success());
+}
+
+#[test]
+fn a_lecturn_call_to_project_create_is_refused_through_a_relay() {
+    let p = TempProject::fixture("fixtures/research-vehicle");
+    let _owner = Sidecar::started(&p.0);
+    assert!(wait_until(20_000, || p.socket().exists()), "owner socket");
+    let mut relay = Sidecar::started(&p.0);
+    let r = call(
+        &mut relay.rpc,
+        "project_create",
+        json!({}),
+        Some(json!({"approved": true})),
+    );
+    assert_create_refused(&r);
+}
+
+/// R1.2: without Lecturn meta the tool stays, and on a folder that holds a
+/// project both the real call and a dry run answer the same conflict.
+#[test]
+fn project_create_without_lecturn_meta_keeps_the_conflict() {
+    let p = TempProject::fixture("fixtures/research-vehicle");
+    let mut s = Sidecar::started(&p.0);
+    let wet = call(&mut s.rpc, "project_create", json!({}), None);
+    let dry = call(&mut s.rpc, "project_create", json!({"dry_run": true}), None);
+    for r in [&wet, &dry] {
+        assert_eq!(r["isError"], true, "{r}");
+        assert_eq!(r["_meta"]["rw/error"]["code"], "conflict", "{r}");
+        let message = r["_meta"]["rw/error"]["message"].as_str().unwrap();
+        assert!(!message.contains("rw_project_new"), "{r}");
+    }
+    assert_eq!(wet["_meta"]["rw/error"], dry["_meta"]["rw/error"]);
+    assert!(s.stop().success());
 }
