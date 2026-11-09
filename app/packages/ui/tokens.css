@@ -29,6 +29,8 @@
   --rw-material-parachute: #e8732a; /* [parachute] render material */
   --rw-material-fluid: #26555c; /* [fluid] render material */
   --rw-danger: #e5735c; /* not a bar token: Failed status and errors (state/status.ts danger tone) */
+  --rw-scrim: rgb(8 11 13 / 0.72); /* not a bar token: dimmed window behind a modal */
+  --rw-elevation-overlay: 0 12px 32px rgb(0 0 0 / 0.45); /* not a bar token: menus, popovers, modals, sheets */
 
   /* ---- typography (tokens.json typography) ---- */
   --rw-font-sans: "Inter", "SF Pro Text", system-ui, sans-serif;
@@ -38,6 +40,8 @@
   --rw-font-size-pane-title: 16px;
   --rw-font-size-page-title: 24px;
   --rw-font-size-wordmark: 20px;
+  --rw-font-size-modal-title: 28px;
+  --rw-font-size-display: 48px; /* Welcome wordmark */
   --rw-font-weight-regular: 400;
   --rw-font-weight-strong: 600;
 

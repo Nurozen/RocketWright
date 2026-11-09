@@ -9,7 +9,8 @@
 import type { AppStore } from "../../state/store.ts";
 import { fmtNum } from "../../plots/quantities.ts";
 import { nextSort, rowRef, type ResultsRow, type SortKey } from "./model.ts";
-import { MenuButton, StatusGlyph, useResultsRows } from "./parts.tsx";
+import { MenuButton } from "../../ui/Menu.tsx";
+import { StatusGlyph, useResultsRows } from "./parts.tsx";
 import { ResultsIcon } from "./ResultsIcon.tsx";
 import { resultsUiStore, useResultsUi } from "./resultsUi.ts";
 
