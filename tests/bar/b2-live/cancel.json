@@ -1,0 +1,120 @@
+{
+  "app_approvals": [],
+  "caller_thread": "thread-caller",
+  "caller_tree": {
+    "after": {
+      ".gitignore": "sha256:8b7d66d149b68694ad999e1e79fee58b1dad43b22112e5143ade53adf02ee4f4",
+      "configs/default.rw.toml": "sha256:797fedcd84d5081f7b931c6b62fd37bc14fe04337d4f5ba80e1a104992880837",
+      "rocket.rw.toml": "sha256:55b657192bbdc3aefc1a62b3d14d697a57939d4e797b0bd5aec45dbf78604398",
+      "rocketwright.toml": "sha256:211eb19ffa8dc9eeb20ac003408df103df33823ed5e61c955bd55e033b23820f",
+      "sims/default.rw.toml": "sha256:517de6427ce5d74056b54002863b61d3b88981fee71dd589e97e424a6556d817"
+    },
+    "before": {
+      ".gitignore": "sha256:8b7d66d149b68694ad999e1e79fee58b1dad43b22112e5143ade53adf02ee4f4",
+      "configs/default.rw.toml": "sha256:797fedcd84d5081f7b931c6b62fd37bc14fe04337d4f5ba80e1a104992880837",
+      "rocket.rw.toml": "sha256:55b657192bbdc3aefc1a62b3d14d697a57939d4e797b0bd5aec45dbf78604398",
+      "rocketwright.toml": "sha256:211eb19ffa8dc9eeb20ac003408df103df33823ed5e61c955bd55e033b23820f",
+      "sims/default.rw.toml": "sha256:517de6427ce5d74056b54002863b61d3b88981fee71dd589e97e424a6556d817"
+    }
+  },
+  "control": null,
+  "dialogs": [
+    {
+      "detail": "Name: solstice-rocket\nFolder: /tmp/rw-b2l-rec/docs/RocketWright/solstice-rocket",
+      "message": "The agent wants to create a new project",
+      "response": 0
+    }
+  ],
+  "documents": "/tmp/rw-b2l-rec/docs",
+  "note": "Hand-shaped transcript in the form the driver records (no live run yet); the trees, rw init file lists, evaluated models and the component_add result are real rw output.",
+  "path": "cancel",
+  "prompt": "Create a new project called solstice-rocket",
+  "provider_requests": [],
+  "shell": {
+    "projects": [
+      {
+        "id": "project-caller",
+        "workspaceRoot": "/tmp/rw-b2l-rec/caller-rocket"
+      }
+    ],
+    "threads": [
+      {
+        "id": "thread-caller",
+        "projectId": "project-caller"
+      }
+    ]
+  },
+  "target": "/tmp/rw-b2l-rec/docs/RocketWright/solstice-rocket",
+  "target_model": null,
+  "target_tree": null,
+  "threads": {
+    "thread-caller": {
+      "id": "thread-caller",
+      "messages": [],
+      "projectId": "project-caller",
+      "runs": [
+        {
+          "id": "run-1",
+          "status": "completed"
+        }
+      ],
+      "turnItems": [
+        {
+          "id": "i-search",
+          "input": {
+            "query": "project"
+          },
+          "ordinal": 1,
+          "output": {
+            "content": [
+              {
+                "text": "rw_project_new",
+                "type": "text"
+              }
+            ]
+          },
+          "runId": "run-1",
+          "status": "completed",
+          "toolName": "ToolSearch",
+          "type": "dynamic_tool"
+        },
+        {
+          "id": "i-new",
+          "input": {
+            "name": "solstice-rocket"
+          },
+          "ordinal": 2,
+          "output": {
+            "_meta": {
+              "rw/error": {
+                "code": "cancelled",
+                "message": "The person cancelled."
+              }
+            },
+            "content": [
+              {
+                "text": "cancelled: The person cancelled. Nothing was created. Tell the person and stop; do not call this tool again unless they ask.",
+                "type": "text"
+              }
+            ],
+            "isError": true
+          },
+          "runId": "run-1",
+          "status": "completed",
+          "toolName": "mcp__lecturn__rw_project_new",
+          "type": "dynamic_tool"
+        },
+        {
+          "id": "i-close",
+          "ordinal": 3,
+          "runId": "run-1",
+          "status": "completed",
+          "text": "You cancelled the dialog, so no project was created.",
+          "type": "assistant_message"
+        }
+      ]
+    }
+  },
+  "timed_out": false,
+  "trial": 1
+}

@@ -1,0 +1,1100 @@
+{
+  "app_approvals": [],
+  "caller_thread": "thread-caller",
+  "caller_tree": {
+    "after": {
+      ".gitignore": "sha256:8b7d66d149b68694ad999e1e79fee58b1dad43b22112e5143ade53adf02ee4f4",
+      "configs/default.rw.toml": "sha256:797fedcd84d5081f7b931c6b62fd37bc14fe04337d4f5ba80e1a104992880837",
+      "rocket.rw.toml": "sha256:55b657192bbdc3aefc1a62b3d14d697a57939d4e797b0bd5aec45dbf78604398",
+      "rocketwright.toml": "sha256:211eb19ffa8dc9eeb20ac003408df103df33823ed5e61c955bd55e033b23820f",
+      "sims/default.rw.toml": "sha256:517de6427ce5d74056b54002863b61d3b88981fee71dd589e97e424a6556d817"
+    },
+    "before": {
+      ".gitignore": "sha256:8b7d66d149b68694ad999e1e79fee58b1dad43b22112e5143ade53adf02ee4f4",
+      "configs/default.rw.toml": "sha256:797fedcd84d5081f7b931c6b62fd37bc14fe04337d4f5ba80e1a104992880837",
+      "rocket.rw.toml": "sha256:55b657192bbdc3aefc1a62b3d14d697a57939d4e797b0bd5aec45dbf78604398",
+      "rocketwright.toml": "sha256:211eb19ffa8dc9eeb20ac003408df103df33823ed5e61c955bd55e033b23820f",
+      "sims/default.rw.toml": "sha256:517de6427ce5d74056b54002863b61d3b88981fee71dd589e97e424a6556d817"
+    }
+  },
+  "control": {
+    "files": [
+      {
+        "path": ".gitignore",
+        "status": "A"
+      },
+      {
+        "path": "configs/default.rw.toml",
+        "status": "A"
+      },
+      {
+        "path": "rocket.rw.toml",
+        "status": "A"
+      },
+      {
+        "path": "rocketwright.toml",
+        "status": "A"
+      },
+      {
+        "path": "sims/default.rw.toml",
+        "status": "A"
+      }
+    ],
+    "model": {
+      "asserts": [],
+      "components": [
+        {
+          "aero": true,
+          "anchors": [
+            {
+              "kind": "axial",
+              "name": "tip",
+              "r": 0,
+              "x": 0
+            },
+            {
+              "kind": "axial",
+              "name": "base",
+              "r": 0.012400000000000001,
+              "x": 0.1
+            }
+          ],
+          "children": [
+            "body"
+          ],
+          "containment": "axial",
+          "cut": false,
+          "id": "nose",
+          "instances": [
+            {
+              "index": 0,
+              "offset": [
+                0,
+                0,
+                0
+              ],
+              "roll": 0
+            }
+          ],
+          "material": "polystyrene",
+          "name": "nose",
+          "radial": 0,
+          "roll": 0,
+          "shape": {
+            "length": 0.1,
+            "od": 0.024800000000000003,
+            "shape": "ogive",
+            "shape_param": 1,
+            "thickness": 0,
+            "type": "nose_cone"
+          },
+          "stage": "main",
+          "x_aft": 0.1,
+          "x_fore": 0
+        },
+        {
+          "aero": true,
+          "anchors": [
+            {
+              "kind": "axial",
+              "name": "fore",
+              "r": 0.012400000000000001,
+              "x": 0.1
+            },
+            {
+              "kind": "axial",
+              "name": "aft",
+              "r": 0.012400000000000001,
+              "x": 0.45000000000000007
+            },
+            {
+              "kind": "axial",
+              "name": "mid",
+              "r": 0.012400000000000001,
+              "x": 0.275
+            },
+            {
+              "kind": "inner",
+              "name": "inner",
+              "r": 0.012050000000000002,
+              "x": 0.1
+            },
+            {
+              "kind": "surface",
+              "name": "outer",
+              "r": 0.012400000000000001,
+              "x": 0.1
+            }
+          ],
+          "attach": {
+            "at": "fore",
+            "offset": 0,
+            "to": "nose.base"
+          },
+          "children": [
+            "streamer",
+            "mount",
+            "fins"
+          ],
+          "containment": "axial",
+          "cut": false,
+          "id": "body",
+          "instances": [
+            {
+              "index": 0,
+              "offset": [
+                0,
+                0,
+                0
+              ],
+              "roll": 0
+            }
+          ],
+          "material": "cardboard",
+          "name": "body",
+          "parent": "nose",
+          "radial": 0,
+          "roll": 0,
+          "shape": {
+            "id": 0.024100000000000003,
+            "length": 0.35000000000000003,
+            "od": 0.024800000000000003,
+            "type": "body_tube"
+          },
+          "stage": "main",
+          "x_aft": 0.45000000000000007,
+          "x_fore": 0.1
+        },
+        {
+          "aero": false,
+          "anchors": [
+            {
+              "kind": "inner",
+              "name": "attach",
+              "r": 0,
+              "x": 0.13
+            }
+          ],
+          "attach": {
+            "at": "attach",
+            "offset": 0.03,
+            "to": "body.fore"
+          },
+          "children": [],
+          "containment": "inner",
+          "cut": false,
+          "id": "streamer",
+          "instances": [
+            {
+              "index": 0,
+              "offset": [
+                0,
+                0,
+                0
+              ],
+              "roll": 0
+            }
+          ],
+          "material": "ripstop_nylon",
+          "name": "streamer",
+          "parent": "body",
+          "radial": 0,
+          "roll": 0,
+          "shape": {
+            "cd": 0,
+            "length": 0.6,
+            "packed_diameter": 0.018000000000000002,
+            "packed_length": 0.03,
+            "type": "streamer",
+            "width": 0.05
+          },
+          "stage": "main",
+          "x_aft": 0.16,
+          "x_fore": 0.13
+        },
+        {
+          "aero": false,
+          "anchors": [
+            {
+              "kind": "axial",
+              "name": "fore",
+              "r": 0.009800000000000001,
+              "x": 0.38000000000000006
+            },
+            {
+              "kind": "axial",
+              "name": "aft",
+              "r": 0.009800000000000001,
+              "x": 0.45000000000000007
+            },
+            {
+              "kind": "inner",
+              "name": "motor_retainer",
+              "r": 0.0094,
+              "x": 0.45000000000000007
+            },
+            {
+              "kind": "inner",
+              "name": "inner",
+              "r": 0.0094,
+              "x": 0.38000000000000006
+            },
+            {
+              "kind": "surface",
+              "name": "outer",
+              "r": 0.009800000000000001,
+              "x": 0.38000000000000006
+            }
+          ],
+          "attach": {
+            "at": "aft",
+            "offset": 0,
+            "to": "body.aft"
+          },
+          "children": [],
+          "containment": "inner",
+          "cut": false,
+          "id": "mount",
+          "instances": [
+            {
+              "index": 0,
+              "offset": [
+                0,
+                0,
+                0
+              ],
+              "roll": 0
+            }
+          ],
+          "material": "cardboard",
+          "name": "mount",
+          "parent": "body",
+          "radial": 0,
+          "roll": 0,
+          "shape": {
+            "id": 0.0188,
+            "length": 0.07,
+            "motor_mount": true,
+            "od": 0.019600000000000003,
+            "overhang": 0,
+            "type": "inner_tube"
+          },
+          "stage": "main",
+          "x_aft": 0.45000000000000007,
+          "x_fore": 0.38000000000000006
+        },
+        {
+          "aero": true,
+          "anchors": [
+            {
+              "kind": "surface",
+              "name": "root_le",
+              "r": 0.012400000000000001,
+              "x": 0.39000000000000007
+            },
+            {
+              "kind": "surface",
+              "name": "root_te",
+              "r": 0.012400000000000001,
+              "x": 0.45000000000000007
+            },
+            {
+              "kind": "surface",
+              "name": "tip_le",
+              "r": 0.0574,
+              "x": 0.42000000000000004
+            },
+            {
+              "kind": "surface",
+              "name": "tip_te",
+              "r": 0.0574,
+              "x": 0.45000000000000007
+            },
+            {
+              "kind": "surface",
+              "name": "fin0",
+              "r": 0.012400000000000001,
+              "x": 0.39000000000000007
+            },
+            {
+              "kind": "surface",
+              "name": "fin1",
+              "r": 0.012400000000000001,
+              "x": 0.39000000000000007
+            },
+            {
+              "kind": "surface",
+              "name": "fin2",
+              "r": 0.012400000000000001,
+              "x": 0.39000000000000007
+            }
+          ],
+          "attach": {
+            "at": "root_te",
+            "offset": 0,
+            "to": "body.aft"
+          },
+          "children": [],
+          "containment": "surface",
+          "cut": false,
+          "id": "fins",
+          "instances": [
+            {
+              "index": 0,
+              "offset": [
+                0,
+                0,
+                0
+              ],
+              "pattern": "radial",
+              "roll": 0
+            },
+            {
+              "index": 1,
+              "offset": [
+                0,
+                0,
+                0
+              ],
+              "pattern": "radial",
+              "roll": 2.0943951023931953
+            },
+            {
+              "index": 2,
+              "offset": [
+                0,
+                0,
+                0
+              ],
+              "pattern": "radial",
+              "roll": 4.1887902047863905
+            }
+          ],
+          "material": "balsa",
+          "name": "fins",
+          "parent": "body",
+          "radial": 0,
+          "roll": 0,
+          "shape": {
+            "cant": 0,
+            "count": 3,
+            "cross_section": "square",
+            "fillet_radius": 0,
+            "root_chord": 0.06,
+            "span": 0.045,
+            "sweep": 0.03,
+            "thickness": 0.0024,
+            "tip_chord": 0.03,
+            "type": "trapezoidal_fin_set"
+          },
+          "stage": "main",
+          "x_aft": 0.45000000000000007,
+          "x_fore": 0.39000000000000007
+        }
+      ],
+      "config": "default",
+      "configs": {
+        "default": {
+          "deployments": [
+            {
+              "component": "streamer",
+              "delay": 0,
+              "event": "ejection"
+            }
+          ],
+          "id": "default",
+          "motors": [
+            {
+              "delay": 4,
+              "ignition": "launch",
+              "ignition_delay": 0,
+              "motor": "generic:RW_B4G",
+              "mount": "mount"
+            }
+          ],
+          "name": "Default",
+          "stages": [
+            {
+              "active": true,
+              "separation": "never",
+              "separation_delay": 0,
+              "stage": "main"
+            }
+          ]
+        }
+      },
+      "diagnostics": [],
+      "materials": {
+        "balsa": {
+          "density": 160
+        },
+        "cardboard": {
+          "density": 680
+        },
+        "polystyrene": {
+          "density": 1050
+        },
+        "ripstop_nylon": {
+          "surface_density": 0.067
+        }
+      },
+      "model_hash": "eef4cc926f94bd20a58fb4e5fa0d9d7882aac0c6a838b75eb5877cde16ba742e",
+      "name": "solstice-rocket",
+      "params": {},
+      "reference": {
+        "area": 0.0004830512864159667,
+        "diameter": 0.024800000000000003,
+        "length": 0.45000000000000007
+      },
+      "report": [],
+      "schema": "rw/1",
+      "sims": {
+        "default": {
+          "atol": 1e-9,
+          "conditions": {
+            "atmosphere": "ussa1976",
+            "base_pressure_pa": 101325,
+            "base_temperature_k": 288.15,
+            "geodetic": "flat",
+            "integrator": "dp54",
+            "latitude_deg": 0,
+            "longitude_deg": 0,
+            "rail_length_m": 1,
+            "rod_angle_deg": 0,
+            "rod_direction_deg": 0,
+            "site_altitude_m": 0,
+            "time_step_s": 0.01,
+            "wind_direction_deg": 0,
+            "wind_speed_ms": 0,
+            "wind_turbulence": 0
+          },
+          "config": "default",
+          "id": "default",
+          "kind": "flight",
+          "max_time": 600,
+          "name": "Default",
+          "rtol": 0.000001,
+          "seed": 0,
+          "series_dt": 0.01
+        }
+      },
+      "stages": [
+        {
+          "first": "nose",
+          "id": "main",
+          "members": [
+            "nose",
+            "body",
+            "streamer",
+            "mount",
+            "fins"
+          ],
+          "name": "Main",
+          "x_aft": 0.45000000000000007,
+          "x_fore": 0
+        }
+      ],
+      "units": {
+        "angle": "rad",
+        "area": "m^2",
+        "area_density": "kg/m^2",
+        "density": "kg/m^3",
+        "length": "m",
+        "mass": "kg",
+        "time": "s"
+      }
+    },
+    "template": null,
+    "tree": {
+      ".gitignore": "sha256:8b7d66d149b68694ad999e1e79fee58b1dad43b22112e5143ade53adf02ee4f4",
+      "configs/default.rw.toml": "sha256:797fedcd84d5081f7b931c6b62fd37bc14fe04337d4f5ba80e1a104992880837",
+      "rocket.rw.toml": "sha256:cab4b9d9b5ce6808339b4cbe18f5046274eb913e53be107c4c79ac31377360a8",
+      "rocketwright.toml": "sha256:eea60cabdb484118d1f7c5a4725a0af05545993864aa68b8f9b905957ce05721",
+      "sims/default.rw.toml": "sha256:517de6427ce5d74056b54002863b61d3b88981fee71dd589e97e424a6556d817"
+    }
+  },
+  "dialogs": [
+    {
+      "detail": "Name: solstice-rocket\nFolder: /tmp/rw-b2l-rec/docs/RocketWright/solstice-rocket",
+      "message": "The agent wants to create a new project",
+      "response": 1
+    }
+  ],
+  "documents": "/tmp/rw-b2l-rec/docs",
+  "note": "Hand-shaped transcript in the form the driver records (no live run yet); the trees, rw init file lists, evaluated models and the component_add result are real rw output.",
+  "path": "accept",
+  "prompt": "Create a new project called solstice-rocket",
+  "provider_requests": [],
+  "shell": {
+    "projects": [
+      {
+        "id": "project-caller",
+        "workspaceRoot": "/tmp/rw-b2l-rec/caller-rocket"
+      },
+      {
+        "id": "project-new",
+        "workspaceRoot": "/private/tmp/rw-b2l-rec/docs/RocketWright/solstice-rocket"
+      }
+    ],
+    "threads": [
+      {
+        "id": "thread-caller",
+        "projectId": "project-caller"
+      },
+      {
+        "id": "thread-new",
+        "projectId": "project-new"
+      }
+    ]
+  },
+  "target": "/tmp/rw-b2l-rec/docs/RocketWright/solstice-rocket",
+  "target_model": {
+    "asserts": [],
+    "components": [
+      {
+        "aero": true,
+        "anchors": [
+          {
+            "kind": "axial",
+            "name": "tip",
+            "r": 0,
+            "x": 0
+          },
+          {
+            "kind": "axial",
+            "name": "base",
+            "r": 0.012400000000000001,
+            "x": 0.1
+          }
+        ],
+        "children": [
+          "body"
+        ],
+        "containment": "axial",
+        "cut": false,
+        "id": "nose",
+        "instances": [
+          {
+            "index": 0,
+            "offset": [
+              0,
+              0,
+              0
+            ],
+            "roll": 0
+          }
+        ],
+        "material": "polystyrene",
+        "name": "nose",
+        "radial": 0,
+        "roll": 0,
+        "shape": {
+          "length": 0.1,
+          "od": 0.024800000000000003,
+          "shape": "ogive",
+          "shape_param": 1,
+          "thickness": 0,
+          "type": "nose_cone"
+        },
+        "stage": "main",
+        "x_aft": 0.1,
+        "x_fore": 0
+      },
+      {
+        "aero": true,
+        "anchors": [
+          {
+            "kind": "axial",
+            "name": "fore",
+            "r": 0.012400000000000001,
+            "x": 0.1
+          },
+          {
+            "kind": "axial",
+            "name": "aft",
+            "r": 0.012400000000000001,
+            "x": 0.45000000000000007
+          },
+          {
+            "kind": "axial",
+            "name": "mid",
+            "r": 0.012400000000000001,
+            "x": 0.275
+          },
+          {
+            "kind": "inner",
+            "name": "inner",
+            "r": 0.012050000000000002,
+            "x": 0.1
+          },
+          {
+            "kind": "surface",
+            "name": "outer",
+            "r": 0.012400000000000001,
+            "x": 0.1
+          }
+        ],
+        "attach": {
+          "at": "fore",
+          "offset": 0,
+          "to": "nose.base"
+        },
+        "children": [
+          "streamer",
+          "mount",
+          "fins"
+        ],
+        "containment": "axial",
+        "cut": false,
+        "id": "body",
+        "instances": [
+          {
+            "index": 0,
+            "offset": [
+              0,
+              0,
+              0
+            ],
+            "roll": 0
+          }
+        ],
+        "material": "cardboard",
+        "name": "body",
+        "parent": "nose",
+        "radial": 0,
+        "roll": 0,
+        "shape": {
+          "id": 0.024100000000000003,
+          "length": 0.35000000000000003,
+          "od": 0.024800000000000003,
+          "type": "body_tube"
+        },
+        "stage": "main",
+        "x_aft": 0.45000000000000007,
+        "x_fore": 0.1
+      },
+      {
+        "aero": false,
+        "anchors": [
+          {
+            "kind": "inner",
+            "name": "attach",
+            "r": 0,
+            "x": 0.13
+          }
+        ],
+        "attach": {
+          "at": "attach",
+          "offset": 0.03,
+          "to": "body.fore"
+        },
+        "children": [],
+        "containment": "inner",
+        "cut": false,
+        "id": "streamer",
+        "instances": [
+          {
+            "index": 0,
+            "offset": [
+              0,
+              0,
+              0
+            ],
+            "roll": 0
+          }
+        ],
+        "material": "ripstop_nylon",
+        "name": "streamer",
+        "parent": "body",
+        "radial": 0,
+        "roll": 0,
+        "shape": {
+          "cd": 0,
+          "length": 0.6,
+          "packed_diameter": 0.018000000000000002,
+          "packed_length": 0.03,
+          "type": "streamer",
+          "width": 0.05
+        },
+        "stage": "main",
+        "x_aft": 0.16,
+        "x_fore": 0.13
+      },
+      {
+        "aero": false,
+        "anchors": [
+          {
+            "kind": "axial",
+            "name": "fore",
+            "r": 0.009800000000000001,
+            "x": 0.38000000000000006
+          },
+          {
+            "kind": "axial",
+            "name": "aft",
+            "r": 0.009800000000000001,
+            "x": 0.45000000000000007
+          },
+          {
+            "kind": "inner",
+            "name": "motor_retainer",
+            "r": 0.0094,
+            "x": 0.45000000000000007
+          },
+          {
+            "kind": "inner",
+            "name": "inner",
+            "r": 0.0094,
+            "x": 0.38000000000000006
+          },
+          {
+            "kind": "surface",
+            "name": "outer",
+            "r": 0.009800000000000001,
+            "x": 0.38000000000000006
+          }
+        ],
+        "attach": {
+          "at": "aft",
+          "offset": 0,
+          "to": "body.aft"
+        },
+        "children": [],
+        "containment": "inner",
+        "cut": false,
+        "id": "mount",
+        "instances": [
+          {
+            "index": 0,
+            "offset": [
+              0,
+              0,
+              0
+            ],
+            "roll": 0
+          }
+        ],
+        "material": "cardboard",
+        "name": "mount",
+        "parent": "body",
+        "radial": 0,
+        "roll": 0,
+        "shape": {
+          "id": 0.0188,
+          "length": 0.07,
+          "motor_mount": true,
+          "od": 0.019600000000000003,
+          "overhang": 0,
+          "type": "inner_tube"
+        },
+        "stage": "main",
+        "x_aft": 0.45000000000000007,
+        "x_fore": 0.38000000000000006
+      },
+      {
+        "aero": true,
+        "anchors": [
+          {
+            "kind": "surface",
+            "name": "root_le",
+            "r": 0.012400000000000001,
+            "x": 0.39000000000000007
+          },
+          {
+            "kind": "surface",
+            "name": "root_te",
+            "r": 0.012400000000000001,
+            "x": 0.45000000000000007
+          },
+          {
+            "kind": "surface",
+            "name": "tip_le",
+            "r": 0.0574,
+            "x": 0.42000000000000004
+          },
+          {
+            "kind": "surface",
+            "name": "tip_te",
+            "r": 0.0574,
+            "x": 0.45000000000000007
+          },
+          {
+            "kind": "surface",
+            "name": "fin0",
+            "r": 0.012400000000000001,
+            "x": 0.39000000000000007
+          },
+          {
+            "kind": "surface",
+            "name": "fin1",
+            "r": 0.012400000000000001,
+            "x": 0.39000000000000007
+          },
+          {
+            "kind": "surface",
+            "name": "fin2",
+            "r": 0.012400000000000001,
+            "x": 0.39000000000000007
+          }
+        ],
+        "attach": {
+          "at": "root_te",
+          "offset": 0,
+          "to": "body.aft"
+        },
+        "children": [],
+        "containment": "surface",
+        "cut": false,
+        "id": "fins",
+        "instances": [
+          {
+            "index": 0,
+            "offset": [
+              0,
+              0,
+              0
+            ],
+            "pattern": "radial",
+            "roll": 0
+          },
+          {
+            "index": 1,
+            "offset": [
+              0,
+              0,
+              0
+            ],
+            "pattern": "radial",
+            "roll": 2.0943951023931953
+          },
+          {
+            "index": 2,
+            "offset": [
+              0,
+              0,
+              0
+            ],
+            "pattern": "radial",
+            "roll": 4.1887902047863905
+          }
+        ],
+        "material": "balsa",
+        "name": "fins",
+        "parent": "body",
+        "radial": 0,
+        "roll": 0,
+        "shape": {
+          "cant": 0,
+          "count": 3,
+          "cross_section": "square",
+          "fillet_radius": 0,
+          "root_chord": 0.06,
+          "span": 0.045,
+          "sweep": 0.03,
+          "thickness": 0.0024,
+          "tip_chord": 0.03,
+          "type": "trapezoidal_fin_set"
+        },
+        "stage": "main",
+        "x_aft": 0.45000000000000007,
+        "x_fore": 0.39000000000000007
+      }
+    ],
+    "config": "default",
+    "configs": {
+      "default": {
+        "deployments": [
+          {
+            "component": "streamer",
+            "delay": 0,
+            "event": "ejection"
+          }
+        ],
+        "id": "default",
+        "motors": [
+          {
+            "delay": 4,
+            "ignition": "launch",
+            "ignition_delay": 0,
+            "motor": "generic:RW_B4G",
+            "mount": "mount"
+          }
+        ],
+        "name": "Default",
+        "stages": [
+          {
+            "active": true,
+            "separation": "never",
+            "separation_delay": 0,
+            "stage": "main"
+          }
+        ]
+      }
+    },
+    "diagnostics": [],
+    "materials": {
+      "balsa": {
+        "density": 160
+      },
+      "cardboard": {
+        "density": 680
+      },
+      "polystyrene": {
+        "density": 1050
+      },
+      "ripstop_nylon": {
+        "surface_density": 0.067
+      }
+    },
+    "model_hash": "eef4cc926f94bd20a58fb4e5fa0d9d7882aac0c6a838b75eb5877cde16ba742e",
+    "name": "solstice-rocket",
+    "params": {},
+    "reference": {
+      "area": 0.0004830512864159667,
+      "diameter": 0.024800000000000003,
+      "length": 0.45000000000000007
+    },
+    "report": [],
+    "schema": "rw/1",
+    "sims": {
+      "default": {
+        "atol": 1e-9,
+        "conditions": {
+          "atmosphere": "ussa1976",
+          "base_pressure_pa": 101325,
+          "base_temperature_k": 288.15,
+          "geodetic": "flat",
+          "integrator": "dp54",
+          "latitude_deg": 0,
+          "longitude_deg": 0,
+          "rail_length_m": 1,
+          "rod_angle_deg": 0,
+          "rod_direction_deg": 0,
+          "site_altitude_m": 0,
+          "time_step_s": 0.01,
+          "wind_direction_deg": 0,
+          "wind_speed_ms": 0,
+          "wind_turbulence": 0
+        },
+        "config": "default",
+        "id": "default",
+        "kind": "flight",
+        "max_time": 600,
+        "name": "Default",
+        "rtol": 0.000001,
+        "seed": 0,
+        "series_dt": 0.01
+      }
+    },
+    "stages": [
+      {
+        "first": "nose",
+        "id": "main",
+        "members": [
+          "nose",
+          "body",
+          "streamer",
+          "mount",
+          "fins"
+        ],
+        "name": "Main",
+        "x_aft": 0.45000000000000007,
+        "x_fore": 0
+      }
+    ],
+    "units": {
+      "angle": "rad",
+      "area": "m^2",
+      "area_density": "kg/m^2",
+      "density": "kg/m^3",
+      "length": "m",
+      "mass": "kg",
+      "time": "s"
+    }
+  },
+  "target_tree": {
+    ".gitignore": "sha256:8b7d66d149b68694ad999e1e79fee58b1dad43b22112e5143ade53adf02ee4f4",
+    "configs/default.rw.toml": "sha256:797fedcd84d5081f7b931c6b62fd37bc14fe04337d4f5ba80e1a104992880837",
+    "rocket.rw.toml": "sha256:cab4b9d9b5ce6808339b4cbe18f5046274eb913e53be107c4c79ac31377360a8",
+    "rocketwright.toml": "sha256:eea60cabdb484118d1f7c5a4725a0af05545993864aa68b8f9b905957ce05721",
+    "sims/default.rw.toml": "sha256:517de6427ce5d74056b54002863b61d3b88981fee71dd589e97e424a6556d817"
+  },
+  "threads": {
+    "thread-caller": {
+      "id": "thread-caller",
+      "messages": [],
+      "projectId": "project-caller",
+      "runs": [
+        {
+          "id": "run-1",
+          "status": "completed"
+        }
+      ],
+      "turnItems": [
+        {
+          "id": "i-search",
+          "input": {
+            "query": "project"
+          },
+          "ordinal": 1,
+          "output": {
+            "content": [
+              {
+                "text": "rw_project_new",
+                "type": "text"
+              }
+            ]
+          },
+          "runId": "run-1",
+          "status": "completed",
+          "toolName": "ToolSearch",
+          "type": "dynamic_tool"
+        },
+        {
+          "id": "i-new",
+          "input": {
+            "name": "solstice-rocket"
+          },
+          "ordinal": 2,
+          "output": {
+            "content": [
+              {
+                "text": "Project \"solstice-rocket\" is open at /tmp/rw-b2l-rec/docs/RocketWright/solstice-rocket, and thread thread-new was started there. This thread stays in its own project. Do not call this tool again for this project.",
+                "type": "text"
+              }
+            ],
+            "structuredContent": {
+              "project": {
+                "dir": "/tmp/rw-b2l-rec/docs/RocketWright/solstice-rocket",
+                "name": "solstice-rocket",
+                "projectId": "rw-project-1"
+              },
+              "threadId": "thread-new"
+            }
+          },
+          "runId": "run-1",
+          "status": "completed",
+          "toolName": "mcp__lecturn__rw_project_new",
+          "type": "dynamic_tool"
+        },
+        {
+          "id": "i-close",
+          "ordinal": 3,
+          "runId": "run-1",
+          "status": "completed",
+          "text": "Created solstice-rocket and opened it. A new thread is ready there.",
+          "type": "assistant_message"
+        }
+      ]
+    },
+    "thread-new": {
+      "id": "thread-new",
+      "messages": [],
+      "projectId": "project-new",
+      "runs": [],
+      "turnItems": []
+    }
+  },
+  "timed_out": false,
+  "trial": 1
+}
