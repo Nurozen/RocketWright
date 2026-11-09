@@ -65,6 +65,17 @@ provider:
   rw_plot_render (a Results plot).
 - rw_simulate returns a job_id: poll rw_job_status until complete or
   failed. rw_engine_simulate returns the finished run.
+- A thread cannot change projects. In this app, start a new project with
+  rw_project_new and open an existing one with rw_project_open, instead of
+  rw init. Each asks the person in a dialog, switches the window and starts
+  a new thread in that project; this thread stays where it is.
+- Put in request only the work left to do after that step: it becomes the
+  new thread's first message. Leave it out when nothing is left. If the
+  person cancels or the call is refused, tell them and stop; do not retry.
+- You may write planning and scratch files (plans, notes, drafts) in the
+  project. Keep all of them inside its artifacts/ folder, in subfolders if
+  you like, and create the folder if it is missing. RocketWright ignores
+  artifacts/, so nothing there changes the model or its history.
 - Imports, exports, network fetches, and large jobs may need the user's
   approval. Do not retry a refused or unapproved call unless the user asks.
 - The motor library is built in and works offline. Only when the user asks
@@ -147,7 +158,8 @@ rw run summary baseline --fields apogee,max_velocity,time_to_apogee
 
 ## Essentials
 
-- Create projects in the working directory: `rw init --template simple-rocket` with no directory argument. Pass a directory only when asked for one.
+- Outside the app (CLI or standalone MCP), create projects in the working directory: `rw init --template simple-rocket` with no directory argument. Pass a directory only when asked for one. Inside the app, use rw_project_new (see In the RocketWright app).
+- Planning and scratch files are welcome in a project; keep them all inside its `artifacts/` folder, which RocketWright ignores.
 
 - **Units are mandatory**: `"54 mm"`, `"1050 kg/m^3"`, `"5 deg"`. Only `0` and
   dimensionless fields (cd, count) may be bare. Quote values in the shell:

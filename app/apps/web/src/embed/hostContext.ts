@@ -34,6 +34,8 @@ const UNITLESS = new Set(["count", "shape_param", "segments", "instances"]);
 /** At most this many key dimensions per part. */
 const MAX_DIMS = 6;
 
+const PROJECT_RULES = "- This thread stays in this project: rw_project_new and rw_project_open start or open another, with only the remaining work in request. Keep planning and scratch files inside artifacts/.";
+
 const num = (v: number): string => String(Number(v.toPrecision(4)));
 
 type Snapshot = NonNullable<AppState["project"]["snapshot"]>;
@@ -91,7 +93,9 @@ export function hostContextText(s: AppState): string {
   const snap = s.project.snapshot;
   if (snap === null) return "";
   const ev = snap.evaluated;
-  const lines = ["RocketWright window (refs resolve with rw_model_get):", `- Page: ${s.ui.page} (${PAGE_NAMES[s.ui.page]}${s.ui.tab !== null ? `, tab ${s.ui.tab}` : ""})`];
+  // The rules line comes first: `clipBytes` drops lines from the end. A paired
+  // server can hold older instructions, and this text is sent fresh (D8).
+  const lines = ["RocketWright window (refs resolve with rw_model_get):", PROJECT_RULES, `- Page: ${s.ui.page} (${PAGE_NAMES[s.ui.page]}${s.ui.tab !== null ? `, tab ${s.ui.tab}` : ""})`];
   const cfg = activeConfig(s);
   if (cfg !== null) lines.push(`- Configuration: rw:cfg/${cfg}${ev?.configs[cfg]?.name ? ` (${ev.configs[cfg]!.name})` : ""}`);
   const sim = activeSim(s);

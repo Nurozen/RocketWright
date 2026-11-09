@@ -50,7 +50,7 @@ describe("hostContextText (B12)", () => {
     const { store } = await setup();
     const s0 = store.getState();
     expect(hostContextText(s0)).toBe(
-      ["RocketWright window (refs resolve with rw_model_get):", "- Page: assembly (Design › Assembly)", "- Configuration: rw:cfg/baseline (Baseline)", "- Selected: nothing"].join("\n"),
+      ["RocketWright window (refs resolve with rw_model_get):", "- This thread stays in this project: rw_project_new and rw_project_open start or open another, with only the remaining work in request. Keep planning and scratch files inside artifacts/.", "- Page: assembly (Design › Assembly)", "- Configuration: rw:cfg/baseline (Baseline)", "- Selected: nothing"].join("\n"),
     );
     store.getState().selection.select(["rw:c/recovery_bay", "rw:sim/baseline"], "tree");
     store.getState().ui.navigate("results");
