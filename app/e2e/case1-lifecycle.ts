@@ -16,9 +16,9 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync,
 import { createRequire } from "node:module";
 import { join } from "node:path";
 import { barOutDir, REPO_ROOT } from "./bar/paths.ts";
-import { createPostQuitReader, judgeRebuild } from "./case1-compare.ts";
+import { createPostQuitReader, flightReport, judgeRebuild } from "./case1-compare.ts";
 import { loadCase1Plan } from "./case1-plan.ts";
-import { B1_STAGES, enabledRowKeys, type DriveContext, type Lifecycle } from "./case1-stages.ts";
+import type { DriveContext, Lifecycle } from "./case1-stages.ts";
 import { DialogQueues } from "./electron-dialogs.ts";
 import { lecturnEnv, type LecturnEnv } from "./lecturn-env.ts";
 import { SCRATCH, sidecarBinary } from "./live.ts";
@@ -33,6 +33,11 @@ const LAST_ACTIVE_TIMEOUT_MS = 15_000;
 const EXIT_GRACE_MS = 15_000;
 /** How long a killed process gets to disappear. */
 const KILLED_EXIT_MS = 5_000;
+/**
+ * The smallest window the app runs in, and what a 1024x768 macOS CI runner
+ * gives it. Pinned, so a local pass means the same layout CI drives.
+ */
+const WINDOW = { width: 1024, height: 656 };
 
 export class Case1Run {
   page!: Page;
@@ -70,7 +75,7 @@ export class Case1Run {
     const executablePath = createRequire(join(DESKTOP, "package.json"))("electron") as string;
     this.launches += 1;
     // No `--project`: this is the launch a person makes.
-    this.app = await electron.launch({ executablePath, args: [join(DESKTOP, "src/main.ts"), "-ApplePersistenceIgnoreState", "YES"], env: this.env, timeout: LAUNCH_TIMEOUT_MS });
+    this.app = await electron.launch({ executablePath, args: [join(DESKTOP, "src/main.ts"), "--width", String(WINDOW.width), "--height", String(WINDOW.height), "-ApplePersistenceIgnoreState", "YES"], env: this.env, timeout: LAUNCH_TIMEOUT_MS });
     this.page = await this.app.firstWindow({ timeout: LAUNCH_TIMEOUT_MS });
     await this.page.context().tracing.start({ screenshots: true, snapshots: true });
     await this.dialogs.install(this.app);
@@ -151,7 +156,7 @@ export class Case1Run {
     await this.waitForStartedToExit(KILLED_EXIT_MS);
   }
 
-  /** The final quit, then the reads: `rw eval` and the comparison on what the enabled stages built. */
+  /** The final quit, then the reads: the app's run against the oracle (D29), `rw eval` and the comparison. */
   private async finish(drive: DriveContext): Promise<void> {
     if (this.app !== undefined) await this.quit();
     await this.killWhatThisRunStarted();
@@ -160,18 +165,19 @@ export class Case1Run {
     if (left.length > 0) throw new Error(`compare: ${left.length} process(es) still name this run's folders, so nothing can be read yet:\n  ${left.map((p) => `${p.pid} ${p.command.slice(0, 200)}`).join("\n  ")}`);
     const bin = sidecarBinary();
     const project = this.projectDir();
-    const verdict = judgeRebuild({ plan: loadCase1Plan(bin), project, reader: createPostQuitReader(bin, project), enabled: enabledRowKeys(B1_STAGES), ...this.runScoring(drive) });
+    const verdict = judgeRebuild({ plan: loadCase1Plan(bin), project, reader: createPostQuitReader(bin, project), run: this.runScoring(drive) });
+    // In the CI log whether or not the comparison passes.
+    for (const line of flightReport(verdict)) console.log(line);
     writeFileSync(join(OUT, "post-quit-eval.json"), `${JSON.stringify(verdict.model, null, 2)}\n`);
-    writeFileSync(join(OUT, "compare.json"), `${JSON.stringify({ diffs: verdict.diffs, problems: verdict.problems }, null, 2)}\n`);
+    writeFileSync(join(OUT, "compare.json"), `${JSON.stringify({ diffs: verdict.diffs, problems: verdict.problems, flight: verdict.flight ?? null }, null, 2)}\n`);
     if (verdict.diffs.length > 0 || verdict.problems.length > 0) throw new Error(`compare: the project on disk is not what was built:\n${JSON.stringify({ diffs: verdict.diffs, problems: verdict.problems }, null, 2)}`);
   }
 
-  /** Once `run` is enabled the app's flight is scored too (D29); until then there is none to score. */
+  /** The app's flight is always scored (D29): a drive that recorded no Run click cannot pass. */
   private runScoring(drive: DriveContext) {
-    if (!B1_STAGES.has("run")) return {};
     const { runClickedAt, quitAt } = drive.timing;
-    if (runClickedAt === undefined || quitAt === undefined) throw new Error("compare: the run stage is enabled but recorded no Run click or quit");
-    return { run: { runClickedAtMs: runClickedAt, quitAtMs: quitAt, table: drive.tableReads } };
+    if (runClickedAt === undefined || quitAt === undefined) throw new Error("compare: the drive recorded no Run click or no quit");
+    return { runClickedAtMs: runClickedAt, quitAtMs: quitAt, table: drive.tableReads };
   }
 
   /** Saves what a failed run reached, closes whatever is still open, and removes the temp dirs. */

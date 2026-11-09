@@ -1,11 +1,11 @@
 /**
- * The B1 drive and its ratchet. Every control is found the way a person finds
- * it, by visible label and role through visible navigation (D27). This file
- * and the spec are source-scanned: only the calls that scan allows may appear
- * here (`__tests__/case1-scan.test.ts`), so lifecycle work (launching, quitting,
- * the post-quit reads) comes in through `Lifecycle`.
+ * The B1 drive. Every control is found the way a person finds it, by visible
+ * label and role through visible navigation (D27). This file and the spec are
+ * source-scanned: only the calls that scan allows may appear here
+ * (`__tests__/case1-scan.test.ts`), so lifecycle work (launching, quitting, the
+ * post-quit reads) comes in through `Lifecycle`.
  *
- * Later steps only add to `B1_STAGES`.
+ * Every stage is required, in this order: there is no partial rebuild to pass.
  */
 import type { Expect, Locator, Page } from "@playwright/test";
 import type { TableCell, TableRead } from "./case1-compare.ts";
@@ -13,42 +13,6 @@ import { boundRows, typedValue, type BoundRow } from "./case1-script.ts";
 
 export const STAGE_IDS = ["launch", "welcome", "choose", "new", "materials", "nose", "body", "others", "block", "fields", "motor", "deploy", "sim", "run", "quit", "reopen", "compare"] as const;
 export type StageId = (typeof STAGE_IDS)[number];
-
-/** What each stage needs enabled before it: a stage cannot run ahead of the parts and fields it depends on. */
-export const STAGE_NEEDS: Readonly<Record<StageId, readonly StageId[]>> = {
-  launch: [],
-  welcome: ["launch"],
-  choose: ["welcome"],
-  new: ["welcome"],
-  materials: ["new"],
-  nose: ["new"],
-  body: ["nose"],
-  others: ["body"],
-  block: ["others"],
-  fields: ["others", "block", "materials"],
-  motor: ["others", "fields"],
-  deploy: ["others", "fields"],
-  sim: ["new"],
-  run: ["materials", "fields", "motor", "deploy", "sim"],
-  quit: ["new"],
-  reopen: ["quit"],
-  compare: ["quit"],
-};
-
-/** The enabled stages: the steps that make a stage reachable add it. */
-export const B1_STAGES: ReadonlySet<StageId> = new Set<StageId>(["launch", "welcome", "choose", "new", "materials", "nose", "body", "others", "block", "fields", "motor", "deploy", "sim", "run", "quit", "reopen", "compare"]);
-
-/** One message per stage enabled without a stage it needs. */
-export function validateStages(enabled: ReadonlySet<StageId>): string[] {
-  const problems: string[] = [];
-  for (const id of STAGE_IDS) {
-    if (!enabled.has(id)) continue;
-    for (const need of STAGE_NEEDS[id]) {
-      if (!enabled.has(need)) problems.push(`stage ${id} is enabled but ${need}, which it needs, is not`);
-    }
-  }
-  return problems;
-}
 
 export type RowStatus = "reached" | "not-found" | "wrong-unit" | "pending";
 
@@ -88,13 +52,6 @@ export interface DriveContext {
   timing: { runClickedAt?: number; quitAt?: number };
   /** The Results row as read in `run`, then in `reopen`. */
   tableReads: TableRead[];
-}
-
-/** The keys of the rows the enabled stages cover: what the comparison may score. */
-export function enabledRowKeys(enabled: ReadonlySet<StageId>, rows: readonly BoundRow[] = boundRows()): Set<string> {
-  const out = new Set<string>();
-  for (const row of rows) if (enabled.has(row.stage)) out.add(row.key);
-  return out;
 }
 
 const exactly = (name: string) => ({ name, exact: true });
@@ -331,16 +288,13 @@ const STAGE_BODIES: Readonly<Record<StageId, StageBody>> = {
 };
 
 /**
- * Runs the enabled stages in the fixed order. Rows of other stages, and rows
- * a failed stage never reached, stay `pending`. Write `progress.json` from
- * `ctx.statuses` in a `finally`: the first failing stage throws.
+ * Runs every stage in the fixed order. Rows a failed stage never reached stay
+ * `pending`. Write `progress.json` from `ctx.statuses` in a `finally`: the
+ * first failing stage throws.
  */
-export async function runStages(ctx: DriveContext, enabled: ReadonlySet<StageId> = B1_STAGES, rows: readonly BoundRow[] = boundRows()): Promise<void> {
-  const problems = validateStages(enabled);
-  if (problems.length > 0) throw new Error(problems.join("\n"));
+export async function runStages(ctx: DriveContext, rows: readonly BoundRow[] = boundRows()): Promise<void> {
   for (const row of rows) ctx.statuses.set(row.key, "pending");
   for (const id of STAGE_IDS) {
-    if (!enabled.has(id)) continue;
     const body = STAGE_BODIES[id];
     await body(ctx, rows);
   }

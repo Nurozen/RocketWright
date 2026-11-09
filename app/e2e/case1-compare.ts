@@ -24,8 +24,7 @@ export interface Diff {
 
 export interface Case1Actual {
   model: EvaluatedModel;
-  /** Absent only while the model is partial: `rw check` exits 1 on one with no motor, and nothing reads it then. */
-  check?: CheckReport;
+  check: CheckReport;
 }
 
 /** 0.01 mm, for lengths and positions (D23). */
@@ -88,8 +87,8 @@ const FIELD_RULES: Readonly<Record<string, FieldRule>> = {
 
 const SKIPPED_LEAVES = new Set(["name", "type"]);
 
-/** Every driven key: the default scope of a comparison. */
-export function allRowKeys(): Set<string> {
+/** Every driven key: what a comparison scores. */
+function allRowKeys(): Set<string> {
   return new Set(SCRIPT_ROWS.map((r) => r.key));
 }
 
@@ -107,9 +106,9 @@ export type PartMapping = ReadonlyMap<string, EvalComponent>;
 
 const keyOfPart = (key: string): string | null => /^c\.([^.]+)\./.exec(key)?.[1] ?? null;
 
-function enabledParts(enabled: ReadonlySet<string>): Set<string> {
+function drivenParts(): Set<string> {
   const out = new Set<string>();
-  for (const k of enabled) {
+  for (const k of allRowKeys()) {
     const id = keyOfPart(k);
     if (id !== null) out.add(id);
   }
@@ -123,8 +122,8 @@ const byFore = (a: EvalComponent, b: EvalComponent) => a.x_fore - b.x_fore || a.
  * `x_fore` breaks ties between siblings (`ring_fore` and `ring_aft`, D23).
  * Parents go first, so a child can be matched through its parent's mapping.
  */
-export function matchParts(plan: Case1Plan, actual: EvaluatedModel, enabled: ReadonlySet<string>): { mapping: Map<string, EvalComponent>; diffs: Diff[] } {
-  const wanted = enabledParts(enabled);
+export function matchParts(plan: Case1Plan, actual: EvaluatedModel): { mapping: Map<string, EvalComponent>; diffs: Diff[] } {
+  const wanted = drivenParts();
   const expected = plan.model.components.filter((c) => wanted.has(c.id));
   const mapping = new Map<string, EvalComponent>();
   const used = new Set<string>();
@@ -198,18 +197,6 @@ function compareField(id: string, leaf: string, rule: FieldRule, expected: EvalC
   if (!(rule.tol === "length" ? withinLength(a, e) : withinRatio(a, e))) fail();
 }
 
-/** A part's position is scored once it and its whole parent chain are fully driven. */
-function positionEnabled(part: EvalComponent, plan: Case1Plan, enabled: ReadonlySet<string>, all: ReadonlySet<string>): boolean {
-  const byId = new Map(plan.model.components.map((c) => [c.id, c]));
-  let cur: EvalComponent | undefined = part;
-  while (cur !== undefined) {
-    const prefix = `c.${cur.id}.`;
-    for (const k of all) if (k.startsWith(prefix) && !enabled.has(k)) return false;
-    cur = cur.parent == null ? undefined : byId.get(cur.parent);
-  }
-  return true;
-}
-
 function comparePosition(id: string, e: EvalComponent, a: EvalComponent, diffs: Diff[]): void {
   for (const f of ["x_fore", "x_aft", "radial"] as const) {
     if (!withinLength(a[f], e[f])) diffs.push({ part: id, field: f, expected: e[f], actual: a[f] });
@@ -217,9 +204,9 @@ function comparePosition(id: string, e: EvalComponent, a: EvalComponent, diffs: 
   if (!withinRatio(a.roll, e.roll)) diffs.push({ part: id, field: "roll", expected: e.roll, actual: a.roll });
 }
 
-function compareMaterials(plan: Case1Plan, model: EvaluatedModel, enabled: ReadonlySet<string>, diffs: Diff[]): void {
+function compareMaterials(plan: Case1Plan, model: EvaluatedModel, diffs: Diff[]): void {
   const actual = Object.keys(model.materials).map((name) => resolvedMaterial(model, name)).filter((m) => m !== null);
-  for (const key of enabled) {
+  for (const key of allRowKeys()) {
     const m = /^materials\.([^.]+)\.(.+)$/.exec(key);
     if (m === null) continue;
     const expected = resolvedMaterial(plan.model, m[1])?.[m[2]!];
@@ -233,26 +220,15 @@ function compareMaterials(plan: Case1Plan, model: EvaluatedModel, enabled: Reado
   }
 }
 
-function everyEnabled(enabled: ReadonlySet<string>, all: ReadonlySet<string>, prefixes: readonly string[]): boolean {
-  for (const k of all) if (prefixes.some((p) => k.startsWith(p)) && !enabled.has(k)) return false;
-  return true;
-}
-
-/** Dry mass and the static numbers mean something only once every part and material is driven. */
-const wholeModelEnabled = (enabled: ReadonlySet<string>, all: ReadonlySet<string>) => everyEnabled(enabled, all, ["c.", "materials."]);
-
-/**
- * D23's comparison, over the fields whose script rows are enabled. The whole
- * model is required before dry mass or the static numbers are scored.
- */
-export function compareCase1(plan: Case1Plan, actual: Case1Actual, enabled: ReadonlySet<string> = allRowKeys(), oracle: Oracle = loadOracle()): Diff[] {
-  const all = allRowKeys();
-  const { mapping, diffs } = matchParts(plan, actual.model, enabled);
+/** D23's comparison, over every field the script drives, then dry mass and the static numbers. */
+export function compareCase1(plan: Case1Plan, actual: Case1Actual, oracle: Oracle = loadOracle()): Diff[] {
+  const { mapping, diffs } = matchParts(plan, actual.model);
+  const keys = allRowKeys();
   for (const part of plan.model.components) {
     const a = mapping.get(part.id);
     if (a === undefined) continue;
     const prefix = `c.${part.id}.`;
-    for (const key of enabled) {
+    for (const key of keys) {
       if (!key.startsWith(prefix)) continue;
       const leaf = key.slice(prefix.length);
       if (SKIPPED_LEAVES.has(leaf) || leaf.startsWith("attach.")) continue;
@@ -263,20 +239,13 @@ export function compareCase1(plan: Case1Plan, actual: Case1Actual, enabled: Read
       }
       compareField(part.id, leaf, rule, part, a, plan, actual.model, diffs);
     }
-    if (positionEnabled(part, plan, enabled, all)) comparePosition(part.id, part, a, diffs);
+    comparePosition(part.id, part, a, diffs);
   }
-  compareMaterials(plan, actual.model, enabled, diffs);
-  if (!wholeModelEnabled(enabled, all)) return diffs;
+  compareMaterials(plan, actual.model, diffs);
   const { check } = actual;
-  if (check === undefined) {
-    diffs.push({ part: "rocket", field: "check", expected: "a check report", actual: "none" });
-    return diffs;
-  }
   if (Math.abs(check.mass.dry - plan.dryMass) > DRY_MASS_TOL_KG + EPS) diffs.push({ part: "rocket", field: "dry mass", expected: plan.dryMass, actual: check.mass.dry });
-  if (everyEnabled(enabled, all, ["c.", "materials.", "config."])) {
-    for (const r of staticOracleRows(check, oracle)) {
-      if (!r.pass) diffs.push({ part: "rocket", field: r.key, expected: `${r.golden} within ${r.tolerance}`, actual: r.value });
-    }
+  for (const r of staticOracleRows(check, oracle)) {
+    if (!r.pass) diffs.push({ part: "rocket", field: r.key, expected: `${r.golden} within ${r.tolerance}`, actual: r.value });
   }
   return diffs;
 }
@@ -334,10 +303,11 @@ function persistedPath(key: string, mapping: PartMapping): string[] | null {
  * explicitly. `rw eval` alone cannot show this: rail, wind and USSA read as
  * engine defaults even when no editor wrote them.
  */
-export function comparePersisted(project: string, enabled: ReadonlySet<string>, mapping: PartMapping, fields: readonly SourceField[] = sourceFields()): Diff[] {
+export function comparePersisted(project: string, mapping: PartMapping, fields: readonly SourceField[] = sourceFields()): Diff[] {
   const diffs: Diff[] = [];
-  const keys = fields.filter((f) => enabled.has(f.key) && (f.key.startsWith("config.") || f.key.startsWith("sim.")));
-  if (keys.length === 0) return diffs;
+  // Only what the drive types: the fixture also writes rows spec B1 does not gate (rod direction, latitude, names).
+  const driven = allRowKeys();
+  const keys = fields.filter((f) => driven.has(f.key) && (f.key.startsWith("config.") || f.key.startsWith("sim.")));
   const sims = readTomlFiles(join(project, "sims"));
   const configs = readTomlFiles(join(project, "configs"));
   const needsSim = keys.some((f) => f.key.startsWith("sim."));
@@ -366,18 +336,17 @@ function configOf(model: EvaluatedModel, sim: EvalSim | undefined): EvalConfig |
 }
 
 /** The same conditions as the engine evaluated them, against the plan's. */
-export function compareEvaluatedConditions(plan: Case1Plan, actual: EvaluatedModel, enabled: ReadonlySet<string>, mapping: PartMapping): Diff[] {
+export function compareEvaluatedConditions(plan: Case1Plan, actual: EvaluatedModel, mapping: PartMapping): Diff[] {
   const diffs: Diff[] = [];
   const num = (key: string, e: unknown, a: unknown) => {
-    if (!enabled.has(key)) return;
     if (typeof e !== "number" || typeof a !== "number" || !withinRatio(a, e)) diffs.push({ part: "evaluated", field: key, expected: e, actual: a });
   };
   const same = (key: string, e: unknown, a: unknown) => {
-    if (enabled.has(key) && e !== a) diffs.push({ part: "evaluated", field: key, expected: e, actual: a });
+    if (e !== a) diffs.push({ part: "evaluated", field: key, expected: e, actual: a });
   };
   const planSim = onlySim(plan.model);
   const actualSim = onlySim(actual);
-  if (["sim.launch.rail_length", "sim.wind.speed", "sim.atmosphere.model"].some((k) => enabled.has(k)) && actualSim === undefined) {
+  if (actualSim === undefined) {
     diffs.push({ part: "evaluated", field: "sims", expected: "exactly one sim", actual: Object.keys(actual.sims).length });
   }
   num("sim.launch.rail_length", planSim?.conditions.rail_length_m, actualSim?.conditions.rail_length_m);
@@ -478,7 +447,7 @@ export function assertPostQuitArgs(args: readonly string[]): void {
   if (!read && !summary) throw new Error(`post-quit reader refuses \`rw ${args.join(" ")}\`: only eval, check and run summary may run after quit`);
 }
 
-/** Every post-quit `rw` goes through here. Run it after the sidecar has exited (`killOrphans`). */
+/** Every post-quit `rw` goes through here. Run it after this run's own processes have exited (`killStarted`). */
 export function createPostQuitReader(bin: string, project: string): PostQuitReader {
   const calls: string[][] = [];
   const run = <T>(args: string[]): T => {
@@ -504,10 +473,7 @@ export interface RebuildInput {
   plan: Case1Plan;
   project: string;
   reader: PostQuitReader;
-  /** The keys of the rows the enabled stages cover. */
-  enabled: ReadonlySet<string>;
-  /** Set once the `run` stage is enabled: then the app's own run is scored too. */
-  run?: Omit<RunScoreInput, "project" | "reader">;
+  run: Omit<RunScoreInput, "project" | "reader">;
   oracle?: Oracle;
 }
 
@@ -516,19 +482,34 @@ export interface RebuildVerdict {
   diffs: Diff[];
   /** Run-scoring failures (D29). */
   problems: string[];
+  /** The app's flight, as scored against the oracle. Absent when no single flight could be read. */
+  flight?: { run: string; thread: string | null; oracle: OracleRow[] };
 }
 
 /** Everything scored after the final quit. The run goes first: `scoreRun` must list `runs/` before any `rw` call. */
 export function judgeRebuild(input: RebuildInput): RebuildVerdict {
-  const { plan, project, reader, enabled, run } = input;
+  const { plan, project, reader, run } = input;
   const oracle = input.oracle ?? loadOracle();
-  const problems = run === undefined ? [] : scoreRun({ ...run, project, reader, oracle }).problems;
+  const before = runsTree(project);
+  const score = scoreRun({ ...run, project, reader, oracle });
   const model = reader.model();
-  // Read only when it is scored: a partial model has no motor, so `rw check` exits 1 on it (D18).
-  const actual: Case1Actual = wholeModelEnabled(enabled, allRowKeys()) ? { model, check: reader.check() } : { model };
-  const { mapping } = matchParts(plan, model, enabled);
-  const diffs = [...compareCase1(plan, actual, enabled, oracle), ...comparePersisted(project, enabled, mapping), ...compareEvaluatedConditions(plan, model, enabled, mapping)];
-  return { model, diffs, problems };
+  const { mapping } = matchParts(plan, model);
+  const diffs = [...compareCase1(plan, { model, check: reader.check() }, oracle), ...comparePersisted(project, mapping), ...compareEvaluatedConditions(plan, model, mapping)];
+  const problems = [...score.problems];
+  // `scoreRun` compares only around its own reads; this also covers the eval and check that follow it.
+  if (runsTree(project).join("\n") !== before.join("\n") && !problems.some((p) => p.startsWith("runs/ changed"))) problems.push("runs/ changed during the post-quit reads");
+  const flight = score.run !== undefined && score.oracle !== undefined ? { run: `${score.run.sim}/${score.run.run_id}`, thread: score.run.thread ?? null, oracle: score.oracle } : undefined;
+  return { model, diffs, problems, ...(flight === undefined ? {} : { flight }) };
+}
+
+/**
+ * The lines the CI log shows: the three flight numbers of the app's own run
+ * against the oracle, or why there are none.
+ */
+export function flightReport(verdict: Pick<RebuildVerdict, "flight" | "problems">): string[] {
+  if (verdict.flight === undefined) return [`B1 flight: no run of the app's to score: ${verdict.problems.join("; ") || "no record"}`];
+  const { run, thread, oracle } = verdict.flight;
+  return [`B1 flight: run ${run}, thread ${thread ?? "none"}`, ...oracle.map((r) => `B1 flight: ${r.key} ${r.value} (oracle ${r.golden} within ${r.tolerance}): ${r.pass ? "pass" : "FAIL"}`)];
 }
 
 // ---- run scoring ---------------------------------------------------------------
