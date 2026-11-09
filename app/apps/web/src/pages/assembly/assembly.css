@@ -319,7 +319,37 @@
    their hairline (no flex shrink) and the trailing one sits before Units. */
 .rw-toolbar__controls:has(> .rw-explode) {
   justify-content: space-between;
-  gap: 12px;
+  gap: 6px;
+}
+
+/* The toolbar row is the window less the fixed agent pane. Below the width its
+   controls need in one line, they drop to their own row under View and Units
+   rather than running under Units. */
+@media (max-width: 1519.98px) {
+  .rw-toolbar:has(> .rw-toolbar__controls > .rw-explode) {
+    flex-wrap: wrap;
+    align-content: center;
+    row-gap: 8px;
+    height: auto;
+    min-height: calc(var(--rw-toolbar-h) + var(--rw-hairline));
+    padding-block: 8px;
+  }
+
+  .rw-toolbar__controls:has(> .rw-explode) {
+    order: 1;
+    flex: 1 0 100%;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 8px 16px;
+  }
+
+  .rw-toolbar__controls:has(> .rw-explode) > .rw-toolbar__sep {
+    display: none;
+  }
+
+  .rw-toolbar__controls:has(> .rw-explode) + .rw-toolbar__label {
+    margin-left: auto;
+  }
 }
 
 .rw-toolbar__sep {
@@ -333,7 +363,7 @@
 .rw-explode {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 10px;
   color: var(--rw-text-primary);
 }
 
@@ -344,7 +374,7 @@
 .rw-explode__track {
   display: grid;
   gap: 2px;
-  width: 172px;
+  width: 120px;
 }
 
 .rw-explode__input {

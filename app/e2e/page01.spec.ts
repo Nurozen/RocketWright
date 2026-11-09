@@ -363,3 +363,37 @@ test("exploded labels never overlap or collide", async ({ page }) => {
     }
   await expect(page.locator('[data-testid="vp.leader-label"][data-collided="true"]')).toHaveCount(0);
 });
+
+// The floor (`D/main.ts` minWidth), both sides of the step where the controls take their own row, and the default window (D27: a label under another control cannot be read or pressed).
+for (const width of [1024, 1200, 1519, 1520, 1536]) {
+  test(`the viewport toolbar's controls stay clear of one another at ${width} wide`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 1024 });
+    const toolbar = page.getByTestId("viewport-toolbar");
+    await expect(toolbar.getByTestId("toolbar.drawing")).toBeVisible();
+    const measured = await toolbar.evaluate((root) => {
+      const bounds = root.getBoundingClientRect();
+      const boxes = [...root.querySelectorAll(".rw-toolbar__label, .rw-chips, .rw-explode, .rw-switch, .rw-check, .rw-drawing-open, .rw-select")].map((el) => {
+        const r = el.getBoundingClientRect();
+        return { name: (el.textContent ?? "").trim().slice(0, 24), left: r.left, right: r.right, top: r.top, bottom: r.bottom };
+      });
+      return { left: bounds.left, right: bounds.right, top: bounds.top, bottom: bounds.bottom, overflow: root.scrollWidth - root.clientWidth, boxes };
+    });
+    await page.screenshot({ path: join(REPO, `.playwright/toolbar/toolbar-${width}.png`) });
+    expect(measured.overflow, "the row scrolls sideways").toBeLessThanOrEqual(0);
+    const { boxes } = measured;
+    expect(boxes.length).toBeGreaterThan(7);
+    for (const b of boxes) {
+      expect(b.left, `${b.name} starts inside the row`).toBeGreaterThanOrEqual(measured.left);
+      expect(b.right, `${b.name} ends inside the row`).toBeLessThanOrEqual(measured.right);
+      expect(b.bottom, `${b.name} stays above the row's end`).toBeLessThanOrEqual(measured.bottom);
+    }
+    for (const [i, a] of boxes.entries()) {
+      for (const b of boxes.slice(i + 1)) {
+        const clear = a.right <= b.left || b.right <= a.left || a.bottom <= b.top || b.bottom <= a.top;
+        expect(clear, `"${a.name}" and "${b.name}" overlap`).toBe(true);
+      }
+    }
+    // The default window keeps the one row the page is drawn with.
+    if (width === 1536) expect(measured.bottom - measured.top).toBe(67);
+  });
+}
