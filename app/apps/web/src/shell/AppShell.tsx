@@ -64,6 +64,8 @@ export interface AppShellProps {
   headStepId?: string | null;
   /** Page-owned body of the rail's navigation section (the 01 Components tree). */
   navBody?: ReactNode;
+  /** Page-owned add control in the rail's navigation section head (the Components "+"). */
+  navAdd?: ReactNode;
   /** Page-owned left rail section replacing `model.nav` (Results: Runs). */
   railNav?: ReactNode;
   /** Page-owned rail footer (02: view chips). */
@@ -91,6 +93,7 @@ export function AppShell({
   reverting = false,
   headStepId = null,
   navBody,
+  navAdd,
   railNav,
   railFooter,
   page,
@@ -128,6 +131,7 @@ export function AppShell({
         {...(h.onToggleNav ? { onToggleNav: h.onToggleNav } : {})}
         {...(h.onOpenNavThread ? { onOpenNavThread: h.onOpenNavThread } : {})}
         {...(navBody !== undefined ? { navBody } : {})}
+        {...(navAdd !== undefined ? { navAdd } : {})}
         {...(railNav ? { navSlot: railNav } : {})}
         {...(railFooter !== undefined ? { footer: railFooter } : {})}
       />

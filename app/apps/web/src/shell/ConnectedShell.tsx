@@ -64,6 +64,8 @@ export interface PageSlots {
   toolbar?: ReactNode;
   /** Body of the rail's navigation section (keeps the section head). */
   nav?: ReactNode;
+  /** Add control in the rail's navigation section head, replacing the plain "+". */
+  navAdd?: ReactNode;
   /** The whole rail navigation section (Results: Runs). */
   railNav?: ReactNode;
   /** Rows below the history steps, after any compare result (Results: run snapshots). */
@@ -287,6 +289,7 @@ export function ConnectedShell({ store, client = null, renderPage, renderCompare
       historyExtra={slots?.historyExtra}
       {...(toolbar ? { toolbar } : {})}
       {...(slots?.nav !== undefined ? { navBody: slots.nav } : {})}
+      {...(slots?.navAdd !== undefined ? { navAdd: slots.navAdd } : {})}
       {...(slots?.railNav !== undefined ? { railNav: slots.railNav } : {})}
       {...(slots?.railFooter !== undefined ? { railFooter: slots.railFooter } : {})}
       page={page}

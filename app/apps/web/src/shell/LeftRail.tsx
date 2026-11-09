@@ -20,7 +20,8 @@ export interface LeftRailProps {
   onToggleNav?: (row: ShellNavRow) => void;
   /** Opens (or creates) the thread bound to the row's artifact. */
   onOpenNavThread?: (row: ShellNavRow) => void;
-  onAddNav?: () => void;
+  /** Page-owned add control for the navigation section, replacing the plain "+" (the 01 palette button). */
+  navAdd?: ReactNode;
   /** Page-owned body of the navigation section (the 01 Components tree); replaces `nav.rows`. */
   navBody?: ReactNode;
   /** Replaces the whole `nav` section with page-owned content (the Results `Runs` list). */
@@ -29,7 +30,7 @@ export interface LeftRailProps {
   footer?: ReactNode;
 }
 
-export function LeftRail({ threads, selectedThreadId, nav, selectedNavId, onSelectThread, onNewThread, onSelectNav, onToggleNav, onOpenNavThread, onAddNav, navBody, navSlot, footer }: LeftRailProps) {
+export function LeftRail({ threads, selectedThreadId, nav, selectedNavId, onSelectThread, onNewThread, onSelectNav, onToggleNav, onOpenNavThread, navAdd, navBody, navSlot, footer }: LeftRailProps) {
   const plot = nav?.eye === "plot";
   return (
     <aside className="rw-rail" data-rw-region="left-rail" data-testid="left-rail">
@@ -74,9 +75,11 @@ export function LeftRail({ threads, selectedThreadId, nav, selectedNavId, onSele
               <Icon name="search" size={18} />
             </button>
             <span className="rw-header__sep" aria-hidden />
-            <button type="button" className="rw-icon-button" aria-label={`Add to ${nav.title}`} onClick={onAddNav}>
-              <Icon name="plus" size={18} />
-            </button>
+            {navAdd ?? (
+              <button type="button" className="rw-icon-button" aria-label={`Add to ${nav.title}`}>
+                <Icon name="plus" size={18} />
+              </button>
+            )}
           </div>
           {navBody === undefined && nav.rows.length === 0 && nav.empty !== undefined && <p className="rw-rail__empty">{nav.empty}</p>}
           {navBody ?? (

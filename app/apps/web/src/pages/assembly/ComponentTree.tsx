@@ -9,6 +9,7 @@ import type { schema } from "@rw/contracts";
 import { Icon, type IconName } from "../../shell/Icon.tsx";
 import { PartThumb } from "../../render/PartThumb.tsx";
 import type { DeepReadonly } from "../../state/index.ts";
+import type { PartKind } from "../../state/ops/parts.ts";
 
 type EvalComponent = schema.EvalComponent;
 
@@ -26,44 +27,37 @@ export interface TreeRow {
   thumb?: string;
 }
 
+const KIND_ICON: Partial<Record<PartKind, IconName>> = {
+  nose_cone: "nose-cone",
+  body_tube: "body-tube",
+  transition: "transition",
+  coupler: "coupler",
+  inner_tube: "inner-tube",
+  centering_ring: "centering-ring",
+  bulkhead: "bulkhead",
+  parachute: "parachute",
+  streamer: "streamer",
+  shock_cord: "shock-cord",
+  mass_component: "mass",
+  launch_lug: "launch-lug",
+  rail_button: "rail-button",
+  tank: "tank",
+  engine_block: "motor",
+};
+
+/** The line icon of a part kind (a palette tile; a tree row refines it with `iconFor`). */
+export function kindIcon(kind: PartKind): IconName {
+  return KIND_ICON[kind] ?? (kind.endsWith("fin_set") ? "fin-set" : "body-tube");
+}
+
 /** Part icon for a component (by kind, refined by name and look). */
 export function iconFor(c: DeepReadonly<EvalComponent>): IconName {
   const kind = c.shape.type;
   const name = c.name.toLowerCase();
-  switch (kind) {
-    case "nose_cone":
-      return "nose-cone";
-    case "body_tube":
-      return /recovery|payload/.test(name) || c.appearance?.preset === "clear_polycarbonate" ? "recovery-bay" : "body-tube";
-    case "transition":
-      return "transition";
-    case "coupler":
-      return "coupler";
-    case "inner_tube":
-      return /motor|casing/.test(name) ? "motor" : "inner-tube";
-    case "centering_ring":
-      return "centering-ring";
-    case "bulkhead":
-      return "bulkhead";
-    case "parachute":
-      return "parachute";
-    case "streamer":
-      return "streamer";
-    case "shock_cord":
-      return "shock-cord";
-    case "mass_component":
-      return /electronic|avionic|altimeter/.test(name) || c.appearance?.preset === "pcb_green" ? "electronics-bay" : "mass";
-    case "launch_lug":
-      return "launch-lug";
-    case "rail_button":
-      return "rail-button";
-    case "tank":
-      return "tank";
-    case "engine_block":
-      return "motor";
-    default:
-      return kind.endsWith("fin_set") ? "fin-set" : "body-tube";
-  }
+  if (kind === "body_tube" && (/recovery|payload/.test(name) || c.appearance?.preset === "clear_polycarbonate")) return "recovery-bay";
+  if (kind === "inner_tube" && /motor|casing/.test(name)) return "motor";
+  if (kind === "mass_component" && (/electronic|avionic|altimeter/.test(name) || c.appearance?.preset === "pcb_green")) return "electronics-bay";
+  return kindIcon(kind);
 }
 
 /**
