@@ -16,7 +16,9 @@
  *   connection (plain `node cli.ts`, the server tests).
  * - Workspaces (D13): each opened project is `ensureWorkspace(realpath(dir),
  *   name)`. Lecturn echoes the root verbatim, so every lookup goes through
- *   that realpath (`/tmp` is `/private/tmp` on macOS).
+ *   that realpath (`/tmp` is `/private/tmp` on macOS). The same call retitles
+ *   a workspace that exists (R0.7), so a rename follows it, and each connect
+ *   re-asserts the name: a title changed by hand in Lecturn does not last.
  * - Index: realpath → { RocketWright project, the current server's Lecturn
  *   project id }. Lecturn ids are never a key: on a live switch (the helper's
  *   `mode` event, D25) every entry takes its id from
@@ -142,7 +144,8 @@ export function workspaceRootOf(dir: string): string {
 interface Workspace {
   readonly rwProjectId: string;
   readonly root: string;
-  readonly title: string;
+  /** The title every ensure asserts: an old one would undo a rename at the next connect or switch. */
+  title: string;
   /** The current server's Lecturn project id, once ensured. */
   lecturnProjectId: string | null;
   /** The ensure in flight (null when settled or reset by a switch). */
@@ -266,6 +269,22 @@ export class LecturnLink {
     const w = this.byRoot.get(root);
     this.byRoot.delete(root);
     w?.unsubscribe?.();
+  }
+
+  /**
+   * Retitles the project's Lecturn workspace after a rename (R0.7, D6). The
+   * name goes through `threadTitle` because a manifest edited on disk can be
+   * longer than Lecturn takes, and a refused title would fail every later
+   * ensure of this workspace too.
+   */
+  async renameProject(rwProjectId: string, name: string): Promise<void> {
+    const w = this.workspaceOf(rwProjectId, false);
+    const title = threadTitle(name);
+    if (w === undefined || w.title === title) return;
+    w.title = title;
+    // An ensure in flight sent the old title, so the new one has to land after it.
+    while (w.ensuring !== null) await w.ensuring.catch(() => undefined);
+    if (w.title === title && this.byRoot.get(w.root) === w) await this.ensure(w);
   }
 
   /** The RocketWright project whose workspace is `workspaceRoot` (any spelling of it; live routing, B9). */

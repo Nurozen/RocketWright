@@ -378,7 +378,10 @@ export class AppServer {
             if (s.kind === "project" && s.projectId === projectId) this.push(s.conn, "project.patch", { subscriptionId, patch });
           }
         },
-        updated: (project) => this.broadcast("project.updated", { project }),
+        updated: (project) => {
+          this.broadcast("project.updated", { project });
+          this.lecturn?.renameProject(project.projectId, project.name).catch((e: unknown) => this.log(`lecturn: retitling ${project.dir}: ${e instanceof Error ? e.message : String(e)}`));
+        },
       },
     );
     try {
