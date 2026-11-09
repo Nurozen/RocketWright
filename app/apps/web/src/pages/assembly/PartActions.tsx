@@ -5,6 +5,7 @@
  */
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import type { schema } from "@rw/contracts";
+import { Icon } from "../../shell/Icon.tsx";
 import { errorText, renameProblem } from "../../shell/projectActions.ts";
 import { RENAME_OUTDATES_RUNS } from "../../shell/RenameProjectDialog.tsx";
 import { useAppState, type AppStore, type DeepReadonly } from "../../state/index.ts";
@@ -28,16 +29,17 @@ export function partMenuItems(store: AppStore, components: readonly Part[], id: 
   const targets = moveTargets(components, id);
   const ui = () => store.getState().ui;
   return [
-    { id: "rename", label: "Rename", onSelect: () => ui().setPartDialog({ kind: "rename", id }) },
-    { id: "duplicate", label: "Duplicate", disabled: duplicateRefusal(part) !== null, onSelect: () => report(store, "Could not duplicate the part", duplicatePart(store, id)) },
+    { id: "rename", label: "Rename", icon: <Icon name="pencil" size={16} />, onSelect: () => ui().setPartDialog({ kind: "rename", id }) },
+    { id: "duplicate", label: "Duplicate", icon: <Icon name="copy" size={16} />, disabled: duplicateRefusal(part) !== null, onSelect: () => report(store, "Could not duplicate the part", duplicatePart(store, id)) },
     {
       id: "move",
       label: "Move to",
+      icon: <Icon name="folder" size={16} />,
       disabled: targets.length === 0,
       submenu: targets.map((t) => ({ id: t.id, label: t.label, onSelect: () => report(store, "Could not move the part", movePart(store, id, t)) })),
     },
     { kind: "divider", id: "divider" },
-    { id: "delete", label: "Delete", danger: true, onSelect: () => ui().setPartDialog({ kind: "delete", id }) },
+    { id: "delete", label: "Delete", icon: <Icon name="trash" size={16} />, danger: true, onSelect: () => ui().setPartDialog({ kind: "delete", id }) },
   ];
 }
 

@@ -148,7 +148,7 @@ export interface ComponentTreeProps {
   /** Expands or collapses a row with children. */
   onToggleCollapsed?(id: string): void;
   /** A right-click on a row, at that window position. */
-  onContextMenu?(id: string, at: { x: number; y: number }): void;
+  onContextMenu?(id: string, at: { x: number; y: number; band: { top: number; bottom: number } }): void;
 }
 
 export function ComponentTree({ rows, onSelect, onToggleHidden, onToggleCollapsed, onContextMenu }: ComponentTreeProps) {
@@ -170,7 +170,8 @@ export function ComponentTree({ rows, onSelect, onToggleHidden, onToggleCollapse
           onContextMenu={(e) => {
             if (onContextMenu === undefined) return;
             e.preventDefault();
-            onContextMenu(r.id, { x: e.clientX, y: e.clientY });
+            const row = e.currentTarget.getBoundingClientRect();
+            onContextMenu(r.id, { x: e.clientX, y: e.clientY, band: { top: row.top, bottom: row.bottom } });
           }}
         >
           <button

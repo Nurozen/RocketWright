@@ -10,8 +10,12 @@ import { Icon } from "../shell/Icon.tsx";
 import { useDismiss, useFocusScope } from "./useDismiss.tsx";
 import "./ui.css";
 
-/** An element to sit next to, or a pointer position in client coordinates. */
-export type Anchor = HTMLElement | { x: number; y: number };
+/**
+ * An element to sit next to, or a pointer position in client coordinates.
+ * `band` is the vertical extent of the row under the pointer: the surface opens
+ * clear of it, so a context menu never covers the label of the row it acts on.
+ */
+export type Anchor = HTMLElement | { x: number; y: number; band?: { top: number; bottom: number } | undefined };
 
 export type PlacementSide = "bottom" | "right";
 export type PlacementAlign = "start" | "end";
@@ -84,7 +88,7 @@ export function useAnchoredPosition(surfaceRef: RefObject<HTMLElement | null>, a
     const margin = placement?.margin ?? 8;
     const zoom = surface.currentCSSZoom || 1;
     surface.style.maxHeight = `${(window.innerHeight - 2 * margin) / zoom}px`;
-    const box: Box = at instanceof HTMLElement ? at.getBoundingClientRect() : { left: at.x, top: at.y, right: at.x, bottom: at.y };
+    const box: Box = at instanceof HTMLElement ? at.getBoundingClientRect() : { left: at.x, top: at.band?.top ?? at.y, right: at.x, bottom: at.band?.bottom ?? at.y };
     const clear = placement?.clearOf?.getBoundingClientRect().right;
     const { width, height } = surface.getBoundingClientRect();
     const { x, y } = placeFloating(clear === undefined ? box : { left: box.left, top: box.top, bottom: box.bottom, right: Math.max(box.right, clear) }, { width, height }, { width: window.innerWidth, height: window.innerHeight }, placement);

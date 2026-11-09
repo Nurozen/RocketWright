@@ -10,7 +10,7 @@ import { describe, expect, it } from "vitest";
 import { changeText } from "./AgentExtras.tsx";
 import { partDiagnostics } from "./ComponentEditor.tsx";
 import { editorFields, fromDisplay, limitsOf, parseLiteral, rangeError, sharedFields, tabsFor, toDisplay, toSource } from "../../ui/fields/index.ts";
-import { planformLayout, planformOf } from "./PartProfile.tsx";
+import { hasSideProfile, planformLayout, planformOf } from "./PartProfile.tsx";
 import { airframeJoints, finOutlines, fitFrame, hull, modelExtents, profileOverlay, projectBody, scaleLabel, toScreen } from "./profile-geometry.ts";
 import { changedFields, componentDiffers, draftProposal, findStepProposal, reverseOps } from "./proposal.ts";
 import { componentSource, fieldTarget, paramRef, paramSource } from "./source.ts";
@@ -137,6 +137,23 @@ describe("schema-driven fields", () => {
     expect(rangeError(2.5, count, cl, "mm")).toBe("Fin count must be a whole number.");
     const root = fins.find((f) => f.key === "root_chord")!;
     expect(rangeError(-0.01, root, limitsOf(root, null, "mm"), "mm")).toBe("Root chord must be at least 0 mm.");
+  });
+});
+
+describe("hasSideProfile", () => {
+  const comp = (shape: Record<string, unknown>) => ({ shape }) as never;
+
+  it("is false for a part with no outer diameter, which would draw as a flat line", () => {
+    expect(hasSideProfile(comp({ type: "parachute", diameter: 0.38, packed_length: 0.055, packed_diameter: 0.04 }))).toBe(false);
+    expect(hasSideProfile(comp({ type: "streamer", length: 1, width: 0.05, packed_length: 0.05, packed_diameter: 0.03 }))).toBe(false);
+    expect(hasSideProfile(comp({ type: "shock_cord", cord_length: 2, packed_length: 0.05, packed_diameter: 0.02 }))).toBe(false);
+  });
+
+  it("is true for body parts and fin sets", () => {
+    expect(hasSideProfile(comp({ type: "body_tube", od: 0.054, length: 0.3 }))).toBe(true);
+    expect(hasSideProfile(comp({ type: "transition", fore_od: 0.054, aft_od: 0.041, length: 0.1 }))).toBe(true);
+    expect(hasSideProfile(comp({ type: "trapezoidal_fin_set", root_chord: 0.14, tip_chord: 0.06, span: 0.1, sweep: 0.05 }))).toBe(true);
+    expect(hasSideProfile(comp({ type: "freeform_fin_set", points: [[0, 0], [0.1, 0.05], [0.14, 0]] }))).toBe(true);
   });
 });
 

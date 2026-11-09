@@ -8,6 +8,8 @@
 :root {
   --rw-ui-edge: color-mix(in srgb, var(--rw-text-secondary) 55%, var(--rw-panel));
   --rw-ui-z: 100;
+  /* Never narrower than the agent column it covers, so the pane does not show beside it; the page reserves the same width. */
+  --rw-sheet-w: clamp(calc(var(--rw-agent-w) + var(--rw-hairline)), 30vw, 461px);
 }
 
 /* ---- modal --------------------------------------------------------------- */
@@ -111,7 +113,7 @@
   z-index: var(--rw-ui-z);
   display: flex;
   flex-direction: column;
-  width: 461px;
+  width: var(--rw-sheet-w);
   max-width: 100%;
   border-left: var(--rw-hairline) solid var(--rw-line);
   background: var(--rw-panel);

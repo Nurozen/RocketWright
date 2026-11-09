@@ -1249,7 +1249,7 @@ button:disabled {
 .rw-check-issues {
   display: flex;
   flex-direction: column;
-  width: min(612px, calc(100vw - 16px));
+  width: min(640px, calc(100vw - 16px));
 }
 
 /* The caret sits outside the surface, so the body scrolls instead. Doubled class: ui.css loads after this file. */
@@ -1276,7 +1276,7 @@ button:disabled {
   align-items: center;
   gap: 10px;
   margin: 0 18px;
-  padding: 14px 0 12px;
+  padding: 12px 0 8px;
   border-bottom: var(--rw-hairline) solid var(--rw-line);
 }
 
@@ -1298,7 +1298,7 @@ button:disabled {
 
 .rw-check-issues__heading {
   margin: 0;
-  padding: 12px 0 4px;
+  padding: 8px 0 2px;
   color: var(--rw-text-secondary);
   font-size: var(--rw-font-size-body);
   font-weight: var(--rw-font-weight-strong);
@@ -1306,11 +1306,12 @@ button:disabled {
 
 .rw-check-issues__row {
   display: grid;
-  grid-template-columns: 20px 70px minmax(0, 1fr) 118px auto;
+  /* Every column is a fixed width: a row with no link must not shift the row's name out of line. */
+  grid-template-columns: 20px 70px minmax(0, 1fr) 136px 84px;
   align-items: center;
   column-gap: 12px;
-  min-height: 36px;
-  padding: 6px 0;
+  min-height: 32px;
+  padding: 4px 0;
   font-size: var(--rw-font-size-secondary);
 }
 
@@ -1340,20 +1341,35 @@ button:disabled {
   color: var(--rw-text-primary);
 }
 
+.rw-check-issues__message code {
+  font-family: var(--rw-font-mono);
+  font-size: 0.95em;
+}
+
+/* Wraps rather than truncates: a long engine name stays readable in its column. */
 .rw-check-issues__part {
-  overflow: hidden;
+  min-width: 0;
   color: var(--rw-text-secondary);
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 .rw-check-issues__goto {
+  justify-self: end;
+  padding: 0;
   border: 0;
   background: none;
   color: var(--rw-accent);
   font: inherit;
   text-decoration: underline;
+  white-space: nowrap;
   cursor: pointer;
+}
+
+.rw-check-issues__no-link {
+  justify-self: end;
+  color: var(--rw-text-secondary);
+  opacity: 0.7;
+  white-space: nowrap;
 }
 
 .rw-check-issues__note {
@@ -1372,6 +1388,6 @@ button:disabled {
   flex: none;
   justify-content: flex-end;
   margin: 0 18px;
-  padding: 12px 0 14px;
+  padding: 10px 0 12px;
   border-top: var(--rw-hairline) solid var(--rw-line);
 }

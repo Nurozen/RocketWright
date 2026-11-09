@@ -536,6 +536,15 @@ describe("MenuButton", () => {
   });
 });
 
+describe("a pointer anchor with a band", () => {
+  it("opens below the row under the pointer, not at the pointer", () => {
+    render(<Menu open anchor={{ x: 40, y: 60, band: { top: 50, bottom: 76 } }} label="Row" items={[{ id: "a", label: "A" }]} onClose={() => {}} />);
+    const list = document.querySelector<HTMLElement>('[role="menu"]')!;
+    expect(list.style.left).toBe("40px");
+    expect(list.style.top).toBe("80px");
+  });
+});
+
 describe("placeFloating", () => {
   const view = { width: 1000, height: 800 };
   const anchor = { left: 100, top: 100, right: 140, bottom: 130 };

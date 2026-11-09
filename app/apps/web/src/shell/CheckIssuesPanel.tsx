@@ -1,7 +1,7 @@
 /**
- * What Check model found (R2.6): errors and warnings with code, message, part
- * and Go to part, anchored under the header button. It is a dialog, so the
- * desktop app swaps the agent pane for a snapshot while it overlaps the pane.
+ * What Check model found (R2.6): errors and warnings with code, message, where
+ * and a way to go there, anchored under the header button. It is a dialog, so
+ * the desktop app swaps the agent pane for a snapshot while it overlaps the pane.
  */
 import { useId } from "react";
 import type { RwRef, schema } from "@rw/contracts";
@@ -13,10 +13,12 @@ export interface CheckIssue {
   key: string;
   code: string;
   message: string;
-  /** The part's name, or the source location of an issue that is not on a part. */
+  /** The name of what it is on, or the source location of an issue that is on nothing in the model. */
   where: string | null;
-  /** The part to go to: null when the issue is not on a part the model still has. */
-  part: RwRef | null;
+  /** What to open: null when the issue is on nothing the model still has. */
+  target: RwRef | null;
+  /** The control's label, as long as there is a target. */
+  goTo: string | null;
 }
 
 export interface CheckIssues {
@@ -26,22 +28,49 @@ export interface CheckIssues {
 
 type IssueSource = Pick<schema.Diagnostic, "code" | "severity" | "message"> & Partial<Pick<schema.Diagnostic, "path" | "file" | "line">>;
 
-/** The part a diagnostic's JSON pointer is on (`/c/<id>/…`), if any. */
-function partIdOf(path: string | null | undefined): string | null {
-  return /^\/c\/([^/]+)/.exec(path ?? "")?.[1] ?? null;
+type Named = Readonly<Record<string, { readonly name: string } | null | undefined>>;
+
+/** The model's collections other than parts that a diagnostic's pointer can name. */
+export interface IssueCollections {
+  engines?: Named | null | undefined;
+  configs?: Named | null | undefined;
+  sims?: Named | null | undefined;
 }
 
-function issueOf(d: IssueSource, index: number, names: ReadonlyMap<string, string>): CheckIssue {
-  const id = partIdOf(d.path);
-  const name = id === null ? undefined : names.get(id);
+/** An engine issue goes to its feed node or edge when the pointer names one, so the Propulsion page opens on it. */
+function engineRef(id: string, path: string): RwRef {
+  const feed = /^\/engines\/[^/]+\/feed\/(node|edge)\/([^/]+)/.exec(path);
+  return feed === null ? `rw:eng/${id}` : `rw:eng/${id}/feed/${feed[1]!}/${feed[2]!}`;
+}
+
+/** Where a diagnostic's JSON pointer lands: what it is on, by name, and how to get there. */
+function locate(path: string, parts: ReadonlyMap<string, string>, collections: IssueCollections): Pick<CheckIssue, "where" | "target" | "goTo"> | null {
+  const m = /^\/(c|engines|configs|sims)\/([^/]+)/.exec(path);
+  if (m === null) return null;
+  const id = m[2]!;
+  const named = (name: string | undefined, target: RwRef, goTo: string) => (name === undefined ? { where: id, target: null, goTo: null } : { where: name, target, goTo });
+  switch (m[1]) {
+    case "engines":
+      return named(collections.engines?.[id]?.name, engineRef(id, path), "Go to engine");
+    case "configs":
+      return named(collections.configs?.[id]?.name, `rw:cfg/${id}`, "Go to config");
+    case "sims":
+      return named(collections.sims?.[id]?.name, `rw:sim/${id}`, "Go to sim");
+    default:
+      return named(parts.get(id), componentRef(id), "Go to part");
+  }
+}
+
+function issueOf(d: IssueSource, index: number, names: ReadonlyMap<string, string>, collections: IssueCollections): CheckIssue {
   const source = d.file == null ? null : d.line == null ? d.file : `${d.file}:${String(d.line)}`;
-  return { key: `${d.code}@${d.path ?? ""}#${String(index)}`, code: d.code, message: d.message, where: name ?? id ?? source, part: id !== null && name !== undefined ? componentRef(id) : null };
+  const place = locate(d.path ?? "", names, collections) ?? { where: source, target: null, goTo: null };
+  return { key: `${d.code}@${d.path ?? ""}#${String(index)}`, code: d.code, message: d.message, ...place };
 }
 
 /** Sorts a report into the panel's groups. Info diagnostics are left out, as they are from the header's status. */
-export function checkIssuesOf(diagnostics: readonly IssueSource[], components: readonly { id: string; name: string }[]): CheckIssues {
+export function checkIssuesOf(diagnostics: readonly IssueSource[], components: readonly { id: string; name: string }[], collections: IssueCollections = {}): CheckIssues {
   const names = new Map(components.map((c) => [c.id, c.name]));
-  const of = (severity: schema.Severity): CheckIssue[] => diagnostics.flatMap((d, i) => (d.severity === severity ? [issueOf(d, i, names)] : []));
+  const of = (severity: schema.Severity): CheckIssue[] => diagnostics.flatMap((d, i) => (d.severity === severity ? [issueOf(d, i, names, collections)] : []));
   return { errors: of("error"), warnings: of("warning") };
 }
 
@@ -53,7 +82,7 @@ export interface CheckPanelModel {
   /** Why the last check could not run. */
   error: string | null;
   onRunAgain: () => void;
-  onGoToPart: (part: RwRef) => void;
+  onGoTo: (target: RwRef) => void;
 }
 
 export interface CheckIssuesPanelProps extends CheckPanelModel {
@@ -62,11 +91,17 @@ export interface CheckIssuesPanelProps extends CheckPanelModel {
   onClose: () => void;
 }
 
-/** One issue. The row is a group named by its code and part, because every row has a Go to part button (D27). */
-function IssueRow({ issue, severity, onGoToPart }: { issue: CheckIssue; severity: "error" | "warning"; onGoToPart: (part: RwRef) => void }) {
+/** Diagnostics quote identifiers in backticks: show those as code. An unmatched backtick is left as written. */
+function IssueMessage({ text }: { text: string }) {
+  const parts = text.split("`");
+  return <span className="rw-check-issues__message">{parts.length % 2 === 0 ? text : parts.map((part, i) => (i % 2 === 1 ? <code key={i}>{part}</code> : part))}</span>;
+}
+
+/** One issue. The row is a group named by its code and part, because rows repeat the same Go to control (D27). */
+function IssueRow({ issue, severity, onGoTo }: { issue: CheckIssue; severity: "error" | "warning"; onGoTo: (target: RwRef) => void }) {
   const codeId = useId();
   const whereId = useId();
-  const { part } = issue;
+  const { target, goTo } = issue;
   return (
     <div className="rw-check-issues__row" role="group" aria-labelledby={`${codeId} ${whereId}`} data-severity={severity} data-testid="header.check-issue">
       <span className="rw-check-issues__mark">
@@ -75,22 +110,24 @@ function IssueRow({ issue, severity, onGoToPart }: { issue: CheckIssue; severity
       <span id={codeId} className="rw-check-issues__code">
         {issue.code}
       </span>
-      <span className="rw-check-issues__message">{issue.message}</span>
-      <span id={whereId} className="rw-check-issues__part" title={issue.where ?? undefined}>
-        {issue.where}
+      <IssueMessage text={issue.message} />
+      <span id={whereId} className="rw-check-issues__part">
+        {issue.where ?? "Whole model"}
       </span>
-      {part === null ? (
-        <span />
+      {target === null || goTo === null ? (
+        <span className="rw-check-issues__no-link" title="Nothing in the model to open for this issue">
+          No link
+        </span>
       ) : (
-        <button type="button" className="rw-check-issues__goto" onClick={() => onGoToPart(part)}>
-          Go to part
+        <button type="button" className="rw-check-issues__goto" onClick={() => onGoTo(target)}>
+          {goTo}
         </button>
       )}
     </div>
   );
 }
 
-function IssueGroup({ title, severity, issues, onGoToPart }: { title: string; severity: "error" | "warning"; issues: readonly CheckIssue[]; onGoToPart: (part: RwRef) => void }) {
+function IssueGroup({ title, severity, issues, onGoTo }: { title: string; severity: "error" | "warning"; issues: readonly CheckIssue[]; onGoTo: (target: RwRef) => void }) {
   const headingId = useId();
   if (issues.length === 0) return null;
   return (
@@ -99,7 +136,7 @@ function IssueGroup({ title, severity, issues, onGoToPart }: { title: string; se
         {title}
       </h3>
       {issues.map((issue) => (
-        <IssueRow key={issue.key} issue={issue} severity={severity} onGoToPart={onGoToPart} />
+        <IssueRow key={issue.key} issue={issue} severity={severity} onGoTo={onGoTo} />
       ))}
     </section>
   );
@@ -111,7 +148,7 @@ function emptyNote(checked: boolean, running: boolean, failed: boolean): string 
   return checked ? "No errors or warnings." : "Model not checked yet.";
 }
 
-export function CheckIssuesPanel({ open, anchor, onClose, issues, checked, running, error, onRunAgain, onGoToPart }: CheckIssuesPanelProps) {
+export function CheckIssuesPanel({ open, anchor, onClose, issues, checked, running, error, onRunAgain, onGoTo }: CheckIssuesPanelProps) {
   const { errors, warnings } = issues;
   const count = errors.length + warnings.length;
   const note = count === 0 ? emptyNote(checked, running, error !== null) : null;
@@ -132,8 +169,8 @@ export function CheckIssuesPanel({ open, anchor, onClose, issues, checked, runni
           </p>
         )}
         {note !== null && <p className="rw-check-issues__note">{note}</p>}
-        <IssueGroup title="Errors" severity="error" issues={errors} onGoToPart={onGoToPart} />
-        <IssueGroup title="Warnings" severity="warning" issues={warnings} onGoToPart={onGoToPart} />
+        <IssueGroup title="Errors" severity="error" issues={errors} onGoTo={onGoTo} />
+        <IssueGroup title="Warnings" severity="warning" issues={warnings} onGoTo={onGoTo} />
       </div>
       <footer className="rw-check-issues__foot">
         <button type="button" className="rw-button rw-button--accent" aria-busy={running || undefined} disabled={running} onClick={onRunAgain}>
