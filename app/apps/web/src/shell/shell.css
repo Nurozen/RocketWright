@@ -974,6 +974,183 @@ button:disabled {
 }
 
 /* The window with no project to show: Welcome until it lands, and startup failures. */
+/* ---- Welcome (R0.2) -------------------------------------------------------- */
+
+.rw-welcome {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+  overflow: auto;
+  padding: clamp(32px, 18vh, 186px) 24px 0;
+  background: var(--rw-bg-viewport-bottom);
+}
+
+.rw-welcome__brand {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.rw-welcome__mark {
+  display: block;
+}
+
+.rw-welcome__name {
+  margin: 0;
+  font-size: var(--rw-font-size-display);
+  font-weight: var(--rw-font-weight-strong);
+  line-height: 64px;
+}
+
+.rw-welcome__tagline {
+  margin: 28px 0 0;
+  color: var(--rw-text-secondary);
+  font-size: 26px;
+}
+
+.rw-welcome__actions {
+  display: grid;
+  grid-template-columns: repeat(3, 300px);
+  gap: 24px;
+  margin-top: 80px;
+}
+
+.rw-welcome__action {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  height: 165px;
+  border: var(--rw-hairline) solid var(--rw-line);
+  border-radius: var(--rw-radius);
+  background: var(--rw-panel);
+  color: var(--rw-text-primary);
+  font: inherit;
+  font-size: 22px;
+  cursor: pointer;
+}
+
+.rw-welcome__action:hover:not(:disabled) {
+  border-color: var(--rw-accent);
+}
+
+.rw-welcome__action:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.rw-welcome__action .rw-icon {
+  color: var(--rw-accent);
+}
+
+.rw-welcome__messages {
+  display: flex;
+  flex-direction: column;
+  flex: none;
+  gap: 8px;
+  width: 832px;
+  max-width: 100%;
+  margin-top: 16px;
+}
+
+.rw-welcome__status {
+  margin: 0;
+  color: var(--rw-text-secondary);
+  font-size: var(--rw-font-size-body);
+  text-align: center;
+}
+
+.rw-welcome__recent {
+  width: 832px;
+  max-width: 100%;
+  margin-top: 60px;
+}
+
+.rw-welcome__recent-title {
+  margin: 0 0 16px;
+  font-size: 24px;
+  font-weight: var(--rw-font-weight-strong);
+}
+
+.rw-welcome__recent-list {
+  margin: 0;
+  padding: 0;
+  border-top: var(--rw-hairline) solid var(--rw-line);
+  list-style: none;
+}
+
+.rw-welcome__recent-row {
+  display: flex;
+  align-items: center;
+  border-bottom: var(--rw-hairline) solid var(--rw-line);
+}
+
+.rw-welcome__recent-open {
+  display: grid;
+  flex: 1;
+  grid-template-columns: 56px 187px minmax(0, 1fr) auto;
+  align-items: center;
+  height: 52px;
+  padding: 0 0 0 4px;
+  border: 0;
+  background: none;
+  color: var(--rw-text-primary);
+  font: inherit;
+  font-size: 17px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.rw-welcome__recent-open:hover:not(:disabled) .rw-welcome__recent-name {
+  color: var(--rw-accent);
+}
+
+.rw-welcome__recent-open:disabled {
+  cursor: default;
+}
+
+.rw-welcome__recent-open .rw-icon {
+  color: var(--rw-accent);
+}
+
+.rw-welcome__recent-name,
+.rw-welcome__recent-path {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rw-welcome__recent-path,
+.rw-welcome__recent-age {
+  color: var(--rw-text-secondary);
+}
+
+.rw-welcome__recent-row:not([data-status="ok"]) .rw-welcome__recent-age {
+  color: var(--rw-warning);
+}
+
+.rw-welcome__version {
+  margin-top: auto;
+  padding: 40px 0 56px;
+  color: var(--rw-text-secondary);
+  font-size: 15px;
+}
+
+.rw-new-project {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.rw-new-project__offer,
+.rw-new-project__status {
+  margin: 0;
+  color: var(--rw-text-secondary);
+  font-size: var(--rw-font-size-body);
+}
+
 .rw-lifecycle {
   padding: 24px;
   color: var(--rw-text-secondary);

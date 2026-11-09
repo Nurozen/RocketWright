@@ -13,7 +13,10 @@ import type { RunDataSource } from "../pages/results/source.ts";
 import { RpcClient, type RpcLike } from "../state/rpc.ts";
 import { dispatchCommand, type CommandHandlers } from "./commands.ts";
 import { INITIAL_LIFECYCLE, lifecycle, shellOutcome, type LifecycleState } from "./lifecycle.ts";
+import { PathPromptModal } from "./PathPromptModal.tsx";
+import { errorText } from "./projectActions.ts";
 import { ProjectSurface } from "./ProjectSurface.tsx";
+import { Welcome } from "./Welcome.tsx";
 
 export interface AppRootProps {
   url: string;
@@ -26,10 +29,8 @@ export interface AppRootProps {
   onOutcome?: (outcome: NonNullable<ReturnType<typeof shellOutcome>>) => void;
   /** Test seams. */
   connect?: (url: string) => Promise<RpcLike>;
-  host?: HostApi;
+  host?: HostApi | undefined;
 }
-
-const message = (e: unknown): string => (e instanceof Error ? e.message : String(e));
 
 const connectRpc = (url: string): Promise<RpcLike> => RpcClient.connect(url);
 
@@ -53,18 +54,9 @@ export function FatalScreen({ error }: { error: string }) {
   );
 }
 
-/** Stands in until the Welcome screen lands; every empty launch reaches it. */
-function NoProject({ notice }: { notice: string | null }) {
-  return (
-    <main className="rw-lifecycle" data-testid="welcome">
-      <h1>No project open</h1>
-      {notice !== null ? <p role="alert">{notice}</p> : null}
-    </main>
-  );
-}
-
 export function AppRoot({ url, requestedProjectId, initialPage, runSource, httpBase, onOutcome, connect = connectRpc, host: hostProp }: AppRootProps) {
-  const [host] = useState<HostApi>(() => hostProp ?? hostFor(window, createPathPrompts().prompt));
+  const [prompts] = useState(createPathPrompts);
+  const [host] = useState<HostApi>(() => hostProp ?? hostFor(window, prompts.prompt));
   const [state, dispatch] = useReducer(lifecycle, INITIAL_LIFECYCLE);
   const [client, setClient] = useState<RpcLike | null>(null);
   const stateRef = useRef<LifecycleState>(state);
@@ -94,7 +86,7 @@ export function AppRoot({ url, requestedProjectId, initialPage, runSource, httpB
     })().catch((e: unknown) => {
       if (!live) return;
       console.error(e);
-      dispatch({ type: "startFailed", error: message(e) });
+      dispatch({ type: "startFailed", error: errorText(e) });
     });
     return () => {
       live = false;
@@ -153,21 +145,31 @@ export function AppRoot({ url, requestedProjectId, initialPage, runSource, httpB
     return host.onCommand((command) => void dispatchCommand(command, handlers));
   }, [client, host]);
 
-  if (state.phase === "fatal") return <FatalScreen error={state.error} />;
-  if (state.phase === "welcome") return <NoProject notice={state.notice} />;
-  if (state.phase !== "project" || client === null) return null;
+  let screen = null;
+  if (state.phase === "fatal") {
+    screen = <FatalScreen error={state.error} />;
+  } else if (client !== null && state.phase === "welcome") {
+    screen = <Welcome client={client} host={host} notice={state.notice} onOpened={onSwitchProject} />;
+  } else if (client !== null && state.phase === "project") {
+    screen = (
+      <ProjectSurface
+        key={state.projectId}
+        client={client}
+        projectId={state.projectId}
+        initialPage={page.current}
+        runSource={runSource}
+        httpBase={httpBase}
+        onPageChange={onPageChange}
+        onOpenFailed={onOpenFailed}
+        onSwitchProject={onSwitchProject}
+        onProjectInfo={onProjectInfo}
+      />
+    );
+  }
   return (
-    <ProjectSurface
-      key={state.projectId}
-      client={client}
-      projectId={state.projectId}
-      initialPage={page.current}
-      runSource={runSource}
-      httpBase={httpBase}
-      onPageChange={onPageChange}
-      onOpenFailed={onOpenFailed}
-      onSwitchProject={onSwitchProject}
-      onProjectInfo={onProjectInfo}
-    />
+    <>
+      {screen}
+      <PathPromptModal prompts={prompts} />
+    </>
   );
 }
