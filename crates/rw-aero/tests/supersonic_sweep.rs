@@ -375,17 +375,22 @@ fn blend_boundaries_are_c1() {
     //   slope: |y'(M+) − y'(M−)| / |y(M)|, one-sided differences, per unit Mach
     // A smooth curve gives a value ratio near 2h·|y'/y| and a slope ratio near
     // h·|y''/y|; a step of size s gives a slope ratio near s/(h·|y|).
-    // Measured at h = 1e-3 (case 1):
-    //   M 0.9  cn_alpha  value 4.3e-4  slope 4.9e-4
+    // Measured at h = 1e-3 (case 1), with the two-face supersonic fin load:
+    //   M 0.9  cn_alpha  value 4.4e-4  slope 8.5e-3
     //   M 0.9  cd        value 3.0e-3 (slope 2.3, the unblended drag-rise kink)
-    //   M 0.9  cp        value 1.1e-4  slope 6.9e-5
-    //   M 1.5  cn_alpha  value 2.0e-3  slope 5.8e-4
+    //   M 0.9  cp        value 1.1e-4  slope 1.0e-3
+    //   M 1.5  cn_alpha  value 2.2e-3  slope 3.4e-3
     //   M 1.5  cd        value 5.4e-4
-    //   M 1.5  cp        value 3.0e-4  slope 2.7e-4
+    //   M 1.5  cp        value 1.5e-4  slope 5.0e-4
+    // The cn_alpha and cp slope ratios fall in proportion to h (8.5e-4 and
+    // 1.0e-4 at M 0.9 for h = 1e-4), so they are the cubic's curvature and not
+    // a kink; the cd slope ratio at M 0.9 does not fall. The two-face load
+    // doubles the blend's upper endpoint, which raises that curvature.
     // Tolerances are about 10× the larger measured ratio per quantity, in
-    // the order [cn_alpha, cd, cp]. The CD slope is not checked.
+    // the order [cn_alpha, cd, cp] (the cp slope tolerance is about 3×). The
+    // CD slope is not checked.
     const VALUE_TOL: [f64; 3] = [0.02, 0.03, 0.003];
-    const SLOPE_TOL: [f64; 3] = [0.006, f64::INFINITY, 0.003];
+    const SLOPE_TOL: [f64; 3] = [0.09, f64::INFINITY, 0.003];
 
     let h = 1e-3_f64;
     // These match SUBSONIC_LIMIT and SUPERSONIC_LIMIT in mach.rs.

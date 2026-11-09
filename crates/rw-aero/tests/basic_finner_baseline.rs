@@ -414,8 +414,7 @@ fn basic_finner_baseline_vs_drev() {
     println!();
     println!(
         "CP sign: d_cal = model_CP − DREV_CP, cal from nose, positive = aft.\n\
-         Negative d_cal → model CP more forward → UNDERESTIMATES stability.\n\
-         Root cause at supersonic Mach: the fin CNα is low (see CNα breakdown below)."
+         Negative d_cal → model CP more forward → UNDERESTIMATES stability."
     );
 
     // === Drag breakdown ===
@@ -460,15 +459,14 @@ fn basic_finner_baseline_vs_drev() {
     );
     println!(
         "fn_bare = fins_int / (K_T(B) + K_B(T)): single-fin CNα × fin_count_factor(4) = 2.\n\
-         Supersonic single-fin slope = (A_fin/A_ref)*K1 = (A_fin/A_ref)*2/β, so the 4-fin\n\
-         term is 4/β on A_fin/A_ref. 2D linear theory gives 8/β for the lifting pair.\n\
-         K1 = 2/β is what Niskanen eq 3.49 as implemented gives (under investigation).\n\
+         Supersonic single-fin slope = (A_fin/A_ref)*2(K1 + K3 α²), both fin faces\n\
+         (barrowman-1967 App. A); at α → 0 this is Ackeret (A_fin/A_ref)*4/β, so the\n\
+         4-fin term is 8/β on A_fin/A_ref.\n\
          DREV_fin = (DREV_CNα − ns_CNα) / int: the bare fin term DREV implies.\n\
-         2xK1 = ns_CNα + 2 × fn_bare × int: total CNα with only K1 doubled\n\
-         (M ≥ 1.5 rows only; below that the fin term is a blend with the subsonic law)."
+         ratio = fn_bare / DREV_fin."
     );
     println!(
-        "{:>6} | {:>8} {:>8} {:>8} {:>7} {:>7} {:>7} | {:>8} {:>8} {:>6} {:>8}",
+        "{:>6} | {:>8} {:>8} {:>8} {:>7} {:>7} {:>7} | {:>8} {:>8} {:>6}",
         "Mach",
         "tot_CNα",
         "ns_CNα",
@@ -478,10 +476,9 @@ fn basic_finner_baseline_vs_drev() {
         "int",
         "DREV_CNα",
         "DREV_fin",
-        "ratio",
-        "2xK1"
+        "ratio"
     );
-    println!("{}", "-".repeat(105));
+    println!("{}", "-".repeat(96));
     for (mach, cna_nose, cna_fins_int, kb_t_v, tot, drev_cna) in &cna_rows {
         let interference = kt_b_val + kb_t_v;
         let fins_bare = if interference.abs() > 1e-15 {
@@ -491,7 +488,7 @@ fn basic_finner_baseline_vs_drev() {
         };
         let drev_fin = (drev_cna - cna_nose) / interference;
         println!(
-            "{:>6.3} | {:>8.3} {:>8.3} {:>8.3} {:>7.4} {:>7.4} {:>7.4} | {:>8.3} {:>8.3} {:>6.2} {:>8.2}",
+            "{:>6.3} | {:>8.3} {:>8.3} {:>8.3} {:>7.4} {:>7.4} {:>7.4} | {:>8.3} {:>8.3} {:>6.2}",
             mach,
             tot,
             cna_nose,
@@ -501,8 +498,7 @@ fn basic_finner_baseline_vs_drev() {
             interference,
             drev_cna,
             drev_fin,
-            fins_bare / drev_fin,
-            cna_nose + 2.0 * cna_fins_int
+            fins_bare / drev_fin
         );
     }
 

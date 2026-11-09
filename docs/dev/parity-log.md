@@ -82,8 +82,8 @@ cited to `literature-map.md`. Delta = (ours / oracle − 1).
 | CP of the K_B(T) load | At the fin CP | BW-B67-070, BW-B67-074 | Barrowman (3-101) needs β·AR ≥ 4 (case 1: β·AR ≈ 1.1); Fig 3-10 for lower β·AR is not digitised. Using (3-101) anyway would move the case-1 total CP about 0.9 mm forward. |
 | K_3 (Busemann) | Barrowman, with −12 M² | BW-B67-008 | Niskanen (3.44) drops it (Errata). |
 | N-fin factor (M1.38-p) | niskanen-2013 (3.54): N/2 × fin–fin factor (1.000 for N ≤ 4; 0.948, 0.913, 0.854, 0.810 for N = 5..8; 0.750 above) | BW-B67-012, BW-29 | Barrowman (3-11) gives N/2 for N = 3, 4. The 2009 thesis roll reduction (−15 % for N = 3, −6 % for N = 4) is dropped, as niskanen-2013 pdf 42 does. N = 3 now gives 1.50 (was 1.3875 roll-averaged). |
-| Fin C_Nα and roll damping, M 0.9 to 1.5 | C¹ cubic blend between (3.40)/(3.69) and (3.49)/(3.72) | BW-19, BW-26, DM-10, DM-13 | The thesis prints no transonic rule. This blend follows the constraint style of (3.36). |
-| Supersonic single-fin C_Nα leading term | Niskanen (3.49): (C_Nα)₁ = (A_fin/A_ref)(K₁ + K₂α + K₃α²), K₁ = 2/β | BW-26 | K₁ = 2/β is the one-surface pressure slope, so the 4-fin set gets 4/β on A_fin/A_ref (`fins::single_fin_cna_supersonic` times N/2). 2D linear theory gives 8/β for the lifting pair, twice that. Supersonic roll damping uses the same one-surface `busemann_cp` (`damping::roll_damping_supersonic`), so a fix must cover both. This is one factor in the DREV Basic Finner C_Nα gap, not the whole gap (see that section). Whether (3.49) as printed is a one-surface result still needs a check against Barrowman 1967. Phase 1b. |
+| Fin C_Nα and roll damping, M 0.9 to 1.5 | C¹ cubic blend between (3.40)/(3.69) and the two-face supersonic forms of BW-26/DM-13 | BW-19, BW-26, DM-10, DM-13 | The thesis prints no transonic rule. This blend follows the constraint style of (3.36). |
+| Supersonic fin load (Phase 1b) | Both faces: (C_Nα)₁ = (A_fin/A_ref)·2(K₁ + K₃α²); roll damping sums ΔC_P,i = 2(K₁η_i + K₃η_i³) | BW-B67-094, BW-B67-095, BW-26, DM-13 | Niskanen (3.48)/(3.49)/(3.72) load one face only, half at α → 0 (Errata). K₂ cancels; the K* shock term is left out. Departs from OpenRocket wherever it follows the thesis (not checked). |
 | Fin cross-section: wedge | No wedge option; "airfoil" used in the DREV Basic Finner fixture | BW-B67-080..088, PD-B67-013 (literature-map Gap 15) | DREV fins are sharp-LE wedges (0.004 cal LE radius, 0.08 cal thick at the base). The "airfoil" LE drag (eq 3.89) is too high for a sharp LE. Its TE drag is zero; a blunt wedge TE takes the full base_cd, which would raise C_D. Phase 2: add `FinCrossSection::Wedge`. |
 | Supersonic fin CP fit (3.35) | Clamped to 0.25 to 0.5 of the MAC | BW-14 | At low AR·β the fit's denominator nears 0. |
 | Nose drag, ellipsoid/power/parabolic/Haack | Cone curve with the same l_n and d at M ≥ 1 | PD-14, PD-19 | Stoney C_3(M) data is not in any local source (Gaps 5). The `model` string says "cone fallback". |
@@ -1157,12 +1157,14 @@ the residual grows with Mach. Open items:
 - The finite-span tip factor 1 − 1/(2βAR), AR = 2, is not in (3.49) as
   implemented. It is 0.884 at M 2.375 and reduces the doubled term, which
   widens the residual.
-- Supersonic roll damping uses the same one-surface `busemann_cp`
-  (`roll_damping_supersonic` in `damping.rs`), so a K₁ fix must cover both.
-- Whether (3.49) as printed is a one-surface result still needs the check
-  against Barrowman 1967.
+- Resolved in Phase 1b (section below): supersonic roll damping used the same
+  one-surface `busemann_cp` (`roll_damping_supersonic` in `damping.rs`), so a
+  K₁ fix had to cover both. Both now take the two-face ΔC_P.
+- Resolved in Phase 1b (section below): (3.49) as printed is a one-surface
+  result. Barrowman 1967 App. A sums both faces (literature-map Errata).
 
-The K₁ follow-up is Phase 1b.
+The K₁ follow-up is the Phase 1b section below. Supersonic K_B(T) and the
+finite-span tip factor stay open.
 
 **CP (stability):** The low fin CNα pushes the aerodynamic CP forward (toward
 the nose). d_cal ranges from −0.04 cal at M 1.077 to −1.22 cal at M 4.300.
@@ -1170,9 +1172,97 @@ the nose). d_cal ranges from −0.04 cal at M 1.077 to −1.22 cal at M 4.300.
 **Clp (roll damping):** At M 1.077 the Hermite transonic blend overshoots:
 rw-aero gives −197 vs DREV −18.2 (pd/2V). At M ≥ 1.832 the supersonic
 Busemann formula is active and rw-aero under-predicts the magnitude by 1.55×
-at M 1.832 to 2.22× at M 4.300, growing with Mach. It shares the one-surface
-`busemann_cp` path with CNα.
+at M 1.832 to 2.22× at M 4.300, growing with Mach. It shared the one-surface
+`busemann_cp` path with CNα (resolved in Phase 1b, section below).
 
 **Cmq:** rw-aero pitch damping is proportional to (ω/V)² (Niskanen 3.59/3.60);
 apparent Cmq at q = 1 rad/s in qd/2V ranges −0.024 to −0.092 vs DREV −240 to
 −490.
+
+## Phase 1b: supersonic fin load on both faces (2026-11-09)
+
+Reproduce: `cargo test -p rw-aero --test basic_finner_baseline -- --nocapture`
+
+Niskanen (3.48)/(3.49) and (3.72) apply one face's Busemann C_P as the whole
+fin load. Barrowman 1967 App. A sums the regions of both faces ((8),
+(33a)-(33d), pdf 96-98), which for a flat plate gives
+ΔC_P = C_P(+η) − C_P(−η) = 2(K₁η + K₃η³) (literature-map Errata, BW-B67-094/095).
+rw-aero followed the thesis, so its supersonic fin C_Nα and roll damping were
+half of Barrowman's. Both now use the two-face ΔC_P (`mach::flat_plate_strip_dcp`):
+(C_Nα)₁ = (A_fin/A_ref)·2(K₁ + K₃α²), which is Ackeret's (A_fin/A_ref)·4/β at α → 0.
+Roll forcing already took `single_fin_cna`, so forcing and damping double
+together and the equilibrium spin rate keeps its form.
+
+### Model choices
+
+1. Two-face ΔC_P = 2(K₁η + K₃η³). K₂ is dropped because it cancels for a flat
+   plate. The previous odd-extended one-face C_P (`busemann_cp`, removed) would
+   have kept it as a false 2K₂η² term.
+2. The B₃ / K* shock term is left out. It has no effect on the slope at α → 0,
+   and its sign differs between (3-7) and App. A (1) (BW-B67-080).
+3. Below M 0.9 nothing changes: the blend returns the subsonic law without
+   evaluating the supersonic one. A one-off dump of every `AeroCoeffs` field
+   (cases 1–7, M 0–0.9 in 0.01 steps, α 0–15°, three roll/pitch-rate pairs,
+   thrusting on and off; 22,932 evaluations) was identical before and after,
+   and again against main after the Phase 1 review commit (2026-11-14).
+   The oracles stop at M 0.71. Values between M 0.9 and 1.5 change because the
+   blend's upper endpoint doubles.
+4. Above M 1 this departs from OpenRocket wherever OpenRocket follows the
+   thesis (not checked).
+5. Supersonic tube fins double too: `tube_fins::ring_cna` is twice the
+   single-fin slope at AR = A (TF-02).
+6. The `model` strings still read "niskanen-2009:fins eq 3.40 3.49 …". They are
+   in subsonic goldens (`rw-check`, `rw-cli`), so changing them is left to a
+   change that updates those goldens.
+
+### Before and after (rw-aero vs DREV Table IX)
+
+"Before" is main after the Phase 1 review commit (the Phase 1 baseline above).
+CX0 is unchanged (drag untouched), and so is the apparent Cmq (−0.024 to −0.092
+at q = 1 rad/s in qd/2V; pitch damping untouched). err% is (rw − DREV)/DREV;
+d_cal is model CP minus DREV CP, positive aft.
+
+| Mach | CNα DREV | before (err) | after (err) | Cmα DREV | before (err) | after (err) | CP d_cal before | after |
+|---|---|---|---|---|---|---|---|---|
+| 1.077 | 18.47 | 14.58 (−21.0%) | 16.53 (−10.5%) | −52.65 | −40.97 (−22.2%) | −48.44 (−8.0%) | −0.041 | +0.079 |
+| 1.293 | 18.27 | 10.78 (−41.0%) | 16.30 (−10.8%) | −50.97 | −27.08 (−46.9%) | −48.61 (−4.6%) | −0.278 | +0.193 |
+| 1.832 | 11.78 | 6.42 (−45.5%) | 10.85 (−7.9%) | −27.98 | −10.34 (−63.0%) | −27.89 (−0.3%) | −0.766 | +0.196 |
+| 2.375 | 10.52 | 5.15 (−51.0%) | 8.30 (−21.1%) | −18.90 | −5.33 (−71.8%) | −17.86 (−5.5%) | −0.763 | +0.354 |
+| 2.718 | 9.01 | 4.69 (−48.0%) | 7.37 (−18.2%) | −15.20 | −3.48 (−77.1%) | −14.18 (−6.7%) | −0.944 | +0.236 |
+| 3.147 | 8.69 | 4.28 (−50.8%) | 6.55 (−24.6%) | −12.46 | −1.85 (−85.1%) | −10.92 (−12.3%) | −1.000 | +0.234 |
+| 3.734 | 8.32 | 3.89 (−53.3%) | 5.78 (−30.6%) | −9.53 | −0.31 (−96.7%) | −7.84 (−17.8%) | −1.065 | +0.212 |
+| 4.300 | 7.74 | 3.62 (−53.2%) | 5.25 (−32.2%) | −7.85 | +0.74 (−109.4%) | −5.74 (−26.9%) | −1.218 | +0.080 |
+
+| Mach | Clp DREV (pd/2V) | before (err) | after (err) |
+|---|---|---|---|
+| 1.077 | −18.16 | −196.99 (+985%) | −202.00 (+1012%) |
+| 1.293 | −23.57 | −95.39 (+305%) | −111.81 (+374%) |
+| 1.832 | −22.35 | −14.38 (−35.7%) | −28.75 (+28.7%) |
+| 2.375 | −18.31 | −10.25 (−44.0%) | −20.49 (+11.9%) |
+| 2.718 | −16.65 | −8.73 (−47.6%) | −17.46 (+4.9%) |
+| 3.147 | −13.50 | −7.40 (−45.2%) | −14.79 (+9.6%) |
+| 3.734 | −13.18 | −6.13 (−53.5%) | −12.27 (−6.9%) |
+| 4.300 | −11.71 | −5.28 (−54.9%) | −10.55 (−9.9%) |
+
+| RMS over the 8 Mach groups | before | after |
+|---|---|---|
+| CX0 | 84.4% | 84.4% |
+| CNα | 46.6% | 21.3% |
+| Cmα | 76.1% | 13.0% |
+| CP | 0.848 cal | 0.215 cal |
+| Clp (pd/2V, absolute) | 68.4 | 72.1 |
+
+The bare fin term over the fin term DREV implies (fn_bare / DREV_fin in the
+test output) rises from 0.45–0.28 to 0.90–0.57 over M 1.832–4.300. The test's
+sanity ceilings (CX0 ≤ 0.90, CNα ≤ 0.50, CP ≤ 0.90 cal) are left at their
+Phase 1 values.
+
+The model now matches the Phase 1b hand estimate (spec) to within 0.01 in CNα
+and 0.12 in Clp at M ≥ 1.832, and Clp is twice the old value there (ratio 1.9998–2.0000).
+Clp lands within ±12% of DREV from M 2.375 up. The Clp RMS rises only because
+the M 0.9–1.5 blend overshoot at M 1.077 and 1.293 grows with the doubled
+upper endpoint; that overshoot was already 4–11× DREV. The CNα shortfall that
+remains grows with Mach (−8% at M 1.83 to −32% at M 4.3). Supersonic K_B(T)
+(phase 4) should close most of it at M 2.4, probably not at M 4.3. The
+Clp overshoot at M 1.83 fits the missing tip Mach-cone relief (phase 6). The
+model CP now sits 0.08–0.35 cal aft of DREV's.
