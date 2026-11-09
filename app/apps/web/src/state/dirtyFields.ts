@@ -1,9 +1,10 @@
 /**
  * Typed values that have not reached the model yet (D22). `project.disconnect`
- * clears the draft and a native accelerator fires with no blur, so anything
- * that leaves a project asks here first: every field that holds typed text
- * registers, and every write a field starts is tracked, so a flush can wait
- * for the ones already on their way.
+ * clears the draft, a page change unmounts the fields with no blur, and a
+ * native accelerator fires with no blur, so anything that leaves a project or
+ * a page asks here first: every field that holds typed text registers, and
+ * every write a field starts is tracked, so a flush can wait for the ones
+ * already on their way.
  *
  * A module of its own rather than store state: a field is a closure over its
  * component, and only one project surface is mounted at a time.
@@ -63,7 +64,13 @@ export function trackWrite<T>(write: Promise<T>, failure?: (result: T) => string
   return write;
 }
 
-async function settleWrites(): Promise<string[]> {
+/** True while any field write started by a blur or a flush is still on its way. */
+export function writesPending(): boolean {
+  return writes.size > 0;
+}
+
+/** Waits for every tracked write; resolves to why any failed. */
+export async function settleWrites(): Promise<string[]> {
   const problems: string[] = [];
   // A write that lands can start another (a field's commit settling an open draft).
   while (writes.size > 0) {
@@ -91,7 +98,7 @@ export async function flushDirtyFields(): Promise<string[]> {
 }
 
 /** Saves everything this project holds that is not yet in the model, draft included. */
-export async function flushProject(store: AppStore): Promise<string[]> {
+export async function flushProject(store: Pick<AppStore, "getState">): Promise<string[]> {
   const problems = await flushDirtyFields();
   const { draft } = store.getState();
   if (draft.ops.length === 0) return problems;
@@ -102,6 +109,11 @@ export async function flushProject(store: AppStore): Promise<string[]> {
     problems.push(e instanceof Error ? e.message : String(e));
   }
   return problems;
+}
+
+/** Typed text or an open draft that a page change would lose. */
+export function hasUnsavedWork(state: { draft: { ops: readonly unknown[] } }): boolean {
+  return state.draft.ops.length > 0 || anyDirtyField();
 }
 
 /** Test seam: forgets everything registered. */

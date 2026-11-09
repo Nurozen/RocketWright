@@ -2,7 +2,7 @@
 import type { ProjectInfo, ProjectPatch, ProjectSnapshot, RwRef, SnapshotKey } from "@rw/contracts";
 import { RpcCallError, type RpcLike } from "../rpc.ts";
 import type { AppState, DeepReadonly, ProjectSlice, SliceCtx } from "../types.ts";
-import { isLengthUnit, manifestDisplayUnits, MANIFEST } from "../displayUnits.ts";
+import { DEFAULT_LENGTH_UNIT, isLengthUnit, manifestDisplayUnits, MANIFEST } from "../displayUnits.ts";
 import { handshake, loadWasm } from "../wasm.ts";
 import { onEmbedThreads, onLecturnSwitch } from "./chat.ts";
 import { followRerun, rowKey } from "./runs.ts";
@@ -176,11 +176,14 @@ function afterMirrorChange(ctx: SliceCtx, prev: AppState["project"]["snapshot"])
   if (snap.files !== prev?.files) {
     const length = manifestDisplayUnits(snap.files.files[MANIFEST])["length"];
     if (isLengthUnit(length) && length !== s.ui.units) s.ui.setUnits(length);
+    // The table is gone (an undo of the first choice): back to what a project without one shows, which is also what a reload would show.
+    else if (length === undefined && manifestDisplayUnits(prev?.files.files[MANIFEST])["length"] !== undefined && s.ui.units !== DEFAULT_LENGTH_UNIT) s.ui.setUnits(DEFAULT_LENGTH_UNIT);
   }
 
   // Draft: another writer committed underneath unsaved edits.
   const hash = snap.evaluated?.model_hash ?? snap.files.model_hash;
-  if (s.draft.ops.length > 0 && s.draft.baseHash !== null && s.draft.baseHash !== hash && !s.draft.stale) {
+  if (ctx.landed != null && hash !== ctx.landed.from) ctx.landed = null;
+  if (s.draft.ops.length > 0 && s.draft.baseHash !== null && s.draft.baseHash !== hash && !s.draft.stale && !ctx.draftWriting) {
     ctx.patch("draft", { stale: true });
   }
 

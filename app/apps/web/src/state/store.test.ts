@@ -227,6 +227,26 @@ describe("project units (R3.4)", () => {
     expect(store.getState().ui.units).toBe("cm");
   });
 
+  it("undoing the first units choice goes back to what a project with no table shows", async () => {
+    const { store, srv } = await setup();
+    const snap = srv.mock.snapshot(P);
+    applySnapshot(sliceCtx(store), withManifest(snap, 'name = "x"\n'));
+    expect(store.getState().ui.units).toBe("mm");
+    applyPatch(sliceCtx(store), { projectId: P, files: withManifest(snap, '[display_units]\nlength = "in"\n').files });
+    expect(store.getState().ui.units).toBe("in");
+    applyPatch(sliceCtx(store), { projectId: P, files: withManifest(snap, 'name = "x"\n').files });
+    expect(store.getState().ui.units).toBe("mm");
+  });
+
+  it("a mirror change with no table leaves the toolbar alone", async () => {
+    const { store, srv } = await setup();
+    const snap = srv.mock.snapshot(P);
+    applySnapshot(sliceCtx(store), withManifest(snap, 'name = "x"\n'));
+    store.getState().ui.setUnits("in");
+    applyPatch(sliceCtx(store), { projectId: P, files: withManifest(snap, 'name = "y"\n').files });
+    expect(store.getState().ui.units).toBe("in");
+  });
+
   it("a length the toolbar cannot show leaves it where it is", async () => {
     const { store, srv } = await setup();
     store.getState().ui.setUnits("cm");

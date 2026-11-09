@@ -18,6 +18,17 @@ const nose = (over: Record<string, unknown> = {}, shape: Record<string, unknown>
 const field = (type: string, key: string): FieldSpec => editorFields(type).find((f) => f.key === key)!;
 const group = (type: string, key: string): FieldGroup => groupsOf(editorFields(type)).find((g) => g.key === key)!;
 
+describe("thickness and the bore it replaces", () => {
+  const tube = { id: "body", name: "Body", shape: { type: "body_tube", length: 0.3, od: 0.0248, id: 0.0241 } } as unknown as Comp;
+  const FILES = { "rocket.rw.toml": ['[params.bore]', 'value = "24.1 mm"', "", "[c.body]", 'type = "body_tube"', 'length = "300 mm"', 'od = "24.8 mm"', 'id = "= params.bore"'].join("\n") };
+
+  it("clears the tube's own id when the id is a parameter reference, and leaves the parameter's value alone", () => {
+    const ops = fieldWriteOps([tube], FILES, field("body_tube", "thickness"), "0.4 mm");
+    expect(ops).toContainEqual({ op: "remove", path: "/c/body/id" });
+    expect(ops).not.toContainEqual({ op: "remove", path: "/params/bore/value" });
+  });
+});
+
 describe("the source reader", () => {
   const FILES = {
     "rocket.rw.toml": [
@@ -130,6 +141,20 @@ describe("Add writes the whole group", () => {
   it("skips a part that already has the group", () => {
     const has = nose({}, { shoulder: { length: 0.02, od: 0.023, thickness: 0.002, capped: false } });
     expect(groupAddOps([has], {}, group("nose_cone", "shoulder"), "mm")).toEqual([]);
+  });
+
+  it("a Thickness edit on an id that names a parameter, and a typed formula, are accepted by the real engine", async () => {
+    const rw = await loadRwWasm(readFileSync(new URL("../../../../../packages/rw-wasm/pkg/rw_wasm_bg.wasm", import.meta.url)));
+    const rocket = read("templates/minimum/rocket.rw.toml").replace('id = "24.1 mm"', 'id = "= params.bore"');
+    const files = { "rocket.rw.toml": `[params.bore]\nvalue = "24.1 mm"\n\n[params.scale]\nvalue = 2\n\n${rocket}`, "rocketwright.toml": read("templates/minimum/rocketwright.toml") };
+    const apply = (ops: readonly PatchOp[]) => rw.applyAndEval!({ files, ops }) as { evaluated: EvaluatedModel };
+    const before = apply([]);
+    const part = (m: EvaluatedModel, id: string) => m.components.find((c) => c.id === id)!;
+    const thickness = fieldWriteOps([part(before.evaluated, "body")], files, field("body_tube", "thickness"), "0.4 mm");
+    expect((part(apply(thickness).evaluated, "body").shape as unknown as { od: number }).od).toBeCloseTo(0.0248, 6);
+
+    const formula = fieldWriteOps([part(before.evaluated, "fins")], files, field("trapezoidal_fin_set", "span"), "= 20 mm * params.scale");
+    expect((part(apply(formula).evaluated, "fins").shape as unknown as { span: number }).span).toBeCloseTo(0.04, 6);
   });
 
   it("is accepted by the real engine and adds no error, with siblings intact on a later edit", async () => {

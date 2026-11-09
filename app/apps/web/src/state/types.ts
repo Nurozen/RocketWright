@@ -54,6 +54,8 @@ export interface DraftSlice {
   preview: EvaluatedModel | null;
   /** Static check of `preview` (live CG/CP while editing), when the core provides it. */
   previewCheck: CheckReport | null;
+  /** The check is left to the sidecar's dry run: this rocket's motor is one the WASM core cannot load. */
+  previewDeferred: boolean;
   previewError: string | null;
   /** Sidecar `model.patch` dry-run delta for the current ops. */
   delta: CheckDelta | null;
@@ -63,6 +65,8 @@ export interface DraftSlice {
   edit(ops: PatchOp[], label?: string): Promise<void>;
   discard(): void;
   commit(): Promise<MutationOut>;
+  /** Resolves when no commit is on its way, to the `model_hash` of the last one that landed meanwhile. */
+  settled(): Promise<string | null>;
   /** What `ops` would do, written nowhere; leaves the open draft alone. */
   dryRun(ops: readonly PatchOp[]): Promise<MutationOut>;
   /** Commits one direct edit after settling any open draft; rejects with a user-facing message. */
@@ -112,7 +116,14 @@ export interface UiSlice {
   focusStep: number | null;
   /** The open part dialog (rename, delete confirmation, or a failed part operation), or null. */
   partDialog: PartDialog | null;
+  /** A page change is waiting on the person: what could not be saved. */
+  leaving: { problems: readonly string[] } | null;
+  /** The answer to `leaving`: true drops what could not be saved and changes page. */
+  answerLeave(leave: boolean): void;
+  /** Changes page once what the page holds is saved, or the person chose to drop it. The change is immediate when nothing is unsaved. */
   navigate(page: PageId, tab?: string): void;
+  /** `navigate`, for a caller that goes on to act on the new page. */
+  goToPage(page: PageId, tab?: string): Promise<void>;
   /** `animate` eases the explode change (M3.2) instead of jumping. */
   setView(v: { view?: ViewId; explode?: number; animate?: boolean; section?: boolean; showInternals?: boolean; shadows?: boolean }): void;
   /** Sets the toolbar's unit locally; what the project's own `[display_units]` drives. */
@@ -245,4 +256,8 @@ export interface SliceCtx {
   now(): number;
   /** Disposers for the current connection's listeners. */
   cleanup: (() => void)[];
+  /** A draft commit is on its way, so a mirror change may be that commit and not another writer. */
+  draftWriting: boolean;
+  /** The hash the last commit produced, until the mirror moves off the hash it had when that commit landed. */
+  landed: { from: string | null; to: string } | null;
 }

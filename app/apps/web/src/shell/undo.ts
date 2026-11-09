@@ -13,7 +13,9 @@
  * Pure.
  */
 import type { HistoryStep, Revision } from "@rw/contracts";
+import { settleWrites, writesPending } from "../state/dirtyFields.ts";
 import type { DeepReadonly } from "../state/index.ts";
+import type { AppStore } from "../state/store.ts";
 
 type Step = Pick<DeepReadonly<HistoryStep>, "seq" | "title"> & { tool?: string | null | undefined };
 type Rev = Pick<DeepReadonly<Revision>, "number" | "step">;
@@ -83,6 +85,55 @@ export function undoState(steps: readonly Step[], revisions: readonly Rev[] = []
   }
   if (at < 0) return { shown: null, undo: null, redo: null };
   return { shown: line[at]!, undo: at > 0 ? line[at - 1]! : null, redo: at < line.length - 1 ? line[at + 1]! : null };
+}
+
+export type HistoryMove = "undo" | "redo" | "revert";
+
+/** How long a move waits for the mirror to show the write it just waited for. */
+const MIRROR_WAIT_MS = 1_500;
+
+function mirrorHash(store: Pick<AppStore, "getState">): string | null {
+  const snap = store.getState().project.snapshot;
+  return snap?.evaluated?.model_hash ?? snap?.files.model_hash ?? null;
+}
+
+/** Resolves when `ready` says so, or after the wait: the push of a landed write comes a moment after its answer. */
+function untilMirror(store: AppStore, ready: () => boolean): Promise<void> {
+  if (ready()) return Promise.resolve();
+  return new Promise((resolve) => {
+    const finish = () => {
+      clearTimeout(timer);
+      off();
+      resolve();
+    };
+    const timer = setTimeout(finish, MIRROR_WAIT_MS);
+    const off = store.subscribe(() => {
+      if (ready()) finish();
+    });
+  });
+}
+
+/**
+ * Settles the draft before the history moves. Writes already on their way (a
+ * blur from clicking Undo starts one) land first and the mirror catches up, so
+ * the target is worked out from the state the person is undoing. A draft still
+ * open after that is one that could not be saved or is out of date: left open
+ * across a restore it goes stale and blocks every direct edit, so it is
+ * dropped. For Undo, dropping it is the whole move: it was the latest change.
+ *
+ * Resolves to whether the history should still move.
+ */
+export async function settleForHistory(store: AppStore, kind: HistoryMove): Promise<boolean> {
+  const before = mirrorHash(store);
+  const writing = writesPending();
+  await settleWrites();
+  const hash = await store.getState().draft.settled();
+  if (hash !== null) await untilMirror(store, () => mirrorHash(store) === hash);
+  else if (writing) await untilMirror(store, () => mirrorHash(store) !== before);
+  const draft = store.getState().draft;
+  if (draft.ops.length === 0) return true;
+  draft.discard();
+  return kind !== "undo";
 }
 
 /** True when a key event belongs to the control it landed in: a shortcut must leave these alone. */

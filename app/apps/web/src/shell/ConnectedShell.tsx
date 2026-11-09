@@ -38,7 +38,8 @@ import type { CommandHandlers } from "./commands.ts";
 import { shellModelFrom } from "./connect.ts";
 import { TagVersionDialog } from "./TagVersionDialog.tsx";
 import { isTopTab, PAGE_TABS, pageOf, type DesignTab, type TopTab, type ProjectMenuModel, type ShellHistoryStep, type ShellNavRow, type ShellProject } from "./model.ts";
-import { undoKey } from "./undo.ts";
+import { settleForHistory, undoKey, type HistoryMove } from "./undo.ts";
+import { UnsavedPrompt } from "./useProjectActions.tsx";
 import { ViewportToolbar, type ViewChip } from "./ViewportToolbar.tsx";
 
 export interface ConnectedShellProps {
@@ -203,16 +204,23 @@ export function ConnectedShell({ store, client = null, renderPage, renderCompare
   }, [store, client, projectId, bridge, fail]);
   const run = (p: Promise<unknown>) => void p.catch(fail);
   // Revert, undo, and redo are all `history_restore` (never a separate undo stack).
-  const restore = (version: string) => {
+  const restore = (kind: HistoryMove, target: () => string | null) => {
     if (client === null || projectId === null || reverting) return;
     setReverting(true);
     run(
-      client
-        .call("history.restore", { projectId, version })
-        .then(() => store.getState().ui.setCompare(null))
+      settleForHistory(store, kind)
+        .then(async (go) => {
+          if (!go) return;
+          const version = target();
+          if (version === null) return;
+          await client.call("history.restore", { projectId, version });
+          store.getState().ui.setCompare(null);
+        })
         .finally(() => setReverting(false)),
     );
   };
+  /** The target undo or redo move to now: the model rendered with the click can be a step behind what just settled. */
+  const liveMove = (kind: "undo" | "redo") => (): string | null => shellModelFrom(store.getState(), now(), { checking: false }).undo?.[kind]?.id ?? null;
 
   const handlers: ShellHandlers = {
     onCheckModel: () => {
@@ -267,16 +275,14 @@ export function ConnectedShell({ store, client = null, renderPage, renderCompare
     onRevert: () => {
       const version = model.currentStepId;
       if (version === null || version === model.shownStepId) return;
-      restore(version);
+      restore("revert", () => version);
     },
     ...(client !== null && projectId !== null ? { onTag: () => setTagging(model.currentStepId) } : {}),
     onUndo: () => {
-      const t = model.undo?.undo;
-      if (t) restore(t.id);
+      if (model.undo?.undo || store.getState().draft.ops.length > 0) restore("undo", liveMove("undo"));
     },
     onRedo: () => {
-      const t = model.undo?.redo;
-      if (t) restore(t.id);
+      if (model.undo?.redo) restore("redo", liveMove("redo"));
     },
     // W3.6: with the embed, the agent pane's own button shows Lecturn's providers panel in the pane.
     onOpenProviders: () => openProviders(store),
@@ -293,8 +299,12 @@ export function ConnectedShell({ store, client = null, renderPage, renderCompare
   useEffect(() => {
     if (commandsRef === undefined) return;
     const table: CommandHandlers = {
-      "edit.undo": () => keys.current.onUndo?.(),
-      "edit.redo": () => keys.current.onRedo?.(),
+      "edit.undo": () => {
+        if (!overlayOpen(document)) keys.current.onUndo?.();
+      },
+      "edit.redo": () => {
+        if (!overlayOpen(document)) keys.current.onRedo?.();
+      },
       "view.tab": ({ tab }) => {
         if (isTopTab(tab)) toTab.current(tab);
       },
@@ -306,9 +316,13 @@ export function ConnectedShell({ store, client = null, renderPage, renderCompare
   }, [commandsRef]);
   useEffect(() => {
     const on = (e: KeyboardEvent) => {
+      // A control that handled the key already said so (the fin outline's Delete, for one).
+      if (e.defaultPrevented) return;
       const k = undoKey(e);
       if (k !== null) {
         e.preventDefault();
+        // A dialog owns the keyboard; the model must not change behind it.
+        if (overlayOpen(document)) return;
         if (k === "undo") keys.current.onUndo?.();
         else keys.current.onRedo?.();
         return;
@@ -390,6 +404,7 @@ export function ConnectedShell({ store, client = null, renderPage, renderCompare
     >
       <ErrorBoundary key={compareOpen ? "compare" : page}>{compareOpen ? renderCompare() : renderPage?.(page)}</ErrorBoundary>
       <PartDialogs store={store} />
+      {s.ui.leaving !== null && <UnsavedPrompt question={{ problems: s.ui.leaving.problems, answer: (leave) => store.getState().ui.answerLeave(leave) }} />}
       {tagging !== null && client !== null && projectId !== null && (
         <TagVersionDialog versionLabel={versionLabel(tagging, snap)} onTag={(name) => client.call("history.tag", { projectId, name, version: tagging })} onClose={() => setTagging(null)} />
       )}

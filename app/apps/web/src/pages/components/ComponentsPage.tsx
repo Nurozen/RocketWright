@@ -79,6 +79,9 @@ export function componentsSlots(store: AppStore, client: RpcLike | null, glbDeps
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
+/** The in-page preview has no library motors, so the live check is not its to give. */
+const PREVIEW_DEFERRED = "This rocket flies a library motor, so stability and fit shown here are from the last save; the full check runs when this edit is saved.";
+
 /** `history.compare` answers per project and step pair (steps never change once written). */
 const compareCache = new Map<string, Promise<CompareOut>>();
 
@@ -207,9 +210,10 @@ function ComponentsWorkspace({ store, client, glbDeps, ui }: { store: AppStore; 
         : { kind: "clean", detail: needsRerun ? "Simulation needs rerun" : "" };
 
   const diagnostics = useMemo(() => {
-    if (draft.ops.length > 0) return [...(draft.previewCheck?.diagnostics ?? []), ...(draft.delta?.new_diagnostics ?? []), ...(draft.preview?.diagnostics ?? [])];
+    // With the check left to the sidecar, its saved answer stands until the edit is saved; the dry run adds what this edit newly causes.
+    if (draft.ops.length > 0) return [...((draft.previewDeferred ? snap?.check?.diagnostics : draft.previewCheck?.diagnostics) ?? []), ...(draft.delta?.new_diagnostics ?? []), ...(draft.preview?.diagnostics ?? [])];
     return [...(snap?.check?.diagnostics ?? []), ...(committed?.diagnostics ?? [])];
-  }, [draft.ops.length, draft.previewCheck, draft.delta, draft.preview, snap?.check, committed]);
+  }, [draft.ops.length, draft.previewCheck, draft.previewDeferred, draft.delta, draft.preview, snap?.check, committed]);
 
   // Fields the agent changed in the revision shown (a marker under each label, never a source path).
   const agentChanged = proposal?.kind === "step" && proposal.step !== null && byAgent.has(proposal.step) ? proposal.fields.map((f) => f.key) : [];
@@ -270,6 +274,7 @@ function ComponentsWorkspace({ store, client, glbDeps, ui }: { store: AppStore; 
         onCollapse={(c) => ui.setState({ collapsed: c })}
         canRevert={proposal !== null}
         agentChanged={agentChanged}
+        previewNote={draft.ops.length > 0 && draft.previewDeferred ? PREVIEW_DEFERRED : undefined}
         onEdit={(ops, label) => run(store.getState().draft.edit(ops, label))}
         onCommit={() => {
           if (store.getState().draft.ops.length > 0) run(store.getState().draft.commit());

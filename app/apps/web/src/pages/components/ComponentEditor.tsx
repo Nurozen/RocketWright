@@ -72,6 +72,8 @@ export interface ComponentEditorProps {
   onApplyPreset: (item: LibItem) => void;
   /** Field keys the agent changed in the shown revision (a `Changed by agent` marker under the label). */
   agentChanged?: readonly string[];
+  /** Why the numbers shown are the last saved ones while this edit is open. */
+  previewNote?: string | undefined;
 }
 
 /**
@@ -275,6 +277,7 @@ export function ComponentEditor(props: ComponentEditorProps) {
                 {outline && <FinOutlineEditor comp={first} units={units} diagnostics={props.diagnostics} onEdit={props.onEdit} onCommit={props.onCommit} onDiscard={props.onDiscard} />}
                 <div className="rw-editor__notes">
                   {active === "Mass override" && <p className="rw-editor__note">Leave a field empty to use the value derived from the geometry and material.</p>}
+                  {props.previewNote !== undefined && <p className="rw-editor__note" data-testid="editor.preview-note">{props.previewNote}</p>}
                 </div>
                 {(diags.length > 0 || Object.values(errors).some((e) => e)) && (
                   <ul className="rw-editor__diags" data-testid="editor.validation">
@@ -483,6 +486,16 @@ function FieldRow({
             return;
           }
           setError(`${f.label} needs a value.`);
+          return;
+        }
+        if (f.expr && t.startsWith("=")) {
+          // The model evaluates it and reports what it cannot, as it does for the liquid engine's fields.
+          if (t.length === 1) {
+            setError(`${f.label} needs a formula after =.`);
+            return;
+          }
+          setError(null);
+          onEdit(opsFor(t), label);
           return;
         }
         const n = Number(t);
