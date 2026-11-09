@@ -37,7 +37,7 @@ use serde_json::Value;
 
 use crate::check::{Checker, StaticChecker, sort_diagnostics};
 pub use crate::history::compare::model_diff;
-use crate::history::compare::{breakdown_rows, component_marks, report_rows, summary_rows};
+use crate::history::compare::{breakdown_rows, component_marks, escape, report_rows, summary_rows};
 use crate::history::{History, HistoryError, Snapshot, StepMeta};
 use crate::jobs::JobQueue;
 use crate::layout::{self, sha256_hex};
@@ -835,6 +835,28 @@ impl Session {
         out
     }
 
+    /// Ops removing the motor assignments and deployments of `ids` from every
+    /// configuration. Only entries that exist: removing a missing key fails.
+    fn config_entry_removals(&self, ids: &[&str]) -> Vec<PatchOp> {
+        let mv = self.model_value();
+        let Some(configs) = mv.get("configs").and_then(Value::as_object) else {
+            return Vec::new();
+        };
+        let mut ops = Vec::new();
+        for (config, doc) in configs {
+            for table in ["motors", "deploy"] {
+                for id in ids {
+                    if doc.get(table).and_then(|t| t.get(*id)).is_some() {
+                        ops.push(PatchOp::Remove {
+                            path: format!("/configs/{}/{table}/{id}", escape(config)),
+                        });
+                    }
+                }
+            }
+        }
+        ops
+    }
+
     fn component_remove(
         &mut self,
         i: &ComponentRemoveIn,
@@ -860,13 +882,15 @@ impl Session {
                 "pass recursive: true to remove them too, or re-attach them first",
             ));
         }
-        let ops: Vec<PatchOp> = deps
+        let removed: Vec<&str> = deps
             .iter()
             .chain(std::iter::once(&i.id))
-            .map(|id| PatchOp::Remove {
-                path: format!("/c/{id}"),
-            })
+            .map(String::as_str)
             .collect();
+        let mut ops = self.config_entry_removals(&removed);
+        ops.extend(removed.iter().map(|id| PatchOp::Remove {
+            path: format!("/c/{id}"),
+        }));
         let title = ctx
             .label
             .clone()
