@@ -54,10 +54,12 @@ export interface MenuActions {
 
 const SEPARATOR: MenuItemConstructorOptions = { type: "separator" };
 
-function recentItems({ recents, recentsError }: MenuState, send: MenuActions["send"]): MenuItemConstructorOptions[] {
+function recentItems({ recents, recentsError, projectOpen }: MenuState, send: MenuActions["send"]): MenuItemConstructorOptions[] {
   if (recentsError !== null) return [{ label: recentsError, enabled: false }];
-  if (recents.length === 0) return [{ label: "No recent projects", enabled: false }];
-  return recents.slice(0, MAX_MENU_RECENTS).map((r) => {
+  // With a project showing, the header's own list reaches the others; on Welcome nothing else does.
+  const listed = projectOpen ? recents.filter((r) => r.open !== true) : recents;
+  if (listed.length === 0) return [{ label: "No recent projects", enabled: false }];
+  return listed.slice(0, MAX_MENU_RECENTS).map((r) => {
     const status = RECENT_STATUS[r.status];
     return {
       id: `recent:${r.dir}`,
@@ -88,7 +90,8 @@ export function buildMenuTemplate(state: MenuState, actions: MenuActions): MenuI
     ...accelerator(id),
     ...extra,
   });
-  const settings = command("app.settings", { enabled: projectOpen });
+  // Default units are for the projects to come, so Settings works from Welcome too.
+  const settings = command("app.settings");
   // Electron's role gives Cmd/Ctrl-Q everywhere but Windows, whose convention is Alt-F4.
   const quitAccelerator: MenuItemConstructorOptions = platform === "win32" ? {} : { accelerator: "CmdOrCtrl+Q" };
 
@@ -211,6 +214,8 @@ export interface MenuControllerDeps {
 }
 
 export interface MenuController {
+  /** Sets the menu now, without reading Recents: a stalled mount must not leave the app with no menu at launch. */
+  install(): void;
   /** Rebuilds after Recents or the open projects change. */
   refresh(): Promise<void>;
   /** The page said which project, if any, it is showing. */
@@ -220,8 +225,11 @@ export interface MenuController {
 export function createMenuController(deps: MenuControllerDeps): MenuController {
   const { win, channel, platform, dev } = deps;
   let projectOpen = false;
+  let recents: readonly RecentProject[] = [];
+  let recentsError: string | null = "Loading recent projects…";
   // Rebuilds read Recents off disk and can overlap; only the newest may land.
   let latest = 0;
+  const install = (): void => deps.apply(buildMenuTemplate({ platform, dev, projectOpen, recents, recentsError }, actions));
 
   const send = (command: DesktopCommand): void => {
     if (!win.isDestroyed()) win.webContents.send(channel, command);
@@ -242,22 +250,27 @@ export function createMenuController(deps: MenuControllerDeps): MenuController {
 
   const refresh = async (): Promise<void> => {
     const mine = ++latest;
-    let recents: RecentProject[] = [];
-    let recentsError: string | null = null;
+    let nextRecents: readonly RecentProject[] = [];
+    let nextError: string | null = null;
     try {
-      recents = await deps.recents();
+      nextRecents = await deps.recents();
     } catch (e) {
       deps.log(`menu: cannot read recents: ${e instanceof Error ? e.message : String(e)}`);
-      recentsError = "Could not read recent projects";
+      nextError = "Could not read recent projects";
     }
     if (mine !== latest) return;
-    deps.apply(buildMenuTemplate({ platform, dev, projectOpen, recents, recentsError }, actions));
+    recents = nextRecents;
+    recentsError = nextError;
+    install();
   };
 
   return {
+    install,
     refresh,
     setProjectOpen: (open) => {
       projectOpen = open;
+      // Close project and the rest follow at once; only the Recent rows wait for the disk.
+      install();
       return refresh();
     },
   };

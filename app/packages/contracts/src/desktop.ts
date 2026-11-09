@@ -153,7 +153,8 @@ export const EXPORT_FILE_TYPES: Record<ExportFormat, { label: string; descriptio
 
 /**
  * Computed when read, never stored. Only ENOENT is `missing` (D5): `denied`
- * (EPERM/EACCES, e.g. TCC on an ad-hoc build) and `locked` (another process
+ * (EPERM/EACCES, e.g. TCC on an ad-hoc build, or a mount that has stopped
+ * answering) and `locked` (another process
  * holds the project) must not invite removing a healthy project.
  */
 export type RecentStatus = "ok" | "missing" | "denied" | "locked";
@@ -167,6 +168,8 @@ export interface RecentEntry {
 
 export interface RecentProject extends RecentEntry {
   status: RecentStatus;
+  /** Already open in this app. The header lists those itself; Welcome keeps them, or they could not be reached. */
+  open?: boolean;
 }
 
 /** `recents.json` in userData (temp-plus-rename; a corrupt file reads as empty). */

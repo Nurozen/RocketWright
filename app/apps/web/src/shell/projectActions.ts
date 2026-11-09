@@ -98,6 +98,8 @@ export const IMPORT_FILTERS: FileFilter[] = [{ name: "Rocket or motor", extensio
 export const IMPORT_UNSUPPORTED = "RocketWright can import .ork, .eng and .rse files.";
 export const IMPORT_MOTOR_NEEDS_PROJECT = "Open a project first: a motor file is added to a project.";
 export const IMPORT_BUSY = "Could not import that file: finish what is open first, then try again.";
+export const DIALOG_OPEN = "Finish or cancel the open dialog first, then try again.";
+export const ACTION_BUSY = "Another project action is still running. Try again when it finishes.";
 
 /** How a file is imported, from its extension; null when it cannot be. */
 export function importKindOf(path: string): schema.ImportKind | null {

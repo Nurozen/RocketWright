@@ -5,6 +5,7 @@
  * agree. It only scales numbers the engine produced.
  */
 import type { PatchOp } from "@rw/contracts";
+import { parse } from "smol-toml";
 import type { AppState, DeepReadonly, Units } from "./types.ts";
 
 export type UnitSystem = "metric" | "imperial";
@@ -73,21 +74,29 @@ export function toFlight<T extends number | null | undefined>(si: T, dim: Flight
 export const MANIFEST = "rocketwright.toml";
 const IMPERIAL_LENGTHS = new Set(["in", "ft", "yd", "mi"]);
 
+// A selector reads this on every store update; the manifest text rarely changes.
+let lastParsed: { text: string; table: Record<string, unknown> | null } | null = null;
+
+/** The manifest's `display_units` table, in whichever TOML form it was written; null when absent or unreadable. */
+function displayUnitsTable(manifest: string): Record<string, unknown> | null {
+  if (lastParsed?.text === manifest) return lastParsed.table;
+  let table: Record<string, unknown> | null = null;
+  try {
+    const value = parse(manifest)["display_units"];
+    if (typeof value === "object" && value !== null && !Array.isArray(value)) table = value as Record<string, unknown>;
+  } catch {
+    // Rust reports a manifest it cannot read; the toolbar just keeps what it shows.
+  }
+  lastParsed = { text: manifest, table };
+  return table;
+}
+
 /** The `[display_units]` table of a manifest's text (keys are dimension names plus `altitude`). */
 export function manifestDisplayUnits(manifest: string | undefined): Record<string, string> {
-  const out: Record<string, string> = {};
-  if (manifest === undefined) return out;
-  let inTable = false;
-  for (const line of manifest.split(/\r?\n/)) {
-    const text = line.trim();
-    if (text.startsWith("[")) {
-      inTable = text.replace(/\s+/g, "").startsWith("[display_units]");
-    } else if (inTable) {
-      const entry = /^"?([A-Za-z_]+)"?\s*=\s*"([^"]*)"/.exec(text);
-      if (entry !== null) out[entry[1]!] = entry[2]!.trim();
-    }
-  }
-  return out;
+  if (manifest === undefined) return {};
+  const table = displayUnitsTable(manifest);
+  if (table === null) return {};
+  return Object.fromEntries(Object.entries(table).filter((e): e is [string, string] => typeof e[1] === "string"));
 }
 
 /**
@@ -104,15 +113,12 @@ export function unitSystemOf(s: DeepReadonly<Pick<AppState, "project" | "ui">>):
   return (length !== undefined && IMPERIAL_LENGTHS.has(length)) || s.ui.units === "in" ? "imperial" : "metric";
 }
 
-/** A `[display_units]` table already in the manifest's text, in either TOML form. */
-const HAS_TABLE = /^\s*(\[\s*display_units\s*\]|display_units\s*=)/m;
-
 /**
  * The ops for the toolbar's Units control to set the project's length unit
  * (R3.4). Keeps `unitSystemOf` agreeing with the choice: an existing `altitude`
  * key decides the flight results, so moving between metric and imperial moves
- * it too. Per key when the table exists, so entries the line reader does not
- * parse are left alone. `add` replaces a key already there.
+ * it too. Per key when the table exists, so entries the toolbar does not
+ * know about are left alone. `add` replaces a key already there.
  */
 export function displayLengthOps(manifest: string | undefined, units: Units): PatchOp[] {
   const declared = manifestDisplayUnits(manifest);
@@ -120,6 +126,6 @@ export function displayLengthOps(manifest: string | undefined, units: Units): Pa
   const altitude = declared["altitude"];
   const changes: Record<string, string> = { length: units };
   if (altitude !== undefined && IMPERIAL_LENGTHS.has(altitude) !== imperial) changes["altitude"] = imperial ? "ft" : "m";
-  if (manifest === undefined || !HAS_TABLE.test(manifest)) return [{ op: "add", path: "/project/display_units", value: changes }];
+  if (manifest === undefined || displayUnitsTable(manifest) === null) return [{ op: "add", path: "/project/display_units", value: changes }];
   return Object.entries(changes).map(([key, value]) => ({ op: "add", path: `/project/display_units/${key}`, value }));
 }

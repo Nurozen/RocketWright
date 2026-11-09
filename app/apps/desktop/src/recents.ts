@@ -13,12 +13,13 @@
  *   never stop a project opening.
  */
 import type { RecentEntry, RecentProject, RecentsFile, RecentStatus } from "@rw/contracts";
+import type { Stats } from "node:fs";
 import { mkdir, readFile, realpath, rename, rm, stat, writeFile } from "node:fs/promises";
 import { dirname, isAbsolute, join, resolve } from "node:path";
 
 const MAX_RECENTS = 30;
-/** What makes a folder a project, by Rust's rule (`isProjectDir` is looser). */
-const MANIFEST = "rocketwright.toml";
+/** What makes a folder a project, by Rust's rule (`layout.rs`); `isProjectDir` is looser. */
+const MANIFESTS = ["rocketwright.toml", "rocketwright.json"];
 /** `{pid, …}` of the project's live owner (`rw-project` `lock.rs`). */
 const LOCK_FILE = ".rw/lock";
 
@@ -34,6 +35,9 @@ export interface RecentsOptions {
   now?: () => Date;
   pidAlive?: (pid: number) => boolean;
   log?: (line: string) => void;
+  /** Test seam for a mount that never answers. */
+  stat?: (path: string) => Promise<Pick<Stats, "isFile">>;
+  probeTimeoutMs?: number;
 }
 
 export interface LastActive {
@@ -49,6 +53,11 @@ export interface Recents {
   /** The project to reopen with its status, or null; the caller opens it only when `ok`. */
   pickLastActive(): Promise<LastActive | null>;
 }
+
+/** How long one Recent may take to answer; a network mount that stops answering must not hold up a list or a launch. */
+export const PROBE_TIMEOUT_MS = 1500;
+/** A stalled stat holds one of libuv's four fs threads until the mount answers, so at most this many may be out at once. */
+const PROBE_SLOTS = 2;
 
 const emptyFile = (): RecentsFile => ({ version: 1, recents: [], lastActive: null });
 
@@ -110,13 +119,18 @@ async function lockOwner(dir: string): Promise<number | null> {
  * was). Any other failure leaves the project intact, so it reads `denied` and
  * never invites removing it.
  */
-async function probeStatus(dir: string, openHere: ReadonlySet<string>, alive: (pid: number) => boolean): Promise<RecentStatus> {
-  try {
-    await stat(join(dir, MANIFEST));
-  } catch (e) {
-    const code = errorCode(e);
-    return code === "ENOENT" || code === "ENOTDIR" ? "missing" : "denied";
+async function probeStatus(dir: string, openHere: ReadonlySet<string>, alive: (pid: number) => boolean, statFile: NonNullable<RecentsOptions["stat"]>): Promise<RecentStatus> {
+  let found = false;
+  for (const manifest of MANIFESTS) {
+    try {
+      found = (await statFile(join(dir, manifest))).isFile();
+    } catch (e) {
+      const code = errorCode(e);
+      if (code !== "ENOENT" && code !== "ENOTDIR") return "denied";
+    }
+    if (found) break;
   }
+  if (!found) return "missing";
   if (openHere.has(dir)) return "ok";
   const owner = await lockOwner(dir);
   return owner !== null && alive(owner) ? "locked" : "ok";
@@ -157,13 +171,59 @@ export function createRecents(options: RecentsOptions): Recents {
   };
   const canonSet = async (dirs: readonly string[]): Promise<Set<string>> => new Set(await Promise.all(dirs.map(canon)));
 
+  const statFile = options.stat ?? stat;
+  const probeTimeoutMs = options.probeTimeoutMs ?? PROBE_TIMEOUT_MS;
+  // One probe per folder and a cap overall, kept until the stat really returns: a second list must not start another stat on a mount that has not answered the first.
+  const probing = new Map<string, Promise<RecentStatus>>();
+  let freeSlots = PROBE_SLOTS;
+  const waiting: (() => void)[] = [];
+  const takeSlot = (): Promise<void> => {
+    if (freeSlots > 0) {
+      freeSlots--;
+      return Promise.resolve();
+    }
+    return new Promise((ok) => waiting.push(ok));
+  };
+  const freeSlot = (): void => {
+    const next = waiting.shift();
+    if (next !== undefined) next();
+    else freeSlots++;
+  };
+  /** The status, or `denied` once the folder has taken too long: it may be fine, so it must not read as Missing. */
+  const probe = async (dir: string, openHere: ReadonlySet<string>): Promise<RecentStatus> => {
+    let running = probing.get(dir);
+    if (running === undefined) {
+      running = takeSlot()
+        .then(() => probeStatus(dir, openHere, alive, statFile).finally(freeSlot))
+        .finally(() => probing.delete(dir));
+      probing.set(dir, running);
+    }
+    let timer: NodeJS.Timeout | undefined;
+    const late = new Promise<RecentStatus>((ok) => {
+      timer = setTimeout(() => ok("denied"), probeTimeoutMs);
+    });
+    try {
+      return await Promise.race([running, late]);
+    } finally {
+      clearTimeout(timer);
+    }
+  };
+
   return {
     // Status probes run outside the queue: a stalled network mount must not hold up the next write.
     list: async () => {
       const { recents } = await enqueue(read);
       const [skip, openHere] = await Promise.all([canonSet(excluded), canonSet(openDirs())]);
-      // A project open here is in the header's open list; Recent is for reaching the others.
-      return Promise.all(recents.filter((e) => !skip.has(e.dir) && !openHere.has(e.dir)).map(async (e) => ({ ...e, status: await probeStatus(e.dir, openHere, alive) })));
+      return Promise.all(
+        recents
+          .filter((e) => !skip.has(e.dir))
+          .map(async (e) => ({
+            ...e,
+            status: await probe(e.dir, openHere),
+            // Who hides it is the caller's choice: the header lists open projects itself, Welcome has no other way to reach one.
+            ...(openHere.has(e.dir) ? { open: true } : {}),
+          })),
+      );
     },
     see: (project) =>
       enqueue(async () => {
@@ -194,7 +254,7 @@ export function createRecents(options: RecentsOptions): Recents {
       if (lastActive === null) return null;
       const [skip, openHere] = await Promise.all([canonSet(excluded), canonSet(openDirs())]);
       if (skip.has(lastActive)) return null;
-      return { dir: lastActive, status: await probeStatus(lastActive, openHere, alive) };
+      return { dir: lastActive, status: await probe(lastActive, openHere) };
     },
   };
 }

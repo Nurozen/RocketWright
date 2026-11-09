@@ -199,7 +199,7 @@ export function AppRoot({ url, requestedProjectId, initialPage, pageForced = fal
   const desktop = useMemo(() => desktopPaneGlobals(), []);
   useEffect(() => {
     if (desktop === null || client === null) return;
-    return onOpenProject(desktop, (id) => latest.current.switchProject(id));
+    return onOpenProject(desktop, (id) => latest.current.showFromMain(id));
   }, [desktop, client]);
 
   useFileDrop(window, host, (path) => latest.current.importPath(path), (message) => latest.current.report(message));
@@ -252,7 +252,7 @@ export function AppRoot({ url, requestedProjectId, initialPage, pageForced = fal
   if (state.phase === "fatal") {
     screen = <FatalScreen error={state.error} relaunchLabel={relaunchLabel} onRelaunch={relaunch} />;
   } else if (client !== null && state.phase === "welcome") {
-    screen = <Welcome client={client} host={host} notice={state.notice} onOpened={show} onImport={() => void dispatchCommand({ id: "file.import" }, actions.commands)} />;
+    screen = <Welcome client={client} host={host} notice={state.notice} running={actions.running} onActionSettled={actions.actionSettled} onOpened={show} onImport={() => void dispatchCommand({ id: "file.import" }, actions.commands)} onOpenSettings={openSettings} />;
   } else if (client !== null && state.phase === "project") {
     screen = (
       <ProjectSurface

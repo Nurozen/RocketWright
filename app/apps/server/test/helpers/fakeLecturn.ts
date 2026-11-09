@@ -65,6 +65,8 @@ export class FakeConnection implements LecturnConnectionLike {
   threadDefaults: Omit<FakeThreadRecord, "messages"> = { modelSelection: { instanceId: "default-instance", model: "default-model" }, runtimeMode: "full-access", interactionMode: "default" };
   /** Provider instances Lecturn refuses a launch on. */
   readonly disabledInstances = new Set<string>();
+  /** `server.getConfig`'s `projectSettingsOverrides` (the embed token's own project only). */
+  projectOverrides: Record<string, unknown> = {};
   /** Accepted launch commandIds (Lecturn's receipts). */
   readonly launchReceipts = new Set<string>();
   /** Project ids whose mint fails, or never answers. */
@@ -153,6 +155,11 @@ export class FakeConnection implements LecturnConnectionLike {
         if (payload.type === "thread.interaction-mode.set") t.interactionMode = payload.interactionMode as string;
         if (payload.type === "thread.model-selection.set") t.modelSelection = payload.modelSelection as Record<string, unknown>;
         return { sequence: 1 };
+      }
+      case "server.getConfig": {
+        const instances = new Set(["caller-instance", "default-instance", ...this.disabledInstances]);
+        const providerInstances = Object.fromEntries([...instances].map((id) => [id, { driver: "codex", enabled: !this.disabledInstances.has(id) }]));
+        return { settings: { providerInstances, projectSettingsOverrides: this.projectOverrides } };
       }
       case "orchestration.launchThread": {
         const t = this.rpcThread(payload.threadId);

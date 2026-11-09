@@ -20,6 +20,19 @@ describe("flight display units", () => {
     expect(flightUnit("force", "imperial").unit).toBe("lbf");
   });
 
+  it("reads every TOML form of the table", () => {
+    expect(manifestDisplayUnits("[display_units]\nlength = 'in'\n")).toEqual({ length: "in" });
+    expect(manifestDisplayUnits('display_units = { length = "in", altitude = "ft" }\n')).toEqual({ length: "in", altitude: "ft" });
+    expect(manifestDisplayUnits('[project]\nname = "x"\n\n[display_units]\n"length" = "cm"\n')).toEqual({ length: "cm" });
+    expect(unitSystemOf(state("mm", "display_units = { length = 'in' }\n"))).toBe("imperial");
+    expect(manifestDisplayUnits("this is = = not toml")).toEqual({});
+  });
+
+  it("writes per key when the table is already there in any form", () => {
+    expect(displayLengthOps('display_units = { length = "in" }\n', "cm")).toEqual([{ op: "add", path: "/project/display_units/length", value: "cm" }]);
+    expect(displayLengthOps('display_units.length = "in"\n', "cm")).toEqual([{ op: "add", path: "/project/display_units/length", value: "cm" }]);
+  });
+
   it("reads only the manifest's [display_units] table", () => {
     expect(manifestDisplayUnits('name = "x"\nlength = "ft"\n\n[display_units] # shown\nlength = "in"\n altitude = "ft"  # flight\n\n[lib]\nmass = "kg"\n')).toEqual({ length: "in", altitude: "ft" });
     expect(manifestDisplayUnits(undefined)).toEqual({});

@@ -8,19 +8,19 @@
  * `setActiveProject` by `AppRoot`, never from `project.opened`, which main
  * dedupes.
  */
-import { useCallback, useRef, useState, type ReactNode, type RefObject } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import type { ExportFileRequest, ProjectInfo, RecentProject, schema } from "@rw/contracts";
 import type { HostApi } from "../host/HostApi.ts";
 import type { RpcLike } from "../state/rpc.ts";
 import type { ExportChoices, ExportRunChoice } from "../state/selectors.ts";
 import { Banner } from "../ui/Banner.tsx";
-import { Modal } from "../ui/Modal.tsx";
+import { anyModalOpen, Modal, onModalsClosed } from "../ui/Modal.tsx";
 import { dispatchCommand, type CommandHandlers } from "./commands.ts";
 import type { LifecycleState } from "./lifecycle.ts";
 import type { ProjectMenuModel } from "./model.ts";
 import { NewProjectDialog, type NewProjectOffer } from "./NewProjectDialog.tsx";
 import { ExportDialog, OrkImportDialog } from "./ImportExportDialogs.tsx";
-import { defaultUnits, errorText, exportDefaultName, exportedNotice, fileBase, IMPORT_BUSY, IMPORT_FILTERS, IMPORT_MOTOR_NEEDS_PROJECT, IMPORT_UNSUPPORTED, importedNotice, importKindOf, nextOpen, openFolder, openRecent, openSample, ORK_FILTERS, type Notice } from "./projectActions.ts";
+import { ACTION_BUSY, DIALOG_OPEN, defaultUnits, errorText, exportDefaultName, exportedNotice, fileBase, IMPORT_BUSY, IMPORT_FILTERS, IMPORT_MOTOR_NEEDS_PROJECT, IMPORT_UNSUPPORTED, importedNotice, importKindOf, nextOpen, openFolder, openRecent, openSample, ORK_FILTERS, type Notice } from "./projectActions.ts";
 import { RenameProjectDialog } from "./RenameProjectDialog.tsx";
 
 /** What `AppRoot` needs from the mounted project before it can leave it. */
@@ -51,6 +51,12 @@ export interface ProjectActions {
   commands: CommandHandlers;
   menu: ProjectMenuModel;
   switchProject: (projectId: string) => void;
+  /** Main asked to show this project; waits for anything open on screen instead of dropping the request. */
+  showFromMain: (projectId: string) => void;
+  /** Held while any project action runs, Welcome's included: one lock across the page. */
+  running: RefObject<boolean>;
+  /** Welcome finished an action, so a project main is waiting to show can come forward. */
+  actionSettled: () => void;
   /** Puts a failure from outside these actions in the same place. */
   report: (message: string) => void;
   /** Imports a file named by path, whether picked, dropped or typed (D18). */
@@ -58,6 +64,13 @@ export interface ProjectActions {
   /** Floating banners, for the window's banner stack. */
   banners: ReactNode;
   overlays: ReactNode;
+}
+
+/** An `.ork` dropped or picked over an open project, and the project it was offered for. */
+interface OrkChoice {
+  path: string;
+  projectId: string;
+  projectName: string;
 }
 
 interface UnsavedQuestion {
@@ -68,6 +81,11 @@ interface UnsavedQuestion {
 // A pick from the native Recent menu has no control of its own to stay disabled, so a refusal has to be said.
 const RECENT_BUSY = "Could not open the recent project: another project action is still running. Try again when it finishes.";
 const RECENT_NOT_CONNECTED = "Could not open the recent project: the window is still connecting. Try again in a moment.";
+const SWITCH_WAITING = "That project is open. RocketWright will show it when you finish here.";
+
+const listOpen = async (rpc: RpcLike): Promise<readonly ProjectInfo[]> => (await rpc.call("project.list", {})).projects;
+
+const projectNameIn = (projects: readonly ProjectInfo[], projectId: string): string => projects.find((p) => p.projectId === projectId)?.name ?? "That project";
 
 export function UnsavedPrompt({ question }: { question: UnsavedQuestion }) {
   const keep = () => question.answer(false);
@@ -102,7 +120,7 @@ export function useProjectActions({ client, host, lifecycle, surface, info, show
   const [recents, setRecents] = useState<readonly RecentProject[]>([]);
   const [recentsError, setRecentsError] = useState<string | null>(null);
   const [dialog, setDialog] = useState<{ offer?: NewProjectOffer; ork?: string } | null>(null);
-  const [orkChoice, setOrkChoice] = useState<{ path: string; projectName: string } | null>(null);
+  const [orkChoice, setOrkChoice] = useState<OrkChoice | null>(null);
   const [exporting, setExporting] = useState<(ExportChoices & { projectId: string; projectName: string }) | null>(null);
   const [notice, setNotice] = useState<Notice | null>(null);
   const [renaming, setRenaming] = useState<ProjectInfo | null>(null);
@@ -111,6 +129,20 @@ export function useProjectActions({ client, host, lifecycle, surface, info, show
   const [error, setError] = useState<string | null>(null);
   // A native picker or an accelerator can ask again while one of these is still running.
   const running = useRef(false);
+  // The latest project main asked to show that had to wait for the window to be free.
+  const pendingSwitch = useRef<string | null>(null);
+  const switchingTo = useRef<string | null>(null);
+  const drainPendingSwitch = useRef<() => void>(() => undefined);
+
+  // These dialogs act on the project they were opened for: one that outlives it would act on the wrong one.
+  const shownProject = lifecycle.current.phase === "project" ? lifecycle.current.projectId : null;
+  const [dialogsFor, setDialogsFor] = useState(shownProject);
+  if (dialogsFor !== shownProject) {
+    setDialogsFor(shownProject);
+    setOrkChoice(null);
+    setExporting(null);
+    setRenaming(null);
+  }
 
   const report = useCallback((message: string) => setError(message), []);
 
@@ -127,6 +159,7 @@ export function useProjectActions({ client, host, lifecycle, surface, info, show
       .finally(() => {
         running.current = false;
         setStatus(null);
+        drainPendingSwitch.current();
       });
   };
 
@@ -167,8 +200,11 @@ export function useProjectActions({ client, host, lifecycle, surface, info, show
     closed(shown.projectId, await nextOpen(rpc, shown.projectId));
   };
 
-  /** A drop or an accelerator arrives past any dialog on screen, which it must not replace. */
-  const dialogOpen = dialog !== null || orkChoice !== null || exporting !== null || renaming !== null || question !== null;
+  /** Leaves the project for `work`, if no dialog is up and nothing else is running; says why not otherwise. */
+  const fromMenu = (work: (rpc: RpcLike) => Promise<void>, refused: () => void = () => setError(ACTION_BUSY)) => {
+    if (anyModalOpen()) setError(DIALOG_OPEN);
+    else leaveThen(work, refused);
+  };
 
   const importFile = async (rpc: RpcLike, path: string) => {
     const kind = importKindOf(path);
@@ -183,7 +219,7 @@ export function useProjectActions({ client, host, lifecycle, surface, info, show
       return;
     }
     if (kind === "ork") {
-      setOrkChoice({ path, projectName: info.current?.name ?? shown.projectId });
+      setOrkChoice({ path, projectId: shown.projectId, projectName: info.current?.name ?? shown.projectId });
       return;
     }
     setStatus(`Importing ${fileBase(path)}…`);
@@ -191,24 +227,35 @@ export function useProjectActions({ client, host, lifecycle, surface, info, show
   };
 
   const importPath = (path: string) => {
-    if (dialogOpen) setError(IMPORT_BUSY);
+    // A drop or an accelerator arrives past any dialog on screen, which it must not replace.
+    if (anyModalOpen()) setError(IMPORT_BUSY);
     else perform((rpc) => importFile(rpc, path), () => setError(IMPORT_BUSY));
   };
 
-  const replaceWithOrk = (path: string) => {
+  const replaceWithOrk = ({ path, projectId }: OrkChoice) => {
     setOrkChoice(null);
     // Replacing commits over whatever is on disk, so typed work has to be there first.
-    leaveThen(async (rpc) => {
-      const shown = lifecycle.current;
-      if (shown.phase !== "project") return;
-      setStatus(`Importing ${fileBase(path)}…`);
-      setNotice(importedNotice(fileBase(path), await rpc.call("import.file", { projectId: shown.projectId, path, kind: "ork" })));
-    });
+    leaveThen(
+      async (rpc) => {
+        // The flush can take a while, and the project the dialog named can go in that time.
+        const shown = lifecycle.current;
+        if (shown.phase !== "project" || shown.projectId !== projectId) {
+          setError(`${fileBase(path)} was not imported: the project it was to replace is no longer showing.`);
+          return;
+        }
+        setStatus(`Importing ${fileBase(path)}…`);
+        setNotice(importedNotice(fileBase(path), await rpc.call("import.file", { projectId, path, kind: "ork" })));
+      },
+      () => setError(IMPORT_BUSY),
+    );
   };
 
   const newFromOrk = (path: string) => {
     setOrkChoice(null);
-    leaveThen(async () => setDialog({ ork: path }));
+    leaveThen(
+      async () => setDialog({ ork: path }),
+      () => setError(IMPORT_BUSY),
+    );
   };
 
   const runExport = (format: schema.ExportFormat, run: ExportRunChoice | undefined) => {
@@ -228,7 +275,7 @@ export function useProjectActions({ client, host, lifecycle, surface, info, show
 
   const commands: CommandHandlers = {
     "file.import": () => {
-      if (dialogOpen) {
+      if (anyModalOpen()) {
         setError(IMPORT_BUSY);
         return;
       }
@@ -241,14 +288,18 @@ export function useProjectActions({ client, host, lifecycle, surface, info, show
     "file.export": () => {
       const shown = lifecycle.current;
       const mounted = surface.current;
-      if (shown.phase !== "project" || mounted === null || dialogOpen) return;
+      if (shown.phase !== "project" || mounted === null) return;
+      if (anyModalOpen()) {
+        setError(DIALOG_OPEN);
+        return;
+      }
       setError(null);
       setNotice(null);
       setExporting({ ...mounted.exportChoices(), projectId: shown.projectId, projectName: info.current?.name ?? shown.projectId });
     },
-    "project.new": () => leaveThen(async () => setDialog({})),
+    "project.new": () => fromMenu(async () => setDialog({})),
     "project.open": () =>
-      leaveThen(async (rpc) => {
+      fromMenu(async (rpc) => {
         const dir = await host.pickFolder({ title: "Open folder" });
         if (dir === null) return;
         setStatus("Opening the folder…");
@@ -258,20 +309,27 @@ export function useProjectActions({ client, host, lifecycle, surface, info, show
         else setDialog({ offer: outcome });
       }),
     "project.openSample": () =>
-      leaveThen(async (rpc) => {
+      fromMenu(async (rpc) => {
         setStatus("Creating the sample rocket…");
         show((await openSample(rpc, await defaultUnits(host))).projectId);
       }),
     "project.openRecent": ({ dir }) =>
-      leaveThen(async (rpc) => {
+      fromMenu(async (rpc) => {
         setStatus("Opening the project…");
         show((await openRecent(rpc, dir)).projectId);
       }, () => setError(client === null ? RECENT_NOT_CONNECTED : RECENT_BUSY)),
     "project.rename": () => {
+      if (anyModalOpen()) {
+        setError(DIALOG_OPEN);
+        return;
+      }
       const shown = lifecycle.current;
       if (shown.phase === "project" && info.current?.projectId === shown.projectId) setRenaming(info.current);
     },
-    "project.close": () => perform(close),
+    "project.close": () => {
+      if (anyModalOpen()) setError(DIALOG_OPEN);
+      else perform(close, () => setError(ACTION_BUSY));
+    },
   };
 
   const menu: ProjectMenuModel = {
@@ -290,7 +348,45 @@ export function useProjectActions({ client, host, lifecycle, surface, info, show
     onRemoveRecent: (dir) => perform(() => host.removeRecent(dir)),
   };
 
-  const switchProject = (projectId: string) => leaveThen(async () => show(projectId));
+  const switchProject = (projectId: string) => fromMenu(async () => show(projectId));
+
+  /** Leaves for a project main asked for; the person's own Keep editing is the only thing that stops it. */
+  const followMain = (projectId: string) =>
+    perform(async (rpc) => {
+      switchingTo.current = projectId;
+      try {
+        if (!(await mayLeave())) {
+          setNotice({ tone: "warning", text: `${projectNameIn(await listOpen(rpc), projectId)} stays open. Choose it from the project menu when you are ready.` });
+          return;
+        }
+        if (lifecycle.current.phase === "project" && lifecycle.current.projectId === projectId) return;
+        // It may have closed while this waited; a project that is gone would only bounce the window to Welcome.
+        if ((await listOpen(rpc)).some((p) => p.projectId === projectId)) show(projectId);
+      } finally {
+        switchingTo.current = null;
+      }
+    });
+
+  const showFromMain = (projectId: string) => {
+    // Main says it twice for one open (project, then thread); the second must not read as a wait.
+    if (switchingTo.current === projectId || (lifecycle.current.phase === "project" && lifecycle.current.projectId === projectId)) return;
+    if (running.current || anyModalOpen()) {
+      // Never a drop: main has told whoever asked (an agent, a link) that the project opened.
+      pendingSwitch.current = projectId;
+      setNotice({ tone: "warning", text: SWITCH_WAITING });
+    } else {
+      followMain(projectId);
+    }
+  };
+
+  drainPendingSwitch.current = () => {
+    const projectId = pendingSwitch.current;
+    if (projectId === null || running.current || anyModalOpen()) return;
+    pendingSwitch.current = null;
+    followMain(projectId);
+  };
+  // After the commit that removed the dialog, so what it was showing has settled.
+  useEffect(() => onModalsClosed(() => queueMicrotask(() => drainPendingSwitch.current())), []);
 
   const banners = (
     <>
@@ -329,10 +425,12 @@ export function useProjectActions({ client, host, lifecycle, surface, info, show
         />
       )}
       {client !== null && renaming !== null && <RenameProjectDialog client={client} project={renaming} onClose={() => setRenaming(null)} />}
-      {orkChoice !== null && <OrkImportDialog fileName={fileBase(orkChoice.path)} projectName={orkChoice.projectName} onCancel={() => setOrkChoice(null)} onNew={() => newFromOrk(orkChoice.path)} onReplace={() => replaceWithOrk(orkChoice.path)} />}
+      {orkChoice !== null && <OrkImportDialog fileName={fileBase(orkChoice.path)} projectName={orkChoice.projectName} onCancel={() => setOrkChoice(null)} onNew={() => newFromOrk(orkChoice.path)} onReplace={() => replaceWithOrk(orkChoice)} />}
       {exporting !== null && <ExportDialog choices={exporting} onCancel={() => setExporting(null)} onExport={runExport} />}
     </>
   );
 
-  return { commands, menu, switchProject, report, importPath, banners, overlays };
+  const actionSettled = useCallback(() => drainPendingSwitch.current(), []);
+
+  return { commands, menu, switchProject, showFromMain, running, actionSettled, report, importPath, banners, overlays };
 }

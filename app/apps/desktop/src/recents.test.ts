@@ -1,4 +1,5 @@
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { stat } from "node:fs/promises";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import type { RecentsFile } from "@rw/contracts";
@@ -35,6 +36,70 @@ function store(file: string, opts: Partial<RecentsOptions> = {}): Recents {
 }
 
 const readFile = (file: string): RecentsFile => JSON.parse(readFileSync(file, "utf8")) as RecentsFile;
+
+describe("what counts as a project", () => {
+  it("accepts a JSON manifest, as Rust and Open folder do", async () => {
+    const dir = root();
+    const file = join(dir, "recents.json");
+    const json = join(dir, "json-project");
+    mkdirSync(json);
+    writeFileSync(join(json, "rocketwright.json"), "{}");
+    await store(file).see({ dir: json, name: "J" });
+    expect(await store(file).list()).toMatchObject([{ dir: json, status: "ok" }]);
+    expect(await store(file).pickLastActive()).toEqual({ dir: json, status: "ok" });
+  });
+
+  it("reads a folder with neither manifest as missing, and a directory named like one too", async () => {
+    const dir = root();
+    const file = join(dir, "recents.json");
+    const a = project(dir, "a");
+    await store(file).see({ dir: a, name: "A" });
+    rmSync(join(a, "rocketwright.toml"));
+    expect((await store(file).list())[0]?.status).toBe("missing");
+    mkdirSync(join(a, "rocketwright.toml"));
+    expect((await store(file).list())[0]?.status).toBe("missing");
+  });
+});
+
+describe("a Recent on a stalled mount", () => {
+  const stalled = (dir: string) => join(dir, "stalled");
+  /** Every stat under a folder named `stalled…` never answers; everything else is real. */
+  function hangingStat(calls: string[] = []): NonNullable<RecentsOptions["stat"]> {
+    return (path) => {
+      calls.push(path);
+      return path.includes("/stalled") ? new Promise(() => undefined) : stat(path);
+    };
+  }
+
+  it("does not hold up the list, and reads as no access rather than missing", async () => {
+    const dir = root();
+    const file = join(dir, "recents.json");
+    const a = project(dir, "a");
+    const hung = project(dir, "stalled");
+    await store(file).see({ dir: a, name: "A" });
+    await store(file).see({ dir: hung, name: "H" });
+    const list = await store(file, { stat: hangingStat(), probeTimeoutMs: 20 }).list();
+    expect(Object.fromEntries(list.map((r) => [r.dir, r.status]))).toEqual({ [a]: "ok", [stalled(dir)]: "denied" });
+  });
+
+  it("gives up on the last project too, so a launch never waits on it", async () => {
+    const dir = root();
+    const file = join(dir, "recents.json");
+    await store(file).see({ dir: project(dir, "stalled"), name: "H" });
+    expect(await store(file, { stat: hangingStat(), probeTimeoutMs: 20 }).pickLastActive()).toEqual({ dir: stalled(dir), status: "denied" });
+  });
+
+  it("does not pile stalled probes onto the fs thread pool", async () => {
+    const dir = root();
+    const file = join(dir, "recents.json");
+    for (const n of ["stalled1", "stalled2", "stalled3", "stalled4"]) await store(file).see({ dir: project(dir, n), name: n });
+    const calls: string[] = [];
+    const recents = store(file, { stat: hangingStat(calls), probeTimeoutMs: 10 });
+    await recents.list();
+    await recents.list();
+    expect(calls.filter((c) => c.endsWith("rocketwright.toml")).length).toBeLessThanOrEqual(2);
+  });
+});
 
 describe("a corrupt file", () => {
   it.each([["not json", "{nope"], ["wrong version", '{"version":2,"recents":[],"lastActive":null}'], ["not an object", "[1,2]"], ["no list", '{"version":1,"lastActive":"/a"}'], ["empty", ""]])("reads as empty (%s)", async (_label, content) => {
@@ -186,7 +251,7 @@ describe("status", () => {
     const status = async (opts: Partial<RecentsOptions>): Promise<string | undefined> => (await store(file, opts).list())[0]?.status;
     expect(await status({ pidAlive: () => true })).toBe("locked");
     expect(await status({ pidAlive: () => false })).toBe("ok");
-    await expect(store(file, { pidAlive: () => true, openDirs: () => [a] }).list()).resolves.toEqual([]);
+    expect(await store(file, { pidAlive: () => true, openDirs: () => [a] }).list()).toMatchObject([{ dir: a, status: "ok", open: true }]);
     writeFileSync(join(a, ".rw/lock"), "garbage");
     expect(await status({ pidAlive: () => true })).toBe("ok");
   });

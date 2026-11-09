@@ -469,6 +469,215 @@ describe("closing and commands", () => {
   });
 });
 
+describe("a dialog and the project it was opened for", () => {
+  const dialogNamed = (id: string) => document.querySelector<HTMLElement>(`[data-testid="${id}"]`);
+  const errorText = () => document.querySelector('[data-testid="project-actions.error"]')?.textContent ?? "";
+  const noticeText = () => document.querySelector('[data-testid="project-actions.notice"]')?.textContent ?? "";
+
+  async function openOrkDialog(t: ReturnType<typeof fakeClient>, h: ReturnType<typeof fakeHost>) {
+    await mount(t, h);
+    await act(async () => h.send({ id: "file.import" }));
+    await settled();
+    expect(dialogNamed("ork-import")).not.toBeNull();
+  }
+
+  /** The `.ork` dialog's Replace, through its confirmation. */
+  async function confirmReplace() {
+    await act(async () => buttonNamed("Replace current design…")!.click());
+    await settled();
+    await act(async () => buttonNamed("Replace design")!.click());
+    await settled();
+    await settled();
+  }
+
+  const orkHost = () => fakeHost({ pickFile: () => Promise.resolve("/designs/rocket.ork") });
+
+  it("keeps the project on screen when a Recent is picked past the dialog, and Replace still names it", async () => {
+    const t = fakeClient(["a", "b"]);
+    const h = orkHost();
+    await openOrkDialog(t, h);
+    await act(async () => h.send({ id: "project.openRecent", dir: "/p/b" }));
+    await settled();
+    expect(t.calls.some((c) => c.method === "project.open")).toBe(false);
+    expect(storeOf(shown()).getState().project.projectId).toBe("a");
+    expect(errorText()).toContain("Finish or cancel the open dialog");
+    expect(dialogNamed("ork-import")).not.toBeNull();
+    await confirmReplace();
+    expect(t.calls).toContainEqual({ method: "import.file", params: { projectId: "a", path: "/designs/rocket.ork", kind: "ork" } });
+  });
+
+  it("does not import over another project when the one named goes away mid-Replace", async () => {
+    const t = fakeClient(["a", "b"]);
+    const h = orkHost();
+    await openOrkDialog(t, h);
+    let finishWrite = () => undefined as void;
+    void trackWrite(new Promise<void>((ok) => (finishWrite = ok)));
+    await confirmReplace();
+    t.projects.splice(0, 1);
+    await act(async () => t.push("project.closed", { projectId: "a" }));
+    await settled();
+    await act(async () => finishWrite());
+    await settled();
+    await settled();
+    expect(storeOf(shown()).getState().project.projectId).toBe("b");
+    expect(t.calls.some((c) => c.method === "import.file")).toBe(false);
+    expect(errorText()).toContain("rocket.ork");
+  });
+
+  it("closes a project-bound dialog when the project it named closes", async () => {
+    const t = fakeClient(["a", "b"]);
+    const h = orkHost();
+    await openOrkDialog(t, h);
+    t.projects.splice(0, 1);
+    await act(async () => t.push("project.closed", { projectId: "a" }));
+    await settled();
+    await settled();
+    expect(storeOf(shown()).getState().project.projectId).toBe("b");
+    expect(dialogNamed("ork-import")).toBeNull();
+  });
+
+  it("closes the Rename dialog when the window moves to another project", async () => {
+    const t = fakeClient(["a", "b"]);
+    const h = fakeHost();
+    await mount(t, h);
+    await act(async () => h.send({ id: "project.rename" }));
+    await settled();
+    expect(dialogNamed("rename-project")).not.toBeNull();
+    t.projects.splice(0, 1);
+    await act(async () => t.push("project.closed", { projectId: "a" }));
+    await settled();
+    await settled();
+    expect(dialogNamed("rename-project")).toBeNull();
+  });
+
+  it.each([
+    ["project.close", { id: "project.close" }],
+    ["project.new", { id: "project.new" }],
+    ["project.open", { id: "project.open" }],
+    ["project.openSample", { id: "project.openSample" }],
+  ] as const)("%s waits for an open dialog instead of replacing it", async (_name, command) => {
+    const t = fakeClient(["a"]);
+    const h = orkHost();
+    const pickFolder = vi.fn<HostApi["pickFolder"]>(() => Promise.resolve(null));
+    h.host.pickFolder = pickFolder;
+    await openOrkDialog(t, h);
+    await act(async () => h.send(command as DesktopCommand));
+    await settled();
+    expect(t.calls.some((c) => c.method === "project.close" || c.method === "project.create")).toBe(false);
+    expect(pickFolder).not.toHaveBeenCalled();
+    expect(dialogNamed("ork-import")).not.toBeNull();
+    expect(dialogNamed("new-project")).toBeNull();
+    expect(errorText()).toContain("Finish or cancel the open dialog");
+  });
+
+  it("does not stack a second New project over Welcome's own", async () => {
+    const h = fakeHost();
+    await mount(fakeClient([]), h);
+    await act(async () => buttonNamed("New project")!.click());
+    await settled();
+    expect(document.querySelectorAll('[role="dialog"]').length).toBe(1);
+    await act(async () => h.send({ id: "project.new" }));
+    await settled();
+    expect(document.querySelectorAll('[role="dialog"]').length).toBe(1);
+  });
+
+  it("runs one Open sample when Welcome's button and the menu both ask", async () => {
+    const t = fakeClient([]);
+    const h = fakeHost();
+    await mount(t, h);
+    await act(async () => {
+      buttonNamed("Open sample rocket")!.click();
+      h.send({ id: "project.openSample" });
+    });
+    await settled();
+    await settled();
+    expect(t.calls.filter((c) => c.method === "project.create")).toHaveLength(1);
+  });
+
+  describe("main asking the window to show a project", () => {
+    type OpenListener = (m: unknown) => void;
+    const listeners: OpenListener[] = [];
+    const openProject = async (projectId: string) => act(async () => listeners.forEach((l) => l({ type: "open-project", projectId })));
+
+    beforeEach(() => {
+      listeners.length = 0;
+      const g = globalThis as Record<string, unknown>;
+      g["lecturnEmbedIpc"] = { send: () => undefined, on: () => () => undefined };
+      g["rwDesktop"] = { lecturn: { onMessage: (l: OpenListener) => (listeners.push(l), () => undefined), send: () => undefined } };
+    });
+    afterEach(() => {
+      const g = globalThis as Record<string, unknown>;
+      delete g["lecturnEmbedIpc"];
+      delete g["rwDesktop"];
+    });
+
+    it("waits for an open dialog, says so, then switches when it closes", async () => {
+      const t = fakeClient(["a", "b"]);
+      const h = fakeHost();
+      await mount(t, h);
+      await act(async () => h.send({ id: "project.rename" }));
+      await settled();
+      await openProject("b");
+      await settled();
+      expect(storeOf(shown()).getState().project.projectId).toBe("a");
+      expect(noticeText()).toContain("when you finish");
+      await act(async () => buttonNamed("Cancel")!.click());
+      await settled();
+      await settled();
+      await settled();
+      expect(storeOf(shown()).getState().project.projectId).toBe("b");
+    });
+
+    it("waits for a running action rather than dropping the switch", async () => {
+      let answer = (_: string | null) => undefined as void;
+      const t = fakeClient(["a", "b"]);
+      const h = fakeHost({ pickFolder: () => new Promise((ok) => (answer = ok)) });
+      await mount(t, h);
+      await act(async () => h.send({ id: "project.open" }));
+      await settled();
+      await openProject("b");
+      await settled();
+      expect(storeOf(shown()).getState().project.projectId).toBe("a");
+      await act(async () => answer(null));
+      await settled();
+      await settled();
+      expect(storeOf(shown()).getState().project.projectId).toBe("b");
+    });
+
+    it("waits for Welcome's own action too", async () => {
+      let answer = (_: string | null) => undefined as void;
+      const t = fakeClient([]);
+      const h = fakeHost({ pickFolder: () => new Promise((ok) => (answer = ok)) });
+      await mount(t, h);
+      await act(async () => buttonNamed("Open folder…")!.click());
+      await settled();
+      t.projects.push("b");
+      await openProject("b");
+      await settled();
+      expect(shown()).toBeUndefined();
+      await act(async () => answer(null));
+      await settled();
+      await settled();
+      expect(storeOf(shown()).getState().project.projectId).toBe("b");
+    });
+
+    it("says the window stayed put when the person keeps their unsaved work", async () => {
+      const t = fakeClient(["a", "b"]);
+      const h = fakeHost();
+      await mount(t, h);
+      registerDirtyField({ dirty: () => true, commit: () => "Part length" });
+      await act(async () => undefined);
+      await openProject("b");
+      await settled();
+      await act(async () => buttonNamed("Keep editing")!.click());
+      await settled();
+      await settled();
+      expect(storeOf(shown()).getState().project.projectId).toBe("a");
+      expect(noticeText()).toContain("Project b");
+    });
+  });
+});
+
 describe("native menu commands", () => {
   const quickStart = () => document.querySelector('[data-testid="quick-start"]');
   const history = () => vi.fn<() => void>();
@@ -605,6 +814,14 @@ describe("native menu commands", () => {
       const h = fakeHost();
       await mount(fakeClient([]), h);
       await act(async () => h.send({ id: "app.settings" }));
+      await settled();
+      expect(dialog()).not.toBeNull();
+      expect(buttonNamed("Agent providers…")).toBeUndefined();
+    });
+
+    it("opens from a visible control on Welcome, with no Agent providers entry", async () => {
+      await mount(fakeClient([]), fakeHost());
+      await act(async () => buttonNamed("Settings…")!.click());
       await settled();
       expect(dialog()).not.toBeNull();
       expect(buttonNamed("Agent providers…")).toBeUndefined();

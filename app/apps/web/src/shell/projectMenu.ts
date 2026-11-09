@@ -63,7 +63,8 @@ export function projectMenuEntries({ projects, projectId, projectName, menu, onS
   if (menu === undefined) return entries;
 
   const errors: MenuEntry[] = menu.errors.map((text, i) => ({ kind: "heading", id: `error:${i}`, label: text }));
-  const recents = menu.recents.slice(0, MAX_MENU_RECENTS).flatMap((r) => recentEntries(r, menu.onCommand, menu.onRemoveRecent));
+  // Open projects are the list above; Recent is for reaching the others.
+  const recents = menu.recents.filter((r) => r.open !== true).slice(0, MAX_MENU_RECENTS).flatMap((r) => recentEntries(r, menu.onCommand, menu.onRemoveRecent));
   const middle = recents.length > 0 ? [{ kind: "heading", id: "recent", label: commandLabel("project.openRecent") } as const, ...recents] : [];
   const section = [...errors, ...middle];
   return [
