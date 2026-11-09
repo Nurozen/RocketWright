@@ -7,7 +7,7 @@
  * is the seam between the two: whoever renders the prompt subscribes with
  * `useSyncExternalStore` and answers through `submit` and `cancel`.
  */
-import type { PickFileOptions, PickFolderOptions } from "@rw/contracts";
+import type { DesktopPrefs, PickFileOptions, PickFolderOptions } from "@rw/contracts";
 import type { HostApi, PathPrompt, PathPromptKind, PathPromptRequest } from "./HostApi.ts";
 
 function request(kind: PathPromptKind, fallbackTitle: string, options: PickFolderOptions & PickFileOptions = {}): PathPromptRequest {
@@ -19,6 +19,7 @@ function request(kind: PathPromptKind, fallbackTitle: string, options: PickFolde
 const IN_PROJECT_HINT = "A path inside the project. The desktop app can save anywhere.";
 
 export function createBrowserHost(prompt: PathPrompt): HostApi {
+  let prefs: DesktopPrefs = { window: null, view: {}, lastTab: null, defaultDisplayUnits: null };
   return {
     kind: "browser",
     boot: () => Promise.resolve({ activeProjectId: null, notice: null }),
@@ -38,6 +39,15 @@ export function createBrowserHost(prompt: PathPrompt): HostApi {
     setActiveProject: () => Promise.resolve(),
     onCommand: () => () => undefined,
     pathForFile: () => null,
+    prefs: () => Promise.resolve(prefs),
+    setPrefs: (patch) => {
+      prefs = { ...prefs, ...patch };
+      return Promise.resolve();
+    },
+    openProviders: (inPane) => {
+      inPane();
+      return Promise.resolve();
+    },
   };
 }
 

@@ -208,6 +208,76 @@ describe("project: read-only mirror", () => {
   });
 });
 
+describe("project units (R3.4)", () => {
+  const withManifest = (snap: ProjectSnapshot, manifest: string): ProjectSnapshot => ({ ...snap, files: { ...snap.files, files: { ...snap.files.files, "rocketwright.toml": manifest } } });
+  const sliceCtx = (store: AppStore) =>
+    ({
+      get: store.getState,
+      patch: (key: keyof AppState, partial: object | ((s: object) => object)) =>
+        store.setState((s) => ({ [key]: { ...s[key], ...(typeof partial === "function" ? partial(s[key]) : partial) } }) as Partial<AppState>),
+      now: () => 2000,
+      core: null,
+    }) as unknown as Parameters<typeof applySnapshot>[0];
+
+  it("the toolbar shows the project's own length unit", async () => {
+    const { store, srv } = await setup();
+    const snap = srv.mock.snapshot(P);
+    applySnapshot(sliceCtx(store), withManifest(snap, '[display_units]\nlength = "in"\n'));
+    expect(store.getState().ui.units).toBe("in");
+    applyPatch(sliceCtx(store), { projectId: P, files: withManifest(snap, '[display_units]\nlength = "cm"\n').files });
+    expect(store.getState().ui.units).toBe("cm");
+  });
+
+  it("a length the toolbar cannot show leaves it where it is", async () => {
+    const { store, srv } = await setup();
+    store.getState().ui.setUnits("cm");
+    applySnapshot(sliceCtx(store), withManifest(srv.mock.snapshot(P), '[display_units]\nlength = "ft"\n'));
+    expect(store.getState().ui.units).toBe("cm");
+  });
+
+  it("the control writes [display_units] and shows the choice at once", async () => {
+    const { store, client } = await setup();
+    const calls: unknown[] = [];
+    const real = client.call.bind(client);
+    client.call = ((method: string, params: never) => {
+      calls.push([method, params]);
+      return real(method as never, params);
+    }) as typeof client.call;
+    const pending = store.getState().ui.setProjectUnits("in");
+    expect(store.getState().ui.units).toBe("in");
+    await pending;
+    expect(calls).toContainEqual(["model.patch", { projectId: P, ops: [{ op: "add", path: "/project/display_units", value: { length: "in" } }], label: "Set units to in" }]);
+  });
+
+  it("a failed write puts the control back and says why", async () => {
+    const { store, client } = await setup();
+    client.call = (() => Promise.reject(new Error("the sidecar has gone"))) as typeof client.call;
+    await store.getState().ui.setProjectUnits("in");
+    expect(store.getState().ui).toMatchObject({ units: "mm", partDialog: { kind: "error", message: "the sidecar has gone" } });
+  });
+
+  it("quick changes write in order, the last choice last", async () => {
+    const { store, client } = await setup();
+    const writes: string[] = [];
+    const real = client.call.bind(client);
+    client.call = ((method: string, params: { ops?: { path: string; value: unknown }[] }) => {
+      if (method === "model.patch") writes.push(JSON.stringify(params.ops?.[0]?.value));
+      return real(method as never, params as never);
+    }) as typeof client.call;
+    const { ui } = store.getState();
+    await Promise.all([ui.setProjectUnits("in"), ui.setProjectUnits("cm"), ui.setProjectUnits("mm")]);
+    expect(writes).toEqual(['{"length":"in"}', '{"length":"cm"}', '{"length":"mm"}']);
+    expect(store.getState().ui.units).toBe("mm");
+  });
+
+  it("with no project it is only the local control", async () => {
+    const store = createAppStore();
+    stores.push(store);
+    await store.getState().ui.setProjectUnits("cm");
+    expect(store.getState().ui.units).toBe("cm");
+  });
+});
+
 describe("draft: WASM preview + sidecar dry run", () => {
   const span: PatchOp = { op: "replace", path: "/c/fins/span", value: "90 mm" };
 

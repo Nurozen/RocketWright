@@ -46,7 +46,7 @@ function projectName(p: JsonObject): string {
   return name;
 }
 
-/** `project.create` params. `displayUnits` is read by U59, which writes it to the new project. */
+/** `project.create` params. */
 export function projectCreateArgs(p: JsonObject): ProjectCreateArgs {
   const out: ProjectCreateArgs = { name: projectName(p) };
   const location = optStr(p, "location");
@@ -58,6 +58,10 @@ export function projectCreateArgs(p: JsonObject): ProjectCreateArgs {
   if (p.source !== undefined && p.source !== null) {
     if (!isObject(p.source)) throw new RpcFail("invalid_params", "source: expected {ork}");
     out.ork = str(p.source, "ork");
+  }
+  if (p.displayUnits !== undefined && p.displayUnits !== null) {
+    if (!isObject(p.displayUnits) || !Object.values(p.displayUnits).every((u) => typeof u === "string")) throw new RpcFail("invalid_params", "displayUnits: expected an object of strings");
+    out.displayUnits = p.displayUnits as Record<string, string>;
   }
   return out;
 }

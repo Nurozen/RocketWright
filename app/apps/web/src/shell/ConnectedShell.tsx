@@ -73,6 +73,8 @@ export interface ConnectedShellProps {
   commandsRef?: RefObject<CommandHandlers | null> | undefined;
   /** Header Help. */
   onOpenHelp?: (() => void) | undefined;
+  /** Header Settings (R3.4); `AppRoot` owns the dialog. Without it the gear opens Lecturn's providers panel. */
+  onOpenSettings?: (() => void) | undefined;
 }
 
 /** Shell slots a page may own; absent ones keep the shell defaults. */
@@ -119,7 +121,7 @@ const chipOf = (v: ViewId): ViewChip => (v[0]!.toUpperCase() + v.slice(1)) as Vi
 
 const message = (e: unknown): string => (e instanceof Error ? e.message : String(e));
 
-export function ConnectedShell({ store, client = null, renderPage, renderCompare, toolbarControls, pageSlots, now = Date.now, onPaneBridge, onSwitchProject, onError, projectMenu, commandsRef, onOpenHelp }: ConnectedShellProps) {
+export function ConnectedShell({ store, client = null, renderPage, renderCompare, toolbarControls, pageSlots, now = Date.now, onPaneBridge, onSwitchProject, onError, projectMenu, commandsRef, onOpenHelp, onOpenSettings }: ConnectedShellProps) {
   const s = useAppState(store, (x) => x);
   const [clock, setClock] = useState(now());
   const [checking, setChecking] = useState(false);
@@ -276,8 +278,9 @@ export function ConnectedShell({ store, client = null, renderPage, renderCompare
       const t = model.undo?.redo;
       if (t) restore(t.id);
     },
-    // W3.6: with the embed, Settings shows Lecturn's providers panel in the pane.
-    onOpenSettings: () => openProviders(store),
+    // W3.6: with the embed, the agent pane's own button shows Lecturn's providers panel in the pane.
+    onOpenProviders: () => openProviders(store),
+    onOpenSettings: onOpenSettings ?? (() => openProviders(store)),
     ...(onOpenHelp !== undefined ? { onOpenHelp } : {}),
   };
   const goToTab = (t: TopTab) => run(navigatePage(store, pageOf(t, t === "design" ? lastDesign : null)));
@@ -292,7 +295,6 @@ export function ConnectedShell({ store, client = null, renderPage, renderCompare
     const table: CommandHandlers = {
       "edit.undo": () => keys.current.onUndo?.(),
       "edit.redo": () => keys.current.onRedo?.(),
-      "app.settings": () => keys.current.onOpenSettings?.(),
       "view.tab": ({ tab }) => {
         if (isTopTab(tab)) toTab.current(tab);
       },

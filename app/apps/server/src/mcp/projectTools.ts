@@ -26,6 +26,7 @@ import {
   PROJECT_TOOL_REQUEST_MAX,
   type HostRequest,
   type HostResponse,
+  type DisplayUnits,
   type HostShow,
   type JsonObject,
   type ProjectInfo,
@@ -269,13 +270,13 @@ export class ProjectTools {
     }
     if (guard.aborted) return overrunResult(stage.now, tool);
 
-    const refused = await this.ask(plan, guard);
-    if (refused !== null) return refused;
+    const consent = await this.ask(plan, guard);
+    if ("refused" in consent) return consent.refused;
 
     stage.now = { at: "working", plan };
     let project: ProjectInfo;
     try {
-      project = await this.bringUp(plan);
+      project = await this.bringUp(plan, consent.displayUnits);
     } catch (e) {
       return plan.tool === "project_new" ? creationFailure(e, plan) : refusal(e);
     }
@@ -325,8 +326,8 @@ export class ProjectTools {
     return { tool: "project_open", target, request };
   }
 
-  /** Shows the dialog. Null means accepted; anything else is the agent's answer. */
-  private async ask(plan: Plan, guard: AbortSignal): Promise<CallResult | null> {
+  /** Shows the dialog. `refused` is the agent's answer; otherwise accepted, with main's default units (R3.4). */
+  private async ask(plan: Plan, guard: AbortSignal): Promise<{ refused: CallResult } | { displayUnits?: DisplayUnits | undefined }> {
     const nothing = plan.tool === "project_new" ? "Nothing was created." : "Nothing was opened.";
     let answer: HostResponse;
     try {
@@ -335,20 +336,20 @@ export class ProjectTools {
       if (!(e instanceof HostChannelError)) throw e;
       switch (e.code) {
         case "aborted":
-          return toolError("timeout", `The person did not answer the confirmation in time. ${nothing} ${STOP}`);
+          return { refused: toolError("timeout", `The person did not answer the confirmation in time. ${nothing} ${STOP}`) };
         case "busy":
-          return toolError("busy", `Another confirmation is already on screen. ${nothing} ${STOP}`);
+          return { refused: toolError("busy", `Another confirmation is already on screen. ${nothing} ${STOP}`) };
         case "no_host":
         case "disconnected":
-          return toolError("unavailable", `${plan.tool} needs the RocketWright desktop app, and no desktop window can answer. ${nothing}`);
+          return { refused: toolError("unavailable", `${plan.tool} needs the RocketWright desktop app, and no desktop window can answer. ${nothing}`) };
       }
     }
-    return answer.accepted ? null : toolError("cancelled", `The person cancelled. ${nothing} ${STOP}`);
+    return answer.accepted ? { displayUnits: answer.displayUnits } : { refused: toolError("cancelled", `The person cancelled. ${nothing} ${STOP}`) };
   }
 
-  private async bringUp(plan: Plan): Promise<ProjectInfo> {
+  private async bringUp(plan: Plan, displayUnits: DisplayUnits | undefined): Promise<ProjectInfo> {
     if (plan.tool === "project_open") return this.deps.open(plan.target);
-    const dir = await this.deps.create(plan.create);
+    const dir = await this.deps.create(displayUnits === undefined ? plan.create : { ...plan.create, displayUnits });
     try {
       return await this.deps.open(dir);
     } catch (e) {

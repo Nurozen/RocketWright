@@ -41,6 +41,9 @@ function fakeDesktopPreload(): void {
     lecturn: { onMessage: () => () => undefined },
     boot: () => Promise.resolve({ activeProjectId: null, notice: null }),
     setActiveProject: () => Promise.resolve(),
+    prefs: () => Promise.resolve({ window: null, view: {}, lastTab: null, defaultDisplayUnits: null }),
+    setPrefs: () => Promise.resolve(),
+    openProviders: () => Promise.resolve(),
     onCommand: () => () => undefined,
   };
 }

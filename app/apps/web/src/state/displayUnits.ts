@@ -4,9 +4,17 @@
  * number on screen, so the run table, plot axes, legends and run details
  * agree. It only scales numbers the engine produced.
  */
-import type { AppState, DeepReadonly } from "./types.ts";
+import type { PatchOp } from "@rw/contracts";
+import type { AppState, DeepReadonly, Units } from "./types.ts";
 
 export type UnitSystem = "metric" | "imperial";
+
+/** The toolbar's length units. */
+export const LENGTH_UNITS: readonly Units[] = ["mm", "cm", "m", "in"];
+
+export function isLengthUnit(unit: string | undefined): unit is Units {
+  return (LENGTH_UNITS as readonly string[]).includes(unit ?? "");
+}
 
 export type FlightDim = "length" | "velocity" | "acceleration" | "mass" | "force" | "wind" | "pressure" | "temperature";
 
@@ -59,7 +67,7 @@ export function toFlight<T extends number | null | undefined>(si: T, dim: Flight
   return si * u.per + (u.offset ?? 0);
 }
 
-const MANIFEST = "rocketwright.toml";
+export const MANIFEST = "rocketwright.toml";
 const IMPERIAL_LENGTHS = new Set(["in", "ft", "yd", "mi"]);
 
 /** The `[display_units]` table of a manifest's text (keys are dimension names plus `altitude`). */
@@ -91,4 +99,24 @@ export function unitSystemOf(s: DeepReadonly<Pick<AppState, "project" | "ui">>):
   if (altitude !== undefined) return IMPERIAL_LENGTHS.has(altitude) ? "imperial" : "metric";
   const length = declared["length"];
   return (length !== undefined && IMPERIAL_LENGTHS.has(length)) || s.ui.units === "in" ? "imperial" : "metric";
+}
+
+/** A `[display_units]` table already in the manifest's text, in either TOML form. */
+const HAS_TABLE = /^\s*(\[\s*display_units\s*\]|display_units\s*=)/m;
+
+/**
+ * The ops for the toolbar's Units control to set the project's length unit
+ * (R3.4). Keeps `unitSystemOf` agreeing with the choice: an existing `altitude`
+ * key decides the flight results, so moving between metric and imperial moves
+ * it too. Per key when the table exists, so entries the line reader does not
+ * parse are left alone. `add` replaces a key already there.
+ */
+export function displayLengthOps(manifest: string | undefined, units: Units): PatchOp[] {
+  const declared = manifestDisplayUnits(manifest);
+  const imperial = IMPERIAL_LENGTHS.has(units);
+  const altitude = declared["altitude"];
+  const changes: Record<string, string> = { length: units };
+  if (altitude !== undefined && IMPERIAL_LENGTHS.has(altitude) !== imperial) changes["altitude"] = imperial ? "ft" : "m";
+  if (manifest === undefined || !HAS_TABLE.test(manifest)) return [{ op: "add", path: "/project/display_units", value: changes }];
+  return Object.entries(changes).map(([key, value]) => ({ op: "add", path: `/project/display_units/${key}`, value }));
 }

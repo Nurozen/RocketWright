@@ -20,7 +20,7 @@ import type { LifecycleState } from "./lifecycle.ts";
 import type { ProjectMenuModel } from "./model.ts";
 import { NewProjectDialog, type NewProjectOffer } from "./NewProjectDialog.tsx";
 import { ExportDialog, OrkImportDialog } from "./ImportExportDialogs.tsx";
-import { errorText, exportDefaultName, exportedNotice, fileBase, IMPORT_BUSY, IMPORT_FILTERS, IMPORT_MOTOR_NEEDS_PROJECT, IMPORT_UNSUPPORTED, importedNotice, importKindOf, nextOpen, openFolder, openRecent, openSample, ORK_FILTERS, type Notice } from "./projectActions.ts";
+import { defaultUnits, errorText, exportDefaultName, exportedNotice, fileBase, IMPORT_BUSY, IMPORT_FILTERS, IMPORT_MOTOR_NEEDS_PROJECT, IMPORT_UNSUPPORTED, importedNotice, importKindOf, nextOpen, openFolder, openRecent, openSample, ORK_FILTERS, type Notice } from "./projectActions.ts";
 import { RenameProjectDialog } from "./RenameProjectDialog.tsx";
 
 /** What `AppRoot` needs from the mounted project before it can leave it. */
@@ -32,6 +32,8 @@ export interface SurfaceHandle {
   disconnect(): void;
   /** Undoes `disconnect` when the close it was for failed. */
   reconnect(): void;
+  /** Lecturn's providers panel, through this project's own pane bridge (browser mode). */
+  openProviders(): void;
 }
 
 export interface ProjectActionsOptions {
@@ -258,7 +260,7 @@ export function useProjectActions({ client, host, lifecycle, surface, info, show
     "project.openSample": () =>
       leaveThen(async (rpc) => {
         setStatus("Creating the sample rocket…");
-        show((await openSample(rpc)).projectId);
+        show((await openSample(rpc, await defaultUnits(host))).projectId);
       }),
     "project.openRecent": ({ dir }) =>
       leaveThen(async (rpc) => {

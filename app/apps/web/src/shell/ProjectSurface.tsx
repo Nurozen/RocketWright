@@ -6,9 +6,9 @@
  * new project gets a broker host of its own.
  */
 import { useEffect, useMemo, useState, type RefObject } from "react";
-import type { BrokerRequest, PageId, ProjectInfo, SidecarState } from "@rw/contracts";
+import type { BrokerRequest, DesktopPrefs, PageId, ProjectInfo, SidecarState } from "@rw/contracts";
 import { answer, startBrokerHost, windowHostDeps } from "../broker/host.ts";
-import { openArtifactThread } from "../embed/rail.ts";
+import { openArtifactThread, openProviders } from "../embed/rail.ts";
 import { assemblySlots } from "../pages/assembly/AssemblyPage.tsx";
 import { ComparePage } from "../pages/compare/ComparePage.tsx";
 import { componentsSlots, createComponentsUi } from "../pages/components/ComponentsPage.tsx";
@@ -28,6 +28,7 @@ import { flushProject } from "../state/dirtyFields.ts";
 import { exportChoices } from "../state/selectors.ts";
 import type { RpcLike } from "../state/rpc.ts";
 import { createAppStore, useAppState } from "../state/store.ts";
+import { restoredViewOptions, viewOptionsOf } from "../state/slices/ui.ts";
 import { browserGlbDeps } from "../viewport/glb-source.ts";
 import { ConnectedShell, type PageSlots } from "./ConnectedShell.tsx";
 import type { CommandHandlers } from "./commands.ts";
@@ -56,16 +57,22 @@ export interface ProjectSurfaceProps {
   surfaceRef?: RefObject<SurfaceHandle | null> | undefined;
   commandsRef?: RefObject<CommandHandlers | null> | undefined;
   onOpenHelp?: (() => void) | undefined;
+  /** Saved view options to start from (R3.4). */
+  initialView?: DesktopPrefs["view"] | undefined;
+  onViewOptions?: ((view: DesktopPrefs["view"]) => void) | undefined;
+  /** Header Settings; `AppRoot` owns the dialog. */
+  onOpenSettings?: (() => void) | undefined;
   /** Native pickers on the desktop; absent in the tests that render a surface on its own. */
   host?: HostApi | undefined;
 }
 
 const message = (e: unknown): string => (e instanceof Error ? e.message : String(e));
 
-export function ProjectSurface({ client, projectId, initialPage, runSource, httpBase, onPageChange, onOpenFailed, onSwitchProject, onProjectInfo, onSidecarState, onError, projectMenu, surfaceRef, commandsRef, onOpenHelp, host = undefined }: ProjectSurfaceProps) {
+export function ProjectSurface({ client, projectId, initialPage, runSource, httpBase, onPageChange, onOpenFailed, onSwitchProject, onProjectInfo, onSidecarState, onError, projectMenu, surfaceRef, commandsRef, onOpenHelp, initialView, onViewOptions, onOpenSettings, host = undefined }: ProjectSurfaceProps) {
   const [store] = useState(() => {
     const st = createAppStore();
     st.getState().ui.navigate(initialPage);
+    if (initialView !== undefined) st.getState().ui.setView(restoredViewOptions(initialView));
     return st;
   });
   useEffect(() => {
@@ -107,12 +114,23 @@ export function ProjectSurface({ client, projectId, initialPage, runSource, http
           .project.connect(client, projectId)
           .catch((e: unknown) => onOpenFailed(projectId, message(e)));
       },
+      openProviders: () => openProviders(store),
     };
     surfaceRef.current = handle;
     return () => {
       if (surfaceRef.current === handle) surfaceRef.current = null;
     };
   }, [surfaceRef, store, client, projectId, onOpenFailed]);
+
+  useEffect(() => {
+    if (onViewOptions === undefined) return;
+    return store.subscribe((next, prev) => {
+      if (next.ui === prev.ui) return;
+      const options = viewOptionsOf(next.ui);
+      const before = viewOptionsOf(prev.ui);
+      if (Object.keys(options).some((k) => options[k] !== before[k])) onViewOptions(options);
+    });
+  }, [store, onViewOptions]);
 
   const page = useAppState(store, (s) => s.ui.page);
   useEffect(() => onPageChange(page), [page, onPageChange]);
@@ -176,7 +194,7 @@ export function ProjectSurface({ client, projectId, initialPage, runSource, http
   const renderCompare = () => <ComparePage store={store} client={client} glbDeps={glbDeps} />;
   return (
     <>
-      <ConnectedShell store={store} client={client} renderPage={renderPage} renderCompare={renderCompare} pageSlots={pageSlots} onSwitchProject={onSwitchProject} onError={onError} projectMenu={projectMenu} commandsRef={commandsRef} onOpenHelp={onOpenHelp} />
+      <ConnectedShell store={store} client={client} renderPage={renderPage} renderCompare={renderCompare} pageSlots={pageSlots} onSwitchProject={onSwitchProject} onError={onError} projectMenu={projectMenu} commandsRef={commandsRef} onOpenHelp={onOpenHelp} onOpenSettings={onOpenSettings} />
       <ThumbnailBaker store={store} glbDeps={glbDeps} />
     </>
   );

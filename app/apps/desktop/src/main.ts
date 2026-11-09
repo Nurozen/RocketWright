@@ -71,7 +71,7 @@
  */
 import { mountEmbedView, captureEmbedView, type EmbedBridge, type EmbedTarget as HelperEmbedTarget } from "@lecturn/embed/electron";
 import { DESKTOP_COMMAND_CHANNEL, embedThemeInput, PANE_MAIN_CHANNEL, type DesktopBoot, type EmbedTarget, type ExportFileRequest, type LecturnHostThemeJson, type LecturnThemeJson, type PaneMainMessage } from "@rw/contracts";
-import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, shell, systemPreferences, webContents } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, screen, shell, systemPreferences, webContents } from "electron";
 import { mkdirSync, readFileSync, rmSync } from "node:fs";
 import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -87,6 +87,7 @@ import { APP_NAME, createMenuController, linkAction, type MenuController } from 
 import { bootProjects, buildPreload, desktopArg, documentsDirOverride, lecturnBaseDirFor, parseDesktopArgs, REPO_ROOT, resolveDevProject, seededProfileDir, startBackend, userDataOverride, waitForHttp, type Backend, type DevProject } from "./backend.ts";
 import { createConsentDialogs, registerDesktopServices } from "./nativeDialogs.ts";
 import { packagedLayout, packagedServerOptions, userArgv } from "./packaged.ts";
+import { createPreferences, restorableBounds } from "./preferences.ts";
 import { installProtocol, linkInArgv, linkQueue, openFromLink, parseOpenUrl, projectActivator } from "./protocol.ts";
 import { once, shutdownOnQuit } from "./quit.ts";
 import { createRecents, type Recents } from "./recents.ts";
@@ -583,6 +584,11 @@ async function main(): Promise<void> {
   // The arg names the dir the child really uses (CPW2B).
   const lecturnBaseDir = lecturnBaseDirFor(app.getPath("userData"));
   const documents = (): string => documentsDirOverride(app.isPackaged) ?? app.getPath("documents");
+  const preferences = createPreferences({
+    file: join(app.getPath("userData"), "preferences.json"),
+    readOnly: hidden,
+    log: (line) => process.stderr.write(`${line}\n`),
+  });
   const backend = await startBackend({
     projects,
     webRoot,
@@ -604,7 +610,7 @@ async function main(): Promise<void> {
   let pane: PaneController | null = null;
   let menu: MenuController | null = null;
   // Main's socket claims the host channel before any window exists, so both of these read the window when called: until then a request is refused.
-  const consent = createConsentDialogs<BrowserWindow>({ dialog, window: () => appWindow, focus: () => focusWindow?.(), headless: hidden });
+  const consent = createConsentDialogs<BrowserWindow>({ dialog, window: () => appWindow, focus: () => focusWindow?.(), headless: hidden, displayUnits: () => preferences.get().defaultDisplayUnits });
   const activateProject = projectActivator({
     focus: () => focusWindow?.(),
     openThread: (projectId, threadId) => pane?.openThread(projectId, threadId),
@@ -651,6 +657,10 @@ async function main(): Promise<void> {
       app.relaunch();
       void shutdown(0);
     },
+    prefs: preferences,
+    openProviders: () => {
+      if (pane === null || !pane.openProviders()) throw new Error("the agent pane is not open");
+    },
     ...(mainRpc === null
       ? {}
       : {
@@ -660,7 +670,11 @@ async function main(): Promise<void> {
   });
   const shutdown = once(async (code: number): Promise<void> => {
     consent.close();
+    // First: everything after this can hang on a stuck child.
+    await preferences.flush();
     pane?.destroy();
+    // Left up, the page reconnects to the closing server, fails to resubscribe and falls back to Welcome, which clears last-active.
+    if (appWindow !== null && !appWindow.isDestroyed()) appWindow.destroy();
     mainRpc?.close();
     await backend.close();
     cleanupSync();
@@ -690,8 +704,19 @@ async function main(): Promise<void> {
     });
   }
   // Below 1024 the header's start column clips; below about 792 the project menu is gone (`header-long-name.spec.ts` holds the floor).
-  const win = new BrowserWindow({ width, height, minWidth: MIN_WINDOW_WIDTH, useContentSize: true, webPreferences: webPreferences(preload, backend) });
+  const sizedByArgs = str(args.width) !== undefined || str(args.height) !== undefined;
+  const restored = sizedByArgs ? null : restorableBounds(preferences.get().window, screen.getAllDisplays(), MIN_WINDOW_WIDTH);
+  // Saved bounds are frame bounds, so they restore without `useContentSize` or the window grows by a title bar each launch.
+  const win = new BrowserWindow({ ...(restored ?? { width, height, useContentSize: true }), minWidth: MIN_WINDOW_WIDTH, webPreferences: webPreferences(preload, backend) });
   appWindow = win;
+  if (!sizedByArgs) {
+    const record = (): void => {
+      if (!win.isDestroyed()) void preferences.update({ window: win.getNormalBounds() });
+    };
+    win.on("resize", record);
+    win.on("move", record);
+    win.on("close", record);
+  }
   focusWindow = () => {
     if (win.isDestroyed()) return;
     if (win.isMinimized()) win.restore();

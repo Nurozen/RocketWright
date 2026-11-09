@@ -86,6 +86,29 @@ describe("electron host", () => {
   });
 });
 
+describe("preferences and Agent providers (R3.4)", () => {
+  it("are main's on the desktop", async () => {
+    const { bridge, calls } = fakeBridge();
+    const host = createElectronHost(bridge);
+    await expect(host.prefs()).resolves.toMatchObject({ lastTab: null });
+    await host.setPrefs({ lastTab: "results" });
+    const inPane = vi.fn<() => void>();
+    await host.openProviders(inPane);
+    expect(calls).toEqual([["prefs"], ["setPrefs", { lastTab: "results" }], ["openProviders"]]);
+    expect(inPane).not.toHaveBeenCalled();
+  });
+
+  it("last only as long as the tab in a browser, and the page's bridge opens the panel", async () => {
+    const host = createBrowserHost(vi.fn<PathPrompt>());
+    await host.setPrefs({ defaultDisplayUnits: { length: "in" } });
+    await expect(host.prefs()).resolves.toMatchObject({ defaultDisplayUnits: { length: "in" } });
+    await expect(createBrowserHost(vi.fn<PathPrompt>()).prefs()).resolves.toMatchObject({ defaultDisplayUnits: null });
+    const inPane = vi.fn<() => void>();
+    await host.openProviders(inPane);
+    expect(inPane).toHaveBeenCalledOnce();
+  });
+});
+
 describe("relaunch", () => {
   it("goes to main on the desktop", async () => {
     const { bridge, calls } = fakeBridge();

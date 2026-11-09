@@ -92,6 +92,8 @@ export interface EmbedBridgeLike {
   /** The idle composer prompt; null hands it back to Lecturn's wording. */
   setComposerPlaceholder(placeholder: string | null): void;
   retarget(projectId: string, threadId?: string): Promise<void>;
+  /** Shows Lecturn's providers panel in the guest. */
+  openProviders(): void;
   on<E extends PaneEvent>(event: E, listener: (payload: PaneEvents[E]) => void): () => void;
   on(event: "error", listener: (error: BridgeErrorLike) => void): () => void;
   destroy(): void;
@@ -179,6 +181,8 @@ export interface PaneController {
    * the guest never got ready or a card frame failed to load (CPW1R5A).
    */
   reload(why: string): boolean;
+  /** Shows Lecturn's providers panel in the mounted guest (R3.4); false without a live mount. */
+  openProviders(): boolean;
   destroy(): void;
 }
 
@@ -682,6 +686,12 @@ export function createPaneController(opts: PaneControllerOptions): PaneControlle
       if (destroyed || m === null || guestGone(m)) return false;
       log(`lecturn pane: reload (${why})`);
       reload(m, why);
+      return true;
+    },
+    openProviders: (): boolean => {
+      const m = mount;
+      if (destroyed || m === null || guestGone(m)) return false;
+      m.bridge.openProviders();
       return true;
     },
     destroy,

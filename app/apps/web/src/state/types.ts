@@ -117,7 +117,10 @@ export interface UiSlice {
   navigate(page: PageId, tab?: string): void;
   /** `animate` eases the explode change (M3.2) instead of jumping. */
   setView(v: { view?: ViewId; explode?: number; animate?: boolean; section?: boolean; showInternals?: boolean; shadows?: boolean }): void;
+  /** Sets the toolbar's unit locally; what the project's own `[display_units]` drives. */
   setUnits(units: Units): void;
+  /** The Units control (R3.4): writes the project's `[display_units]`, which does not change the model hash. Never rejects: a failure reverts and shows the error dialog. */
+  setProjectUnits(units: Units): Promise<void>;
   toggleHidden(id: string): void;
   /** Opens (or retargets) the Compare view; null closes it. */
   setCompare(sel: CompareSelection | null): void;

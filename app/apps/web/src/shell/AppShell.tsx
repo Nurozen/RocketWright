@@ -35,8 +35,10 @@ export interface ShellHandlers {
   /** Header undo/redo (history_restore of the step before/after the shown one). */
   onUndo?: () => void;
   onRedo?: () => void;
-  /** Header and agent-pane Settings (B12: `lecturn/providers.open` with the embed). */
+  /** Header Settings: RocketWright's own dialog (R3.4). */
   onOpenSettings?: () => void;
+  /** The agent pane's Agent settings button (B12: `lecturn/providers.open` with the embed). */
+  onOpenProviders?: () => void;
   /** Header Help (the same quick start as the native Help menu). */
   onOpenHelp?: () => void;
 }
@@ -181,7 +183,7 @@ export function AppShell({
         provenance={model.provenance ?? null}
         embed={agentEmbed}
         extras={agentExtras}
-        {...(h.onOpenSettings ? { onOpenSettings: h.onOpenSettings } : {})}
+        {...(h.onOpenProviders ? { onOpenSettings: h.onOpenProviders } : {})}
       >
         {agent}
       </AgentPane>

@@ -4,7 +4,7 @@
  * is on screen, what a switch resets, and that the broker follows the window.
  * The shell itself is a stub; its own tests cover what it draws.
  */
-import type { BrokerRequest, BrokerResponse, DesktopCommand, ProjectInfo, RpcTopics } from "@rw/contracts";
+import type { BrokerRequest, BrokerResponse, DesktopCommand, DesktopPrefs, DisplayUnits, ProjectInfo, RpcTopics } from "@rw/contracts";
 import { MockRpc } from "@rw/contracts/mock";
 import { act, isValidElement, type ReactElement, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
@@ -101,6 +101,9 @@ function fakeHost(over: Partial<HostApi> = {}) {
     },
     pathForFile: () => null,
     relaunch: vi.fn<HostApi["relaunch"]>(() => Promise.resolve()),
+    prefs: () => Promise.resolve({ window: null, view: {}, lastTab: null, defaultDisplayUnits: null }),
+    setPrefs: () => Promise.resolve(),
+    openProviders: () => Promise.resolve(),
     ...over,
   };
   return { host, active, send: (c: DesktopCommand) => commands.forEach((l) => l(c)) };
@@ -522,12 +525,141 @@ describe("native menu commands", () => {
     const h = fakeHost();
     await mount(fakeClient(["a"]), h);
     const tab = vi.fn<(c: { id: "view.tab"; tab: string }) => void>();
-    const settings = history();
-    shown()!.commandsRef!.current = { "view.tab": tab, "app.settings": settings };
+    shown()!.commandsRef!.current = { "view.tab": tab };
     await act(async () => h.send({ id: "view.tab", tab: "results" }));
-    await act(async () => h.send({ id: "app.settings" }));
     expect(tab).toHaveBeenCalledWith({ id: "view.tab", tab: "results" });
-    expect(settings).toHaveBeenCalledOnce();
+  });
+
+  describe("settings (R3.4)", () => {
+    const dialog = () => document.querySelector<HTMLElement>('[data-testid="settings"]');
+    const select = () => document.querySelector<HTMLSelectElement>('[data-testid="settings.default-units"]')!;
+
+    it("opens from the native menu with a project showing, offering Agent providers", async () => {
+      const openProviders = vi.fn<HostApi["openProviders"]>(() => Promise.resolve());
+      const h = fakeHost({ openProviders });
+      await mount(fakeClient(["a"]), h);
+      await act(async () => h.send({ id: "app.settings" }));
+      await settled();
+      expect(dialog()).not.toBeNull();
+      await act(async () => buttonNamed("Agent providers…")!.click());
+      await settled();
+      expect(dialog()).toBeNull();
+      expect(openProviders).toHaveBeenCalledOnce();
+    });
+
+    it("opens from the header gear", async () => {
+      await mount(fakeClient(["a"]), fakeHost());
+      await act(async () => shown()!.onOpenSettings!());
+      expect(dialog()).not.toBeNull();
+    });
+
+    it("on Welcome it opens too, with no Agent providers entry", async () => {
+      const h = fakeHost();
+      await mount(fakeClient([]), h);
+      await act(async () => h.send({ id: "app.settings" }));
+      await settled();
+      expect(dialog()).not.toBeNull();
+      expect(buttonNamed("Agent providers…")).toBeUndefined();
+    });
+
+    it("saves the default units, and a project created next carries them", async () => {
+      const setPrefs = vi.fn<HostApi["setPrefs"]>(() => Promise.resolve());
+      let saved: DisplayUnits | null = null;
+      const h = fakeHost({ setPrefs: (p) => { if (p.defaultDisplayUnits !== undefined) saved = p.defaultDisplayUnits; return setPrefs(p); }, prefs: () => Promise.resolve({ window: null, view: {}, lastTab: null, defaultDisplayUnits: saved }) });
+      const t = fakeClient([]);
+      await mount(t, h);
+      await act(async () => h.send({ id: "app.settings" }));
+      await settled();
+      await act(async () => {
+        select().value = "in";
+        select().dispatchEvent(new Event("change", { bubbles: true }));
+      });
+      await settled();
+      expect(setPrefs).toHaveBeenCalledWith({ defaultDisplayUnits: { length: "in" } });
+      await act(async () => buttonNamed("Done")!.click());
+      await act(async () => buttonNamed("New project")!.click());
+      await settled();
+      const input = document.querySelector<HTMLInputElement>('[data-testid="new-project"] input')!;
+      await act(async () => {
+        Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(input, "Inch");
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+      });
+      await act(async () => buttonNamed("Create project")!.click());
+      await settled();
+      expect(t.calls.find((c) => c.method === "project.create")?.params).toMatchObject({ name: "Inch", displayUnits: { length: "in" } });
+    });
+
+    it("says so when the setting cannot be saved, and keeps the old choice", async () => {
+      const h = fakeHost({ setPrefs: () => Promise.reject(new Error("disk full")) });
+      await mount(fakeClient(["a"]), h);
+      await act(async () => h.send({ id: "app.settings" }));
+      await settled();
+      await act(async () => {
+        select().value = "in";
+        select().dispatchEvent(new Event("change", { bubbles: true }));
+      });
+      await settled();
+      expect(document.querySelector('[data-testid="settings.error"]')?.textContent).toContain("disk full");
+      expect(select().value).toBe("");
+    });
+  });
+
+  describe("restored preferences (R3.4)", () => {
+    const prefs = (over: Partial<DesktopPrefs>) => () => Promise.resolve<DesktopPrefs>({ window: null, view: {}, lastTab: null, defaultDisplayUnits: null, ...over });
+
+    it("reopens on the last tab", async () => {
+      await mount(fakeClient(["a"]), fakeHost({ prefs: prefs({ lastTab: "results" }) }));
+      expect(storeOf(shown()).getState().ui.page).toBe("results");
+    });
+
+    it("a page named in the URL wins, and nothing is recorded over it", async () => {
+      const setPrefs = vi.fn<HostApi["setPrefs"]>(() => Promise.resolve());
+      await mount(fakeClient(["a"]), fakeHost({ prefs: prefs({ lastTab: "results" }), setPrefs }), { initialPage: "configurations", pageForced: true });
+      expect(storeOf(shown()).getState().ui.page).toBe("configurations");
+      await act(async () => storeOf(shown()).getState().ui.navigate("assembly"));
+      await settled();
+      expect(setPrefs).not.toHaveBeenCalledWith(expect.objectContaining({ lastTab: expect.anything() }));
+    });
+
+    it("ignores a saved page that no longer exists", async () => {
+      await mount(fakeClient(["a"]), fakeHost({ prefs: prefs({ lastTab: "old-page" }) }));
+      expect(storeOf(shown()).getState().ui.page).toBe("assembly");
+    });
+
+    it("records the tab the person moves to", async () => {
+      const setPrefs = vi.fn<HostApi["setPrefs"]>(() => Promise.resolve());
+      await mount(fakeClient(["a"]), fakeHost({ setPrefs }));
+      await act(async () => storeOf(shown()).getState().ui.navigate("results"));
+      await settled();
+      expect(setPrefs).toHaveBeenCalledWith({ lastTab: "results" });
+    });
+
+    it("restores view options, keeping a value that is still valid", async () => {
+      await mount(fakeClient(["a"]), fakeHost({ prefs: prefs({ view: { view: "top", explode: 0.4, section: true, showInternals: true, shadows: false, stale: "x" } }) }));
+      expect(storeOf(shown()).getState().ui).toMatchObject({ view: "top", explode: 0.4, section: true, showInternals: true, shadows: false });
+    });
+
+    it("drops a view that no longer exists", async () => {
+      await mount(fakeClient(["a"]), fakeHost({ prefs: prefs({ view: { view: "gone" } }) }));
+      expect(storeOf(shown()).getState().ui.view).toBe("iso");
+    });
+
+    it("records view options when they change, and carries them across a switch", async () => {
+      const setPrefs = vi.fn<HostApi["setPrefs"]>(() => Promise.resolve());
+      await mount(fakeClient(["a", "b"]), fakeHost({ setPrefs }));
+      const before = shown()!;
+      await act(async () => storeOf(before).getState().ui.setView({ section: true }));
+      await settled();
+      expect(setPrefs).toHaveBeenCalledWith({ view: { view: "iso", explode: 0, section: true, showInternals: false, shadows: true } });
+      await act(async () => before.onSwitchProject!("b"));
+      await settled();
+      expect(storeOf(shown()).getState().ui.section).toBe(true);
+    });
+
+    it("starts anyway when the preferences cannot be read", async () => {
+      await mount(fakeClient(["a"]), fakeHost({ prefs: () => Promise.reject(new Error("no")) }));
+      expect(shown()).toBeDefined();
+    });
   });
 
   it("ignores a tab command with no project showing", async () => {
