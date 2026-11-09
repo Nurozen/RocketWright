@@ -664,9 +664,29 @@ fn typed<T: serde::de::DeserializeOwned>(
     serde_json::from_value(v).map_err(|e| (ptr.to_string(), format!("{file}: {e}")))
 }
 
+/// The model value with every table present, so the first entry of a table
+/// a project does not have (or just deleted) has somewhere to go. Seeded here
+/// and not in [`apply_value`], which stays plain RFC 6902 for
+/// `schema/testdata/patches.json`. An empty table writes nothing back, so
+/// this changes no file and no `model_hash`. The cost: `remove`, `replace`,
+/// `move`, and `test` of a whole absent table now succeed as no-ops instead
+/// of `not_found`, and `test` cannot tell an absent table from an empty one.
+fn seeded(mut value: ModelValue) -> ModelValue {
+    if let Value::Object(root) = &mut value.0 {
+        for t in MERGED_TABLES
+            .into_iter()
+            .chain(FILE_COLLECTIONS.map(|(c, _)| c))
+        {
+            root.entry(t.to_string())
+                .or_insert_with(|| Value::Object(Map::new()));
+        }
+    }
+    value
+}
+
 /// Applies `ops` to a source set: model value → RFC 6902 → split back.
 pub fn apply_sources(sources: &SourceSet, ops: &[PatchOp]) -> Result<SourceSet, PatchError> {
-    let value = ModelValue::from_sources(sources);
+    let value = seeded(ModelValue::from_sources(sources));
     let patched = apply_value(&value.0, ops).map_err(PatchError::from)?;
     ModelValue(patched)
         .to_sources(sources)
@@ -840,5 +860,122 @@ mod tests {
         )
         .unwrap_err();
         assert!(err.message.starts_with("not_found"));
+    }
+
+    /// A source set with no tables at all, as a new project's model can be.
+    fn bare() -> SourceSet {
+        let rocket: RocketDoc = serde_json::from_value(json!({"name": "Bare"})).unwrap();
+        let mut s = SourceSet::default();
+        s.docs
+            .insert("rocket.rw.toml".into(), SourceDoc::Rocket(rocket));
+        s
+    }
+
+    #[test]
+    fn the_first_entry_of_an_absent_table_is_added() {
+        let s = bare();
+        let out = crate::types::apply(
+            &s,
+            &[
+                PatchOp::Add {
+                    path: "/c/body".into(),
+                    value: json!({"type": "body_tube", "length": "300 mm", "od": "54 mm"}),
+                },
+                PatchOp::Add {
+                    path: "/materials/alu".into(),
+                    value: json!({"density": "2700 kg/m^3"}),
+                },
+                PatchOp::Add {
+                    path: "/sims/first".into(),
+                    value: json!({"config": "baseline"}),
+                },
+            ],
+        )
+        .unwrap();
+        let SourceDoc::Rocket(main) = &out.docs["rocket.rw.toml"] else {
+            panic!()
+        };
+        assert!(main.c.contains_key("body") && main.materials.contains_key("alu"));
+        assert!(matches!(out.docs["sims/first.rw.toml"], SourceDoc::Sim(_)));
+        // A bad first entry is a schema error naming the field, not `not_found`.
+        let e = crate::types::apply(
+            &s,
+            &[PatchOp::Add {
+                path: "/engines/x".into(),
+                value: json!({}),
+            }],
+        )
+        .unwrap_err();
+        assert!(
+            e.message.starts_with("schema_error") && e.message.contains("propellants"),
+            "{}",
+            e.message
+        );
+    }
+
+    /// U04's accepted consequence of seeding: whole-table ops on an absent
+    /// table succeed and change nothing. Pinned so a change is deliberate.
+    #[test]
+    fn whole_table_ops_on_an_absent_table_are_no_ops() {
+        let s = bare();
+        for t in [
+            "params",
+            "variants",
+            "stage",
+            "c",
+            "materials",
+            "configs",
+            "sims",
+            "engines",
+        ] {
+            let path = format!("/{t}");
+            let ops = [
+                PatchOp::Remove { path: path.clone() },
+                PatchOp::Test {
+                    path: path.clone(),
+                    value: json!({}),
+                },
+                PatchOp::Replace {
+                    path: path.clone(),
+                    value: json!({}),
+                },
+                PatchOp::Move {
+                    from: path.clone(),
+                    path: path.clone(),
+                },
+            ];
+            for op in ops {
+                let out = crate::types::apply(&s, std::slice::from_ref(&op));
+                assert_eq!(out.as_ref(), Ok(&s), "{op:?}");
+            }
+        }
+        // Only the seeded tables: another absent path is still `not_found`.
+        let e = crate::types::apply(
+            &s,
+            &[PatchOp::Remove {
+                path: "/report".into(),
+            }],
+        )
+        .unwrap_err();
+        assert!(e.message.starts_with("not_found"), "{}", e.message);
+        // A `test` against content still fails, and says the value differs.
+        let e = crate::types::apply(
+            &s,
+            &[PatchOp::Test {
+                path: "/engines".into(),
+                value: json!({"x": 1}),
+            }],
+        )
+        .unwrap_err();
+        assert!(e.message.starts_with("test_failed"), "{}", e.message);
+        // The raw layer is not seeded (`schema/testdata/patches.json`).
+        let e = apply_value(
+            &json!({}),
+            &[PatchOp::Remove {
+                path: "/engines".into(),
+            }],
+        )
+        .unwrap_err();
+        assert_eq!(e.kind, PatchErrorKind::NotFound);
     }
 }
