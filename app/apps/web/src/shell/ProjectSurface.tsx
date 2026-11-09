@@ -24,6 +24,7 @@ import { RunsRail } from "../pages/results/RunsRail.tsx";
 import type { RunDataSource } from "../pages/results/source.ts";
 import { ThumbnailBaker } from "../render/ThumbnailBaker.tsx";
 import { flushProject } from "../state/dirtyFields.ts";
+import { exportChoices } from "../state/selectors.ts";
 import type { RpcLike } from "../state/rpc.ts";
 import { createAppStore, useAppState } from "../state/store.ts";
 import { browserGlbDeps } from "../viewport/glb-source.ts";
@@ -90,6 +91,7 @@ export function ProjectSurface({ client, projectId, initialPage, runSource, http
     if (surfaceRef === undefined) return;
     const handle: SurfaceHandle = {
       flush: () => flushProject(store),
+      exportChoices: () => exportChoices(store.getState()),
       disconnect: () => store.getState().project.disconnect(),
       reconnect: () => {
         store

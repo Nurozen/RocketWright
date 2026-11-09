@@ -3,8 +3,9 @@
  * `bin` is a wrapper that logs each invocation and execs the real binary, so a
  * test can tell that no process was spawned. Projects stay under `/tmp`.
  */
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
-import { basename, join } from "node:path";
+import { createHash } from "node:crypto";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { basename, join, relative } from "node:path";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { TestClient, makeValidator } from "@rw/contracts/mock/harness";
 import { LecturnLink } from "../src/lecturn/connection.ts";
@@ -15,6 +16,17 @@ import { FakeConnection, connectTo } from "./helpers/fakeLecturn.ts";
 import { sidecarBin, tempProject } from "./helpers/harness.ts";
 
 const validator = makeValidator();
+
+/** Every file under `dir`, `.rw/` history included, with a digest of its bytes. */
+function treeDigest(dir: string): Record<string, string> {
+  const digests: Record<string, string> = {};
+  for (const entry of readdirSync(dir, { recursive: true, withFileTypes: true })) {
+    if (!entry.isFile()) continue;
+    const path = join(entry.parentPath, entry.name);
+    digests[relative(dir, path)] = createHash("sha256").update(readFileSync(path)).digest("hex");
+  }
+  return digests;
+}
 
 describe("project lifecycle (U14)", () => {
   let base: string;
@@ -120,6 +132,40 @@ describe("project lifecycle (U14)", () => {
       expect(existsSync(join(project.dir, "rocketwright.toml"))).toBe(true);
       expect(creations().at(-1)).toMatch(/^import ork /);
       expect(await c.request("project.create", { name: "Missing", location, source: { ork: join(base, "no-such.ork") } })).toMatchObject({ ok: false, error: { code: "not_found" } });
+    } finally {
+      await closeAll();
+      rmSync(seed, { recursive: true, force: true });
+    }
+  }, 60_000);
+
+  it("names a project made from an .ork after what the person typed, not the rocket in the file", async () => {
+    const seed = tempProject("rwu55n", "fixtures/research-vehicle");
+    try {
+      const open = await c.call("project.open", { dir: seed });
+      const ork = join(seed, (await c.call("export.file", { projectId: open.project.projectId, format: "ork", path: "exports/rocket.ork" })).path);
+      const { project } = await c.call("project.create", { name: "My Chosen Name", location: freshLocation("ork-named"), source: { ork } });
+      expect(project.name).toBe("My Chosen Name");
+      expect(readProjectName(project.dir)).toBe("My Chosen Name");
+    } finally {
+      await closeAll();
+      rmSync(seed, { recursive: true, force: true });
+    }
+  }, 60_000);
+
+  it("refuses an .ork over a target holding a project: no spawn, and its model and history untouched (D17)", async () => {
+    const seed = tempProject("rwu55r", "fixtures/research-vehicle");
+    try {
+      const open = await c.call("project.open", { dir: seed });
+      // A real, readable file, so that only the existing project can be the reason for the refusal.
+      const ork = join(seed, (await c.call("export.file", { projectId: open.project.projectId, format: "ork", path: "exports/rocket.ork" })).path);
+      const location = freshLocation("ork-taken");
+      const made = await c.call("project.create", { name: "Taken", location, template: "minimal" });
+      await server.closeProject(made.project.projectId);
+      const before = treeDigest(made.project.dir);
+      const spawned = creations().length;
+      expect(await c.request("project.create", { name: "Taken", location, source: { ork } })).toMatchObject({ ok: false, error: { code: "conflict" } });
+      expect(creations().length).toBe(spawned);
+      expect(treeDigest(made.project.dir)).toEqual(before);
     } finally {
       await closeAll();
       rmSync(seed, { recursive: true, force: true });

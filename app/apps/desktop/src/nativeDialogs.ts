@@ -13,8 +13,8 @@
  * `createConsentDialogs` is the native dialog behind the agent's project tools
  * (R1.3, D10, D11). The host channel brings it the request; no page is involved.
  */
-import { DESKTOP_INVOKE_CHANNELS, type DesktopBoot, type FileFilter, type HostRequest } from "@rw/contracts";
-import { isAbsolute, join } from "node:path";
+import { DESKTOP_INVOKE_CHANNELS, EXPORT_FILE_TYPES, type DesktopBoot, type ExportFileRequest, type FileFilter, type HostRequest, type schema } from "@rw/contracts";
+import { basename, isAbsolute, join } from "node:path";
 import type { HostAnswer } from "./mainRpc.ts";
 import type { Recents } from "./recents.ts";
 
@@ -55,6 +55,11 @@ export interface DesktopServices<W extends WindowLike> {
   documents: () => string;
   recents: Recents;
   boot: () => DesktopBoot;
+  /**
+   * Writes the export over main's role-bound socket (D11, D18), to the path the
+   * person chose in the save dialog. Absent without an app server.
+   */
+  exportFile?: (request: ExportFileRequest, path: string) => Promise<schema.ExportOut>;
   /** A hidden run: no dialog can be answered, so every picker reads as cancelled. */
   headless?: boolean;
 }
@@ -81,6 +86,21 @@ function dialogOptions(options: unknown, documents: () => string): { title?: str
     ...(title !== undefined ? { title } : {}),
     defaultPath: given === undefined ? documents() : isAbsolute(given) ? given : join(documents(), given),
     ...(filters !== undefined ? { filters } : {}),
+  };
+}
+
+/** The page's export request. It names what to export, never where: only the save dialog answers that. */
+function exportRequest(v: unknown): ExportFileRequest {
+  if (!isRecord(v) || typeof v.projectId !== "string" || typeof v.format !== "string" || !Object.hasOwn(EXPORT_FILE_TYPES, v.format)) throw new TypeError("exportFile: expected a project and a format");
+  const config = text(v.config);
+  const run = text(v.run);
+  const defaultName = text(v.defaultName);
+  return {
+    projectId: v.projectId,
+    format: v.format as schema.ExportFormat,
+    ...(config !== undefined ? { config } : {}),
+    ...(run !== undefined ? { run } : {}),
+    ...(defaultName !== undefined ? { defaultName } : {}),
   };
 }
 
@@ -116,6 +136,19 @@ export function registerDesktopServices<W extends WindowLike>(deps: DesktopServi
     if (headless) return null;
     const r = await dialog.showSaveDialog(win, dialogOptions(options, documents));
     return r.canceled ? null : text(r.filePath) ?? null;
+  });
+  handle(c.exportFile, async (win, raw) => {
+    const request = exportRequest(raw);
+    if (headless) return { canceled: true };
+    if (deps.exportFile === undefined) throw new Error("exportFile: the app server is not connected");
+    const type = EXPORT_FILE_TYPES[request.format];
+    // A bare name, so the dialog opens in Documents whatever the page sent.
+    const name = basename(request.defaultName ?? `export.${type.extension}`);
+    const options = { title: `Export ${type.label}`, defaultPath: name, filters: [{ name: type.label, extensions: [type.extension] }] };
+    const r = await dialog.showSaveDialog(win, dialogOptions(options, documents));
+    const path = r.canceled ? undefined : text(r.filePath);
+    if (path === undefined) return { canceled: true };
+    return { canceled: false, out: await deps.exportFile(request, path) };
   });
   handle(c.recents, () => recents.list());
   handle(c.removeRecent, (_win, dir) => {

@@ -9,22 +9,26 @@
  * dedupes.
  */
 import { useCallback, useRef, useState, type ReactNode, type RefObject } from "react";
-import type { ProjectInfo, RecentProject } from "@rw/contracts";
+import type { ExportFileRequest, ProjectInfo, RecentProject, schema } from "@rw/contracts";
 import type { HostApi } from "../host/HostApi.ts";
 import type { RpcLike } from "../state/rpc.ts";
+import type { ExportChoices, ExportRunChoice } from "../state/selectors.ts";
 import { Banner } from "../ui/Banner.tsx";
 import { Modal } from "../ui/Modal.tsx";
 import { dispatchCommand, type CommandHandlers } from "./commands.ts";
 import type { LifecycleState } from "./lifecycle.ts";
 import type { ProjectMenuModel } from "./model.ts";
 import { NewProjectDialog, type NewProjectOffer } from "./NewProjectDialog.tsx";
-import { errorText, nextOpen, openFolder, openRecent, openSample } from "./projectActions.ts";
+import { ExportDialog, OrkImportDialog } from "./ImportExportDialogs.tsx";
+import { errorText, exportDefaultName, exportedNotice, fileBase, IMPORT_BUSY, IMPORT_FILTERS, IMPORT_MOTOR_NEEDS_PROJECT, IMPORT_UNSUPPORTED, importedNotice, importKindOf, nextOpen, openFolder, openRecent, openSample, ORK_FILTERS, type Notice } from "./projectActions.ts";
 import { RenameProjectDialog } from "./RenameProjectDialog.tsx";
 
 /** What `AppRoot` needs from the mounted project before it can leave it. */
 export interface SurfaceHandle {
   /** Saves typed work; returns what could not be saved. */
   flush(): Promise<string[]>;
+  /** What the Export dialog can offer for this project. */
+  exportChoices(): ExportChoices;
   disconnect(): void;
   /** Undoes `disconnect` when the close it was for failed. */
   reconnect(): void;
@@ -47,6 +51,8 @@ export interface ProjectActions {
   switchProject: (projectId: string) => void;
   /** Puts a failure from outside these actions in the same place. */
   report: (message: string) => void;
+  /** Imports a file named by path, whether picked, dropped or typed (D18). */
+  importPath: (path: string) => void;
   overlays: ReactNode;
 }
 
@@ -91,7 +97,10 @@ function UnsavedPrompt({ question }: { question: UnsavedQuestion }) {
 export function useProjectActions({ client, host, lifecycle, surface, info, show, closed }: ProjectActionsOptions): ProjectActions {
   const [recents, setRecents] = useState<readonly RecentProject[]>([]);
   const [recentsError, setRecentsError] = useState<string | null>(null);
-  const [dialog, setDialog] = useState<{ offer?: NewProjectOffer } | null>(null);
+  const [dialog, setDialog] = useState<{ offer?: NewProjectOffer; ork?: string } | null>(null);
+  const [orkChoice, setOrkChoice] = useState<{ path: string; projectName: string } | null>(null);
+  const [exporting, setExporting] = useState<(ExportChoices & { projectId: string; projectName: string }) | null>(null);
+  const [notice, setNotice] = useState<Notice | null>(null);
   const [renaming, setRenaming] = useState<ProjectInfo | null>(null);
   const [question, setQuestion] = useState<UnsavedQuestion | null>(null);
   const [status, setStatus] = useState<string | null>(null);
@@ -108,6 +117,7 @@ export function useProjectActions({ client, host, lifecycle, surface, info, show
     }
     running.current = true;
     setError(null);
+    setNotice(null);
     work(client)
       .catch((e: unknown) => setError(errorText(e)))
       .finally(() => {
@@ -153,7 +163,85 @@ export function useProjectActions({ client, host, lifecycle, surface, info, show
     closed(shown.projectId, await nextOpen(rpc, shown.projectId));
   };
 
+  /** A drop or an accelerator arrives past any dialog on screen, which it must not replace. */
+  const dialogOpen = dialog !== null || orkChoice !== null || exporting !== null || renaming !== null || question !== null;
+
+  const importFile = async (rpc: RpcLike, path: string) => {
+    const kind = importKindOf(path);
+    if (kind === null) {
+      setError(IMPORT_UNSUPPORTED);
+      return;
+    }
+    const shown = lifecycle.current;
+    if (shown.phase !== "project") {
+      if (kind === "motor") setError(IMPORT_MOTOR_NEEDS_PROJECT);
+      else setDialog({ ork: path });
+      return;
+    }
+    if (kind === "ork") {
+      setOrkChoice({ path, projectName: info.current?.name ?? shown.projectId });
+      return;
+    }
+    setStatus(`Importing ${fileBase(path)}…`);
+    setNotice(importedNotice(fileBase(path), await rpc.call("import.file", { projectId: shown.projectId, path, kind })));
+  };
+
+  const importPath = (path: string) => {
+    if (dialogOpen) setError(IMPORT_BUSY);
+    else perform((rpc) => importFile(rpc, path), () => setError(IMPORT_BUSY));
+  };
+
+  const replaceWithOrk = (path: string) => {
+    setOrkChoice(null);
+    // Replacing commits over whatever is on disk, so typed work has to be there first.
+    leaveThen(async (rpc) => {
+      const shown = lifecycle.current;
+      if (shown.phase !== "project") return;
+      setStatus(`Importing ${fileBase(path)}…`);
+      setNotice(importedNotice(fileBase(path), await rpc.call("import.file", { projectId: shown.projectId, path, kind: "ork" })));
+    });
+  };
+
+  const newFromOrk = (path: string) => {
+    setOrkChoice(null);
+    leaveThen(async () => setDialog({ ork: path }));
+  };
+
+  const runExport = (format: schema.ExportFormat, run: ExportRunChoice | undefined) => {
+    const target = exporting;
+    setExporting(null);
+    if (target === null) return;
+    const { projectId, projectName } = target;
+    const selection = run === undefined ? {} : { run: run.ref };
+    const request: ExportFileRequest = { projectId, format, defaultName: exportDefaultName(projectName, format, run?.sim), ...selection };
+    // An export writes what is saved, so typed work has to be saved first.
+    leaveThen(async (rpc) => {
+      setStatus("Exporting…");
+      const result = await host.exportFile(request, (path) => rpc.call("export.file", { projectId, format, path, ...selection }));
+      if (!result.canceled) setNotice(exportedNotice(result.out));
+    });
+  };
+
   const commands: CommandHandlers = {
+    "file.import": () => {
+      if (dialogOpen) {
+        setError(IMPORT_BUSY);
+        return;
+      }
+      perform(async (rpc) => {
+        // With no project only a design can be imported, so the picker offers only that.
+        const path = await host.pickFile({ title: "Import", filters: lifecycle.current.phase === "project" ? IMPORT_FILTERS : ORK_FILTERS });
+        if (path !== null) await importFile(rpc, path);
+      }, () => setError(IMPORT_BUSY));
+    },
+    "file.export": () => {
+      const shown = lifecycle.current;
+      const mounted = surface.current;
+      if (shown.phase !== "project" || mounted === null || dialogOpen) return;
+      setError(null);
+      setNotice(null);
+      setExporting({ ...mounted.exportChoices(), projectId: shown.projectId, projectName: info.current?.name ?? shown.projectId });
+    },
     "project.new": () => leaveThen(async () => setDialog({})),
     "project.open": () =>
       leaveThen(async (rpc) => {
@@ -212,12 +300,18 @@ export function useProjectActions({ client, host, lifecycle, surface, info, show
           {error}
         </Banner>
       )}
+      {notice !== null && (
+        <Banner floating tone={notice.tone} testId="project-actions.notice" onDismiss={() => setNotice(null)}>
+          {notice.text}
+        </Banner>
+      )}
       {question !== null && <UnsavedPrompt question={question} />}
       {client !== null && dialog !== null && (
         <NewProjectDialog
           client={client}
           host={host}
           offer={dialog.offer}
+          ork={dialog.ork}
           onClose={() => setDialog(null)}
           onCreated={(projectId) => {
             setDialog(null);
@@ -226,8 +320,10 @@ export function useProjectActions({ client, host, lifecycle, surface, info, show
         />
       )}
       {client !== null && renaming !== null && <RenameProjectDialog client={client} project={renaming} onClose={() => setRenaming(null)} />}
+      {orkChoice !== null && <OrkImportDialog fileName={fileBase(orkChoice.path)} projectName={orkChoice.projectName} onCancel={() => setOrkChoice(null)} onNew={() => newFromOrk(orkChoice.path)} onReplace={() => replaceWithOrk(orkChoice.path)} />}
+      {exporting !== null && <ExportDialog choices={exporting} onCancel={() => setExporting(null)} onExport={runExport} />}
     </>
   );
 
-  return { commands, menu, switchProject, report, overlays };
+  return { commands, menu, switchProject, report, importPath, overlays };
 }

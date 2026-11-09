@@ -27,6 +27,24 @@ export function saveStatus(s: AppState): StatusView {
   return statusOf({ kind: "draft", ops: s.draft.ops });
 }
 
+export interface ExportRunChoice {
+  /** `<sim>/<run-id>`, what `export.file` takes. */
+  ref: string;
+  sim: string;
+  label: string;
+}
+
+export interface ExportChoices {
+  noParts: boolean;
+  /** Flown runs with a series to write as CSV, outdated ones included: the file is still what flew. */
+  runs: ExportRunChoice[];
+}
+
+export function exportChoices(s: AppState): ExportChoices {
+  const runs = (s.project.snapshot?.runs.runs ?? []).flatMap((r): ExportRunChoice[] => (r.kind === "flight" && (r.status === "complete" || r.status === "outdated") && r.run_id != null ? [{ ref: `${r.sim}/${r.run_id}`, sim: r.sim, label: `${r.sim_name} (${r.run_id})` }] : []));
+  return { noParts: hasNoParts(s), runs };
+}
+
 export function selectedComponents(s: AppState): string[] {
   return selectedComponentIds(s.selection.refs);
 }

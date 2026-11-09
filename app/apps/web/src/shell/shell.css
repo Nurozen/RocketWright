@@ -1100,6 +1100,10 @@ button:disabled {
   color: var(--rw-accent);
 }
 
+.rw-welcome__import {
+  margin-top: 16px;
+}
+
 .rw-welcome__messages {
   display: flex;
   flex-direction: column;

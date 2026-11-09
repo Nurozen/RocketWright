@@ -70,7 +70,7 @@
  * build never opens a `/tmp` copy.
  */
 import { mountEmbedView, captureEmbedView, type EmbedBridge, type EmbedTarget as HelperEmbedTarget } from "@lecturn/embed/electron";
-import { DESKTOP_COMMAND_CHANNEL, embedThemeInput, PANE_MAIN_CHANNEL, type DesktopBoot, type EmbedTarget, type LecturnHostThemeJson, type LecturnThemeJson, type PaneMainMessage } from "@rw/contracts";
+import { DESKTOP_COMMAND_CHANNEL, embedThemeInput, PANE_MAIN_CHANNEL, type DesktopBoot, type EmbedTarget, type ExportFileRequest, type LecturnHostThemeJson, type LecturnThemeJson, type PaneMainMessage } from "@rw/contracts";
 import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, shell, systemPreferences, webContents } from "electron";
 import { mkdirSync, readFileSync, rmSync } from "node:fs";
 import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
@@ -645,6 +645,12 @@ async function main(): Promise<void> {
     boot: () => boot,
     headless: hidden,
     recents,
+    ...(mainRpc === null
+      ? {}
+      : {
+          exportFile: ({ projectId, format, config, run }: ExportFileRequest, path: string) =>
+            mainRpc.call("export.file", { projectId, format, path, allow_outside: true, ...(config === undefined ? {} : { config }), ...(run === undefined ? {} : { run }) }),
+        }),
   });
   const shutdown = once(async (code: number): Promise<void> => {
     consent.close();
@@ -722,7 +728,12 @@ async function main(): Promise<void> {
   }
 }
 
-/** Keeps the app window on the app: a web link opens the browser, and nothing else may replace the page or open a second window. */
+/**
+ * Keeps the app window on the app: a web link opens the browser, and nothing
+ * else may replace the page or open a second window. Also the backstop for a
+ * file dropped before the page's own drop handler is listening, which would
+ * otherwise navigate the window to `file://` (`linkAction` denies it).
+ */
 function guardLinks(win: BrowserWindow, appOrigin: string): void {
   const openOutside = (url: string): void => {
     shell.openExternal(url).catch((e: unknown) => process.stderr.write(`cannot open ${url}: ${e instanceof Error ? e.message : String(e)}\n`));

@@ -19,6 +19,7 @@ import { errorText, nextOpen } from "./projectActions.ts";
 import { ProjectSurface } from "./ProjectSurface.tsx";
 import { QuickStart } from "./QuickStart.tsx";
 import { undoInField } from "./undo.ts";
+import { useFileDrop } from "./useFileDrop.ts";
 import { useProjectActions, type SurfaceHandle } from "./useProjectActions.tsx";
 import { Welcome } from "./Welcome.tsx";
 import { applyZoom, nextZoom, ZOOM_DEFAULT } from "./zoom.ts";
@@ -143,6 +144,8 @@ export function AppRoot({ url, requestedProjectId, initialPage, runSource, httpB
     return onOpenProject(desktop, (id) => latest.current.switchProject(id));
   }, [desktop, client]);
 
+  useFileDrop(window, host, (path) => latest.current.importPath(path), (message) => latest.current.report(message));
+
   const surfaceCommands = useRef<CommandHandlers | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
   const openHelp = useCallback(() => setHelpOpen(true), []);
@@ -169,7 +172,7 @@ export function AppRoot({ url, requestedProjectId, initialPage, runSource, httpB
   if (state.phase === "fatal") {
     screen = <FatalScreen error={state.error} />;
   } else if (client !== null && state.phase === "welcome") {
-    screen = <Welcome client={client} host={host} notice={state.notice} onOpened={show} />;
+    screen = <Welcome client={client} host={host} notice={state.notice} onOpened={show} onImport={() => void dispatchCommand({ id: "file.import" }, actions.commands)} />;
   } else if (client !== null && state.phase === "project") {
     screen = (
       <ProjectSurface

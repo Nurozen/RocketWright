@@ -588,7 +588,19 @@ export class AppServer {
       return {};
     },
 
-    "project.create": async (_c, params) => ({ project: await this.openProject(await this.creator.create(projectCreateArgs(params))) }),
+    "project.create": async (_c, params) => {
+      const args = projectCreateArgs(params);
+      const project = await this.openProject(await this.creator.create(args));
+      if (args.ork === undefined || project.name === args.name) return { project };
+      // `rw import ork` names the project after the rocket in the file; the person named it in the dialog.
+      try {
+        return { project: await this.project(project.projectId).setName(args.name) };
+      } catch (e) {
+        // The project exists and is open: reporting a failure would invite a retry that answers `conflict`.
+        this.log(`project.create: naming ${project.dir}: ${e instanceof Error ? e.message : String(e)}`);
+        return { project };
+      }
+    },
 
     "project.inspect": (_c, params) => inspectFolder(resolve(expandHome(str(params, "dir"))), (dir) => this.creator.collisions(dir)),
 
@@ -668,13 +680,17 @@ export class AppServer {
 
     "component.remove": (_c, params) => this.hostOf(params).tool<MutationOut>("component_remove", { ...componentRemoveArgs(params) }, optStr(params, "label")),
 
-    "import.file": (_c, params) => this.hostOf(params).tool<schema.ImportOut>("import_file", { ...importFileArgs(params) }),
+    // Browser mode types the path (D18), and the sidecar reads a leading `~` as a folder in the project.
+    "import.file": (_c, params) => {
+      const args = importFileArgs(params);
+      return this.hostOf(params).tool<schema.ImportOut>("import_file", { ...args, path: expandHome(args.path) });
+    },
 
     "export.file": (conn, params) => {
       const args = exportFileArgs(params);
       // Writing outside the project needs main's role-bound socket (D11); the page's token alone must not write anywhere (D18).
       if (args.allow_outside === true && conn.role !== "main") throw new RpcFail("forbidden", "export.file: allow_outside is refused on this socket");
-      return this.hostOf(params).tool<schema.ExportOut>("export_file", { ...args });
+      return this.hostOf(params).tool<schema.ExportOut>("export_file", { ...args, path: expandHome(args.path) });
     },
 
     render: (_c, params) => this.hostOf(params).tool<schema.RenderResult>("render", { ...renderArgs(params) }),
