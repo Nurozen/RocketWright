@@ -74,9 +74,12 @@ export function addPresetOps({ item, takenIds, takenNames, materials, attach }: 
   return { id, name, ops };
 }
 
-/** `add`, not `replace`: a field the part does not have written yet would otherwise fail the whole patch. */
+/**
+ * `add`, not `replace`: a field the part does not have written yet would otherwise fail the whole patch.
+ * Only the part's own shape: its name, packed size, motor settings and tank fill stay as the person set them.
+ */
 export function presetGeometryOps(item: LibItem, part: Part): PatchOp[] {
-  const keys = new Set(editorFields(part.shape.type).filter((f) => f.tab === "Geometry").map((f) => f.key.split(".")[0]!));
+  const keys = new Set(editorFields(part.shape.type).filter((f) => f.tab === "Geometry" && f.key !== "name" && f.section === undefined && f.parent !== "fill").map((f) => f.key.split(".")[0]!));
   return Object.entries(item.data)
     .filter(([key, value]) => keys.has(key) && value !== undefined && value !== null)
     .map(([key, value]) => ({ op: "add", path: `/c/${part.id}/${key}`, value: value as never }));

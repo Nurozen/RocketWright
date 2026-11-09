@@ -6,7 +6,7 @@
  */
 import type { PatchOp, schema } from "@rw/contracts";
 import type { DeepReadonly, Units } from "../../state/index.ts";
-import { isComponentField, toDisplay, toSource, type FieldGroup, type FieldSpec } from "../../ui/fields/index.ts";
+import { isComponentField, parseLiteral, toDisplay, toSource, type FieldGroup, type FieldSpec } from "../../ui/fields/index.ts";
 import { fieldTarget, sourceHasTable, type SourceFilesLike, type SourceScalar } from "./source.ts";
 
 type Comp = DeepReadonly<schema.EvalComponent>;
@@ -22,9 +22,40 @@ export function evaluatedValue(c: Comp, key: string): number | string | boolean 
   return typeof v === "number" || typeof v === "string" || typeof v === "boolean" ? v : null;
 }
 
+/** Tube kinds whose bore is given by `id` or `thickness`; `id` wins when both are written (`crates/rw-model/src/shape.rs`). */
+const BORED_KINDS: ReadonlySet<string> = new Set(["body_tube", "inner_tube", "coupler", "launch_lug", "tube_fin_set"]);
+
+/** The bore field a write to `thickness` or `id` must clear, so the value typed is the value that counts. */
+function supersededBy(c: Comp, key: string): string | null {
+  if (!BORED_KINDS.has(c.shape.type)) return null;
+  return key === "thickness" ? "id" : key === "id" ? "thickness" : null;
+}
+
+/**
+ * What a field shows. The evaluated model answers first; a field it does not
+ * carry (`attach.spin`, `instances.*`, a tube's `thickness`) comes from the
+ * source as written. `attach.at` and the finish preset read only the source:
+ * evaluation fills in a default a person did not choose.
+ */
+export function fieldValue(c: Comp, files: SourceFilesLike, f: FieldSpec): number | string | boolean | null {
+  // The override's CG evaluates to a station on the rocket, not the distance from the part's fore end that a person types.
+  const sourceOnly = f.key === "attach.at" || f.key === "finish" || f.key === "override.cg";
+  const evaluated = sourceOnly ? null : evaluatedValue(c, f.key);
+  if (evaluated !== null) return evaluated;
+  const written = fieldTarget(files, c.id, f.key).written;
+  if (written !== undefined) return f.kind === "quantity" ? parseLiteral(written) : written;
+  if (f.key === "thickness" && BORED_KINDS.has(c.shape.type)) {
+    const { od, id } = c.shape as unknown as { od?: unknown; id?: unknown };
+    if (typeof od === "number" && typeof id === "number") return (od - id) / 2;
+  }
+  return null;
+}
+
 /** The part has this nested table: in its sources, or in the evaluated model (a draft the mirror has not caught up with). */
 export function tablePresent(files: SourceFilesLike, c: Comp, parts: readonly string[]): boolean {
-  return sourceHasTable(files, c.id, parts) || evaluatedAt(c, parts) != null;
+  // An array (`instances`) is evaluated whether or not the source has the table.
+  const seen = evaluatedAt(c, parts);
+  return sourceHasTable(files, c.id, parts) || (seen != null && !Array.isArray(seen));
 }
 
 /** One op per distinct target (a shared param is written once); `null` clears the field. */
@@ -49,6 +80,14 @@ export function fieldWriteOps(comps: readonly Comp[], files: SourceFilesLike, f:
     } else {
       ops.push({ op: t.written === undefined && t.param === null ? "add" : "replace", path: t.path, value: v as never });
     }
+    const other = supersededBy(c, f.key);
+    if (other !== null) {
+      const stale = fieldTarget(files, c.id, other);
+      if (stale.written !== undefined && !seen.has(stale.path)) {
+        seen.add(stale.path);
+        ops.push({ op: "remove", path: stale.path });
+      }
+    }
   }
   return ops;
 }
@@ -62,6 +101,8 @@ function firstAbsent(files: SourceFilesLike, c: Comp, parts: readonly string[]):
 }
 
 const FALLBACK_SIZE = 0.02;
+/** A painted finish, in metres: where a custom roughness starts when the part has none. */
+const DEFAULT_ROUGHNESS = 60e-6;
 
 /**
  * Required members of a group the part does not have yet, sized from the part
@@ -69,13 +110,17 @@ const FALLBACK_SIZE = 0.02;
  * into (RW-E150 is the bore it must clear), a tab half the root chord and no
  * deeper than the wall until the user says so (RW-E153 is too deep).
  */
-function groupDefaults(c: Comp, key: string, units: Units): Record<string, string | number> {
+function groupDefaults(c: Comp, key: string, units: Units): Record<string, string | number | boolean> {
   const shape = c.shape as unknown as Record<string, unknown>;
   const num = (k: string): number => {
     const v = shape[k];
     return typeof v === "number" && v > 0 ? v : FALLBACK_SIZE;
   };
   const literal = (si: number) => toSource(Number(toDisplay(si, "length", units)), "length", units);
+  if (key === "instances") return { count: 2, pattern: "radial" };
+  if (key === "joint") return { type: "friction" };
+  if (key === "fill") return { propellant: "n2o" };
+  if (key === "finish") return { roughness: toSource(Number(toDisplay(c.roughness ?? DEFAULT_ROUGHNESS, "length:um", units)), "length:um", units) };
   if (key === "tab") return { height: literal(0), length: literal(num("root_chord") / 2) };
   const od = num(key === "fore_shoulder" ? "fore_od" : key === "aft_shoulder" ? "aft_od" : "od");
   return { length: literal(od), od: literal(od * 0.9) };

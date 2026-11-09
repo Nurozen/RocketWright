@@ -313,6 +313,8 @@
 }
 
 .rw-editor__fields--extra,
+.rw-editor__fields--name,
+.rw-editor__fields[data-tab="Position"],
 .rw-editor__fields[data-tab="Material"],
 .rw-editor__fields[data-tab="Appearance"],
 .rw-editor__fields[data-tab="Mass override"] {

@@ -1,6 +1,6 @@
 /**
  * Page 02 component editor (concept 02, lower 40% of the workspace,
- * collapsible): tabs Geometry | Material | Appearance | Mass override, two
+ * collapsible): tabs Geometry | Position | Material | Appearance | Mass override, two
  * columns of unit-aware spinner fields from the component-type schema
  * (ui/fields), validation messages (local limits plus the check's
  * diagnostics on the part), the live part profile, Modified status, Parts
@@ -15,12 +15,14 @@ import type { PatchOp, schema } from "@rw/contracts";
 import { Icon } from "../../shell/Icon.tsx";
 import { ADD_FIRST_PART, FIRST_PART_HINT, type DeepReadonly, type Units } from "../../state/index.ts";
 import { partLabel } from "../../state/ops/parts.ts";
-import { BoolField, displayUnit, FieldGroupFrame, fromDisplay, groupsOf, limitsOf, rangeError, SelectField, sharedFields, SpinField, tabsFor, toDisplay, toSource, type EditorTab, type FieldSpec } from "../../ui/fields/index.ts";
-import { evaluatedValue, fieldWriteOps, groupAddOps, tablePresent } from "./fieldOps.ts";
+import { BoolField, displayUnit, FieldGroupFrame, fromDisplay, groupsOf, limitsOf, parseLiteral, rangeError, SelectField, sharedFields, SpinField, tabsFor, TextField, toDisplay, toSource, type EditorTab, type FieldDiagnostic, type FieldSpec } from "../../ui/fields/index.ts";
+import { fieldValue, fieldWriteOps, groupAddOps, tablePresent } from "./fieldOps.ts";
+import { attachChoices, ownAnchorChoices } from "./positionFields.ts";
 import { FinOutlineEditor } from "./FinOutlineEditor.tsx";
 import { PartProfile } from "./PartProfile.tsx";
 import { densityKeyFor, materialChoices } from "./materialFields.ts";
-import { fieldTarget, type SourceFilesLike } from "./source.ts";
+import { fieldTarget, sourceHasTable, type SourceFilesLike } from "./source.ts";
+import { RENAME_OUTDATES_RUNS } from "../../shell/RenameProjectDialog.tsx";
 
 type Comp = DeepReadonly<schema.EvalComponent>;
 type LibItem = DeepReadonly<schema.LibItem>;
@@ -42,6 +44,8 @@ export interface EditorStatus {
 
 export interface ComponentEditorProps {
   comps: readonly Comp[];
+  /** Every part of the model: what Attach to can name. */
+  allComps?: readonly Comp[];
   /** The project has no parts: there is nothing to select yet (R0.3a). */
   noParts?: boolean;
   files: SourceFilesLike;
@@ -95,6 +99,14 @@ export function partDiagnostics(diags: readonly DeepReadonly<Diagnostic>[], ids:
   });
 }
 
+/** The check's first word on one field of these parts, for the field itself. */
+function fieldDiagnostic(diags: readonly DeepReadonly<Diagnostic>[], comps: readonly Comp[], key: string): FieldDiagnostic | undefined {
+  const paths = new Set(comps.map((c) => `/c/${c.id}/${key.replace(/\./g, "/")}`));
+  return diags.find((d) => paths.has(d.path ?? "")) as FieldDiagnostic | undefined;
+}
+
+const humanize = (s: string) => s.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
+
 export function ComponentEditor(props: ComponentEditorProps) {
   const { comps, files, units, status, tab, onTab, collapsed, onCollapse } = props;
   const types = comps.map((c) => c.shape.type);
@@ -106,7 +118,11 @@ export function ComponentEditor(props: ComponentEditorProps) {
   const first = comps[0];
   const [libOpen, setLibOpen] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  useEffect(() => setErrors({}), [comps.map((c) => c.id).join(","), active]);
+  // Fields asked for through Add field, until the selection moves on.
+  const [added, setAdded] = useState<readonly string[]>([]);
+  const selectionKey = comps.map((c) => c.id).join(",");
+  useEffect(() => setErrors({}), [selectionKey, active]);
+  useEffect(() => setAdded([]), [selectionKey]);
   if (first === undefined) {
     return (
       <section className="rw-editor" data-rw-region="editor" data-testid="editor" data-empty="true">
@@ -116,12 +132,26 @@ export function ComponentEditor(props: ComponentEditorProps) {
     );
   }
   const ids = comps.map((c) => c.id);
-  const flat = all.filter((f) => f.parent === undefined);
+  const multi = comps.length > 1;
+  // Nothing to place until the part is attached somewhere; the first part of a rocket has no attachment.
+  const attached = comps.every((c) => c.attach != null || sourceHasTable(files, c.id, ["attach"]));
+  const isWritten = (f: FieldSpec) => comps.some((c) => fieldTarget(files, c.id, f.key).written !== undefined);
+  const custom = comps.every((c) => sourceHasTable(files, c.id, ["finish"]));
+  const flat = all.filter((f) => {
+    if (f.parent !== undefined || (multi && f.key === "name")) return false;
+    if (f.key.startsWith("attach.") && f.key !== "attach.to" && !attached) return false;
+    if (f.key === "finish" && custom) return false;
+    return true;
+  });
   const groups = groupsOf(all);
-  // Required fields fill the two-column grid; optional ones show when the source sets them.
-  const fields = flat.filter((f) => f.tab !== "Geometry" || f.required || comps.some((c) => fieldTarget(files, c.id, f.key).written !== undefined));
+  const shown = (f: FieldSpec) => f.advanced !== true || isWritten(f) || added.includes(f.key);
+  const fields = flat.filter((f) => f.key !== "name" && f.section === undefined && shown(f));
+  // Required fields fill the two-column grid; optional ones follow.
   const primary = fields.filter((f) => f.tab !== "Geometry" || f.required);
   const extra = fields.filter((f) => !primary.includes(f));
+  const nameField = flat.find((f) => f.key === "name");
+  const sections = [...new Set(flat.flatMap((f) => (f.section !== undefined && shown(f) ? [f.section] : [])))];
+  const addable = flat.filter((f) => !shown(f));
   const title = comps.length > 1 ? `${comps.length} parts` : first.name;
   const paramPaths = [...fields, ...groups.flatMap((g) => g.fields)].map((f) => fieldTarget(files, first.id, f.key)).filter((t) => t.param !== null).map((t) => t.path);
   // A single freeform fin set edits its outline on Geometry (its RW-E061 outline messages show there).
@@ -136,6 +166,8 @@ export function ComponentEditor(props: ComponentEditorProps) {
       files={files}
       units={units}
       materials={props.materials}
+      allComps={props.allComps ?? comps}
+      diag={fieldDiagnostic(props.diagnostics, comps, f.key)}
       error={errors[f.key] ?? null}
       setError={(e) => setErrors((x) => ({ ...x, [f.key]: e ?? "" }))}
       onEdit={props.onEdit}
@@ -171,6 +203,7 @@ export function ComponentEditor(props: ComponentEditorProps) {
           <div className="rw-editor__body">
             <div className="rw-editor__main">
               <div className="rw-editor__scroll" data-testid="editor.scroll">
+                {nameField !== undefined && <div className="rw-editor__fields rw-editor__fields--name" data-tab={active}>{row(nameField)}</div>}
                 <div className="rw-editor__fields" data-tab={active} style={active === "Geometry" ? { gridTemplateRows: `repeat(${Math.max(1, Math.ceil(primary.length / 2))}, auto)` } : undefined}>
                   {primary.map(row)}
                 </div>
@@ -179,12 +212,32 @@ export function ComponentEditor(props: ComponentEditorProps) {
                     {extra.map(row)}
                   </div>
                 )}
+                {sections.map((section) => (
+                  <FieldGroupFrame key={section} heading={section} group={section.toLowerCase()}>
+                    <div className="rw-editor__fields rw-editor__fields--extra" data-tab={active}>
+                      {flat.filter((f) => f.section === section && shown(f)).map(row)}
+                    </div>
+                  </FieldGroupFrame>
+                ))}
                 {groups.map((g) =>
                   comps.every((c) => tablePresent(files, c, [g.key])) ? (
                     <FieldGroupFrame key={g.key} heading={g.heading} group={g.key}>
                       <div className="rw-editor__fields rw-editor__fields--extra" data-tab={active}>
                         {g.fields.map(row)}
                       </div>
+                      {g.key === "finish" && (
+                        <button
+                          type="button"
+                          className="rw-link"
+                          data-testid="editor.finish-preset"
+                          onClick={() => {
+                            props.onEdit(comps.map((c) => ({ op: "remove", path: `/c/${c.id}/finish` })), `Use a finish preset on ${title}`);
+                            props.onCommit();
+                          }}
+                        >
+                          Use a preset
+                        </button>
+                      )}
                     </FieldGroupFrame>
                   ) : (
                     <button
@@ -202,6 +255,21 @@ export function ComponentEditor(props: ComponentEditorProps) {
                       {g.add}
                     </button>
                   ),
+                )}
+                {addable.length > 0 && (
+                  <div className="rw-editor__fields rw-editor__fields--extra" data-tab={active}>
+                    <SelectField
+                      testid="editor.add-field"
+                      field={{ key: "add-field", label: "Add field" }}
+                      value=""
+                      options={addable.map((f) => f.key)}
+                      labels={Object.fromEntries(addable.map((f) => [f.key, f.label]))}
+                      placeholder="Choose a field"
+                      title="Add an optional field this part does not set yet"
+                      byAgent={false}
+                      onChange={(key) => setAdded((cur) => [...cur, key])}
+                    />
+                  </div>
                 )}
                 {outline && <FinOutlineEditor comp={first} units={units} diagnostics={props.diagnostics} onEdit={props.onEdit} onCommit={props.onCommit} onDiscard={props.onDiscard} />}
                 <div className="rw-editor__notes">
@@ -281,6 +349,8 @@ function FieldRow({
   files,
   units,
   materials,
+  allComps,
+  diag,
   error,
   setError,
   onEdit,
@@ -294,6 +364,8 @@ function FieldRow({
   files: SourceFilesLike;
   units: Units;
   materials: EvalMaterials;
+  allComps: readonly Comp[];
+  diag: FieldDiagnostic | undefined;
   error: string | null;
   setError: (e: string | null) => void;
   onEdit: (ops: PatchOp[], label: string) => void;
@@ -302,7 +374,7 @@ function FieldRow({
 }) {
   const first = comps[0]!;
   const target = fieldTarget(files, first.id, f.key);
-  const values = comps.map((c) => evaluatedValue(c, f.key));
+  const values = comps.map((c) => fieldValue(c, files, f));
   const mixed = values.some((v) => v !== values[0]);
   const value = values[0] ?? null;
   const lim = limitsOf(f, target.param, units);
@@ -311,36 +383,78 @@ function FieldRow({
   const opsFor = (v: string | number | boolean | null): PatchOp[] => fieldWriteOps(comps, files, f, v);
   const linked = linkTitle(target.param !== null ? { name: target.param.name, ...(target.param.doc !== undefined ? { doc: target.param.doc } : {}) } : null, target.expression, f.doc);
   const testid = "editor.field";
+  const pick = (v: string | number | boolean | null) => {
+    onEdit(opsFor(v), label);
+    onCommit();
+  };
+  if (f.key === "attach.radial") {
+    return <RadialField field={f} comps={comps} files={files} units={units} title={linked} byAgent={byAgent} diag={diag} error={error} setError={setError} onEdit={onEdit} onCommit={onCommit} onDiscard={onDiscard} />;
+  }
   if (f.kind === "bool") {
+    return <BoolField testid={testid} field={f} checked={mixed ? null : value === true} title={linked} byAgent={byAgent} diag={diag} onChange={pick} />;
+  }
+  if (f.kind === "text") {
     return (
-      <BoolField
+      <TextField
         testid={testid}
         field={f}
-        checked={mixed ? null : value === true}
+        value={mixed || value === null ? "" : String(value)}
+        placeholder={mixed ? "Mixed" : ""}
         title={linked}
         byAgent={byAgent}
-        onChange={(checked) => {
-          onEdit(opsFor(checked), label);
-          onCommit();
+        error={error}
+        note={f.key === "name" ? RENAME_OUTDATES_RUNS : undefined}
+        diag={diag}
+        onChange={(text) => {
+          const t = text.trim();
+          if (t === "") {
+            if (f.key === "name" || f.required) {
+              setError(`${f.label} needs a value.`);
+              return;
+            }
+            setError(null);
+            const ops = opsFor(null);
+            if (ops.length > 0) onEdit(ops, label);
+            return;
+          }
+          const message = f.key === "appearance.color" && !/^#[0-9a-fA-F]{6}$/.test(t) ? "Color needs the form #rrggbb." : null;
+          setError(message);
+          if (message === null) onEdit(opsFor(t), label);
+        }}
+        onCommit={onCommit}
+        onDiscard={() => {
+          setError(null);
+          onDiscard();
         }}
       />
     );
   }
   if (f.kind === "enum") {
-    const options = f.key === "material" ? materialChoices(materials, densityKeyFor(first.shape.type), mixed || typeof value !== "string" ? null : value) : (f.options ?? []);
+    const current = mixed || typeof value !== "string" ? null : value;
+    const material = f.key === "material" || f.key === "line_material";
+    const choices =
+      f.key === "attach.to"
+        ? attachChoices(allComps, comps, current)
+        : f.key === "attach.at"
+          ? ownAnchorChoices(first)
+          : material
+            ? { options: materialChoices(materials, f.key === "line_material" ? "line_density" : densityKeyFor(first.shape.type), current), labels: undefined }
+            : { options: f.options ?? [], labels: Object.fromEntries((f.options ?? []).map((o) => [o, humanize(o)])) };
+    // `attach.to` always has a value once attached; clearing it would orphan the part.
+    const clearable = !f.required && f.key !== "attach.to";
     return (
       <SelectField
         testid={testid}
         field={f}
         value={mixed || value === null ? "" : String(value)}
-        options={options}
-        placeholder={mixed ? "Mixed" : value === null ? "—" : null}
+        options={choices.options}
+        labels={choices.labels}
+        placeholder={mixed ? "Mixed" : value === null || clearable ? (f.key === "attach.at" ? "Automatic" : "—") : null}
         title={linked}
         byAgent={byAgent}
-        onChange={(v) => {
-          onEdit(opsFor(v), label);
-          onCommit();
-        }}
+        diag={diag}
+        onChange={pick}
+        onClear={clearable ? () => pick(null) : undefined}
       />
     );
   }
@@ -356,10 +470,12 @@ function FieldRow({
       title={linked}
       byAgent={byAgent}
       error={error}
+      diag={diag}
       onChange={(text) => {
         const t = text.trim();
         if (t === "") {
-          if (f.tab === "Mass override") {
+          // An optional field left empty is not written: the model's own default or derived value stands.
+          if (!f.required) {
             setError(null);
             const ops = opsFor(null);
             if (ops.length > 0) onEdit(ops, label);
@@ -385,6 +501,105 @@ function FieldRow({
         onDiscard();
       }}
     />
+  );
+}
+
+/**
+ * `attach.radial`: the keyword choices, or a typed radius. The model takes
+ * either in one field, so the radius input appears only once it is chosen.
+ */
+function RadialField({
+  field: f,
+  comps,
+  files,
+  units,
+  title,
+  byAgent,
+  diag,
+  error,
+  setError,
+  onEdit,
+  onCommit,
+  onDiscard,
+}: {
+  field: FieldSpec;
+  comps: readonly Comp[];
+  files: SourceFilesLike;
+  units: Units;
+  title: string | undefined;
+  byAgent: boolean;
+  diag: FieldDiagnostic | undefined;
+  error: string | null;
+  setError: (e: string | null) => void;
+  onEdit: (ops: PatchOp[], label: string) => void;
+  onCommit: () => void;
+  onDiscard: () => void;
+}) {
+  const first = comps[0]!;
+  const written = fieldTarget(files, first.id, f.key).written;
+  const radius = typeof written === "string" ? parseLiteral(written) : typeof written === "number" ? written : null;
+  const [custom, setCustom] = useState(radius !== null);
+  const write = (v: string | null) => {
+    onEdit(fieldWriteOps(comps, files, f, v), `Set ${first.name} radial placement`);
+    onCommit();
+  };
+  const keywords = f.options ?? [];
+  const RADIUS = "radius";
+  const u = displayUnit("length", units);
+  return (
+    <>
+      <SelectField
+        testid="editor.field"
+        field={f}
+        value={custom ? RADIUS : typeof written === "string" && keywords.includes(written) ? written : ""}
+        options={[...keywords, RADIUS]}
+        labels={{ ...Object.fromEntries(keywords.map((k) => [k, humanize(k)])), [RADIUS]: "At a radius" }}
+        placeholder="Automatic"
+        title={title}
+        byAgent={byAgent}
+        diag={diag}
+        onChange={(v) => {
+          if (v === RADIUS) {
+            setCustom(true);
+            return;
+          }
+          setCustom(false);
+          write(v);
+        }}
+        onClear={() => {
+          setCustom(false);
+          write(null);
+        }}
+      />
+      {custom && (
+        <SpinField
+          testid="editor.field"
+          field={{ key: "attach.radial.radius", label: "Radius" }}
+          unit={u.unit}
+          value={radius === null ? "" : toDisplay(radius, "length", units)}
+          placeholder=""
+          step={limitsOf({ ...f, dim: "length", kind: "quantity" }, null, units).step}
+          title={title}
+          byAgent={false}
+          error={error}
+          onChange={(text) => {
+            const t = text.trim();
+            const n = Number(t);
+            if (t === "" || !Number.isFinite(n) || n < 0) {
+              setError("Radius needs a distance of 0 or more.");
+              return;
+            }
+            setError(null);
+            onEdit(fieldWriteOps(comps, files, f, toSource(n, "length", units)), `Set ${first.name} radial placement`);
+          }}
+          onCommit={onCommit}
+          onDiscard={() => {
+            setError(null);
+            onDiscard();
+          }}
+        />
+      )}
+    </>
   );
 }
 

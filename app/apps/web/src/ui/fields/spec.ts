@@ -11,10 +11,10 @@ import rocketSchema from "../../../../../../schema/rocket.json";
 import type { Units } from "../../state/index.ts";
 import { displayUnit, parseLiteral, toDisplay } from "./units.ts";
 
-export const EDITOR_TABS = ["Geometry", "Material", "Appearance", "Mass override"] as const;
+export const EDITOR_TABS = ["Geometry", "Position", "Material", "Appearance", "Mass override"] as const;
 export type EditorTab = (typeof EDITOR_TABS)[number];
 
-export type FieldKind = "quantity" | "integer" | "number" | "enum" | "bool";
+export type FieldKind = "quantity" | "integer" | "number" | "enum" | "bool" | "text";
 
 export interface FieldSpec {
   /** Dotted source path under `c.<id>` (`span`, `override.mass`, `appearance.preset`). */
@@ -37,6 +37,10 @@ export interface FieldSpec {
   doc?: string;
   /** The nested group this field lives in (`shoulder`); the key is then `<parent>.<leaf>`. */
   parent?: string;
+  /** A visible section (`Packed`, `Motor`) around flat fields, from the schema's `x-ui-group`. */
+  section?: string;
+  /** Not shown until it is set or asked for through Add field. */
+  advanced?: boolean;
 }
 
 /** A nested optional table a part edits as one unit: all of it exists, or only its Add button does. */
@@ -55,7 +59,17 @@ const GROUP_HEADINGS: Record<string, string> = {
   fore_shoulder: "Fore shoulder",
   aft_shoulder: "Aft shoulder",
   tab: "Fin tab",
+  fill: "Propellant fill",
+  instances: "Instances",
+  joint: "Joint",
+  finish: "Finish",
 };
+
+/** Add buttons whose words are not `Add <heading>`. */
+const GROUP_ADD_LABELS: Record<string, string> = { finish: "Custom roughness" };
+
+/** Optional fields most parts never set: asked for through Add field, so the grid stays readable. */
+const ADVANCED_FIELDS = new Set(["cant", "fillet_radius", "spill_hole", "id", "base_height", "flange_height", "role"]);
 
 type JsonSchema = {
   type?: string | string[];
@@ -94,8 +108,20 @@ const LABELS: Record<string, string> = {
   "override.mass": "Mass",
   "override.cg": "CG override",
   "override.cd": "Drag override",
+  "override.subtree": "Applies to subtree",
   "appearance.preset": "Appearance",
+  "appearance.color": "Color",
   motor_mount: "Motor mount",
+  line_material: "Line material",
+  "attach.to": "Attach to",
+  "attach.at": "Anchor",
+  "attach.offset": "Offset",
+  "attach.spin": "Spin",
+  "attach.radial": "Radial",
+  packed_length: "Packed length",
+  packed_diameter: "Packed diameter",
+  cord_length: "Cord length",
+  end_cap: "End cap",
 };
 
 const FIN_TYPES = new Set(["trapezoidal_fin_set", "elliptical_fin_set", "freeform_fin_set", "tube_fin_set"]);
@@ -130,6 +156,7 @@ function kindOf(s: JsonSchema): FieldKind | null {
   if (t.includes("integer")) return "integer";
   if (t.includes("number")) return "number";
   if (t.includes("boolean")) return "bool";
+  if (t.includes("string")) return "text";
   return null;
 }
 
@@ -156,13 +183,15 @@ export function typeDef(type: string): string | null {
  * Editor fields for a component kind, by tab. Geometry: the kind's own
  * scalar fields (required first, schema order; `count` last), then the fields
  * of its nested groups (`shoulder`, `tab`) with `parent` set; `groupsOf` frames
- * those. Material: `material`, `finish`. Appearance: the PBR preset. Mass
- * override: `override.mass`, `override.cg`.
+ * those. Position: the attachment, `cut`, `instances`, `joint`. Material:
+ * `material`, `line_material`, `finish`. Appearance: the PBR preset and its
+ * channels. Mass override: `override.*`.
  */
 export function editorFields(type: string): FieldSpec[] {
   const ref = typeDef(type);
   const def = ref !== null ? DEFS[ref] : undefined;
-  const out: FieldSpec[] = [];
+  const out: FieldSpec[] = [{ key: "name", label: "Name", tab: "Geometry", group: "General", kind: "text", required: false, expr: false, doc: "The name shown in the tree and in reports." }];
+  const materialStrings: FieldSpec[] = [];
   if (def?.properties !== undefined) {
     const group = def["x-ui-group"] ?? SCHEMA_META[ref!]?.uiGroup ?? "Geometry";
     const req = new Set(def.required ?? []);
@@ -170,34 +199,86 @@ export function editorFields(type: string): FieldSpec[] {
     const nested: FieldSpec[] = [];
     for (const [key, raw] of Object.entries(def.properties)) {
       if (GROUP_HEADINGS[key] !== undefined) {
-        const sub = unwrap(raw);
-        const required = new Set(sub.required ?? []);
-        for (const [leaf, rawLeaf] of Object.entries(sub.properties ?? {})) {
-          const f = spec(`${key}.${leaf}`, rawLeaf, "Geometry", GROUP_HEADINGS[key]!, required.has(leaf), type);
-          if (f !== null) nested.push({ ...f, parent: key });
-        }
+        nested.push(...nestedFields(key, unwrap(raw), "Geometry", type));
         continue;
       }
-      if (raw["x-ui-group"] !== undefined && raw["x-ui-group"] !== group) continue; // groups the editor does not show yet (Packed, Motor)
-      const f = spec(key, raw, "Geometry", group, req.has(key), type);
-      if (f !== null) geo.push(f);
+      const ui = raw["x-ui-group"];
+      const f = spec(key, raw, "Geometry", ui ?? group, req.has(key), type);
+      if (f === null) continue;
+      if (ui === "Material") {
+        materialStrings.push({ ...f, tab: "Material", kind: "enum" });
+        continue;
+      }
+      if (ui !== undefined && ui !== group) f.section = ui;
+      if (ADVANCED_FIELDS.has(key) && !req.has(key)) f.advanced = true;
+      geo.push(f);
     }
     // Required fields first (schema order), counts after the dimensions (concept 02: Fin count last).
     const rank = (f: FieldSpec) => (f.required ? 0 : 2) + (f.kind === "integer" ? 1 : 0);
     out.push(...geo.map((f, i) => [f, i] as const).sort((a, b) => rank(a[0]) - rank(b[0]) || a[1] - b[1]).map(([f]) => f), ...nested);
   }
+  out.push(...positionFields(type));
   const comp = DEFS["Component"]?.properties ?? {};
-  const finish = comp["finish"];
-  out.push({ key: "material", label: "Material", tab: "Material", group: "Material", kind: "enum", required: false, expr: false });
-  if (finish !== undefined) {
+  out.push({ key: "material", label: "Material", tab: "Material", group: "Material", kind: "enum", required: false, expr: false }, ...materialStrings);
+  if (comp["finish"] !== undefined) {
     const presets = DEFS["FinishPreset"]?.enum ?? [];
     out.push({ key: "finish", label: "Finish", tab: "Material", group: "Material", kind: "enum", options: presets, required: false, expr: false });
+    out.push({ key: "finish.roughness", label: "Roughness", tab: "Material", group: "Finish", kind: "quantity", dim: "length:um", required: true, expr: true, parent: "finish" });
   }
-  const appearance = DEFS["AppearancePreset"]?.enum ?? [];
-  out.push({ key: "appearance.preset", label: "Appearance", tab: "Appearance", group: "Appearance", kind: "enum", options: appearance, required: false, expr: false });
-  const ov = DEFS["Overrides"]?.properties ?? {};
-  for (const k of ["mass", "cg"] as const) {
-    const f = ov[k] !== undefined ? spec(`override.${k}`, ov[k]!, "Mass override", "Mass", false, type) : null;
+  out.push(...appearanceFields(type), ...overrideFields(type));
+  return out;
+}
+
+/** The fields of a nested table, each with `parent` set, its unit pinned where the schema's is too coarse. */
+function nestedFields(key: string, sub: JsonSchema, tab: EditorTab, type: string): FieldSpec[] {
+  const required = new Set(sub.required ?? []);
+  const out: FieldSpec[] = [];
+  for (const [leaf, rawLeaf] of Object.entries(sub.properties ?? {})) {
+    const f = spec(`${key}.${leaf}`, rawLeaf, tab, GROUP_HEADINGS[key]!, required.has(leaf), type);
+    if (f !== null) out.push({ ...f, parent: key });
+  }
+  return out;
+}
+
+/** Where a part sits: the attachment, how many of it there are, and how it joins. */
+function positionFields(type: string): FieldSpec[] {
+  const out: FieldSpec[] = [];
+  const attach = DEFS["Attach"]?.properties ?? {};
+  for (const leaf of ["to", "at", "offset", "spin"] as const) {
+    const raw = attach[leaf];
+    if (raw === undefined) continue;
+    const f = spec(`attach.${leaf}`, raw, "Position", "Attachment", false, type);
+    if (f !== null) out.push(leaf === "to" || leaf === "at" ? { ...f, kind: "enum" } : f);
+  }
+  out.push({ key: "attach.radial", label: fieldLabel("attach.radial", type), tab: "Position", group: "Attachment", kind: "enum", options: DEFS["RadialKeyword"]?.enum ?? [], dim: "length", required: false, expr: false });
+  const cut = DEFS["Component"]?.properties?.["cut"];
+  if (cut !== undefined) {
+    const f = spec("cut", cut, "Position", "General", false, type);
+    if (f !== null) out.push(f);
+  }
+  for (const key of ["instances", "joint"] as const) {
+    const def = DEFS[key === "instances" ? "Instances" : "Joint"];
+    if (def !== undefined) out.push(...nestedFields(key, def, "Position", type));
+  }
+  return out;
+}
+
+function appearanceFields(type: string): FieldSpec[] {
+  const out: FieldSpec[] = [];
+  const presets = DEFS["AppearancePreset"]?.enum ?? [];
+  out.push({ key: "appearance.preset", label: "Appearance", tab: "Appearance", group: "Appearance", kind: "enum", options: presets, required: false, expr: false });
+  for (const [leaf, raw] of Object.entries(DEFS["Appearance"]?.properties ?? {})) {
+    if (leaf === "preset") continue;
+    const f = spec(`appearance.${leaf}`, raw, "Appearance", "Appearance", false, type);
+    if (f !== null) out.push(f);
+  }
+  return out;
+}
+
+function overrideFields(type: string): FieldSpec[] {
+  const out: FieldSpec[] = [];
+  for (const [leaf, raw] of Object.entries(DEFS["Overrides"]?.properties ?? {})) {
+    const f = spec(`override.${leaf}`, raw, "Mass override", "Mass", false, type);
     if (f !== null) out.push(f);
   }
   return out;
@@ -209,7 +290,7 @@ export function groupsOf(fields: readonly FieldSpec[]): FieldGroup[] {
   for (const f of fields) {
     if (f.parent === undefined) continue;
     const heading = GROUP_HEADINGS[f.parent] ?? fieldLabel(f.parent);
-    const group = groups.get(f.parent) ?? { key: f.parent, heading, add: `Add ${heading.toLowerCase()}`, fields: [] };
+    const group = groups.get(f.parent) ?? { key: f.parent, heading, add: GROUP_ADD_LABELS[f.parent] ?? `Add ${heading.toLowerCase()}`, fields: [] };
     group.fields.push(f);
     groups.set(f.parent, group);
   }

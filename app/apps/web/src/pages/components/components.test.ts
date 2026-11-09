@@ -88,23 +88,25 @@ describe("schema-driven fields", () => {
   it("lists fin set fields by tab from the schema: required dimensions, then the count", () => {
     const f = editorFields("trapezoidal_fin_set");
     const geo = f.filter((x) => x.tab === "Geometry");
-    expect(geo.slice(0, 6).map((x) => x.key)).toEqual(["root_chord", "tip_chord", "span", "sweep", "thickness", "count"]);
+    expect(geo[0]?.key).toBe("name");
+    expect(geo.slice(1, 7).map((x) => x.key)).toEqual(["root_chord", "tip_chord", "span", "sweep", "thickness", "count"]);
     expect(geo.find((x) => x.key === "count")).toMatchObject({ label: "Fin count", kind: "integer", min: 1, max: 8 });
     expect(geo.find((x) => x.key === "span")).toMatchObject({ kind: "quantity", dim: "length", expr: true, group: "Fins" });
     expect(geo.find((x) => x.key === "cross_section")).toMatchObject({ kind: "enum", options: ["square", "rounded", "airfoil"] });
     // The fin tab is a named group, not a field of the flat grid.
     expect(geo.some((x) => x.key === "tab")).toBe(false);
     expect(geo.filter((x) => x.parent === "tab").map((x) => x.key)).toEqual(["tab.height", "tab.length", "tab.offset"]);
-    expect(f.filter((x) => x.tab === "Mass override").map((x) => x.key)).toEqual(["override.mass", "override.cg"]);
+    expect(f.filter((x) => x.tab === "Mass override").map((x) => x.key)).toEqual(["override.mass", "override.cg", "override.cd", "override.subtree"]);
     expect(f.find((x) => x.key === "override.mass")).toMatchObject({ dim: "mass" });
     expect(f.find((x) => x.key === "appearance.preset")?.options).toContain("composite_white");
     expect(editorFields("body_tube").filter((x) => x.tab === "Geometry").map((x) => x.label)).toEqual(expect.arrayContaining(["Length", "Outer diameter"]));
   });
 
   it("shows only Appearance for a mixed-kind selection", () => {
-    expect(tabsFor(["trapezoidal_fin_set"])).toEqual(["Geometry", "Material", "Appearance", "Mass override"]);
+    expect(tabsFor(["trapezoidal_fin_set"])).toEqual(["Geometry", "Position", "Material", "Appearance", "Mass override"]);
     expect(tabsFor(["body_tube", "nose_cone"])).toEqual(["Appearance"]);
-    expect(sharedFields(["body_tube", "nose_cone"]).map((f) => f.key)).toEqual(["appearance.preset"]);
+    expect(sharedFields(["body_tube", "nose_cone"]).map((f) => f.key)).toContain("appearance.preset");
+    expect(sharedFields(["body_tube", "nose_cone"]).every((f) => f.tab === "Appearance")).toBe(true);
     expect(sharedFields(["body_tube", "body_tube"]).length).toBe(editorFields("body_tube").length);
   });
 
