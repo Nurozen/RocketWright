@@ -6,7 +6,10 @@
  */
 import { TOP_TABS, type DesktopCommand, type PageId, type RecentProject, type RwRef } from "@rw/contracts";
 import type { StatusView } from "../state/status.ts";
+import type { ThreadStart } from "../state/types.ts";
 import type { IconName } from "./Icon.tsx";
+
+export type { ThreadStart };
 
 /** Header tabs, in display order (concepts.md §3). */
 export { TOP_TABS };
@@ -68,6 +71,10 @@ export const PAGE_TABS: Readonly<Record<PageId, { tab: TopTab; local: DesignTab 
 };
 
 /** Header tab (and Design local tab) → state page. */
+export function isPageId(page: unknown): page is PageId {
+  return typeof page === "string" && Object.hasOwn(PAGE_TABS, page);
+}
+
 export function pageOf(tab: TopTab, local: DesignTab | null = null): PageId {
   switch (tab) {
     case "design":
@@ -163,6 +170,7 @@ export interface ShellModel {
   check: { status: CheckStatus; issues: number; label?: string };
   threads: ShellThread[];
   selectedThreadId: string | null;
+  threadStart: ThreadStart;
   nav: ShellNavSection | null;
   selectedNavId: string | null;
   history: ShellHistoryStep[];
@@ -224,6 +232,7 @@ export const PLACEHOLDER_SHELL: ShellModel = {
   check: { status: "unknown", issues: 0 },
   threads: [{ id: "t-1", title: "Assembly review", age: "now" }],
   selectedThreadId: "t-1",
+  threadStart: { state: "idle" },
   nav: {
     title: "Components",
     eye: "visibility",

@@ -15,6 +15,7 @@ import { parseRef } from "../state/slices/selection.ts";
 import type { AppStore } from "../state/store.ts";
 import { settle, waitForViewport, type ViewportController } from "../viewport/registry.ts";
 import { hookHandlers } from "../state/brokerHost.ts";
+import { hasUnsavedWork } from "../state/dirtyFields.ts";
 import { renderPlotImage } from "../plots/plotImage.ts";
 import type { RunDataSource } from "../pages/results/source.ts";
 import { PlotRenderError, renderPlot, type PlotDeps } from "./plot.ts";
@@ -56,9 +57,16 @@ function refs(v: unknown): RwRef[] {
   return v as RwRef[];
 }
 
-/** Opens the assembly page (the viewport mounts there) and returns the ready viewport. */
+/**
+ * Opens the assembly page (the viewport mounts there) and returns the ready
+ * viewport. Refused while the person has typed work on another page: an agent
+ * must not commit half-typed text, and leaving would lose it.
+ */
 async function assemblyViewport(store: AppStore, deps: BrokerHostDeps): Promise<ViewportController> {
-  if (store.getState().ui.page !== "assembly") store.getState().ui.navigate("assembly");
+  if (store.getState().ui.page !== "assembly") {
+    if (hasUnsavedWork(store.getState())) throw new Error("The person has an unsaved edit open on another page, so the viewport cannot be shown yet. Try again once they have finished it.");
+    store.getState().ui.navigate("assembly");
+  }
   return deps.viewport();
 }
 

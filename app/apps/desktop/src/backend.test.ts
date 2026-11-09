@@ -164,6 +164,27 @@ describe("server spawn", () => {
     expect(server.child.exitCode !== null || server.child.signalCode !== null).toBe(true);
   });
 
+  it("holds the child's stdin open and tells it to watch for that pipe closing", async () => {
+    let seen = "";
+    const cli = fakeCli(
+      `process.stdout.write("RW_SERVER_URL=http://127.0.0.1:1\\nRW_RPC_URL=ws://127.0.0.1:1/rpc\\n");
+process.stdin.on("end", () => { process.stdout.write("stdin ended\\n"); process.exit(0); });
+process.stdin.resume();
+process.stdout.write(JSON.stringify({ watch: process.env.RW_EXIT_WITH_PARENT ?? null }) + "\\n");
+setInterval(() => {}, 1000);`,
+    );
+    const server = await spawnServer({ cli, log: (c) => (seen += c) });
+    try {
+      await expect.poll(() => seen, { timeout: 5000 }).toContain('"watch":"1"');
+      expect(server.child.stdin).not.toBeNull();
+      server.child.stdin?.end();
+      await expect.poll(() => seen, { timeout: 5000 }).toContain("stdin ended");
+    } finally {
+      await server.stop();
+    }
+    // Two 5 s waits plus a child's startup do not fit the default 5 s on a loaded runner.
+  }, 20_000);
+
   it("reports the child's env as seen from inside", async () => {
     let seen = "";
     const cli = fakeCli(
@@ -352,6 +373,29 @@ describe("browser mode against the real app server", () => {
     }
     expect(b.server?.child.exitCode !== null || b.server?.child.signalCode !== null).toBe(true);
   }, 60_000);
+});
+
+describe("startBackend with a server that will not start", () => {
+  const web = (): string => {
+    const dir = temp("rw-web-");
+    writeFileSync(join(dir, "index.html"), "<!doctype html><div id=root></div>");
+    return dir;
+  };
+
+  it("keeps the page up and says why, when asked to", async () => {
+    const b = await startBackend({ projects: [], webRoot: web(), node: "/usr/bin/false", keepWebOnServerFailure: true, log: () => undefined });
+    try {
+      expect(b.server).toBeNull();
+      expect(b.startupError).toContain("before announcing its URLs");
+      expect((await fetch(b.url)).status).toBe(200);
+    } finally {
+      await b.close();
+    }
+  });
+
+  it("rejects otherwise, and leaves no web server behind", async () => {
+    await expect(startBackend({ projects: [], webRoot: web(), node: "/usr/bin/false", log: () => undefined })).rejects.toThrow("before announcing its URLs");
+  });
 });
 
 describe("waitForHttp", () => {

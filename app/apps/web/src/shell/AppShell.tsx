@@ -7,6 +7,7 @@
  * `ConnectedShell` feeds it from the store; `ShellApp` from a static model.
  */
 import type { ReactNode } from "react";
+import type { CheckPanelModel } from "./CheckIssuesPanel.tsx";
 import type { ProjectMenuModel, ShellNavRow, ShellHistoryStep } from "./model.ts";
 import { AgentPane } from "./AgentPane.tsx";
 import { Header } from "./Header.tsx";
@@ -29,11 +30,15 @@ export interface ShellHandlers {
   onCompare?: () => void;
   /** The strip menu's `Revert to Step NN` (history_restore of the selected step). */
   onRevert?: () => void;
+  /** The strip menu's `Tag Step NN…`: asks for a revision name (history_tag). */
+  onTag?: () => void;
   /** Header undo/redo (history_restore of the step before/after the shown one). */
   onUndo?: () => void;
   onRedo?: () => void;
-  /** Header and agent-pane Settings (B12: `lecturn/providers.open` with the embed). */
+  /** Header Settings: RocketWright's own dialog (R3.4). */
   onOpenSettings?: () => void;
+  /** The agent pane's Agent settings button (B12: `lecturn/providers.open` with the embed). */
+  onOpenProviders?: () => void;
   /** Header Help (the same quick start as the native Help menu). */
   onOpenHelp?: () => void;
 }
@@ -57,6 +62,8 @@ export interface AppShellProps {
   agentEmbed?: ReactNode;
   /** Page controls in the pane's RocketWright strip (`AgentExtras`). */
   agentExtras?: ReactNode;
+  /** What the last check found (R2.6). */
+  checkPanel?: CheckPanelModel | undefined;
   /** Rows below the history steps (compare result, run snapshots). */
   historyExtra?: ReactNode;
   comparing?: boolean;
@@ -65,6 +72,8 @@ export interface AppShellProps {
   /** `Revert to Step 02` in the strip menu (null: nothing to revert to). */
   revertLabel?: string | null;
   reverting?: boolean;
+  /** `Tag Step 02…` in the strip menu (null: no step to tag). */
+  tagLabel?: string | null;
   headStepId?: string | null;
   /** Page-owned body of the rail's navigation section (the 01 Components tree). */
   navBody?: ReactNode;
@@ -86,6 +95,7 @@ export function AppShell({
   onLocalTabChange,
   handlers = {},
   projectMenu,
+  checkPanel,
   children,
   toolbar,
   agent,
@@ -96,6 +106,7 @@ export function AppShell({
   compareOpen = false,
   revertLabel = null,
   reverting = false,
+  tagLabel = null,
   headStepId = null,
   navBody,
   navAdd,
@@ -117,6 +128,7 @@ export function AppShell({
         projects={model.projects ?? []}
         projectId={model.projectId ?? null}
         projectMenu={projectMenu}
+        checkPanel={checkPanel}
         {...(onTabChange ? { onTabChange } : {})}
         {...(h.onCheckModel ? { onCheckModel: h.onCheckModel } : {})}
         {...(h.onOpenProjects ? { onOpenProjects: h.onOpenProjects } : {})}
@@ -129,6 +141,7 @@ export function AppShell({
       />
       <LeftRail
         threads={model.threads}
+        threadStart={model.threadStart}
         selectedThreadId={model.selectedThreadId}
         nav={model.nav}
         selectedNavId={model.selectedNavId}
@@ -157,6 +170,8 @@ export function AppShell({
         compareOpen={compareOpen}
         revertLabel={revertLabel}
         reverting={reverting}
+        tagLabel={tagLabel}
+        {...(h.onTag ? { onTag: h.onTag } : {})}
         {...(h.onSelectStep ? { onSelectStep: h.onSelectStep } : {})}
         {...(h.onCompare ? { onCompare: h.onCompare } : {})}
         {...(h.onRevert ? { onRevert: h.onRevert } : {})}
@@ -168,7 +183,7 @@ export function AppShell({
         provenance={model.provenance ?? null}
         embed={agentEmbed}
         extras={agentExtras}
-        {...(h.onOpenSettings ? { onOpenSettings: h.onOpenSettings } : {})}
+        {...(h.onOpenProviders ? { onOpenSettings: h.onOpenProviders } : {})}
       >
         {agent}
       </AgentPane>

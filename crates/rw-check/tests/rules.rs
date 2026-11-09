@@ -30,9 +30,15 @@ fn rule_fails(r: &CheckReport, rule: ClearanceRule) -> bool {
 }
 
 #[test]
-fn baseline_is_clean() {
+fn baseline_passes_every_rule() {
     let r = common::run(&common::model(common::SIMPLE));
-    assert_eq!(r.status, CheckStatus::Clean, "{:#?}", r.diagnostics);
+    // The fixture has parts with no material, which is all it should report.
+    assert!(
+        r.diagnostics.iter().all(|d| d.code == "RW-W004"),
+        "{:#?}",
+        r.diagnostics
+    );
+    assert_ne!(r.status, CheckStatus::Errors);
 }
 
 #[test]

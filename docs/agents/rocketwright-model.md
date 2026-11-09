@@ -400,7 +400,7 @@ as `name`, `material`, `finish`, `appearance`, `instances`, `override`, and
 | `rw motor thrustcurve fetch <motor id\|designation> [--format eng\|rse] [--dry-run]` | download that motor's data file into `lib/motors/` as `rw motor import` does (sha256, strict check), recording its source under `[lib.source]`; refs `lib:motors/<Maker>_<designation>.eng#<designation>` |
 | `rw lib search [--kind material]` | search the project library and the built-in parts presets (`preset:<catalog>/<part>`, openrocket-database, Apache-2.0) |
 | `rw import ork <file.ork> [<dir>]` | import an OpenRocket design: a new project in `<dir>`, or (inside a project) replace its model as one step |
-| `rw export <format> <path> [--config <id>] [--run <ref>] [--allow-outside]` | write `ork`, `rasp` (the configuration's motors), `glb`, `stl` (mm), or `csv` (a run's series, needs `--run`); the path must be inside the project unless `--allow-outside` |
+| `rw export <format> <path> [--config <id>] [--run <ref>] [--allow-outside]` | write `ork`, `rasp` (the configuration's motors), `glb`, `stl` (mm), or `csv` (a run's series, needs `--run`); the path must be inside the project unless you pass `--allow-outside` from your own terminal. The `export_file` tool always stays inside the project; to save anywhere else, use File > Export in the app |
 | `rw history log`, `rw history show <version>` | list steps, show one |
 | `rw history compare <a> <b> [--visual] [--breakdown]` | metric deltas with units, components removed/changed/added, and the edits between versions; `--breakdown` adds each component's mass and CG and each aero term's CNa and CP (before -> after, absolute change, percent) |
 | `rw history tag <name> [<version>]` | name a revision (`rev:01`) |
@@ -552,7 +552,7 @@ name your host lists.
 | `cfd_import` | `rw cfd import` | `{"path":"fixtures/cfd","study":"tank"}`; writes `runs/cfd.<id>/<run>/`, `provenance` `cfd`; needs the user's approval |
 | `project_validate`, `schema_get` | `rw validate`, `rw schema` | |
 | `project_rename` | | `{"name":"Solstice"}`; one step, both files; runs read as outdated afterwards |
-| `import_file`, `export_file` | `rw import ork`, `rw motor import`, `rw export` | need the user's approval |
+| `import_file`, `export_file` | `rw import ork`, `rw motor import`, `rw export` | need the user's approval; `export_file` stays inside the project, so point the person at File > Export for anything else |
 
 App-only tools (they act on the live window the user sees):
 
@@ -1042,6 +1042,7 @@ Also in [`diagnostics.md`](diagnostics.md).
 | `RW-W001` | `unknown-field` | warning | A key is not part of the schema and is ignored. |
 | `RW-W002` | `joint-count-missing` | warning | A shear-pin or screw joint has no `count`. |
 | `RW-W003` | `lib-unrecorded` | warning | A file under `lib/` has no sha256 in `rocketwright.toml [lib]`. |
+| `RW-W004` | `material-missing` | warning | A component that draws its mass from a material names none, so it has no mass in checks or flights. |
 | `RW-W010` | `import-approximated` | warning | An imported file holds something RocketWright cannot represent exactly; it was approximated or skipped (the message says which). |
 | `RW-W101` | `motor-unresolved` | warning | A configured motor was not resolved to a thrust curve, so it is missing from mass and motor checks. |
 | `RW-W102` | `low-thrust-to-weight` | warning | The liftoff thrust-to-weight ratio is below 5. |

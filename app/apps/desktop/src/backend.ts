@@ -36,6 +36,8 @@ export const DESKTOP_ARG = "--rw-desktop=";
 export interface DesktopConfig {
   rpcUrl: string | null;
   serverUrl: string | null;
+  /** Why the app server did not start; the page shows it (R3.3). */
+  startupError?: string | null;
 }
 
 /**
@@ -77,6 +79,23 @@ export function documentsDirOverride(isPackaged: boolean, env: NodeJS.ProcessEnv
   const full = resolve(dir);
   mkdirSync(full, { recursive: true });
   return full;
+}
+
+/**
+ * The `--drive` and `--measure` modules to load, or undefined: both import and
+ * run an arbitrary file in the main process, so a shipped app never honours them.
+ */
+export function harnessModule(isPackaged: boolean, path: string | undefined): string | undefined {
+  return isPackaged ? undefined : path;
+}
+
+/**
+ * The server's env with the test switches removed: a shipped app must not grow
+ * test hooks because the environment asked for them (`RW_TEST_HOOKS` enables
+ * them in the server and the sidecar, the other `RW_TEST_*` are their knobs).
+ */
+export function withoutTestHooks(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
+  return Object.fromEntries(Object.entries(env).filter(([k]) => !k.startsWith("RW_TEST_")));
 }
 
 /**
@@ -189,7 +208,10 @@ export function spawnServer(opts: SpawnServerOptions = {}): Promise<ServerHandle
   if (opts.runAsNode === true) extra.ELECTRON_RUN_AS_NODE = "1";
   if (opts.documentsDir !== undefined) extra.RW_DOCUMENTS_DIR = opts.documentsDir;
   const { cmd, args } = serverCommand(opts.node ?? (env.RW_NODE || "node"), opts.cli ?? SERVER_CLI, opts.projects ?? [], opts.lecturnBaseDir, opts.runAsNode);
-  const child = spawn(cmd, args, { env: childEnv(env, extra), stdio: ["ignore", "pipe", "pipe"] });
+  // stdin stays open and unused: its write end closing is how the server learns this process died, however it died.
+  extra.RW_EXIT_WITH_PARENT = "1";
+  const child = spawn(cmd, args, { env: childEnv(env, extra), stdio: ["pipe", "pipe", "pipe"] });
+  child.stdin?.on("error", () => undefined);
   const exited = new Promise<void>((r) => child.once("exit", () => r()));
   const stop = async (graceMs = 10_000): Promise<void> => {
     if (child.exitCode !== null || child.signalCode !== null) return;
@@ -311,26 +333,43 @@ export interface Backend {
   /** Static web origin, http://127.0.0.1:<port>. */
   origin: string;
   server: ServerHandle | null;
+  /** Set only with `keepWebOnServerFailure`: the server did not start, and the page says why. */
+  startupError: string | null;
   url: string;
   close(): Promise<void>;
 }
 
 /** The app server (when `projects` is non-null, even if empty) plus the static web bundle. */
 export async function startBackend(
-  opts: { projects: string[] | null; webRoot?: string; query?: string; page?: string | undefined } & Omit<SpawnServerOptions, "projects">,
+  opts: {
+    projects: string[] | null;
+    webRoot?: string;
+    query?: string;
+    page?: string | undefined;
+    /** A server that will not start leaves the page up, to say so (the interactive window), rather than rejecting. */
+    keepWebOnServerFailure?: boolean;
+  } & Omit<SpawnServerOptions, "projects">,
 ): Promise<Backend> {
-  const { projects, webRoot, query, page, ...spawnOpts } = opts;
-  const server = projects === null ? null : await spawnServer({ ...spawnOpts, projects });
-  let web;
-  try {
-    web = await serveStatic(webRoot ?? WEB_DIST);
-  } catch (e) {
-    await server?.stop();
-    throw e;
+  const { projects, webRoot, query, page, keepWebOnServerFailure = false, ...spawnOpts } = opts;
+  // The page first: it is what reports a server that fails.
+  const web = await serveStatic(webRoot ?? WEB_DIST);
+  let server: ServerHandle | null = null;
+  let startupError: string | null = null;
+  if (projects !== null) {
+    try {
+      server = await spawnServer({ ...spawnOpts, projects });
+    } catch (e) {
+      if (!keepWebOnServerFailure) {
+        await web.close();
+        throw e;
+      }
+      startupError = e instanceof Error ? e.message : String(e);
+    }
   }
   return {
     origin: web.origin,
     server,
+    startupError,
     url: appUrl(web.origin, server, query, page),
     close: async () => {
       await Promise.all([web.close(), server?.stop()]);

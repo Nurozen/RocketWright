@@ -181,6 +181,24 @@
   color: var(--rw-text-secondary);
 }
 
+/* A plain row in the card's heading type: the chevron is the only hint it opens something. */
+.rw-insp-card__open {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+.rw-insp-card__open:hover .rw-icon {
+  color: var(--rw-text-primary);
+}
+
 /* One label column per card, sized to its longest label (capped), and the
    values in a column to its right on a single line each (concept 01). */
 .rw-insp-card__rows {
@@ -301,7 +319,37 @@
    their hairline (no flex shrink) and the trailing one sits before Units. */
 .rw-toolbar__controls:has(> .rw-explode) {
   justify-content: space-between;
-  gap: 12px;
+  gap: 6px;
+}
+
+/* The toolbar row is the window less the fixed agent pane. Below the width its
+   controls need in one line, they drop to their own row under View and Units
+   rather than running under Units. */
+@media (max-width: 1519.98px) {
+  .rw-toolbar:has(> .rw-toolbar__controls > .rw-explode) {
+    flex-wrap: wrap;
+    align-content: center;
+    row-gap: 8px;
+    height: auto;
+    min-height: calc(var(--rw-toolbar-h) + var(--rw-hairline));
+    padding-block: 8px;
+  }
+
+  .rw-toolbar__controls:has(> .rw-explode) {
+    order: 1;
+    flex: 1 0 100%;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 8px 16px;
+  }
+
+  .rw-toolbar__controls:has(> .rw-explode) > .rw-toolbar__sep {
+    display: none;
+  }
+
+  .rw-toolbar__controls:has(> .rw-explode) + .rw-toolbar__label {
+    margin-left: auto;
+  }
 }
 
 .rw-toolbar__sep {
@@ -315,7 +363,7 @@
 .rw-explode {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 10px;
   color: var(--rw-text-primary);
 }
 
@@ -326,7 +374,7 @@
 .rw-explode__track {
   display: grid;
   gap: 2px;
-  width: 172px;
+  width: 120px;
 }
 
 .rw-explode__input {
@@ -437,9 +485,13 @@
   padding: 0;
 }
 
+/* Filling the control keeps the right padding, so the value ends in an ellipsis before the chevron. */
 .rw-select--native select {
+  width: 100%;
+  min-width: 0;
   height: 100%;
   padding: 0 34px 0 14px;
+  text-overflow: ellipsis;
   border: 0;
   appearance: none;
   background: transparent;
@@ -639,7 +691,13 @@
 /* ---- add part palette ---------------------------------------------------- */
 
 .rw-add-part__popover {
-  width: 460px;
+  width: 560px;
+}
+
+/* An outline inside the button's own box, so opening cannot move the rail. */
+.rw-add-part__plus[aria-expanded="true"] {
+  outline: var(--rw-hairline) solid var(--rw-accent);
+  outline-offset: -1px;
 }
 
 .rw-add-part {
@@ -647,6 +705,17 @@
   flex-direction: column;
   gap: 12px;
   padding: 4px 16px 16px;
+}
+
+.rw-add-part__tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: var(--rw-hairline) solid var(--rw-line);
+}
+
+.rw-add-part__tabs .rw-tab {
+  padding: 6px 14px 8px;
+  font-size: 14px;
 }
 
 .rw-add-part__note {
@@ -702,4 +771,150 @@
   color: var(--rw-text-secondary);
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* ---- Add part: Parts library --------------------------------------------- */
+
+.rw-parts {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rw-parts__search,
+.rw-parts__filter {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  font-size: var(--rw-font-size-secondary);
+  color: var(--rw-text-secondary);
+}
+
+.rw-parts__filters {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.rw-parts__filter select {
+  width: 100%;
+}
+
+.rw-parts__status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0;
+  font-size: var(--rw-font-size-secondary);
+  color: var(--rw-text-secondary);
+}
+
+.rw-parts__list {
+  overflow-y: auto;
+  border: var(--rw-hairline) solid var(--rw-line);
+  border-radius: var(--rw-radius-sm);
+}
+
+.rw-parts__empty {
+  margin: 0;
+  padding: 16px;
+  color: var(--rw-text-secondary);
+}
+
+.rw-parts__row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 10px;
+  box-sizing: border-box;
+  border-bottom: var(--rw-hairline) solid var(--rw-line);
+}
+
+.rw-parts__row--pending {
+  color: var(--rw-text-secondary);
+}
+
+.rw-parts__text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.rw-parts__name,
+.rw-parts__meta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rw-parts__meta {
+  font-size: var(--rw-font-size-secondary);
+  color: var(--rw-text-secondary);
+}
+
+.rw-parts__actions {
+  display: flex;
+  flex: none;
+  gap: 6px;
+}
+
+.rw-inspector__actions {
+  padding: 8px 12px 0;
+}
+
+.rw-inspector__actions .rw-menu-button,
+.rw-inspector__actions .rw-button {
+  width: 100%;
+}
+
+.rw-part-dialog__list {
+  max-height: 160px;
+  overflow: auto;
+  margin: 0;
+  padding-left: 18px;
+}
+
+.rw-part-dialog p {
+  margin: 0;
+}
+
+/* ---- 2D drawing ---------------------------------------------------------- */
+
+.rw-drawing-open {
+  flex: none;
+}
+
+.rw-drawing__stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 280px;
+  border: var(--rw-hairline) solid var(--rw-line);
+  border-radius: var(--rw-radius-sm);
+  overflow: auto;
+}
+
+.rw-drawing__picture {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+.rw-drawing__problem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 16px;
+  text-align: center;
+}
+
+.rw-drawing__file {
+  margin: 0;
+  color: var(--rw-text-secondary);
+  font-size: var(--rw-font-size-secondary);
+  overflow-wrap: anywhere;
 }

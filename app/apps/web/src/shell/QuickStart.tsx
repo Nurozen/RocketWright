@@ -6,7 +6,8 @@ import { Modal } from "../ui/Modal.tsx";
 
 const STEPS: readonly { title: string; body: string }[] = [
   { title: "Start a project", body: "Use New project, Open folder or Open sample rocket from the File menu or the project menu in the header." },
-  { title: "Build the rocket", body: "On the Design tab, use Add part in the Components list, then edit the selected part's fields. Changes save as you go." },
+  { title: "Build the rocket", body: "On the Design tab, press the plus button at the top of the Components list to add a part, then edit the selected part's fields. Changes save as you go." },
+  { title: "Set the materials", body: "A part with no material adds no mass. On Design, open Components, then Materials to create a material or copy one from the library, and choose it on each part's Material tab." },
   { title: "Choose a motor", body: "On Design, open Configurations to pick a motor and set when the recovery devices deploy." },
   { title: "Check the model", body: "Press Check model in the header to find missing inputs and problems before you fly." },
   { title: "Fly it", body: "On the Results tab, add a simulation with New simulation, set the launch conditions, then press Run." },

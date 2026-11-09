@@ -31,8 +31,9 @@
  *
  * `make bar-visual SURFACES=s-welcome[,…]` captures B3's surfaces instead
  * (`tests/bar/surfaces.json`, scripts in `app/e2e/capture/surfaces/`): real
- * app boots (no project, or the sample open) on a seeded profile with a frozen
- * clock, driven to the surface by DOM clicks. A surface without a script is
+ * app boots (no project, the sample open, or a surface's seeded project) on a
+ * seeded profile with a frozen clock and no test hooks, driven to the surface
+ * by DOM clicks. A surface without a script is
  * reported as not built, and nothing is captured for it. Output goes to
  * `<out>/<surface>/` with a critic packet (`buildSurfacePacket`).
  *
@@ -41,7 +42,7 @@
  * only shortfall is a surface that is not built yet.
  */
 import { execFileSync, spawn } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join, resolve } from "node:path";
 import type { TokenReport } from "../visual-tokens.ts";
@@ -49,7 +50,7 @@ import { buildPacket, buildSurfacePacket } from "./packet.ts";
 import { isPageId, isSurfaceId, REPO_ROOT, stableStringify, SURFACES, type PageId, type SurfaceId } from "./paths.ts";
 import { gateReport, type RowsMode } from "./shell-rows.ts";
 import { MILESTONES, type Milestone } from "./spec.ts";
-import { surfaceFailures, surfaceSpec, type SurfaceBoot, type SurfaceMeasure, type SurfacePane, type SurfaceSpec } from "./surfaces.ts";
+import { surfaceFailures, surfaceSpec, type SurfaceBoot, type SurfaceMeasure, type SurfacePane, type SurfaceSeed, type SurfaceSpec } from "./surfaces.ts";
 import { lecturnEnv } from "../lecturn-env.ts";
 import { PROJECT_NAME, SCRATCH, seedTemp } from "../live.ts";
 
@@ -167,7 +168,7 @@ export interface SurfaceFixture {
   profile: string;
   /** The stand-in for the OS Documents folder. */
   documents: string;
-  /** The sample rocket's folder (`project` boot), else null. */
+  /** The open project's folder (`project` boot), else null. */
   project: string | null;
 }
 
@@ -180,12 +181,18 @@ export const SEEDED_RECENTS = [
 
 /**
  * A seeded profile (three Recents, one of them missing) under a fresh
- * `/tmp` scratch dir, plus the sample rocket for a `project` boot. Recent
- * omits what the window has open, so none of these is the sample: the same
- * three rows show whichever way the window boots.
+ * `/tmp` scratch dir, plus the project for a `project` boot: `seeded` when the
+ * surface has one, else the sample rocket. Recent omits what the window has
+ * open, so none of these is that project: the same three rows show whichever
+ * way the window boots.
  * `init` runs `rw init <dir> --name=<name> --template=<template>`.
  */
-export function seedSurfaceFixture(boot: SurfaceBoot, clockMs: number, init: (dir: string, name: string, template: string) => void): SurfaceFixture {
+export function seedSurfaceFixture(
+  boot: SurfaceBoot,
+  clockMs: number,
+  init: (dir: string, name: string, template: string) => void,
+  seeded: { name: string; write: (dir: string) => void } | null = null,
+): SurfaceFixture {
   const scratch = realpathSync(mkdtempSync(join(SCRATCH, "rw-bar-surface-")));
   const documents = join(scratch, "Documents");
   const profile = join(scratch, "profile");
@@ -200,10 +207,17 @@ export function seedSurfaceFixture(boot: SurfaceBoot, clockMs: number, init: (di
   writeFileSync(join(profile, "recents.json"), `${JSON.stringify({ version: 1, recents, lastActive: null }, null, 2)}\n`);
   let project: string | null = null;
   if (boot === "project") {
-    project = join(location, "Sample rocket");
-    init(project, "Sample rocket", "sample");
+    project = join(location, seeded?.name ?? "Sample rocket");
+    if (seeded === null) init(project, "Sample rocket", "sample");
+    else seeded.write(project);
   }
   return { scratch, profile, documents, project };
+}
+
+/** Writes a surface's `seed` project: the fixture, minus its own seeding files, with the ops applied the way any model edit is (the session is the single writer). */
+export function writeSurfaceSeed(seed: SurfaceSeed, dir: string, rw: string, fixtures = join(REPO_ROOT, "fixtures")): void {
+  cpSync(join(fixtures, seed.fixture), dir, { recursive: true, filter: (src) => !/\/seed(\.sh|\.expected\.json)$/.test(src) });
+  execFileSync(rw, ["-C", dir, "call", "--label", seed.label, "model_patch", JSON.stringify({ ops: seed.ops })], { stdio: ["ignore", "ignore", "pipe"] });
 }
 
 /** What the capture ends with: `not-built` is a surface no step has delivered yet (no script), never a fake capture. */
@@ -248,7 +262,7 @@ async function captureSurface(id: SurfaceId, dir: string, packets: boolean): Pro
   const rw = env["RW_SIDECAR_BIN"] || "rocketwright";
   const fixture = seedSurfaceFixture(spec.boot, SURFACE_CLOCK_MS, (projectDir, name, template) => {
     execFileSync(rw, ["init", projectDir, `--name=${name}`, `--template=${template}`, "--json"], { stdio: "ignore" });
-  });
+  }, spec.seed === undefined ? null : { name: spec.seed.name, write: (projectDir) => writeSurfaceSeed(spec.seed!, projectDir, rw) });
   env["RW_SEEDED_PROFILE"] = fixture.profile;
   env["RW_DOCUMENTS_DIR"] = fixture.documents;
   env["RW_BAR_CAPTURE_DIR"] = dir;

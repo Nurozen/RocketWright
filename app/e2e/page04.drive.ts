@@ -169,7 +169,7 @@ const pageReady = () => {
   const series = document.querySelectorAll('[data-testid="plot.series"]').length;
   const events = Array.from(document.querySelectorAll<HTMLElement>('[data-testid="plot.event"]'));
   const inset = document.querySelector<HTMLElement>('[data-testid="inset.trajectory"]')?.dataset.ready;
-  // The table lists the three sims with runs (Recovery test, never run, is in the rail only); the selected run's three events are drawn.
+  // The table lists every flight sim (Recovery test, never run, reads Not run); the selected run's three events are drawn.
   return rows >= 3 && series === 2 && events.length === 3 && events.every((e) => e.dataset.x !== undefined) && (inset === "true" || inset === "error");
 };
 
@@ -281,7 +281,7 @@ export default async function drive(page: PageLike): Promise<Json> {
   const assumptions = await page.evaluate(() => Array.from(document.querySelectorAll('[data-testid="details.assumptions"] li')).map((l) => l.textContent ?? ""), null);
   await page.evaluate(click, '[data-testid="details.field"][data-field="assumptions"]');
 
-  // Selecting the never-run sim in the rail; Run selected starts it through the RPC, and it joins the table.
+  // Selecting the never-run sim in the rail; Run selected starts it through the RPC, and its row reads Complete.
   await page.evaluate(click, '[data-testid="rail.nav-row"][data-sim="recovery_test"]');
   const railSelected = await page.evaluate(
     () => Array.from(document.querySelectorAll<HTMLElement>('[data-testid="rail.nav-row"][aria-selected="true"]')).map((r) => r.dataset.sim ?? ""),

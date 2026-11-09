@@ -8,8 +8,8 @@
  * old chat's seeded threads).
  *
  * A desktop `--drive` module (`make bar-visual PAGES=06-engineering`). The
- * run is the page's own `engine.simulate`; the waits read the page's DOM
- * state (never faked).
+ * run is the page's own `engine.simulate`, started with its Run button; the
+ * waits read the page's DOM state (never faked).
  */
 import { seedEmbedThreads } from "../embed.ts";
 import { Hooks, requireEmbed, settle, waitFor, type DriveContext } from "../hooks.ts";
@@ -47,6 +47,17 @@ export default async function drive(ctx: DriveContext): Promise<Record<string, u
     );
     await requireEmbed(page);
     const threads = (await seedEmbedThreads(ctx, hooks, "06")).threads;
+    await waitFor(
+      page,
+      "the Run button, enabled",
+      (id) => {
+        const run = document.querySelector<HTMLButtonElement>(`[data-testid="${id}"]`);
+        return run !== null && !run.disabled;
+      },
+      "engineering.run",
+      { timeoutMs: 90_000, diag: readState },
+    );
+    await page.evaluate((id) => document.querySelector<HTMLButtonElement>(`[data-testid="${id}"]`)!.click(), "engineering.run");
     await waitFor(
       page,
       "page 06 Engineering state (the demo engine's blowdown in three plots, Tank motion)",

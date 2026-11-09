@@ -9,16 +9,21 @@ import { useCallback, useMemo, useRef, useState, type ReactNode } from "react";
 import type { ViewId } from "@rw/contracts";
 import { MENTION_EVENT } from "../../embed/mention.ts";
 import { ADD_FIRST_PART, FIRST_PART_HINT, componentRef, useAppState, type AppStore, type Units } from "../../state/index.ts";
+import { NO_RAIL_MATCHES, useRailSearch } from "../../shell/railSearch.ts";
 import { selectedComponentIds } from "../../state/slices/selection.ts";
+import { Menu, MenuButton } from "../../ui/Menu.tsx";
 import { AssemblyViewport } from "../../viewport/AssemblyViewport.tsx";
 import type { EngineState, FitMargin } from "../../viewport/engine.ts";
 import type { GlbDeps } from "../../viewport/glb-source.ts";
+import type { RpcLike } from "../../state/rpc.ts";
 import { AddPartButton } from "./AddPartPopover.tsx";
 import { AssemblyToolbar } from "./AssemblyToolbar.tsx";
+import { DrawingDialog } from "./DrawingDialog.tsx";
 import { thumbKey } from "../../render/thumbnails.ts";
-import { ComponentTree, iconFor, treeRows } from "./ComponentTree.tsx";
+import { ComponentTree, iconFor, matchingTreeRows, treeRows } from "./ComponentTree.tsx";
 import { INSPECTOR_WIDTH, Inspector } from "./Inspector.tsx";
 import { inspectorView } from "./inspector-model.ts";
+import { partMenuItems } from "./PartActions.tsx";
 import "./assembly.css";
 
 export interface AssemblySlots {
@@ -28,10 +33,10 @@ export interface AssemblySlots {
   navAdd: ReactNode;
 }
 
-export function assemblySlots(store: AppStore, glbDeps: GlbDeps): AssemblySlots {
+export function assemblySlots(store: AppStore, glbDeps: GlbDeps, client: RpcLike | null = null, httpBase = ""): AssemblySlots {
   return {
     content: <AssemblyWorkspace store={store} glbDeps={glbDeps} />,
-    toolbar: <AssemblyToolbarSlot store={store} />,
+    toolbar: <AssemblyToolbarSlot store={store} client={client} httpBase={httpBase} />,
     nav: <ComponentTreeSlot store={store} />,
     navAdd: <AddPartButton store={store} />,
   };
@@ -81,6 +86,8 @@ export function AssemblyWorkspace({ store, glbDeps }: { store: AppStore; glbDeps
   const firstComponent = first === null ? undefined : evaluated?.components.find((c) => c.id === first);
   const thumb = firstComponent ? { url: cardUrl, icon: iconFor(firstComponent as Parameters<typeof iconFor>[0]) } : null;
   const noParts = evaluated?.components.length === 0;
+  // The committed model: a part that exists only in an unsaved preview cannot be renamed or deleted yet.
+  const actionItems = first === null || committed === null || !committed.components.some((c) => c.id === first) ? null : partMenuItems(store, committed.components, first);
   const ref = useRef<HTMLDivElement>(null);
   // Read at framing time (layout is current then), not tracked: the camera does not chase the inspector.
   const measureInsetHeight = useCallback(() => {
@@ -105,29 +112,47 @@ export function AssemblyWorkspace({ store, glbDeps }: { store: AppStore; glbDeps
           <p className="rw-first-part__hint">{FIRST_PART_HINT}</p>
         </div>
       )}
-      <Inspector view={view} thumb={thumb} noParts={noParts} />
+      <Inspector
+        view={view}
+        thumb={thumb}
+        noParts={noParts}
+        onOpenCard={() => store.getState().ui.navigate("components")}
+        actions={
+          actionItems === null ? undefined : (
+            <MenuButton testId="insp.actions" label="Part actions" items={actionItems}>
+              Part actions
+            </MenuButton>
+          )
+        }
+      />
     </div>
   );
 }
 
-export function AssemblyToolbarSlot({ store }: { store: AppStore }) {
+export function AssemblyToolbarSlot({ store, client = null, httpBase = "" }: { store: AppStore; client?: RpcLike | null; httpBase?: string }) {
   const ui = useAppState(store, (s) => s.ui);
+  const projectId = useAppState(store, (s) => s.project.projectId);
+  const [drawing, setDrawing] = useState(false);
   const set = (v: Parameters<typeof ui.setView>[0]) => store.getState().ui.setView(v);
   return (
-    <AssemblyToolbar
-      view={ui.view}
-      explode={ui.explode}
-      section={ui.section}
-      showInternals={ui.showInternals}
-      shadows={ui.shadows}
-      units={ui.units}
-      onView={(view: ViewId) => set({ view })}
-      onExplode={(explode, animate) => set({ explode, animate: animate === true })}
-      onSection={(section) => set({ section })}
-      onShowInternals={(showInternals) => set({ showInternals })}
-      onShadows={(shadows) => set({ shadows })}
-      onUnits={(u: Units) => store.getState().ui.setUnits(u)}
-    />
+    <>
+      <AssemblyToolbar
+        view={ui.view}
+        explode={ui.explode}
+        section={ui.section}
+        showInternals={ui.showInternals}
+        shadows={ui.shadows}
+        units={ui.units}
+        onView={(view: ViewId) => set({ view })}
+        onExplode={(explode, animate) => set({ explode, animate: animate === true })}
+        onSection={(section) => set({ section })}
+        onShowInternals={(showInternals) => set({ showInternals })}
+        onShadows={(shadows) => set({ shadows })}
+        onUnits={(u: Units) => void store.getState().ui.setProjectUnits(u)}
+        onDrawing={client !== null && projectId !== null ? () => setDrawing(true) : undefined}
+      />
+      {drawing && client !== null && projectId !== null && <DrawingDialog client={client} projectId={projectId} httpBase={httpBase} onClose={() => setDrawing(false)} />}
+    </>
   );
 }
 
@@ -136,14 +161,17 @@ export function ComponentTreeSlot({ store }: { store: AppStore }) {
   const hidden = useAppState(store, (s) => s.ui.hidden);
   const refs = useAppState(store, (s) => s.selection.refs);
   const [collapsed, setCollapsed] = useState<readonly string[]>([]);
+  const [menu, setMenu] = useState<{ id: string; at: { x: number; y: number; band: { top: number; bottom: number } } } | null>(null);
   const thumbs = useAppState(store, (s) => s.thumbs.urls);
-  const rows = useMemo(
-    () => treeRows(components ?? [], hidden, selectedComponentIds(refs), collapsed).map((r) => {
-        const url = thumbs[thumbKey(r.id)];
-        return url === undefined ? r : { ...r, thumb: url };
-      }),
-    [components, hidden, refs, collapsed, thumbs],
-  );
+  const query = useRailSearch();
+  const rows = useMemo(() => {
+    // A search looks inside collapsed parts too.
+    const all = treeRows(components ?? [], hidden, selectedComponentIds(refs), query === "" ? collapsed : []).map((r) => {
+      const url = thumbs[thumbKey(r.id)];
+      return url === undefined ? r : { ...r, thumb: url };
+    });
+    return matchingTreeRows(all, query);
+  }, [components, hidden, refs, collapsed, thumbs, query]);
   // The rail hides its own empty text for a page-owned tree (LeftRail `navBody`).
   if (components?.length === 0) {
     return (
@@ -152,17 +180,27 @@ export function ComponentTreeSlot({ store }: { store: AppStore }) {
       </p>
     );
   }
+  if (rows.length === 0 && query !== "") return <p className="rw-rail__empty" data-testid="tree.no-match">{NO_RAIL_MATCHES}</p>;
   return (
-    <ComponentTree
-      rows={rows}
-      onSelect={(id, additive) => {
-        const ref = componentRef(id);
-        const cur = store.getState().selection.refs.filter((r) => r.startsWith("rw:c/"));
-        const next = !additive ? [ref] : cur.includes(ref) ? cur.filter((r) => r !== ref) : [...cur, ref];
-        store.getState().selection.select(next, "tree");
-      }}
-      onToggleHidden={(id) => store.getState().ui.toggleHidden(id)}
-      onToggleCollapsed={(id) => setCollapsed((c) => (c.includes(id) ? c.filter((x) => x !== id) : [...c, id]))}
-    />
+    <>
+      <ComponentTree
+        rows={rows}
+        onSelect={(id, additive) => {
+          const ref = componentRef(id);
+          const cur = store.getState().selection.refs.filter((r) => r.startsWith("rw:c/"));
+          const next = !additive ? [ref] : cur.includes(ref) ? cur.filter((r) => r !== ref) : [...cur, ref];
+          store.getState().selection.select(next, "tree");
+        }}
+        onToggleHidden={(id) => store.getState().ui.toggleHidden(id)}
+        onToggleCollapsed={(id) => setCollapsed((c) => (c.includes(id) ? c.filter((x) => x !== id) : [...c, id]))}
+        onContextMenu={(id, at) => {
+          // A right-click outside the selection retargets it, so the inspector and viewport show the part the menu acts on.
+          const ref = componentRef(id);
+          if (!store.getState().selection.refs.includes(ref)) store.getState().selection.select([ref], "tree");
+          setMenu({ id, at });
+        }}
+      />
+      <Menu open={menu !== null} anchor={menu?.at ?? null} onClose={() => setMenu(null)} items={menu === null ? [] : partMenuItems(store, components ?? [], menu.id)} label="Part actions" testId="tree.context-menu" />
+    </>
   );
 }

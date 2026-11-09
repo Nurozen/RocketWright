@@ -2,7 +2,7 @@
  * The left rail's agent threads and the shell actions on them (pure TS, no
  * React; B12, R6.9): the project's Lecturn threads bound to pages through
  * their `appData`, opening and creating them through the embedded pane's
- * bridge (`lecturn/thread.open`, `lecturn/thread.new`), Settings (Lecturn's
+ * bridge (`lecturn/thread.open`; new ones through the app server), Settings (Lecturn's
  * providers panel), and page navigation that keeps the pane on one of the
  * page's threads. Opening refs and result cards lives in
  * `state/navigation.ts`. (B17 removed the old chat these used to drive.)
@@ -47,6 +47,12 @@ function embedPane(store: AppStore) {
   return lecturnRail(store.getState()) ? paneOf(store) : null;
 }
 
+/** The project has no thread yet and none is on its way: the pane offers a first one. */
+export function showStartChat(s: AppState): boolean {
+  const l = s.chat.lecturn;
+  return lecturnRail(s) && l.threads !== null && l.threads.length === 0 && l.activeThreadId === null;
+}
+
 /**
  * Opens a thread: `id` is a rail key or a Lecturn thread id; the pane is
  * asked to show its current thread (`lecturn/thread.open`).
@@ -67,14 +73,21 @@ export function openProviders(store: AppStore): void {
   embedPane(store)?.openProviders();
 }
 
-/** Asks the embed for a new thread whose binding the Lecturn server sets as it creates it (D12). */
-function newEmbedThread(store: AppStore, binding: ThreadBinding, title: string): void {
-  embedPane(store)?.newThread({ title, appData: appDataOf(binding) });
+/**
+ * A new thread with its binding set as it is created (D12), then shown in the
+ * pane. The app server makes it, because the guest's `lecturn/thread.new`
+ * fails while the guest is connecting (`LecturnLink.createThread`); opening
+ * a thread that exists works at any moment.
+ */
+async function newEmbedThread(store: AppStore, binding: ThreadBinding, title: string): Promise<void> {
+  if (!lecturnRail(store.getState())) return;
+  const threadId = await store.getState().chat.createThread({ title, appData: appDataOf(binding) });
+  if (threadId !== null) await openThread(store, threadId);
 }
 
-/** `+ New thread`: a thread bound to the current page (the pane reports it once made). */
-export function newPageThread(store: AppStore, title?: string): void {
-  newEmbedThread(store, { page: store.getState().ui.page }, title ?? "New thread");
+/** `+ New thread` and the empty pane's Start a chat: a thread bound to the current page. */
+export function newPageThread(store: AppStore, title?: string): Promise<void> {
+  return newEmbedThread(store, { page: store.getState().ui.page }, title ?? "New thread");
 }
 
 /**
@@ -87,7 +100,7 @@ export async function openArtifactThread(store: AppStore, ref: RwRef, title?: st
   if (!lecturnRail(s)) return;
   const bound = embedArtifactThread(s, ref);
   if (bound !== undefined) await openThread(store, bound.id);
-  else newEmbedThread(store, { artifact: ref }, title ?? entityOf(s.project.snapshot, ref, s.runs.overlay).label);
+  else await newEmbedThread(store, { artifact: ref }, title ?? entityOf(s.project.snapshot, ref, s.runs.overlay).label);
 }
 
 /**
@@ -109,6 +122,6 @@ export async function ensurePageThread(store: AppStore): Promise<void> {
 
 /** Switches page and rebinds the agent pane to that page's threads. */
 export async function navigatePage(store: AppStore, page: PageId, tab?: string): Promise<void> {
-  store.getState().ui.navigate(page, tab);
+  await store.getState().ui.goToPage(page, tab);
   await ensurePageThread(store);
 }

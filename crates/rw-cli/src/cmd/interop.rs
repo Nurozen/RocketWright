@@ -97,7 +97,13 @@ pub fn export(
     if allow_outside {
         args["allow_outside"] = json!(true);
     }
-    let v = opts.call("export_file", args, None)?;
+    let v = opts.call("export_file", args, None).map_err(|mut e| {
+        // The session's hint is for the agent's path; a person at a terminal has the flag.
+        if !allow_outside && e.message.contains("outside the project") {
+            e.hint = Some("pass --allow-outside to write there".into());
+        }
+        e
+    })?;
     let human = format!(
         "wrote {} ({} bytes, sha256 {})",
         v["path"].as_str().unwrap_or("?"),

@@ -104,6 +104,8 @@ test("a name already taken is refused in the dialog", async ({ page }) => {
   await page.getByRole("button", { name: "New project", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "New project" });
   await dialog.getByRole("textbox", { name: "Name" }).fill("taken");
+  // The default location lands asynchronously; filling before it does appends to it.
+  await expect(dialog.getByRole("textbox", { name: "Location" })).not.toHaveValue("");
   await dialog.getByRole("textbox", { name: "Location" }).fill(location);
   await dialog.getByRole("button", { name: "Create project", exact: true }).click();
   await expect(page.getByTestId("new-project.error")).toContainText("already holds a project");
@@ -132,7 +134,11 @@ test("a long Recent path keeps a gutter before the time and the status, and Miss
         removeRecent: done(undefined),
         setActiveProject: done(undefined),
         setDirty: done(undefined),
+        prefs: done({ window: null, view: {}, lastTab: null, defaultDisplayUnits: null }),
+        setPrefs: done(undefined),
+        openProviders: done(undefined),
         onCommand: () => () => {},
+        onFlush: () => () => {},
         pathForFile: () => "",
       },
     });

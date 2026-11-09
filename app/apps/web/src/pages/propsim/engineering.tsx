@@ -4,14 +4,17 @@
  * run record `engine.json` over HTTP at `ENGINE_RUN_PATH`). Three time plots
  * (tank pressure, mass flow, thrust), the run summary, and the design's
  * assumptions (single-phase propellants: no self-pressurizing N2O). The
- * provenance label is bound to the record's `provenance` (I13).
+ * provenance label is bound to the record's `provenance` (I13). Nothing runs
+ * on open: Run starts the blowdown and Cancel abandons its result here, since
+ * `engine_simulate` cannot be stopped (D16).
  */
-import { useEffect, useMemo, useRef } from "react";
+import { useMemo, useRef } from "react";
 import { useStore } from "zustand";
 import { createStore, type StoreApi } from "zustand/vanilla";
 import { TimePlot } from "../../plots/TimePlot.tsx";
 import type { RpcLike } from "../../state/rpc.ts";
-import { NO_LIQUID_ENGINE, useAppState, type AppStore } from "../../state/index.ts";
+import { NO_LIQUID_ENGINE_ELSEWHERE, useAppState, type AppStore } from "../../state/index.ts";
+import { ResultsIcon } from "../results/ResultsIcon.tsx";
 import { engineRunUrl, engineeringPlots, parseEngineRun, provenanceLabel, runSummary, type EngineRunRecord, type EngineeringPlot } from "./model.ts";
 
 export type FetchText = (url: string) => Promise<{ ok: boolean; status: number; text(): Promise<string> }>;
@@ -19,7 +22,7 @@ export type FetchText = (url: string) => Promise<{ ok: boolean; status: number; 
 export interface EngineeringUi {
   engine: string | null;
   /** Per engine and model hash: the run and its record. */
-  run: { key: string; state: "running" | "ready" | "error"; record: EngineRunRecord | null; runId?: string; error?: string } | null;
+  run: { key: string; state: "running" | "ready" | "error" | "cancelled"; record: EngineRunRecord | null; runId?: string; error?: string } | null;
 }
 
 export type EngineeringStore = StoreApi<EngineeringUi>;
@@ -63,12 +66,12 @@ export function EngineeringTab({ store, client, ui, httpBase, fetchText = (u) =>
   const fetchRef = useRef(fetchText);
   fetchRef.current = fetchText;
 
-  useEffect(() => {
-    const cur = ui.getState().run;
-    if (client === null || projectId === null || engine === null || (cur?.key === key && cur.state !== "error")) return;
-    ui.setState({ run: { key, state: "running", record: null } });
-    // Only the newest run lands (the key moves on with the engine and the model).
-    const mine = () => ui.getState().run?.key === key;
+  const start = () => {
+    if (client === null || projectId === null || engine === null) return;
+    const started: NonNullable<EngineeringUi["run"]> = { key, state: "running", record: null };
+    ui.setState({ run: started });
+    // Only the newest run lands: Cancel or a new Run replaces this object.
+    const mine = () => ui.getState().run === started;
     void (async () => {
       try {
         const out = await client.call("engine.simulate", { projectId, engine });
@@ -80,15 +83,17 @@ export function EngineeringTab({ store, client, ui, httpBase, fetchText = (u) =>
         if (mine()) ui.setState({ run: { key, state: "error", record: null, error: message(e) } });
       }
     })();
-  }, [client, projectId, engine, key, httpBase, ui]);
+  };
+  const cancel = () => ui.setState({ run: { key, state: "cancelled", record: null } });
 
+  const state = run?.key === key ? run.state : "idle";
   const record = run?.key === key ? run.record : null;
   const plots = useMemo(() => (record ? engineeringPlots(record) : []), [record]);
   const summary = useMemo(() => (record ? runSummary(record) : []), [record]);
   const names = engines as Record<string, { name?: string } | undefined> | null;
 
   return (
-    <div className="rw-eng" data-testid="propsim.engineering" data-engine={engine ?? ""} data-state={run?.key === key ? run.state : "idle"} data-provenance={record?.provenance ?? ""}>
+    <div className="rw-eng" data-testid="propsim.engineering" data-engine={engine ?? ""} data-state={state} data-provenance={record?.provenance ?? ""}>
       <header className="rw-eng__bar">
         {all.length > 0 && (
           <label className="rw-eng__engine">
@@ -102,6 +107,19 @@ export function EngineeringTab({ store, client, ui, httpBase, fetchText = (u) =>
             </select>
           </label>
         )}
+        {engine !== null && (
+          <span className="rw-eng__actions">
+            <button type="button" className="rw-button rw-button--primary" data-testid="engineering.run" disabled={state === "running" || client === null || projectId === null} onClick={start}>
+              <ResultsIcon name="run" size={16} />
+              Run
+            </button>
+            {state === "running" && (
+              <button type="button" className="rw-button" data-testid="engineering.cancel" onClick={cancel}>
+                Cancel
+              </button>
+            )}
+          </span>
+        )}
         <span className="rw-eng__run" data-testid="engineering.run-id">
           {record ? `Run ${record.run_id} · ${record.engine}` : ""}
         </span>
@@ -111,15 +129,23 @@ export function EngineeringTab({ store, client, ui, httpBase, fetchText = (u) =>
       </header>
       {engine === null ? (
         <p className="rw-eng__empty" data-testid="engineering.empty">
-          {NO_LIQUID_ENGINE}
+          {NO_LIQUID_ENGINE_ELSEWHERE}
         </p>
-      ) : run?.key === key && run.state === "error" ? (
+      ) : state === "error" ? (
         <p className="rw-eng__empty" data-testid="engineering.error">
-          The blowdown could not run: {run.error}
+          The blowdown could not run: {run?.error}
         </p>
-      ) : record === null ? (
+      ) : state === "cancelled" ? (
+        <p className="rw-eng__empty" data-testid="engineering.cancelled">
+          Run cancelled. Its result will not be shown.
+        </p>
+      ) : state === "running" ? (
         <p className="rw-eng__empty" data-testid="engineering.loading">
           Running the blowdown…
+        </p>
+      ) : record === null ? (
+        <p className="rw-eng__empty" data-testid="engineering.idle">
+          No run yet for this engine. Press Run to fly its tank blowdown.
         </p>
       ) : (
         <div className="rw-eng__body">

@@ -96,16 +96,41 @@ describe("version pickers", () => {
 
 describe("metric and change rows", () => {
   it("formats metrics with units in the picked length unit and signed deltas", () => {
-    const rows = metricRows(CMP, "mm");
+    const rows = metricRows(CMP, "mm", "metric");
     const row = (k: string) => rows.find((r) => r.key === k)!;
     expect(row("dims.fin_span")).toMatchObject({ label: "Fin span", old: "320 mm", new: "340 mm", delta: "+6.3%", tone: "up" });
     expect(row("mass.liftoff")).toMatchObject({ old: "1.2 kg", new: "1.25 kg", delta: "+4.2%" });
     expect(row("stability.liftoff")).toMatchObject({ old: "1.50 cal", delta: "0%", tone: "same" });
     expect(row("aero.cna")).toMatchObject({ label: "CNα", old: "0", new: "0.2", delta: "+0.2", tone: "up" });
-    // Flight distances stay in metres whatever the length unit.
+    // Flight distances follow the project's unit system, not the toolbar's length.
     expect(row("apogee_m")).toMatchObject({ label: "Apogee", old: "400 m", new: "380 m", delta: "−5.0%", tone: "down" });
-    expect(metricRows(CMP, "in").find((r) => r.key === "dims.fin_span")!.old).toBe("12.6 in");
-    expect(formatMetric(null, "m", "dims.length", "mm")).toBe("—");
+    expect(metricRows(CMP, "in", "imperial").find((r) => r.key === "dims.fin_span")!.old).toBe("12.6 in");
+    expect(formatMetric(null, "m", "dims.length", "mm", "metric")).toBe("—");
+  });
+
+  it("shows flight numbers in the project's units, as Results and Analysis do", () => {
+    const flights: CompareOut = {
+      ...CMP,
+      metrics: [
+        { key: "apogee_m", a: 400, b: 380, delta: -20, delta_pct: -5, unit: "m" },
+        { key: "drift_m", a: 0, b: 100, delta: 100, delta_pct: null, unit: "m" },
+        { key: "max_velocity_ms", a: 100, b: 110, delta: 10, delta_pct: 10, unit: "m/s" },
+        { key: "max_accel_ms2", a: 100, b: 100, delta: 0, delta_pct: 0, unit: "m/s^2" },
+        { key: "time_to_apogee_s", a: 12, b: 12, delta: 0, delta_pct: 0, unit: "s" },
+      ],
+    };
+    const row = (units: "mm" | "in", system: "metric" | "imperial", k: string) => metricRows(flights, units, system).find((r) => r.key === k)!;
+    expect(row("in", "imperial", "apogee_m")).toMatchObject({ old: "1312 ft", new: "1247 ft", delta: "−5.0%" });
+    // The absolute delta a zero baseline shows is in the same unit.
+    expect(row("in", "imperial", "drift_m")).toMatchObject({ old: "0 ft", new: "328.1 ft", delta: "+328.1 ft" });
+    expect(row("in", "imperial", "max_velocity_ms")).toMatchObject({ old: "328 ft/s", new: "361 ft/s" });
+    expect(row("in", "imperial", "max_accel_ms2").old).toBe("328 ft/s²");
+    expect(row("in", "imperial", "time_to_apogee_s").old).toBe("12 s");
+    // The system decides, whatever the toolbar's length says (a manifest's `altitude` can pair ft with mm parts).
+    expect(row("mm", "imperial", "apogee_m").old).toBe("1312 ft");
+    expect(row("in", "metric", "apogee_m").old).toBe("400 m");
+    expect(row("mm", "metric", "max_velocity_ms").old).toBe("100 m/s");
+    expect(row("mm", "metric", "max_accel_ms2").old).toBe("100 m/s²");
   });
 
   it("lists changed components with their quantities, and the source edits as written", () => {

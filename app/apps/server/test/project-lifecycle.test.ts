@@ -3,16 +3,30 @@
  * `bin` is a wrapper that logs each invocation and execs the real binary, so a
  * test can tell that no process was spawned. Projects stay under `/tmp`.
  */
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
-import { basename, join } from "node:path";
+import { createHash } from "node:crypto";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { basename, join, relative } from "node:path";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { TestClient, makeValidator } from "@rw/contracts/mock/harness";
+import { LecturnLink } from "../src/lecturn/connection.ts";
 import { AppServer } from "../src/rpc/AppServer.ts";
 import { MAX_PROJECT_REALPATH, projectedRealpath } from "../src/project/create.ts";
 import { displayName, readProjectName } from "../src/project/inspect.ts";
+import { FakeConnection, connectTo } from "./helpers/fakeLecturn.ts";
 import { sidecarBin, tempProject } from "./helpers/harness.ts";
 
 const validator = makeValidator();
+
+/** Every file under `dir`, `.rw/` history included, with a digest of its bytes. */
+function treeDigest(dir: string): Record<string, string> {
+  const digests: Record<string, string> = {};
+  for (const entry of readdirSync(dir, { recursive: true, withFileTypes: true })) {
+    if (!entry.isFile()) continue;
+    const path = join(entry.parentPath, entry.name);
+    digests[relative(dir, path)] = createHash("sha256").update(readFileSync(path)).digest("hex");
+  }
+  return digests;
+}
 
 describe("project lifecycle (U14)", () => {
   let base: string;
@@ -72,6 +86,51 @@ describe("project lifecycle (U14)", () => {
     await c.call("project.close", { projectId: project.projectId });
   });
 
+  it("writes the default units with the project: the renderer's path (R3.4)", async () => {
+    const location = freshLocation("units");
+    const { project } = await c.call("project.create", { name: "Inch rocket", location, template: "empty", displayUnits: { length: "in" } });
+    expect(readFileSync(join(project.dir, "rocketwright.toml"), "utf8")).toMatch(/^\[display_units\][\s\S]*^length = "in"$/m);
+    await c.call("project.close", { projectId: project.projectId });
+  });
+
+  it("creates without a table's value when no units are given", async () => {
+    const location = freshLocation("no-units");
+    const { project } = await c.call("project.create", { name: "Plain", location, template: "empty" });
+    expect(readFileSync(join(project.dir, "rocketwright.toml"), "utf8")).not.toMatch(/length = "in"/);
+    await c.call("project.close", { projectId: project.projectId });
+  });
+
+  it("refuses units the flag could not carry, before any process", async () => {
+    const location = freshLocation("bad-units");
+    expect(await c.request("project.create", { name: "Bad", location, displayUnits: { length: "in,mass=kg" } })).toMatchObject({ ok: false, error: { code: "invalid_params" } });
+    expect(await c.request("project.create", { name: "Bad", location, displayUnits: { length: 1 } })).toMatchObject({ ok: false, error: { code: "invalid_params" } });
+    expect(existsSync(join(location, "Bad"))).toBe(false);
+  });
+
+  it("the units control's edit changes the manifest and not the model hash (R3.4)", async () => {
+    const location = freshLocation("units-hash");
+    const { project } = await c.call("project.create", { name: "Hash", location, template: "simple-rocket" });
+    const before = await c.call("project.subscribe", { projectId: project.projectId });
+    const hash = before.snapshot.files.model_hash;
+    // Same shape as `displayLengthOps` builds for a table that exists, then one that does not.
+    await c.call("model.patch", { projectId: project.projectId, ops: [{ op: "add", path: "/project/display_units/length", value: "in" }], label: "Set units to in" });
+    const manifest = readFileSync(join(project.dir, "rocketwright.toml"), "utf8");
+    expect(manifest).toMatch(/^length = "in"$/m);
+    expect(manifest).toMatch(/^mass = "g"$/m);
+    const after = await c.call("project.subscribe", { projectId: project.projectId });
+    expect(after.snapshot.files.model_hash).toBe(hash);
+    await c.call("project.close", { projectId: project.projectId });
+  });
+
+  it("adds a display_units table to a project that has none", async () => {
+    const location = freshLocation("no-table");
+    const { project } = await c.call("project.create", { name: "Bare", location, template: "empty" });
+    expect(readFileSync(join(project.dir, "rocketwright.toml"), "utf8")).not.toContain("[display_units]");
+    await c.call("model.patch", { projectId: project.projectId, ops: [{ op: "add", path: "/project/display_units", value: { length: "cm" } }] });
+    expect(readFileSync(join(project.dir, "rocketwright.toml"), "utf8")).toMatch(/^\[display_units\]$/m);
+    await c.call("project.close", { projectId: project.projectId });
+  });
+
   it("creates missing parent folders through rw init and expands ~", async () => {
     const home = freshLocation("home");
     vi.stubEnv("HOME", home);
@@ -118,6 +177,40 @@ describe("project lifecycle (U14)", () => {
       expect(existsSync(join(project.dir, "rocketwright.toml"))).toBe(true);
       expect(creations().at(-1)).toMatch(/^import ork /);
       expect(await c.request("project.create", { name: "Missing", location, source: { ork: join(base, "no-such.ork") } })).toMatchObject({ ok: false, error: { code: "not_found" } });
+    } finally {
+      await closeAll();
+      rmSync(seed, { recursive: true, force: true });
+    }
+  }, 60_000);
+
+  it("names a project made from an .ork after what the person typed, not the rocket in the file", async () => {
+    const seed = tempProject("rwu55n", "fixtures/research-vehicle");
+    try {
+      const open = await c.call("project.open", { dir: seed });
+      const ork = join(seed, (await c.call("export.file", { projectId: open.project.projectId, format: "ork", path: "exports/rocket.ork" })).path);
+      const { project } = await c.call("project.create", { name: "My Chosen Name", location: freshLocation("ork-named"), source: { ork } });
+      expect(project.name).toBe("My Chosen Name");
+      expect(readProjectName(project.dir)).toBe("My Chosen Name");
+    } finally {
+      await closeAll();
+      rmSync(seed, { recursive: true, force: true });
+    }
+  }, 60_000);
+
+  it("refuses an .ork over a target holding a project: no spawn, and its model and history untouched (D17)", async () => {
+    const seed = tempProject("rwu55r", "fixtures/research-vehicle");
+    try {
+      const open = await c.call("project.open", { dir: seed });
+      // A real, readable file, so that only the existing project can be the reason for the refusal.
+      const ork = join(seed, (await c.call("export.file", { projectId: open.project.projectId, format: "ork", path: "exports/rocket.ork" })).path);
+      const location = freshLocation("ork-taken");
+      const made = await c.call("project.create", { name: "Taken", location, template: "minimal" });
+      await server.closeProject(made.project.projectId);
+      const before = treeDigest(made.project.dir);
+      const spawned = creations().length;
+      expect(await c.request("project.create", { name: "Taken", location, source: { ork } })).toMatchObject({ ok: false, error: { code: "conflict" } });
+      expect(creations().length).toBe(spawned);
+      expect(treeDigest(made.project.dir)).toEqual(before);
     } finally {
       await closeAll();
       rmSync(seed, { recursive: true, force: true });
@@ -353,3 +446,33 @@ describe("project lifecycle (U14)", () => {
   });
 });
 
+describe("project rename reaches Lecturn (R0.7)", () => {
+  const conn = new FakeConnection();
+  let base: string;
+  let server: AppServer;
+  let c: TestClient;
+
+  beforeAll(async () => {
+    base = mkdtempSync("/tmp/rwu32-");
+    server = await AppServer.start({ bin: sidecarBin(), stderr: "ignore", log: () => undefined, lecturn: (events) => new LecturnLink(connectTo(conn), events) });
+    c = await TestClient.connect(server.rpcUrl, validator);
+  }, 600_000);
+
+  afterAll(async () => {
+    c?.close();
+    await server?.close();
+    if (base !== undefined) rmSync(base, { recursive: true, force: true });
+  });
+
+  it("retitles the workspace from project.rename and from a manifest edit", async () => {
+    const { project } = await c.call("project.create", { name: "Before", location: base });
+    const root = realpathSync(project.dir);
+    await vi.waitFor(() => expect(conn.ensured).toContainEqual([root, "Before"]));
+
+    await c.call("project.rename", { projectId: project.projectId, name: "Renamed" });
+    await vi.waitFor(() => expect(conn.ensured.at(-1)).toEqual([root, "Renamed"]));
+
+    await c.call("model.patch", { projectId: project.projectId, ops: [{ op: "replace", path: "/project/name", value: "Patched" }] });
+    await vi.waitFor(() => expect(conn.ensured.at(-1)).toEqual([root, "Patched"]));
+  });
+});

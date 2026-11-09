@@ -4,21 +4,27 @@
  * survives a switch and keeps the socket.
  */
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
-import type { PageId, ProjectInfo } from "@rw/contracts";
+import type { DesktopCommand, DesktopPrefs, PageId, ProjectInfo, SidecarState } from "@rw/contracts";
 import { desktopPaneGlobals, onOpenProject } from "../embed/bridge.ts";
 import { trackLecturnStatus } from "../embed/status.ts";
 import { createPathPrompts } from "../host/browserHost.ts";
 import { hostFor, type HostApi } from "../host/HostApi.ts";
 import type { RunDataSource } from "../pages/results/source.ts";
 import { RpcClient, type RpcLike } from "../state/rpc.ts";
+import { Banner } from "../ui/Banner.tsx";
 import { BRAND } from "./brand.ts";
-import { dispatchCommand, type CommandHandlers } from "./commands.ts";
+import { browserShortcut, dispatchCommand, type CommandHandlers } from "./commands.ts";
+import { RECONNECT_DELAYS_MS, type LinkStatus } from "./connection.ts";
+import { ErrorBoundary } from "./ErrorBoundary.tsx";
 import { INITIAL_LIFECYCLE, lifecycle, shellOutcome, type LifecycleState } from "./lifecycle.ts";
+import { isPageId } from "./model.ts";
 import { PathPromptModal } from "./PathPromptModal.tsx";
 import { errorText, nextOpen } from "./projectActions.ts";
 import { ProjectSurface } from "./ProjectSurface.tsx";
 import { QuickStart } from "./QuickStart.tsx";
+import { SettingsDialog } from "./SettingsDialog.tsx";
 import { undoInField } from "./undo.ts";
+import { useFileDrop } from "./useFileDrop.ts";
 import { useProjectActions, type SurfaceHandle } from "./useProjectActions.tsx";
 import { Welcome } from "./Welcome.tsx";
 import { applyZoom, nextZoom, ZOOM_DEFAULT } from "./zoom.ts";
@@ -28,6 +34,8 @@ export interface AppRootProps {
   /** `?project=`: show this one rather than what main reopened. */
   requestedProjectId: string | null;
   initialPage: PageId;
+  /** The URL named the page (`?page=`): it wins, and the last tab is neither restored nor recorded. */
+  pageForced?: boolean | undefined;
   runSource: RunDataSource;
   httpBase: string;
   /** Called whenever the window settles (or fails); publishes `window.__rwShell`. */
@@ -40,43 +48,93 @@ export interface AppRootProps {
 const connectRpc = (url: string): Promise<RpcLike> => RpcClient.connect(url);
 
 /** The startup failure itself, in the window (a blank one tells nobody anything). */
-export function FatalScreen({ error }: { error: string }) {
+export function FatalScreen({ error, relaunchLabel = "Relaunch", onRelaunch }: { error: string; relaunchLabel?: string; onRelaunch?: (() => void) | undefined }) {
   return (
     <main className="rw-lifecycle" role="alert" data-testid="fatal">
       <h1>RocketWright could not start</h1>
-      <p>{error}</p>
+      <p className="rw-lifecycle__detail">{error}</p>
+      {onRelaunch !== undefined && (
+        <button type="button" className="rw-button rw-button--primary" onClick={onRelaunch}>
+          {relaunchLabel}
+        </button>
+      )}
     </main>
   );
 }
 
-export function AppRoot({ url, requestedProjectId, initialPage, runSource, httpBase, onOutcome, connect = connectRpc, host: hostProp }: AppRootProps) {
+export function AppRoot({ url, requestedProjectId, initialPage, pageForced = false, runSource, httpBase, onOutcome, connect = connectRpc, host: hostProp }: AppRootProps) {
   const [prompts] = useState(createPathPrompts);
   const [host] = useState<HostApi>(() => hostProp ?? hostFor(window, prompts.prompt));
   const [state, dispatch] = useReducer(lifecycle, INITIAL_LIFECYCLE);
   const [client, setClient] = useState<RpcLike | null>(null);
+  const [link, setLink] = useState<LinkStatus>({ kind: "online" });
+  const [sidecar, setSidecar] = useState<SidecarState | null>(null);
   const stateRef = useRef<LifecycleState>(state);
   stateRef.current = state;
   // A switch keeps the page the person is on; only the first surface starts on `?page=`.
   const page = useRef(initialPage);
-  const onPageChange = useCallback((p: PageId) => {
-    page.current = p;
-  }, []);
+  // A ref: a drag of the explode slider must not re-render the window for this.
+  const viewOptions = useRef<DesktopPrefs["view"] | undefined>(undefined);
+  const onPageChange = useCallback(
+    (p: PageId) => {
+      page.current = p;
+      if (!pageForced) host.setPrefs({ lastTab: p }).catch(() => undefined);
+    },
+    [host, pageForced],
+  );
+  const onViewOptions = useCallback(
+    (view: DesktopPrefs["view"]) => {
+      viewOptions.current = view;
+      host.setPrefs({ view }).catch(() => undefined);
+    },
+    [host],
+  );
 
   useEffect(() => {
     let live = true;
     let conn: RpcLike | null = null;
     let offClose: (() => void) | null = null;
-    void (async () => {
-      const c = await connect(url);
+    let retry: ReturnType<typeof setTimeout> | null = null;
+    const reconnect = (reason: string, attempt: number): void => {
+      // The fatal screen's Relaunch already covers it, and there is nothing to come back to.
+      if (stateRef.current.phase === "fatal") return;
+      const delay = RECONNECT_DELAYS_MS[attempt];
+      if (delay === undefined) return setLink({ kind: "lost", reason });
+      retry = setTimeout(() => {
+        connect(url).then(
+          (c) => {
+            if (!live) return c.close();
+            adopt(c);
+            setLink({ kind: "online" });
+          },
+          () => {
+            if (live) reconnect(reason, attempt + 1);
+          },
+        );
+      }, delay);
+    };
+    const adopt = (c: RpcLike): void => {
       conn = c;
-      if (!live) return c.close();
       // The first `lecturn.status` follows `hello` at once: keep it before React renders (B10).
       trackLecturnStatus(c);
-      offClose = c.onClose((reason) => dispatch({ type: "connectionLost", reason }));
+      offClose = c.onClose((reason) => {
+        if (!live) return;
+        setLink({ kind: "reconnecting" });
+        reconnect(reason, 0);
+      });
       setClient(c);
+    };
+    void (async () => {
+      const c = await connect(url);
+      if (!live) return c.close();
+      adopt(c);
       dispatch({ type: "connected" });
-      const [boot, list] = await Promise.all([host.boot(), c.call("project.list", {})]);
+      const [boot, list, saved] = await Promise.all([host.boot(), c.call("project.list", {}), host.prefs().catch(() => null)]);
       if (!live) return;
+      if (saved !== null) {
+        viewOptions.current = saved.view;
+        if (!pageForced && isPageId(saved.lastTab)) page.current = saved.lastTab;
+      }
       dispatch({ type: "listed", requested: requestedProjectId, active: boot.activeProjectId, projects: list.projects.map((p) => p.projectId), notice: boot.notice });
     })().catch((e: unknown) => {
       if (!live) return;
@@ -86,9 +144,10 @@ export function AppRoot({ url, requestedProjectId, initialPage, runSource, httpB
     return () => {
       live = false;
       offClose?.();
+      if (retry !== null) clearTimeout(retry);
       conn?.close();
     };
-  }, [url, requestedProjectId, host, connect]);
+  }, [url, requestedProjectId, host, connect, pageForced]);
 
   useEffect(() => {
     const outcome = shellOutcome(state);
@@ -140,12 +199,16 @@ export function AppRoot({ url, requestedProjectId, initialPage, runSource, httpB
   const desktop = useMemo(() => desktopPaneGlobals(), []);
   useEffect(() => {
     if (desktop === null || client === null) return;
-    return onOpenProject(desktop, (id) => latest.current.switchProject(id));
+    return onOpenProject(desktop, (id) => latest.current.showFromMain(id));
   }, [desktop, client]);
+
+  useFileDrop(window, host, (path) => latest.current.importPath(path), (message) => latest.current.report(message));
 
   const surfaceCommands = useRef<CommandHandlers | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
   const openHelp = useCallback(() => setHelpOpen(true), []);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const openSettings = useCallback(() => setSettingsOpen(true), []);
   const zoom = useRef(ZOOM_DEFAULT);
   // Registered once, not per connection: a pick made while still connecting is told why it did nothing rather than vanishing.
   useEffect(() => {
@@ -157,19 +220,47 @@ export function AppRoot({ url, requestedProjectId, initialPage, runSource, httpB
       "edit.undo": () => edit("undo", () => dispatchCommand({ id: "edit.undo" }, surfaceCommands.current ?? {})),
       "edit.redo": () => edit("redo", () => dispatchCommand({ id: "edit.redo" }, surfaceCommands.current ?? {})),
       "help.quickStart": openHelp,
+      "app.settings": openSettings,
       "view.zoom": ({ direction }) => {
         zoom.current = nextZoom(zoom.current, direction);
         applyZoom(window, zoom.current);
       },
     };
-    return host.onCommand((command) => void dispatchCommand(command, { ...latest.current.commands, ...surfaceCommands.current, ...windowCommands }));
-  }, [host, openHelp]);
+    const run = (command: DesktopCommand): boolean => dispatchCommand(command, { ...latest.current.commands, ...surfaceCommands.current, ...windowCommands });
+    const offMenu = host.onCommand((command) => void run(command));
+    // Save and quit: main waits for this, so a project-less window answers that nothing is unsaved.
+    const offFlush = host.onFlush(async () => (await surfaceRef.current?.flush()) ?? []);
+    if (host.kind !== "browser") {
+      return () => {
+        offMenu();
+        offFlush();
+      };
+    }
+    // No native menu here to own the keys (R0.12). The desktop must not listen too: an accelerator would run twice.
+    const onKey = (e: KeyboardEvent): void => {
+      const command = browserShortcut(e);
+      if (command !== null && run(command)) e.preventDefault();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      offMenu();
+      offFlush();
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [host, openHelp, openSettings]);
+
+  const relaunchLabel = host.kind === "desktop" ? "Relaunch" : "Reload";
+  const relaunch = () => void host.relaunch().catch((e: unknown) => report(`Could not relaunch: ${errorText(e)}`));
+  const shownProject = state.phase === "project" ? state.projectId : null;
+  const restartSidecar = () => {
+    if (client !== null && shownProject !== null) client.call("project.restartSidecar", { projectId: shownProject }).catch((e: unknown) => report(`Could not restart the engine: ${errorText(e)}`));
+  };
 
   let screen = null;
   if (state.phase === "fatal") {
-    screen = <FatalScreen error={state.error} />;
+    screen = <FatalScreen error={state.error} relaunchLabel={relaunchLabel} onRelaunch={relaunch} />;
   } else if (client !== null && state.phase === "welcome") {
-    screen = <Welcome client={client} host={host} notice={state.notice} onOpened={show} />;
+    screen = <Welcome client={client} host={host} notice={state.notice} running={actions.running} onActionSettled={actions.actionSettled} onOpened={show} onImport={() => void dispatchCommand({ id: "file.import" }, actions.commands)} onOpenSettings={openSettings} />;
   } else if (client !== null && state.phase === "project") {
     screen = (
       <ProjectSurface
@@ -183,18 +274,74 @@ export function AppRoot({ url, requestedProjectId, initialPage, runSource, httpB
         onOpenFailed={onOpenFailed}
         onSwitchProject={actions.switchProject}
         onProjectInfo={onProjectInfo}
+        onSidecarState={setSidecar}
+        onError={report}
         projectMenu={actions.menu}
         surfaceRef={surfaceRef}
         commandsRef={surfaceCommands}
         onOpenHelp={openHelp}
+        onOpenSettings={openSettings}
+        initialView={viewOptions.current}
+        onViewOptions={onViewOptions}
+        host={host}
       />
     );
   }
   return (
     <>
-      {screen}
+      <ErrorBoundary key={shownProject ?? state.phase}>{screen}</ErrorBoundary>
+      <div className="rw-ui-banner-stack">
+        {state.phase !== "fatal" && link.kind === "reconnecting" && (
+          <Banner floating tone="warning" testId="connection.reconnecting">
+            Lost the connection to the app server. Reconnecting…
+          </Banner>
+        )}
+        {state.phase !== "fatal" && link.kind === "lost" && (
+          <Banner
+            floating
+            tone="danger"
+            testId="connection.lost"
+            action={
+              <button type="button" className="rw-button rw-button--primary" onClick={relaunch}>
+                {relaunchLabel}
+              </button>
+            }
+          >
+            The app server has stopped. {relaunchLabel} to keep working.
+          </Banner>
+        )}
+        {sidecar === "failed" && shownProject !== null && (
+          <Banner
+            floating
+            tone="danger"
+            testId="sidecar.failed"
+            action={
+              <button type="button" className="rw-button" onClick={restartSidecar}>
+                Restart engine
+              </button>
+            }
+          >
+            This project's design engine stopped and could not restart.
+          </Banner>
+        )}
+        {actions.banners}
+      </div>
       {actions.overlays}
       {helpOpen && <QuickStart onClose={() => setHelpOpen(false)} />}
+      {settingsOpen && (
+        <SettingsDialog
+          host={host}
+          onClose={() => setSettingsOpen(false)}
+          // The panel lives in the agent pane, which needs a project: on Welcome there is none to open it in.
+          onOpenProviders={
+            state.phase !== "project"
+              ? undefined
+              : () => {
+                  host.openProviders(() => surfaceRef.current?.openProviders()).catch((e: unknown) => report(`Could not open Agent providers: ${errorText(e)}`));
+                }
+          }
+        />
+      )}
       <PathPromptModal prompts={prompts} />
     </>
   );

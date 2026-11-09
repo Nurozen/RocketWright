@@ -14,6 +14,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { PatchOp, schema } from "@rw/contracts";
 import { Icon } from "../../shell/Icon.tsx";
+import { DiagnosticText, diagnosticPlainText } from "../../ui/DiagnosticText.tsx";
+import { useDirtyField } from "../../state/dirtyFields.ts";
 import type { DeepReadonly, Units } from "../../state/index.ts";
 import { displayUnit, fromDisplay, toDisplay } from "../../ui/fields/index.ts";
 import { canRemove, fromPx, insertPoint, movePoint, outlineFrame, outlineProblem, outlineSource, removePoint, snapPoint, toPx, type OutlineFrame, type Pt } from "./outline.ts";
@@ -129,9 +131,10 @@ export function FinOutlineEditor({ comp, units, diagnostics, onEdit, onCommit, o
           tabIndex={0}
           data-testid="outline.canvas"
           onKeyDown={(e) => {
-            if ((e.key === "Delete" || e.key === "Backspace") && sel !== null) {
+            if (e.key === "Delete" || e.key === "Backspace") {
+              // Prevented even with no point selected: in the outline this key never means the fin set (the shell's Delete listener checks).
               e.preventDefault();
-              remove(sel);
+              if (sel !== null) remove(sel);
             } else if (e.key === "Escape") {
               reset();
             }
@@ -232,8 +235,8 @@ export function FinOutlineEditor({ comp, units, diagnostics, onEdit, onCommit, o
             </li>
           )}
           {e061.map((d, i) => (
-            <li key={`e061-${i}`} data-severity={d.severity} data-code={d.code} title={d.hint ?? d.code}>
-              <Icon name="alert" size={14} /> {d.message}
+            <li key={`e061-${i}`} data-severity={d.severity} data-code={d.code} title={diagnosticPlainText(d.hint ?? d.code)}>
+              <Icon name="alert" size={14} /> <DiagnosticText text={d.message} />
             </li>
           ))}
         </ul>
@@ -248,6 +251,16 @@ function CoordInput({ label, testid, value, disabled, onDone, onCancel }: { labe
   useEffect(() => {
     if (!editing) setText(value);
   }, [value, editing]);
+  useDirtyField({
+    dirty: () => editing && text.trim() !== value,
+    commit: () => {
+      const n = Number(text.trim());
+      if (text.trim() === "" || !Number.isFinite(n)) return `${label} needs a number.`;
+      setEditing(false);
+      onDone(n);
+      return null;
+    },
+  });
   return (
     <input
       className="rw-outline__input"
@@ -257,7 +270,10 @@ function CoordInput({ label, testid, value, disabled, onDone, onCancel }: { labe
       value={text}
       disabled={disabled}
       onFocus={() => setEditing(true)}
-      onChange={(e) => setText(e.currentTarget.value)}
+      onChange={(e) => {
+        setText(e.currentTarget.value);
+        setEditing(true);
+      }}
       onBlur={() => {
         setEditing(false);
         const n = Number(text.trim());

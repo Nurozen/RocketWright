@@ -9,6 +9,8 @@
  */
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { execFileSync } from "node:child_process";
+import { join } from "node:path";
+import { auxProject, REPO } from "./aux-project.ts";
 import { aoProbeFailures, outputProbeFailures, PAGE01_GATES, type AoProbe, type OutputProbe } from "../apps/web/src/viewport/outputProbe.ts";
 
 const WEB = process.env["RW_E2E_WEB_URL"] ?? "";
@@ -229,13 +231,22 @@ test("show internals ghosts the airframe; shadows toggle the contact shadow", as
 
 test("units switch the inspector's lengths", async ({ page }) => {
   const d = dims(rwCheck(), "recovery_bay");
-  await row(page, "recovery_bay").click();
-  await expect(insp(page, "insp.mass", "length")).toHaveText(mm(d.length));
-  await page.getByTestId("toolbar.units").selectOption("in");
-  await expect(insp(page, "insp.mass", "length")).toHaveText(inch(d.length));
-  await expect(insp(page, "insp.mass", "od")).toHaveText(inch(d.od!));
-  await page.getByTestId("toolbar.units").selectOption("cm");
-  await expect(insp(page, "insp.mass", "length")).toHaveText(cm(d.length));
+  // On a copy of its own: the control writes `[display_units]` and a history step (R3.4), which the shared project's other specs do not expect.
+  const aux = await auxProject(join(REPO, "fixtures/research-vehicle"), "Units");
+  try {
+    await page.goto(`${WEB}?rpc=${encodeURIComponent(aux.rpc)}&http=${encodeURIComponent(aux.http)}&page=01`);
+    await expect(row(page, "recovery_bay")).toBeVisible({ timeout: 30_000 });
+    await row(page, "recovery_bay").click();
+    await expect(insp(page, "insp.mass", "length")).toHaveText(mm(d.length));
+    await page.getByTestId("toolbar.units").selectOption("in");
+    await expect(insp(page, "insp.mass", "length")).toHaveText(inch(d.length));
+    await expect(insp(page, "insp.mass", "od")).toHaveText(inch(d.od!));
+    await page.getByTestId("toolbar.units").selectOption("cm");
+    await expect(insp(page, "insp.mass", "length")).toHaveText(cm(d.length));
+  } finally {
+    await page.goto("about:blank");
+    await aux.stop();
+  }
 });
 
 test("visual detail, contact shadow, and a crisp teal outline on the selection (M3.0, M3.1)", async ({ page }) => {
@@ -352,3 +363,37 @@ test("exploded labels never overlap or collide", async ({ page }) => {
     }
   await expect(page.locator('[data-testid="vp.leader-label"][data-collided="true"]')).toHaveCount(0);
 });
+
+// The floor (`D/main.ts` minWidth), both sides of the step where the controls take their own row, and the default window (D27: a label under another control cannot be read or pressed).
+for (const width of [1024, 1200, 1519, 1520, 1536]) {
+  test(`the viewport toolbar's controls stay clear of one another at ${width} wide`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 1024 });
+    const toolbar = page.getByTestId("viewport-toolbar");
+    await expect(toolbar.getByTestId("toolbar.drawing")).toBeVisible();
+    const measured = await toolbar.evaluate((root) => {
+      const bounds = root.getBoundingClientRect();
+      const boxes = [...root.querySelectorAll(".rw-toolbar__label, .rw-chips, .rw-explode, .rw-switch, .rw-check, .rw-drawing-open, .rw-select")].map((el) => {
+        const r = el.getBoundingClientRect();
+        return { name: (el.textContent ?? "").trim().slice(0, 24), left: r.left, right: r.right, top: r.top, bottom: r.bottom };
+      });
+      return { left: bounds.left, right: bounds.right, top: bounds.top, bottom: bounds.bottom, overflow: root.scrollWidth - root.clientWidth, boxes };
+    });
+    await page.screenshot({ path: join(REPO, `.playwright/toolbar/toolbar-${width}.png`) });
+    expect(measured.overflow, "the row scrolls sideways").toBeLessThanOrEqual(0);
+    const { boxes } = measured;
+    expect(boxes.length).toBeGreaterThan(7);
+    for (const b of boxes) {
+      expect(b.left, `${b.name} starts inside the row`).toBeGreaterThanOrEqual(measured.left);
+      expect(b.right, `${b.name} ends inside the row`).toBeLessThanOrEqual(measured.right);
+      expect(b.bottom, `${b.name} stays above the row's end`).toBeLessThanOrEqual(measured.bottom);
+    }
+    for (const [i, a] of boxes.entries()) {
+      for (const b of boxes.slice(i + 1)) {
+        const clear = a.right <= b.left || b.right <= a.left || a.bottom <= b.top || b.bottom <= a.top;
+        expect(clear, `"${a.name}" and "${b.name}" overlap`).toBe(true);
+      }
+    }
+    // The default window keeps the one row the page is drawn with.
+    if (width === 1536) expect(measured.bottom - measured.top).toBe(67);
+  });
+}

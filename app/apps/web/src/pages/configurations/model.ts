@@ -260,7 +260,8 @@ export function duplicateOps(m: Model, sourceId: string, name: string): { id: st
     { op: "copy", from: `/configs/${sourceId}`, path: `/configs/${id}` },
     { op: "replace", path: `/configs/${id}/name`, value: name },
   ];
-  const sim = Object.values(m.sims).find((s) => s?.config === sourceId);
+  // A visual_flow study is not the configuration's flight: it stays behind.
+  const sim = Object.values(m.sims).find((s) => s?.config === sourceId && s.kind === "flight");
   if (sim != null) {
     ops.push(
       { op: "copy", from: `/sims/${sim.id}`, path: `/sims/${id}` },
@@ -295,7 +296,7 @@ export function newConfigOps(m: Model, motors: readonly Curve[], name = "New con
   }
   const value: Record<string, unknown> = { name, motors: mountsVal, deploy };
   const ops: PatchOp[] = [{ op: "add", path: `/configs/${id}`, value: value as never }];
-  const first = Object.values(m.sims).find((s) => s != null);
+  const first = Object.values(m.sims).find((s) => s?.kind === "flight");
   if (first != null) {
     ops.push(
       { op: "copy", from: `/sims/${first.id}`, path: `/sims/${id}` },

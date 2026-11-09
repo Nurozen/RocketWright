@@ -10,8 +10,8 @@ import { describe, expect, it } from "vitest";
 import { changeText } from "./AgentExtras.tsx";
 import { partDiagnostics } from "./ComponentEditor.tsx";
 import { editorFields, fromDisplay, limitsOf, parseLiteral, rangeError, sharedFields, tabsFor, toDisplay, toSource } from "../../ui/fields/index.ts";
-import { planformLayout, planformOf } from "./PartProfile.tsx";
-import { airframeJoints, finOutlines, fitFrame, hull, modelExtents, profileOverlay, projectBody, scaleLabel, toScreen } from "./profile-geometry.ts";
+import { hasSideProfile, planformLayout, planformOf } from "./PartProfile.tsx";
+import { airframeJoints, finOutlines, fitFrame, hull, markerLabels, modelExtents, profileOverlay, projectBody, scaleLabel, toScreen } from "./profile-geometry.ts";
 import { changedFields, componentDiffers, draftProposal, findStepProposal, reverseOps } from "./proposal.ts";
 import { componentSource, fieldTarget, paramRef, paramSource } from "./source.ts";
 import { agentSteps, embedThreadSteps, openThreadSteps } from "./thread-history.ts";
@@ -88,23 +88,25 @@ describe("schema-driven fields", () => {
   it("lists fin set fields by tab from the schema: required dimensions, then the count", () => {
     const f = editorFields("trapezoidal_fin_set");
     const geo = f.filter((x) => x.tab === "Geometry");
-    expect(geo.slice(0, 6).map((x) => x.key)).toEqual(["root_chord", "tip_chord", "span", "sweep", "thickness", "count"]);
+    expect(geo[0]?.key).toBe("name");
+    expect(geo.slice(1, 7).map((x) => x.key)).toEqual(["root_chord", "tip_chord", "span", "sweep", "thickness", "count"]);
     expect(geo.find((x) => x.key === "count")).toMatchObject({ label: "Fin count", kind: "integer", min: 1, max: 8 });
     expect(geo.find((x) => x.key === "span")).toMatchObject({ kind: "quantity", dim: "length", expr: true, group: "Fins" });
     expect(geo.find((x) => x.key === "cross_section")).toMatchObject({ kind: "enum", options: ["square", "rounded", "airfoil"] });
     // The fin tab is a named group, not a field of the flat grid.
     expect(geo.some((x) => x.key === "tab")).toBe(false);
     expect(geo.filter((x) => x.parent === "tab").map((x) => x.key)).toEqual(["tab.height", "tab.length", "tab.offset"]);
-    expect(f.filter((x) => x.tab === "Mass override").map((x) => x.key)).toEqual(["override.mass", "override.cg"]);
+    expect(f.filter((x) => x.tab === "Mass override").map((x) => x.key)).toEqual(["override.mass", "override.cg", "override.cd", "override.subtree"]);
     expect(f.find((x) => x.key === "override.mass")).toMatchObject({ dim: "mass" });
     expect(f.find((x) => x.key === "appearance.preset")?.options).toContain("composite_white");
     expect(editorFields("body_tube").filter((x) => x.tab === "Geometry").map((x) => x.label)).toEqual(expect.arrayContaining(["Length", "Outer diameter"]));
   });
 
   it("shows only Appearance for a mixed-kind selection", () => {
-    expect(tabsFor(["trapezoidal_fin_set"])).toEqual(["Geometry", "Material", "Appearance", "Mass override"]);
+    expect(tabsFor(["trapezoidal_fin_set"])).toEqual(["Geometry", "Position", "Material", "Appearance", "Mass override"]);
     expect(tabsFor(["body_tube", "nose_cone"])).toEqual(["Appearance"]);
-    expect(sharedFields(["body_tube", "nose_cone"]).map((f) => f.key)).toEqual(["appearance.preset"]);
+    expect(sharedFields(["body_tube", "nose_cone"]).map((f) => f.key)).toContain("appearance.preset");
+    expect(sharedFields(["body_tube", "nose_cone"]).every((f) => f.tab === "Appearance")).toBe(true);
     expect(sharedFields(["body_tube", "body_tube"]).length).toBe(editorFields("body_tube").length);
   });
 
@@ -135,6 +137,41 @@ describe("schema-driven fields", () => {
     expect(rangeError(2.5, count, cl, "mm")).toBe("Fin count must be a whole number.");
     const root = fins.find((f) => f.key === "root_chord")!;
     expect(rangeError(-0.01, root, limitsOf(root, null, "mm"), "mm")).toBe("Root chord must be at least 0 mm.");
+  });
+});
+
+describe("hasSideProfile", () => {
+  const comp = (shape: Record<string, unknown>) => ({ shape }) as never;
+
+  it("is false for a part with no outer diameter, which would draw as a flat line", () => {
+    expect(hasSideProfile(comp({ type: "parachute", diameter: 0.38, packed_length: 0.055, packed_diameter: 0.04 }))).toBe(false);
+    expect(hasSideProfile(comp({ type: "streamer", length: 1, width: 0.05, packed_length: 0.05, packed_diameter: 0.03 }))).toBe(false);
+    expect(hasSideProfile(comp({ type: "shock_cord", cord_length: 2, packed_length: 0.05, packed_diameter: 0.02 }))).toBe(false);
+  });
+
+  it("is true for body parts and fin sets", () => {
+    expect(hasSideProfile(comp({ type: "body_tube", od: 0.054, length: 0.3 }))).toBe(true);
+    expect(hasSideProfile(comp({ type: "transition", fore_od: 0.054, aft_od: 0.041, length: 0.1 }))).toBe(true);
+    expect(hasSideProfile(comp({ type: "trapezoidal_fin_set", root_chord: 0.14, tip_chord: 0.06, span: 0.1, sweep: 0.05 }))).toBe(true);
+    expect(hasSideProfile(comp({ type: "freeform_fin_set", points: [[0, 0], [0.1, 0.05], [0.14, 0]] }))).toBe(true);
+  });
+});
+
+describe("marker labels", () => {
+  const marker = (kind: "cg" | "cp", x: number) => ({ kind, station: 0, x, y: 300 });
+  const fin = (top: number): [number, number][] => [[880, 280], [920, top], [980, top], [1010, 280]];
+
+  it("moves the CP label forward off a fin that reaches it, whether or not the fin is selected", () => {
+    const { labelY, cpX, cgX } = markerLabels({ markers: [marker("cg", 790), marker("cp", 886)], finBlocks: [fin(200)], bodyTop: 285 });
+    expect(labelY).toBe(215);
+    expect(cpX).toBe(832);
+    expect(cgX).toBe(748);
+  });
+
+  it("leaves the labels over a fin too short to reach them", () => {
+    const { cpX, cgX } = markerLabels({ markers: [marker("cg", 700), marker("cp", 886)], finBlocks: [fin(260)], bodyTop: 285 });
+    expect(cpX).toBe(886);
+    expect(cgX).toBe(700);
   });
 });
 
@@ -360,7 +397,7 @@ describe("thread history", () => {
 
   it("is the embed's open Lecturn thread, and empty while the embed is not the pane", () => {
     const imported = lt("copy:rw-fixtures:fin", { appData: '{"page":"components","steps":[3]}' });
-    const chat = { lecturn: { embedded: true, threads: [imported], activeThreadId: imported.threadId, activeKey: null } };
+    const chat = { lecturn: { embedded: true, threads: [imported], activeThreadId: imported.threadId, activeKey: null, threadStart: { state: "idle" as const } } };
     expect(openThreadSteps(steps, chat, 3).map((i) => [i.seq, i.current])).toEqual([
       [2, false],
       [3, true],

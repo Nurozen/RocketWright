@@ -10,6 +10,8 @@ import { useResultsUi } from "./resultsUi.ts";
 export function useResultsRows(app: AppStore, opts: { sorted?: boolean; includeHidden?: boolean } = {}): ResultsRow[] {
   const snapshot = useAppState(app, (s) => s.project.snapshot);
   const overlay = useAppState(app, (s) => s.runs.overlay);
+  // `runRows` reads it: a sim.run answered from the cache changes a row's status without touching the mirror.
+  const started = useAppState(app, (s) => s.runs.started);
   const refs = useAppState(app, (s) => s.selection.refs);
   const sort = useResultsUi(app, (u) => u.sort);
   const hidden = useResultsUi(app, (u) => u.hidden);
@@ -19,7 +21,7 @@ export function useResultsRows(app: AppStore, opts: { sorted?: boolean; includeH
     const rows = resultsRows(app.getState(), { sort: sorted ? sort : null, hidden });
     return includeHidden ? rows : rows.filter((r) => !r.hidden);
     // The store inputs are listed so the rows recompute when any of them changes.
-  }, [app, snapshot, overlay, refs, sort, hidden, sorted, includeHidden]);
+  }, [app, snapshot, overlay, started, refs, sort, hidden, sorted, includeHidden]);
 }
 
 const STATUS_GLYPH: Record<StatusView["icon"], ResultsGlyph> = {

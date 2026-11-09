@@ -35,6 +35,7 @@
     "oidn-web": "0.5.0",
     "react": "19.3.1",
     "react-dom": "19.3.1",
+    "smol-toml": "1.6.0",
     "three": "0.186.1",
     "three-gpu-pathtracer": "0.0.27",
     "three-mesh-bvh": "0.9.16",

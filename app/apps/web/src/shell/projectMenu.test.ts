@@ -18,15 +18,22 @@ const texts = (list: MenuEntry[]) => list.map((e) => (e.kind === "divider" ? "--
 const item = (list: MenuEntry[], label: string) => list.find((e) => e.kind !== "divider" && e.label === label) as MenuItem;
 
 describe("the header's project menu", () => {
+  it("leaves out a project already in the open list", () => {
+    const list = entries({ menu: model({ recents: [recent("weekend-flyer"), { ...recent("altitude-study"), open: true }] }) });
+    const labels = list.map((e) => ("label" in e ? e.label : ""));
+    expect(labels).toContain("weekend-flyer");
+    expect(labels).not.toContain("altitude-study");
+  });
+
   it("follows the mockup: current project, Recent, then the commands", () => {
     const list = entries({ menu: model({ recents: [recent("weekend-flyer"), recent("altitude-study")] }) });
-    expect(texts(list)).toEqual(["Solstice", "---", "Recent", "weekend-flyer", "altitude-study", "---", "New project…", "Open folder…", "Open sample rocket", "Rename project…", "Close project"]);
+    expect(texts(list)).toEqual(["Solstice", "---", "Recent", "weekend-flyer", "altitude-study", "---", "New project…", "Open folder…", "Open sample rocket", "Import…", "Export…", "Rename project…", "Close project"]);
     expect(item(list, "Solstice").checked).toBe(true);
     expect(item(list, "New project…").gutter).toBe(false);
   });
 
   it("leaves Recent out when there is none", () => {
-    expect(texts(entries())).toEqual(["Solstice", "---", "New project…", "Open folder…", "Open sample rocket", "Rename project…", "Close project"]);
+    expect(texts(entries())).toEqual(["Solstice", "---", "New project…", "Open folder…", "Open sample rocket", "Import…", "Export…", "Rename project…", "Close project"]);
   });
 
   it("puts the shown project first under its live name, then the other open ones", () => {

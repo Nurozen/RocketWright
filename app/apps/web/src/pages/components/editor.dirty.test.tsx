@@ -23,7 +23,7 @@ afterEach(async () => {
   resetDirtyFields();
 });
 
-async function editor() {
+async function editor(field = "span", previewNote?: string) {
   const onEdit = vi.fn<ComponentEditorProps["onEdit"]>();
   const onCommit = vi.fn<ComponentEditorProps["onCommit"]>();
   const noop = () => undefined;
@@ -36,7 +36,7 @@ async function editor() {
         comps={[fins]}
         files={{ "rocket.rw.toml": "[c.fins]\n" }}
         units="mm"
-        materials={["balsa"]}
+        materials={{ balsa: { density: 120 } }}
         diagnostics={[]}
         status={{ kind: "clean", detail: "" }}
         tab="Geometry"
@@ -51,10 +51,11 @@ async function editor() {
         library={{ state: "idle", items: [] }}
         onOpenLibrary={noop}
         onApplyPreset={noop}
+        previewNote={previewNote}
       />,
     ),
   );
-  return { input: el.querySelector<HTMLInputElement>('[data-field="span"] input')!, onEdit, onCommit };
+  return { input: el.querySelector<HTMLInputElement>(`[data-field="${field}"] input`)!, onEdit, onCommit };
 }
 
 const type = async (input: HTMLInputElement, value: string) =>
@@ -63,6 +64,41 @@ const type = async (input: HTMLInputElement, value: string) =>
     Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(input, value);
     input.dispatchEvent(new Event("input", { bubbles: true }));
   });
+
+describe("a draft whose check is left to the sidecar", () => {
+  it("says so under the fields", async () => {
+    await editor("span", "This rocket flies a library motor, so the check shown here is the last saved one.");
+    expect(document.body.querySelector('[data-testid="editor.preview-note"]')?.textContent).toContain("library motor");
+  });
+});
+
+describe("an expression typed in a numeric field", () => {
+  it("is accepted where the schema allows one, unchanged", async () => {
+    const { input, onEdit } = await editor();
+    await type(input, "= params.fin_span * 2");
+    expect(document.body.querySelector('[data-field="span"]')?.getAttribute("data-invalid")).toBeNull();
+    expect(onEdit.mock.calls.at(-1)?.[0]).toEqual([{ op: "add", path: "/c/fins/span", value: "= params.fin_span * 2" }]);
+    expect(document.body.textContent).not.toContain("needs a number");
+  });
+
+  it("says a formula is needed for a bare =", async () => {
+    const { input, onEdit } = await editor();
+    await type(input, "=");
+    expect(onEdit).not.toHaveBeenCalled();
+    expect(document.body.textContent).toContain("Span needs a formula after =.");
+  });
+
+  it("a numeric field the schema does not allow it in still needs a number", async () => {
+    const { input, onEdit } = await editor("thickness");
+    await type(input, "= 2 * 3");
+    expect(onEdit).toHaveBeenCalled();
+    onEdit.mockClear();
+    const count = document.body.querySelector<HTMLInputElement>('[data-field="count"] input')!;
+    await type(count, "= 2 * 3");
+    expect(onEdit).not.toHaveBeenCalled();
+    expect(document.body.textContent).toContain("needs a number");
+  });
+});
 
 describe("an editor field still focused when the project is left", () => {
   it("has handed valid text to the draft already, so nothing is left to flush", async () => {

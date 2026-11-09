@@ -388,8 +388,8 @@
       "kind": "control",
       "testid": "runs.row-menu",
       "milestone": "M1",
-      "source": "C§4.4 Interactions",
-      "text": "Row '⋯' menu with Edit, Duplicate, Delete, and Landing dispersion entries.",
+      "source": "C§4.4 Interactions; usability D30 (U53 removed Landing dispersion)",
+      "text": "Row '⋯' menu with Simulation conditions, Edit configuration, Duplicate, and Delete entries.",
       "level": "minimal"
     },
     {
@@ -586,8 +586,8 @@
       "kind": "field",
       "testid": "runs.table-row",
       "milestone": "M1",
-      "source": "C§4.4 Workspace; BC0 critic",
-      "text": "One table row per run that has been run (Baseline, Higher altitude, Fin revision), matching the rail; a run that was never run has no row.",
+      "source": "C§4.4 Workspace; BC0 critic; usability R2.7, D30",
+      "text": "One table row per sim (Baseline, Higher altitude, Fin revision, Recovery test), matching the rail; a sim that was never run has a row with a Run control and no results.",
       "level": "required"
     },
     {

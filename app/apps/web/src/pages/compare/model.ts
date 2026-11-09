@@ -7,6 +7,7 @@
  */
 import type { CompareOut, ProjectSnapshot, RwRef } from "@rw/contracts";
 import { parseRef } from "@rw/contracts";
+import { flightUnit, toFlight, type FlightDim, type UnitSystem } from "../../state/displayUnits.ts";
 import type { CompareSelection, DeepReadonly, Units } from "../../state/index.ts";
 import { formatLength, formatMass } from "../assembly/inspector-model.ts";
 import type { MarkStatus } from "../../viewport/marks.ts";
@@ -139,16 +140,24 @@ const sig = (v: number, n = 3): string => {
   return s.includes("e") ? v.toFixed(2) : s;
 };
 
-/** Model dimensions follow the units picker; flight distances stay in metres. */
+/** Model dimensions follow the units picker; flight numbers follow the project's unit system (R3.5). */
 const isModelLength = (key: string): boolean => /^(dims|mass|aero)\./.test(key);
 
+/** The sidecar's unit strings for flight numbers, by what they measure (`SUMMARY_METRICS`). */
+const FLIGHT_DIMS: Readonly<Record<string, FlightDim>> = { m: "length", "m/s": "velocity", "m/s^2": "acceleration" };
+
 /** A metric value with its unit (`412 m`, `92.4 mm`, `1.62 cal`, `0.054 kg`). */
-export function formatMetric(v: number | null | undefined, unit: string | null | undefined, key: string, units: Units): string {
+export function formatMetric(v: number | null | undefined, unit: string | null | undefined, key: string, units: Units, system: UnitSystem): string {
   if (v == null || !Number.isFinite(v)) return DASH;
   if (unit === "m" && isModelLength(key)) return formatLength(v, units);
   if (unit === "kg") return formatMass(v);
   if (unit === "cal") return `${v.toFixed(2)} cal`;
-  if (unit === "m" || unit === "s") return `${sig(v, 4)} ${unit}`;
+  const dim = unit == null ? undefined : FLIGHT_DIMS[unit];
+  if (dim !== undefined) {
+    const shown = toFlight(v, dim, system);
+    return `${sig(shown, dim === "length" ? 4 : 3)} ${flightUnit(dim, system).unit}`;
+  }
+  if (unit === "s") return `${sig(v, 4)} ${unit}`;
   if (unit) return `${sig(v)} ${unit}`;
   return sig(v);
 }
@@ -165,7 +174,7 @@ export interface MetricRowView {
 }
 
 /** `+8.2%` (or a signed absolute change when the old value is zero). */
-export function formatDelta(r: Cmp["metrics"][number], units: Units): { text: string; tone: DeltaTone } {
+export function formatDelta(r: Cmp["metrics"][number], units: Units, system: UnitSystem): { text: string; tone: DeltaTone } {
   if (r.delta == null || !Number.isFinite(r.delta)) return { text: DASH, tone: "none" };
   const tol = 1e-9 * Math.max(Math.abs(r.a ?? 0), Math.abs(r.b ?? 0), 1e-12);
   if (Math.abs(r.delta) <= tol) return { text: "0%", tone: "same" };
@@ -175,19 +184,19 @@ export function formatDelta(r: Cmp["metrics"][number], units: Units): { text: st
     const text = Math.abs(p) < 0.05 ? (p > 0 ? "+<0.1%" : "−<0.1%") : `${p > 0 ? "+" : "−"}${Math.abs(p).toFixed(1)}%`;
     return { text, tone };
   }
-  const abs = formatMetric(Math.abs(r.delta), r.unit, r.key, units);
+  const abs = formatMetric(Math.abs(r.delta), r.unit, r.key, units, system);
   return { text: `${r.delta > 0 ? "+" : "−"}${abs}`, tone };
 }
 
 /** The metric table rows, in the sidecar's order (flight metrics first for two runs). */
-export function metricRows(cmp: Cmp | null, units: Units): MetricRowView[] {
+export function metricRows(cmp: Cmp | null, units: Units, system: UnitSystem): MetricRowView[] {
   return (cmp?.metrics ?? []).map((r) => {
-    const d = formatDelta(r, units);
+    const d = formatDelta(r, units, system);
     return {
       key: r.key,
       label: metricLabel(r.key),
-      old: formatMetric(r.a, r.unit, r.key, units),
-      new: formatMetric(r.b, r.unit, r.key, units),
+      old: formatMetric(r.a, r.unit, r.key, units, system),
+      new: formatMetric(r.b, r.unit, r.key, units, system),
       delta: d.text,
       tone: d.tone,
     };

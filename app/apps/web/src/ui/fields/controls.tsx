@@ -9,10 +9,29 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Icon } from "../../shell/Icon.tsx";
 import { useDirtyField } from "../../state/dirtyFields.ts";
+import { DiagnosticText, diagnosticPlainText } from "../DiagnosticText.tsx";
 import type { FieldSpec } from "./spec.ts";
 import "./fields.css";
 
 type ControlField = Pick<FieldSpec, "key" | "label">;
+
+/** What the check says about this field, shown under it (RW-E06x and the rest). */
+export interface FieldDiagnostic {
+  code: string;
+  severity: string;
+  message: string;
+  hint?: string | null;
+}
+
+/** The check's words at the field they are about. */
+function FieldDiag({ diag }: { diag: FieldDiagnostic | undefined }) {
+  if (diag === undefined) return null;
+  return (
+    <span className="rw-field__diag" data-testid="editor.field-diagnostic" data-code={diag.code} data-severity={diag.severity} title={diagnosticPlainText(diag.hint ?? diag.code)}>
+      <DiagnosticText text={diag.message} />
+    </span>
+  );
+}
 
 /** Under a field label: the agent changed this value in the shown revision. */
 export function AgentMarker() {
@@ -36,6 +55,9 @@ export function FieldGroupFrame({ heading, group, children }: { heading: string;
   );
 }
 
+/** How long a ticked box waits for the model before showing the model's value again. */
+const PENDING_CHECK_MS = 1_500;
+
 /** A checkbox; `null` is a mixed selection. */
 export function BoolField({
   testid,
@@ -43,6 +65,7 @@ export function BoolField({
   checked,
   title,
   byAgent,
+  diag,
   onChange,
 }: {
   testid: string;
@@ -50,19 +73,41 @@ export function BoolField({
   checked: boolean | null;
   title: string | undefined;
   byAgent: boolean;
+  diag?: FieldDiagnostic | undefined;
   onChange: (checked: boolean) => void;
 }) {
   const ref = useRef<HTMLInputElement>(null);
+  // The box follows the click at once. The value can flip back for a moment after that, between the preview
+  // ending and the commit reaching the mirror, so the click's value holds until the model has settled;
+  // a write the model refused shows when the wait ends.
+  const [pending, setPending] = useState<boolean | null>(null);
   useEffect(() => {
-    if (ref.current !== null) ref.current.indeterminate = checked === null;
-  }, [checked]);
+    if (pending === null) return;
+    const timer = setTimeout(() => setPending(null), PENDING_CHECK_MS);
+    return () => clearTimeout(timer);
+  }, [pending]);
+  const shown = pending ?? checked;
+  useEffect(() => {
+    if (ref.current !== null) ref.current.indeterminate = shown === null;
+  }, [shown]);
   return (
     <label className="rw-field rw-field--bool" data-testid={testid} data-field={field.key} data-by-agent={byAgent ? "true" : undefined} title={title}>
       <span className="rw-field__label">
         {field.label}
         {byAgent && <AgentMarker />}
       </span>
-      <input ref={ref} type="checkbox" className="rw-field__check" aria-label={field.label} checked={checked === true} onChange={(e) => onChange(e.currentTarget.checked)} />
+      <input
+        ref={ref}
+        type="checkbox"
+        className="rw-field__check"
+        aria-label={field.label}
+        checked={shown === true}
+        onChange={(e) => {
+          setPending(e.currentTarget.checked);
+          onChange(e.currentTarget.checked);
+        }}
+      />
+      <FieldDiag diag={diag} />
     </label>
   );
 }
@@ -73,19 +118,27 @@ export function SelectField({
   field,
   value,
   options,
+  labels,
   placeholder,
   title,
   byAgent,
+  diag,
   onChange,
+  onClear,
 }: {
   testid: string;
   field: ControlField;
   value: string;
   options: readonly string[];
+  /** Visible text for options whose source spelling is not it (`ussa1976`). */
+  labels?: Readonly<Record<string, string>> | undefined;
   placeholder: string | null;
   title: string | undefined;
   byAgent: boolean;
+  diag?: FieldDiagnostic | undefined;
   onChange: (value: string) => void;
+  /** Choosing the placeholder clears the field. Without this the placeholder is not a choice. */
+  onClear?: (() => void) | undefined;
 }) {
   return (
     <label className="rw-field" data-testid={testid} data-field={field.key} data-by-agent={byAgent ? "true" : undefined} title={title}>
@@ -100,17 +153,89 @@ export function SelectField({
           onChange={(e) => {
             const v = e.currentTarget.value;
             if (v !== "") onChange(v);
+            else onClear?.();
           }}
         >
           {placeholder !== null && <option value="">{placeholder}</option>}
           {options.map((o) => (
             <option key={o} value={o}>
-              {o.replace(/_/g, " ")}
+              {labels?.[o] ?? o.replace(/_/g, " ")}
             </option>
           ))}
         </select>
         <Icon name="chevron-down" size={16} />
       </span>
+      <FieldDiag diag={diag} />
+    </label>
+  );
+}
+
+/** A plain text field: Enter or blur commits, Escape discards. `note` shows while the text differs from the model's. */
+export function TextField({
+  testid,
+  field,
+  value,
+  placeholder,
+  title,
+  byAgent,
+  error,
+  note,
+  diag,
+  onChange,
+  onCommit,
+  onDiscard,
+}: {
+  testid: string;
+  field: ControlField;
+  value: string;
+  placeholder: string;
+  title: string | undefined;
+  byAgent: boolean;
+  error: string | null;
+  note?: string | undefined;
+  diag?: FieldDiagnostic | undefined;
+  onChange: (text: string) => void;
+  onCommit: () => void;
+  onDiscard: () => void;
+}) {
+  const [text, setText] = useState(value);
+  const [editing, setEditing] = useState(false);
+  useEffect(() => {
+    if (!editing) setText(value);
+  }, [value, editing]);
+  useDirtyField({ dirty: () => error !== null && error !== "", commit: () => error });
+  return (
+    <label className="rw-field rw-field--text" data-testid={testid} data-field={field.key} data-invalid={error ? "true" : undefined} data-by-agent={byAgent ? "true" : undefined} title={title}>
+      <span className="rw-field__label">
+        {field.label}
+        {byAgent && <AgentMarker />}
+      </span>
+      <input
+        className="rw-field__text"
+        value={text}
+        placeholder={placeholder}
+        aria-label={field.label}
+        aria-invalid={error ? true : undefined}
+        onFocus={() => setEditing(true)}
+        onChange={(e) => {
+          setText(e.currentTarget.value);
+          onChange(e.currentTarget.value);
+        }}
+        onBlur={() => {
+          setEditing(false);
+          if (!error) onCommit();
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && !error) e.currentTarget.blur();
+          else if (e.key === "Escape") {
+            setText(value);
+            onDiscard();
+            e.currentTarget.blur();
+          }
+        }}
+      />
+      {note !== undefined && text !== value && <span className="rw-field__note">{note}</span>}
+      <FieldDiag diag={diag} />
     </label>
   );
 }
@@ -126,6 +251,8 @@ export function SpinField({
   title,
   byAgent,
   error,
+  disabled,
+  diag,
   onChange,
   onCommit,
   onDiscard,
@@ -140,6 +267,8 @@ export function SpinField({
   title: string | undefined;
   byAgent: boolean;
   error: string | null;
+  disabled?: boolean | undefined;
+  diag?: FieldDiagnostic | undefined;
   onChange: (text: string) => void;
   onCommit: () => void;
   onDiscard: () => void;
@@ -173,6 +302,7 @@ export function SpinField({
           inputMode="decimal"
           value={text}
           placeholder={placeholder}
+          disabled={disabled}
           aria-label={field.label}
           aria-describedby={unit === "" ? undefined : unitId}
           aria-invalid={error ? true : undefined}
@@ -202,10 +332,10 @@ export function SpinField({
           }}
         />
         <span className="rw-spinbox__arrows">
-          <button type="button" tabIndex={-1} aria-label={`Increase ${field.label}`} data-testid="editor.spin-up" onMouseDown={(e) => e.preventDefault()} onClick={() => bump(1)}>
+          <button type="button" tabIndex={-1} aria-label={`Increase ${field.label}`} data-testid="editor.spin-up" disabled={disabled} onMouseDown={(e) => e.preventDefault()} onClick={() => bump(1)}>
             <Icon name="chevron-up" size={12} />
           </button>
-          <button type="button" tabIndex={-1} aria-label={`Decrease ${field.label}`} data-testid="editor.spin-down" onMouseDown={(e) => e.preventDefault()} onClick={() => bump(-1)}>
+          <button type="button" tabIndex={-1} aria-label={`Decrease ${field.label}`} data-testid="editor.spin-down" disabled={disabled} onMouseDown={(e) => e.preventDefault()} onClick={() => bump(-1)}>
             <Icon name="chevron-down" size={12} />
           </button>
         </span>
@@ -213,6 +343,7 @@ export function SpinField({
       <span id={unitId} className="rw-field__unit">
         {unit}
       </span>
+      <FieldDiag diag={diag} />
     </label>
   );
 }

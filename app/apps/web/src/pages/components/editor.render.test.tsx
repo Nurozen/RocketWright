@@ -23,7 +23,7 @@ function props(over: Partial<ComponentEditorProps> = {}): ComponentEditorProps {
     comps: [fins],
     files: FILES,
     units: "mm",
-    materials: ["balsa", "plywood"],
+    materials: { balsa: { density: 120 }, plywood: { density: 630 } },
     diagnostics: [],
     status: { kind: "modified", detail: "Simulation needs rerun" },
     tab: "Geometry",
@@ -58,6 +58,38 @@ describe("component editor markup", () => {
     expect(html).toContain("Revert change");
     expect(html).toContain("Fin profile (side view)");
     expect(html).toContain('data-rw-region="editor"');
+  });
+
+  it("offers a project with no parts the Materials tab, and otherwise the first-part hint", () => {
+    const empty = renderToStaticMarkup(<ComponentEditor {...props({ comps: [], noParts: true })} />);
+    expect(empty).toContain(">Materials</button>");
+    expect(empty).toContain("Add your first part");
+    const open = renderToStaticMarkup(<ComponentEditor {...props({ comps: [], noParts: true, tab: "Materials", materialsPanel: <div>the panel</div> })} />);
+    expect(open).toContain("the panel");
+    expect(open).not.toContain("Add your first part");
+  });
+
+  it("offers no Materials tab while nothing can be edited", () => {
+    expect(renderToStaticMarkup(<ComponentEditor {...props({ comps: [] })} />)).not.toContain(">Materials</button>");
+  });
+
+  it("puts Materials after the part's own tabs, and shows only the panel there", () => {
+    const html = renderToStaticMarkup(<ComponentEditor {...props({ tab: "Materials", materialsPanel: <div>the panel</div> })} />);
+    expect(html.indexOf(">Mass override</button>")).toBeLessThan(html.indexOf(">Materials</button>"));
+    expect(html).toContain("the panel");
+    expect(html).not.toContain('data-field="span"');
+  });
+
+  it("lists only the materials the part's density kind can use", () => {
+    const parachute = evaluated.components.find((c) => c.shape.type === "parachute");
+    const materials = { balsa: { density: 120 }, ripstop_nylon: { surface_density: 0.067 } };
+    expect(renderToStaticMarkup(<ComponentEditor {...props({ tab: "Material", materials })} />)).toContain("balsa");
+    expect(renderToStaticMarkup(<ComponentEditor {...props({ tab: "Material", materials })} />)).not.toContain("ripstop nylon");
+    if (parachute !== undefined) {
+      const html = renderToStaticMarkup(<ComponentEditor {...props({ comps: [parachute], tab: "Material", materials })} />);
+      expect(html).toContain("ripstop nylon");
+      expect(html).not.toContain(">balsa<");
+    }
   });
 
   it("links the unit shown beside a number to its input, and leaves a unitless field undescribed", () => {
@@ -138,5 +170,74 @@ describe("nested groups", () => {
     expect(capped).toContain('aria-label="Capped"');
     expect(capped).toContain("checked");
     expect(capped).not.toContain("aria-describedby");
+  });
+});
+
+describe("every part of a part", () => {
+  const lug = { id: "lug", name: "Lug", parent: null, children: [], containment: "surface", shape: { type: "launch_lug", length: 0.035, od: 0.007, id: 0.005 }, anchors: [{ name: "fore", kind: "surface", x: 0, r: 0 }, { name: "aft", kind: "surface", x: 0, r: 0 }], attach: { to: "body.mid", at: "fore", offset: -0.0175 } } as unknown as typeof nose;
+  const body = { id: "body", name: "Body tube", shape: { type: "body_tube", length: 0.3, od: 0.025, id: 0.023 }, anchors: [{ name: "fore", kind: "axial", x: 0, r: 0 }, { name: "mid", kind: "surface", x: 0, r: 0 }, { name: "aft", kind: "axial", x: 0, r: 0 }] } as unknown as typeof nose;
+  const files = { "rocket.rw.toml": '[c.lug]\nattach = { to = "body.mid", at = "fore", offset = "-17.5 mm", spin = "19 deg" }\n' };
+  const html = (over: Partial<ComponentEditorProps>) => renderToStaticMarkup(<ComponentEditor {...props({ comps: [lug], allComps: [body, lug], files, ...over })} />);
+  const field = (out: string, key: string) => new RegExp(`data-field="${key}"[\\s\\S]*?</label>`).exec(out)?.[0] ?? "";
+
+  it("has a Position tab between Geometry and Material", () => {
+    const out = html({ tab: "Position" });
+    expect(out.indexOf(">Geometry</button>")).toBeLessThan(out.indexOf(">Position</button>"));
+    expect(out.indexOf(">Position</button>")).toBeLessThan(out.indexOf(">Material</button>"));
+  });
+
+  it("offers places by name, and reads the spin the evaluated model does not carry", () => {
+    const out = html({ tab: "Position" });
+    expect(field(out, "attach.to")).toContain("Body tube: Middle");
+    expect(field(out, "attach.to")).toContain('aria-label="Attach to"');
+    expect(field(out, "attach.at")).toContain('aria-label="Anchor"');
+    expect(field(out, "attach.offset")).toContain('value="-17.5"');
+    expect(field(out, "attach.spin")).toContain('value="19"');
+    expect(out).toContain("Add instances");
+    expect(out).toContain("Add joint");
+  });
+
+  it("offers only Attach to while a part has nowhere to be placed", () => {
+    const first = { ...nose, attach: null } as unknown as typeof nose;
+    const out = html({ tab: "Position", comps: [first], allComps: [first], files: { "rocket.rw.toml": "[c.nose]\n" } });
+    expect(field(out, "attach.to")).not.toBe("");
+    expect(field(out, "attach.offset")).toBe("");
+  });
+
+  it("names a part on Geometry and keeps a section for packed sizes", () => {
+    const chute = { id: "chute", name: "Chute", shape: { type: "parachute", diameter: 0.3, cd: 0.8, packed_length: 0.04, packed_diameter: 0.02 }, anchors: [] } as unknown as typeof nose;
+    const out = html({ comps: [chute], allComps: [chute], files: {} });
+    expect(field(out, "name")).toContain('value="Chute"');
+    expect(out).toMatch(/role="group" aria-labelledby="[^"]+" data-group="packed"/);
+    expect(field(out, "packed_length")).toContain('aria-label="Packed length"');
+    // An unset optional field stays out of the grid until asked for.
+    expect(field(out, "spill_hole")).toBe("");
+    expect(out).toContain('aria-label="Add field"');
+  });
+
+  it("puts line material beside material, offering only what has a line density", () => {
+    const chute = { id: "chute", name: "Chute", shape: { type: "parachute", diameter: 0.3, cd: 0.8, packed_length: 0.04, packed_diameter: 0.02 }, anchors: [] } as unknown as typeof nose;
+    const out = html({ comps: [chute], allComps: [chute], files: {}, tab: "Material", materials: { nylon: { surface_density: 0.067 }, elastic_cord: { line_density: 0.0018 } } });
+    expect(field(out, "line_material")).toContain("elastic cord");
+    expect(field(out, "line_material")).not.toContain(">nylon<");
+    expect(field(out, "material")).toContain(">nylon<");
+  });
+
+  it("offers a preset, or custom roughness in micrometres", () => {
+    const preset = html({ tab: "Material" });
+    expect(field(preset, "finish")).toContain('aria-label="Finish"');
+    expect(preset).toContain("Custom roughness");
+    const custom = html({ tab: "Material", files: { "rocket.rw.toml": '[c.lug]\nfinish = { roughness = "60 um" }\n' } });
+    expect(field(custom, "finish.roughness")).toContain('value="60"');
+    expect(field(custom, "finish.roughness")).toContain("µm");
+    expect(custom).toContain("Use a preset");
+    expect(field(custom, "finish")).toBe("");
+  });
+
+  it("shows the check's words at the field they are about", () => {
+    const out = html({ diagnostics: [{ code: "RW-E061", severity: "error", path: "/c/lug/od", message: "too wide" }] as never });
+    expect(field(out, "od")).toContain('data-code="RW-E061"');
+    expect(field(out, "od")).toContain("too wide");
+    expect(field(out, "length")).not.toContain("too wide");
   });
 });

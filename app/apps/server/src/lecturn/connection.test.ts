@@ -198,6 +198,99 @@ describe("LecturnLink (B8)", () => {
     await link.close();
   });
 
+  it("retitles the workspace on a rename and asserts the new title on later ensures (R0.7)", async () => {
+    const fake = new FakeConnection();
+    const { link } = setup(fake);
+    await link.start();
+    const a = symlinkedProject("retitle");
+    await link.addProject(a.info);
+    const id = fake.idFor(a.real);
+
+    await link.renameProject("retitle", "Solstice II");
+    expect(fake.ensured).toEqual([
+      [a.real, "Project retitle"],
+      [a.real, "Solstice II"],
+    ]);
+    expect(await link.lecturnProjectId("retitle")).toBe(id);
+    expect([...fake.threadListeners.keys()]).toEqual([id]);
+
+    // Nothing to send: the same name again, or a project with no workspace.
+    await link.renameProject("retitle", "Solstice II");
+    await link.renameProject("not-open", "Elsewhere");
+    expect(fake.ensured).toHaveLength(2);
+
+    // A workspace the switch did not map is ensured again, under the new name.
+    fake.switchTo("env-b", []);
+    await new Promise((r) => setTimeout(r, 0));
+    expect(fake.ensured.at(-1)).toEqual([a.real, "Solstice II"]);
+    await link.close();
+  });
+
+  it("sends a rename after an ensure in flight, and only the newest of several (R0.7)", async () => {
+    class Held extends FakeConnection {
+      release: () => void = () => undefined;
+      held: Promise<void> | null = new Promise((r) => (this.release = r));
+      override async ensureWorkspace(root: string, title: string) {
+        const answer = await super.ensureWorkspace(root, title);
+        await this.held;
+        return answer;
+      }
+    }
+    const fake = new Held();
+    const { link } = setup(fake);
+    await link.start();
+    const a = symlinkedProject("inflight");
+    const added = link.addProject(a.info);
+    await new Promise((r) => setTimeout(r, 0));
+    expect(fake.ensured).toEqual([[a.real, "Project inflight"]]);
+
+    const renames = [link.renameProject("inflight", "Second"), link.renameProject("inflight", "Third")];
+    await new Promise((r) => setTimeout(r, 0));
+    expect(fake.ensured).toHaveLength(1);
+
+    fake.held = null;
+    fake.release();
+    await Promise.all([added, ...renames]);
+    expect(fake.ensured).toEqual([
+      [a.real, "Project inflight"],
+      [a.real, "Third"],
+    ]);
+    await link.close();
+  });
+
+  it("keeps a name Lecturn would refuse from breaking later ensures (R0.7)", async () => {
+    const fake = new FakeConnection();
+    const { link } = setup(fake);
+    await link.start();
+    const a = symlinkedProject("longname");
+    await link.addProject(a.info);
+    await link.renameProject("longname", "x".repeat(300));
+    expect(fake.ensured.at(-1)).toEqual([a.real, "x".repeat(256)]);
+    await link.close();
+  });
+
+  it("rejects a rename Lecturn fails, and keeps the name for the next ensure (R0.7)", async () => {
+    class Failing extends FakeConnection {
+      failing = false;
+      override async ensureWorkspace(root: string, title: string) {
+        if (this.failing) throw new Error("lecturn is down");
+        return super.ensureWorkspace(root, title);
+      }
+    }
+    const fake = new Failing();
+    const { link } = setup(fake);
+    await link.start();
+    const a = symlinkedProject("downed");
+    await link.addProject(a.info);
+    fake.failing = true;
+    await expect(link.renameProject("downed", "Kept")).rejects.toThrow(/lecturn is down/);
+    fake.failing = false;
+    fake.switchTo("env-b", []);
+    await new Promise((r) => setTimeout(r, 0));
+    expect(fake.ensured.at(-1)).toEqual([a.real, "Kept"]);
+    await link.close();
+  });
+
   it("sets the host context on the Lecturn project; the helper carries it across a switch (B12)", async () => {
     const fake = new FakeConnection();
     const { link } = setup(fake);

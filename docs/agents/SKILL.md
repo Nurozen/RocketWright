@@ -69,9 +69,14 @@ provider:
   rw_project_new and open an existing one with rw_project_open, instead of
   rw init. Each asks the person in a dialog, switches the window and starts
   a new thread in that project; this thread stays where it is.
-- Put in request only the work left to do after that step: it becomes the
-  new thread's first message. Leave it out when nothing is left. If the
-  person cancels or the call is refused, tell them and stop; do not retry.
+- Put in request only the work the person asked for that is left after that
+  step, in their terms, adding no checks, fixes or steps of your own: it
+  becomes the new thread's first message. Leave it out when nothing is left.
+  If the person cancels or the call is refused, tell them and stop; do not
+  retry.
+- A thread that starts from such a request does what it asks and no more. If
+  a check then reports problems, tell the person; do not add parts or change
+  the model to clear them unless asked.
 - You may write planning and scratch files (plans, notes, drafts) in the
   project. Keep all of them inside its artifacts/ folder, in subfolders if
   you like, and create the folder if it is missing. RocketWright ignores

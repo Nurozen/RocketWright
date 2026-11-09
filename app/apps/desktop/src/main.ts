@@ -70,10 +70,10 @@
  * build never opens a `/tmp` copy.
  */
 import { mountEmbedView, captureEmbedView, type EmbedBridge, type EmbedTarget as HelperEmbedTarget } from "@lecturn/embed/electron";
-import { DESKTOP_COMMAND_CHANNEL, embedThemeInput, PANE_MAIN_CHANNEL, type DesktopBoot, type EmbedTarget, type LecturnHostThemeJson, type LecturnThemeJson, type PaneMainMessage } from "@rw/contracts";
-import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, shell, systemPreferences, webContents } from "electron";
+import { DESKTOP_COMMAND_CHANNEL, DESKTOP_FLUSH_CHANNEL, embedThemeInput, PANE_MAIN_CHANNEL, type DesktopBoot, type EmbedTarget, type ExportFileRequest, type LecturnHostThemeJson, type LecturnThemeJson, type PaneMainMessage } from "@rw/contracts";
+import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, screen, shell, systemPreferences, webContents } from "electron";
 import { mkdirSync, readFileSync, rmSync } from "node:fs";
-import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, realpath, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -84,11 +84,12 @@ import { openHiddenWindow } from "./hiddenWindow.ts";
 import { captureComposite, createPaneController, droppedCapture, GUEST_WEB_PREFERENCES, isGuestUrl, type EmbedBridgeLike, type MountArgs, type PaneController } from "./lecturn.ts";
 import { connectMainRpc, type MainRpc, type MainRpcOptions } from "./mainRpc.ts";
 import { APP_NAME, createMenuController, linkAction, type MenuController } from "./menu.ts";
-import { bootProjects, buildPreload, desktopArg, documentsDirOverride, lecturnBaseDirFor, parseDesktopArgs, REPO_ROOT, resolveDevProject, seededProfileDir, startBackend, userDataOverride, waitForHttp, type Backend, type DevProject } from "./backend.ts";
+import { bootProjects, buildPreload, desktopArg, documentsDirOverride, harnessModule, lecturnBaseDirFor, parseDesktopArgs, REPO_ROOT, resolveDevProject, seededProfileDir, startBackend, userDataOverride, waitForHttp, type Backend, type DevProject } from "./backend.ts";
 import { createConsentDialogs, registerDesktopServices } from "./nativeDialogs.ts";
 import { packagedLayout, packagedServerOptions, userArgv } from "./packaged.ts";
+import { createPreferences, restorableBounds } from "./preferences.ts";
 import { installProtocol, linkInArgv, linkQueue, openFromLink, parseOpenUrl, projectActivator } from "./protocol.ts";
-import { once, shutdownOnQuit } from "./quit.ts";
+import { createPageFlush, guardQuit, once, QUIT_PROMPT, quitChoice, quitSaveFailedPrompt, SAVE_FAILED_DISCARD_BUTTON } from "./quit.ts";
 import { createRecents, type Recents } from "./recents.ts";
 import { reopenLast } from "./reopen.ts";
 import { classifyPane, PANE_DOM_VIEW_SCRIPT, SNAPSHOT_SHOWN_SCRIPT, waitOverlaySnapshot, type PaneDomView } from "./surfacePane.ts";
@@ -127,8 +128,9 @@ const query = str(args.query) ?? (desk.smoke ? `page=${desk.page ?? "01"}` : ren
 /** Window global the page publishes `{status}` on when ready. */
 const readyGlobal = str(args.ready) ?? (desk.smoke ? "__rwShell" : "__rwProbe");
 if (!/^[A-Za-z_$][\w$]*$/.test(readyGlobal)) throw new Error(`--ready: not an identifier: ${readyGlobal}`);
-const measureModule = str(args.measure);
-const driveModule = str(args.drive);
+// Both run a file in main: a shipped app ignores them (`harnessModule`).
+const measureModule = harnessModule(app.isPackaged, str(args.measure));
+const driveModule = harnessModule(app.isPackaged, str(args.drive));
 /** `?surface=` of a B3 capture (`--query surface=s-welcome`), else null. */
 const surfaceId = new URLSearchParams(query).get("surface");
 const pagePath = str(args["page-path"]);
@@ -311,7 +313,7 @@ function webPreferences(preload: string | undefined, backend: Backend): Electron
   if (preload !== undefined) {
     prefs.preload = preload;
     const s = backend.server;
-    prefs.additionalArguments = [desktopArg({ rpcUrl: s?.rpcUrl ?? null, serverUrl: s?.serverUrl ?? null })];
+    prefs.additionalArguments = [desktopArg({ rpcUrl: s?.rpcUrl ?? null, serverUrl: s?.serverUrl ?? null, startupError: backend.startupError })];
   }
   return prefs;
 }
@@ -533,11 +535,17 @@ async function main(): Promise<void> {
   // reach them, and take no lock (parallel dev and e2e windows stay possible).
   const links = linkQueue();
   let focusWindow: (() => void) | null = null;
+  const showLinkFailure = (detail: string): void => {
+    process.stderr.write(`protocol: ${detail}\n`);
+    if (appWindow === null || appWindow.isDestroyed()) return;
+    void dialog.showMessageBox(appWindow, { type: "error", title: "RocketWright", message: "That link could not be opened", detail, buttons: ["OK"], noLink: true });
+  };
   if (!hidden && (app.isPackaged || process.env["RW_REGISTER_PROTOCOL"] === "1")) {
     const first = installProtocol({
       app,
       register: true,
       onOpen: (link) => links.push(link),
+      onInvalid: (raw) => showLinkFailure(`This link could not be understood: ${raw.slice(0, 200)}`),
       focus: () => focusWindow?.(),
       log: (line) => process.stderr.write(`${line}\n`),
     });
@@ -583,6 +591,11 @@ async function main(): Promise<void> {
   // The arg names the dir the child really uses (CPW2B).
   const lecturnBaseDir = lecturnBaseDirFor(app.getPath("userData"));
   const documents = (): string => documentsDirOverride(app.isPackaged) ?? app.getPath("documents");
+  const preferences = createPreferences({
+    file: join(app.getPath("userData"), "preferences.json"),
+    readOnly: hidden,
+    log: (line) => process.stderr.write(`${line}\n`),
+  });
   const backend = await startBackend({
     projects,
     webRoot,
@@ -591,8 +604,10 @@ async function main(): Promise<void> {
     lecturnBaseDir,
     documentsDir: documents(),
     log: (c) => process.stderr.write(c),
+    keepWebOnServerFailure: !hidden,
     ...(packaged !== null ? packagedServerOptions(packaged, process.execPath) : {}),
   });
+  if (backend.startupError !== null) process.stderr.write(`app server did not start: ${backend.startupError}\n`);
   // Never orphan the server, even on a hard exit.
   process.once("exit", () => {
     backend.server?.child.kill("SIGKILL");
@@ -601,8 +616,10 @@ async function main(): Promise<void> {
   // D2: main's own socket on the child; B8/B10 use it for `embed.target` and per-project mounts.
   let pane: PaneController | null = null;
   let menu: MenuController | null = null;
+  // The page's last word on typed work (R3.7), so a quit never waits on it.
+  let pageDirty = false;
   // Main's socket claims the host channel before any window exists, so both of these read the window when called: until then a request is refused.
-  const consent = createConsentDialogs<BrowserWindow>({ dialog, window: () => appWindow, focus: () => focusWindow?.(), headless: hidden });
+  const consent = createConsentDialogs<BrowserWindow>({ dialog, window: () => appWindow, focus: () => focusWindow?.(), headless: hidden, displayUnits: () => preferences.get().defaultDisplayUnits });
   const activateProject = projectActivator({
     focus: () => focusWindow?.(),
     openThread: (projectId, threadId) => pane?.openThread(projectId, threadId),
@@ -637,6 +654,13 @@ async function main(): Promise<void> {
       await menu?.refresh();
     },
   };
+  const pageFlush = createPageFlush({
+    send: (id) => {
+      if (appWindow === null || appWindow.isDestroyed()) return false;
+      appWindow.webContents.send(DESKTOP_FLUSH_CHANNEL, id);
+      return true;
+    },
+  });
   registerDesktopServices<BrowserWindow>({
     ipc: ipcMain,
     dialog,
@@ -645,10 +669,32 @@ async function main(): Promise<void> {
     boot: () => boot,
     headless: hidden,
     recents,
+    relaunch: () => {
+      app.relaunch();
+      void shutdown(0);
+    },
+    prefs: preferences,
+    openProviders: () => {
+      if (pane === null || !pane.openProviders()) throw new Error("the agent pane is not open");
+    },
+    setDirty: (dirty) => {
+      pageDirty = dirty;
+    },
+    flushDone: (result) => pageFlush.done(result),
+    ...(mainRpc === null
+      ? {}
+      : {
+          exportFile: ({ projectId, format, config, run }: ExportFileRequest, path: string) =>
+            mainRpc.call("export.file", { projectId, format, path, allow_outside: true, ...(config === undefined ? {} : { config }), ...(run === undefined ? {} : { run }) }),
+        }),
   });
   const shutdown = once(async (code: number): Promise<void> => {
     consent.close();
+    // First: everything after this can hang on a stuck child.
+    await preferences.flush();
     pane?.destroy();
+    // Left up, the page reconnects to the closing server, fails to resubscribe and falls back to Welcome, which clears last-active.
+    if (appWindow !== null && !appWindow.isDestroyed()) appWindow.destroy();
     mainRpc?.close();
     await backend.close();
     cleanupSync();
@@ -678,8 +724,19 @@ async function main(): Promise<void> {
     });
   }
   // Below 1024 the header's start column clips; below about 792 the project menu is gone (`header-long-name.spec.ts` holds the floor).
-  const win = new BrowserWindow({ width, height, minWidth: MIN_WINDOW_WIDTH, useContentSize: true, webPreferences: webPreferences(preload, backend) });
+  const sizedByArgs = str(args.width) !== undefined || str(args.height) !== undefined;
+  const restored = sizedByArgs ? null : restorableBounds(preferences.get().window, screen.getAllDisplays(), MIN_WINDOW_WIDTH);
+  // Saved bounds are frame bounds, so they restore without `useContentSize` or the window grows by a title bar each launch.
+  const win = new BrowserWindow({ ...(restored ?? { width, height, useContentSize: true }), minWidth: MIN_WINDOW_WIDTH, webPreferences: webPreferences(preload, backend) });
   appWindow = win;
+  if (!sizedByArgs) {
+    const record = (): void => {
+      if (!win.isDestroyed()) void preferences.update({ window: win.getNormalBounds() });
+    };
+    win.on("resize", record);
+    win.on("move", record);
+    win.on("close", record);
+  }
   focusWindow = () => {
     if (win.isDestroyed()) return;
     if (win.isMinimized()) win.restore();
@@ -700,7 +757,9 @@ async function main(): Promise<void> {
     quit: () => app.quit(),
     log: (line) => process.stderr.write(`${line}\n`),
   });
-  await menu.refresh();
+  // A Recent on a stalled mount must never hold up the window: the rows fill in once their probes settle.
+  menu.install();
+  void menu.refresh().catch((e: unknown) => process.stderr.write(`menu: ${e instanceof Error ? e.message : String(e)}\n`));
   guardLinks(win, new URL(backend.url).origin);
   if (freezeClock !== undefined) {
     await win.loadURL("about:blank");
@@ -709,20 +768,50 @@ async function main(): Promise<void> {
   await win.loadURL(backend.url);
   app.on("window-all-closed", () => void shutdown(0));
   // app.quit() (Cmd+Q, Playwright's close) emits no window-all-closed: without this the exit hook SIGKILLs the server and orphans its sidecars (quit.ts).
-  shutdownOnQuit(app, shutdown);
+  const quit = guardQuit(app, {
+    isDirty: () => pageDirty,
+    ask: async () => {
+      focusWindow?.();
+      return quitChoice((await dialog.showMessageBox(win, { ...QUIT_PROMPT, buttons: [...QUIT_PROMPT.buttons] })).response);
+    },
+    flush: () => pageFlush.flush(),
+    confirmSaveFailed: async (problems) => {
+      focusWindow?.();
+      return (await dialog.showMessageBox(win, quitSaveFailedPrompt(problems))).response === SAVE_FAILED_DISCARD_BUTTON;
+    },
+    shutdown,
+    log: (line) => process.stderr.write(`${line}\n`),
+  });
+  win.on("close", (e) => quit.onWindowClose(e));
+  // A page that went away took its typed work with it, and a new one says for itself.
+  const pageGone = (): void => {
+    pageDirty = false;
+    pageFlush.pageGone();
+  };
+  win.webContents.on("render-process-gone", pageGone);
+  win.webContents.on("did-navigate", pageGone);
   const rpc = mainRpc;
   if (rpc !== null) {
     links.ready((link) => {
       void openFromLink(link, {
+        realpath: (dir) => realpath(dir),
+        known: async (dir) => rpc.projects().some((p) => p.dir === dir) || (await recents.list()).some((r) => r.dir === dir),
+        confirm: (dir) => consent.askOpenLink(dir),
         openProject: async (dir) => (await rpc.call("project.open", { dir })).project,
         activateProject,
+        showFailure: showLinkFailure,
         log: (line) => process.stderr.write(`${line}\n`),
       });
     });
   }
 }
 
-/** Keeps the app window on the app: a web link opens the browser, and nothing else may replace the page or open a second window. */
+/**
+ * Keeps the app window on the app: a web link opens the browser, and nothing
+ * else may replace the page or open a second window. Also the backstop for a
+ * file dropped before the page's own drop handler is listening, which would
+ * otherwise navigate the window to `file://` (`linkAction` denies it).
+ */
 function guardLinks(win: BrowserWindow, appOrigin: string): void {
   const openOutside = (url: string): void => {
     shell.openExternal(url).catch((e: unknown) => process.stderr.write(`cannot open ${url}: ${e instanceof Error ? e.message : String(e)}\n`));
@@ -755,6 +844,9 @@ async function startMainRpc(backend: Backend, quiet: boolean, hooks: Pick<MainRp
 }
 
 main().catch((e: unknown) => {
-  process.stderr.write(`${e instanceof Error ? (e.stack ?? e.message) : String(e)}\n`);
+  const text = e instanceof Error ? (e.stack ?? e.message) : String(e);
+  process.stderr.write(`${text}\n`);
+  // Nothing left to show a window with (a packaged app has no terminal to read); a dev run has stderr, and a modal would hang a harness.
+  if (app.isPackaged) dialog.showErrorBox("RocketWright could not start", text);
   app.exit(1);
 });

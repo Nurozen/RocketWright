@@ -50,13 +50,19 @@ const attachSelect = (): HTMLSelectElement => {
 
 type OnAdd = AddPartPaletteProps["onAdd"];
 
+const library: AddPartPaletteProps["library"] = {
+  search: async () => ({ items: [], total: 0, facets: { manufacturers: [], component_types: [] } }),
+  onAdd: async () => {},
+  onReplace: async () => {},
+};
+
 const flush = () => act(async () => {
   await Promise.resolve();
 });
 
 describe("AddPartPalette", () => {
   it("shows a tile for every kind in the schema", () => {
-    render(<AddPartPalette components={parts} selected={[]} onAdd={async () => {}} onDone={() => {}} />);
+    render(<AddPartPalette components={parts} selected={[]} onAdd={async () => {}} onDone={() => {}} library={library} />);
     const kinds = Object.keys(SCHEMA_META["Component"]!.variants!);
     expect(document.querySelectorAll(".rw-add-part__tile")).toHaveLength(kinds.length);
     expect(tile("Nose cone")).toBeDefined();
@@ -67,7 +73,7 @@ describe("AddPartPalette", () => {
   it("on an empty project allows only a body part and adds it as the root", async () => {
     const onAdd = vi.fn<OnAdd>(async () => {});
     const onDone = vi.fn<() => void>();
-    render(<AddPartPalette components={[]} selected={[]} onAdd={onAdd} onDone={onDone} />);
+    render(<AddPartPalette components={[]} selected={[]} onAdd={onAdd} onDone={onDone} library={library} />);
     expect(document.querySelector("select")).toBeNull();
     expect(host.textContent).toContain("The first part starts the rocket.");
     expect(tile("Parachute").disabled).toBe(true);
@@ -81,7 +87,7 @@ describe("AddPartPalette", () => {
 
   it("attaches to the part chosen under Attach to", async () => {
     const onAdd = vi.fn<OnAdd>(async () => {});
-    render(<AddPartPalette components={parts} selected={[]} onAdd={onAdd} onDone={() => {}} />);
+    render(<AddPartPalette components={parts} selected={[]} onAdd={onAdd} onDone={() => {}} library={library} />);
     const select = attachSelect();
     const nose = parts.find((p) => p.shape.type === "nose_cone")!;
     act(() => {
@@ -96,14 +102,14 @@ describe("AddPartPalette", () => {
   });
 
   it("disables a nose cone once the rocket has parts and says why", () => {
-    render(<AddPartPalette components={parts} selected={[]} onAdd={async () => {}} onDone={() => {}} />);
+    render(<AddPartPalette components={parts} selected={[]} onAdd={async () => {}} onDone={() => {}} library={library} />);
     expect(tile("Nose cone").disabled).toBe(true);
     expect(tile("Nose cone").title).toBe("A nose cone can only start the rocket.");
   });
 
   it("keeps the palette open and shows the failure when the commit fails", async () => {
     const onDone = vi.fn<() => void>();
-    render(<AddPartPalette components={[]} selected={[]} onAdd={async () => Promise.reject(new Error("rejected"))} onDone={onDone} />);
+    render(<AddPartPalette components={[]} selected={[]} onAdd={async () => Promise.reject(new Error("rejected"))} onDone={onDone} library={library} />);
     act(() => tile("Body tube").click());
     await flush();
     expect(onDone).not.toHaveBeenCalled();
@@ -111,8 +117,16 @@ describe("AddPartPalette", () => {
     expect(tile("Body tube").disabled).toBe(false);
   });
 
+  it("has Part types and Parts library tabs, on Part types first", () => {
+    render(<AddPartPalette components={parts} selected={[]} onAdd={async () => {}} onDone={() => {}} library={library} />);
+    const tabs = [...document.querySelectorAll<HTMLElement>('[role="tab"]')];
+    expect(tabs.map((t) => t.textContent)).toEqual(["Part types", "Parts library"]);
+    expect(tabs[0]!.getAttribute("aria-selected")).toBe("true");
+    expect(document.querySelector('[data-testid="add-part.library"]')).toBeNull();
+  });
+
   it("offers nothing while the model cannot be evaluated", () => {
-    render(<AddPartPalette components={null} selected={[]} onAdd={async () => {}} onDone={() => {}} />);
+    render(<AddPartPalette components={null} selected={[]} onAdd={async () => {}} onDone={() => {}} library={library} />);
     expect(tile("Nose cone").disabled).toBe(true);
     expect(host.textContent).toContain("cannot be evaluated");
   });
@@ -162,6 +176,10 @@ describe("addPart", () => {
 });
 
 describe("unavailableReason", () => {
+  it("words the first-part rule from the root kinds", () => {
+    expect(unavailableReason("parachute", [], null)).toBe("Start the rocket with a nose cone, body tube or transition.");
+  });
+
   it("names the missing parent", () => {
     expect(unavailableReason("parachute", parts as never, null)).toBe("Add a body part first.");
   });

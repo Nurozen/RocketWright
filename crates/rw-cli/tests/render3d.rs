@@ -69,14 +69,52 @@ fn reply(backend: &str, fallback: bool, png: &str) -> Value {
 
 /// A stand-in renderer: saves stdin and its args beside itself, logs a line,
 /// prints `stdout`, exits `code`.
+///
+/// `cp` writes the script, not this process. A sibling test forking during a
+/// write here would inherit the write descriptor, and the exec that then fails
+/// with ETXTBSY is the CLI's, which this test cannot retry.
 fn fake_renderer(dir: &Path, stdout: &str, code: i32) -> PathBuf {
     let p = dir.join("rocketwright-render");
     let body = format!(
         "#!/bin/sh\ncat > \"$(dirname \"$0\")/request.json\"\necho \"$@\" > \"$(dirname \"$0\")/args.txt\"\necho 'renderer log line'\ncat <<'RW_EOF'\n{stdout}\nRW_EOF\nexit {code}\n"
     );
-    std::fs::write(&p, body).unwrap();
+    let source = dir.join("rocketwright-render.body");
+    std::fs::write(&source, body).unwrap();
+    let cp = std::process::Command::new("cp")
+        .arg(&source)
+        .arg(&p)
+        .status()
+        .unwrap();
+    assert!(cp.success(), "cp: {cp}");
     std::fs::set_permissions(&p, std::fs::Permissions::from_mode(0o755)).unwrap();
     p
+}
+
+/// Errno 26 is ETXTBSY on Linux and macOS, the raw error a refused exec returns.
+#[test]
+fn a_busy_exec_is_retried_until_it_runs() {
+    let mut calls = 0;
+    let got = retry_text_busy(|| {
+        calls += 1;
+        if calls < 3 {
+            Err(std::io::Error::from_raw_os_error(26))
+        } else {
+            Ok("ran")
+        }
+    })
+    .unwrap();
+    assert_eq!((calls, got), (3, "ran"));
+}
+
+#[test]
+fn only_a_busy_exec_is_retried() {
+    let mut calls = 0;
+    let e = retry_text_busy::<()>(|| {
+        calls += 1;
+        Err(std::io::Error::from(std::io::ErrorKind::NotFound))
+    })
+    .unwrap_err();
+    assert_eq!((calls, e.kind()), (1, std::io::ErrorKind::NotFound));
 }
 
 fn render_schema() -> Value {
@@ -325,14 +363,16 @@ fn absent_renderer_is_exit_2_with_a_hint() {
     // from a new path under load (GATE-flake: seen ~1 in 20 runs, never
     // reproducible in isolation); retry that case only, so a real crash still fails.
     let run_copy = || {
-        std::process::Command::new(&exe)
-            .env_remove("RW_RENDER")
-            .env("HOME", &dir.0)
-            .args(["--project"])
-            .arg(&proj.0)
-            .args(["render", "--view", "front"])
-            .output()
-            .unwrap()
+        retry_text_busy(|| {
+            std::process::Command::new(&exe)
+                .env_remove("RW_RENDER")
+                .env("HOME", &dir.0)
+                .args(["--project"])
+                .arg(&proj.0)
+                .args(["render", "--view", "front"])
+                .output()
+        })
+        .unwrap()
     };
     let mut o = run_copy();
     for _ in 0..2 {

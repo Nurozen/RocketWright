@@ -8,6 +8,8 @@
 :root {
   --rw-ui-edge: color-mix(in srgb, var(--rw-text-secondary) 55%, var(--rw-panel));
   --rw-ui-z: 100;
+  /* Never narrower than the agent column it covers, so the pane does not show beside it; the page reserves the same width. */
+  --rw-sheet-w: clamp(calc(var(--rw-agent-w) + var(--rw-hairline)), 30vw, 461px);
 }
 
 /* ---- modal --------------------------------------------------------------- */
@@ -73,6 +75,22 @@
   outline: none;
 }
 
+/* Half under the panel's edge: the two outer sides carry the border, and the panel's own border is covered where they meet. */
+.rw-ui-popover__caret {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: var(--rw-ui-z);
+  width: 10px;
+  height: 10px;
+  margin: -5px 0 0 -5px;
+  border-bottom: var(--rw-hairline) solid var(--rw-ui-edge);
+  border-left: var(--rw-hairline) solid var(--rw-ui-edge);
+  background: var(--rw-panel);
+  transform: rotate(45deg);
+  pointer-events: none;
+}
+
 .rw-ui-popover__head {
   display: flex;
   align-items: center;
@@ -95,7 +113,7 @@
   z-index: var(--rw-ui-z);
   display: flex;
   flex-direction: column;
-  width: 461px;
+  width: var(--rw-sheet-w);
   max-width: 100%;
   border-left: var(--rw-hairline) solid var(--rw-line);
   background: var(--rw-panel);
@@ -462,6 +480,29 @@
   box-shadow: var(--rw-elevation-overlay);
 }
 
+/* Floating banners stack rather than cover each other. */
+.rw-ui-banner-stack {
+  position: fixed;
+  top: calc(var(--rw-header-h) + 12px);
+  left: 50%;
+  z-index: var(--rw-ui-z);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: max-content;
+  max-width: calc(100% - 32px);
+  translate: -50% 0;
+}
+
+.rw-ui-banner-stack > .rw-ui-banner[data-floating="true"] {
+  position: static;
+  z-index: auto;
+  width: auto;
+  max-width: 100%;
+  translate: none;
+}
+
 .rw-ui-banner__icon {
   display: inline-grid;
   place-items: center;
@@ -479,4 +520,10 @@
 
 .rw-ui-banner__text {
   flex: 1;
+}
+
+/* An identifier quoted in a diagnostic (DiagnosticText). */
+.rw-diag-code {
+  font-family: var(--rw-font-mono);
+  font-size: 0.95em;
 }

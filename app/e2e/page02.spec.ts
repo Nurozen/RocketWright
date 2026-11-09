@@ -48,7 +48,7 @@ const finSpanSource = () => /\[params\.fin_span\][^[]*?value = "([^"]+)"/s.exec(
 const field = (page: Page, key: string) => page.locator(`[data-testid="editor.field"][data-field="${key}"]`);
 const input = (page: Page, key: string) => field(page, key).locator("input");
 const row = (page: Page, id: string) => page.locator(`[data-testid="rail.nav-row"][data-part="${id}"]`);
-const tab = (page: Page, name: string) => page.getByTestId("editor.tab").filter({ hasText: name });
+const tab = (page: Page, name: string) => page.getByTestId("editor.tab").filter({ hasText: new RegExp(`^${name}$`) });
 const steps = (page: Page) => page.getByTestId("history.step");
 
 test.beforeAll(() => {
@@ -93,7 +93,7 @@ test("with the embedded pane, Changed fields renders in the RocketWright strip o
 
 test("renders the fin set editor, profile, markers, and proposal from the model", async ({ page }) => {
   // Schema-driven fields with units and the model's values (seeded: span 100, sweep 40 via params).
-  await expect(page.getByTestId("editor.tab")).toHaveText(["Geometry", "Material", "Appearance", "Mass override"]);
+  await expect(page.getByTestId("editor.tab")).toHaveText(["Geometry", "Position", "Material", "Appearance", "Mass override", "Materials"]);
   await expect(tab(page, "Geometry")).toHaveAttribute("aria-selected", "true");
   const want: Record<string, string> = { root_chord: "140", tip_chord: "60", span: "100", sweep: "40", thickness: "3", count: "4" };
   for (const [k, v] of Object.entries(want)) await expect(input(page, k)).toHaveValue(v);
@@ -251,7 +251,7 @@ test("tabs are remembered per part; a mixed selection edits only Appearance", as
   await row(page, "nose").click({ modifiers: ["ControlOrMeta"] });
   await row(page, "recovery_bay").click({ modifiers: ["ControlOrMeta"] });
   await expect(page.getByTestId("editor")).toHaveAttribute("data-part", "airframe,recovery_bay");
-  await expect(page.getByTestId("editor.tab")).toHaveCount(4);
+  await expect(page.getByTestId("editor.tab")).toHaveCount(6);
   await expect(field(page, "od")).toBeVisible();
   await expect(input(page, "od")).toHaveValue("54");
 });

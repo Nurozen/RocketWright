@@ -8,9 +8,9 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { fromRwWasm, type PreviewCore } from "../wasm.ts";
 import { deleteEngineOps, duplicateEngineOps, newEngineOps, renameEngineOps } from "./engines.ts";
 import { ID_PATTERN, slugify, uniqueId } from "./ids.ts";
-import { addMaterialOps, setMaterialOps } from "./materials.ts";
+import { addMaterialOps, deleteMaterialOps, renameMaterialOps, setMaterialOps } from "./materials.ts";
 import { addPartOps, defaultPart, duplicatePartOps, PART_KINDS, type PartKind } from "./parts.ts";
-import { deleteSimOps, duplicateSimOps, newSimOps, renameSimOps } from "./sims.ts";
+import { deleteSimOps, duplicateSimOps, newSimOps, newStudyOps, nextStudyName, renameSimOps } from "./sims.ts";
 
 const repo = new URL("../../../../../../", import.meta.url).pathname;
 
@@ -201,6 +201,23 @@ describe("sims", () => {
   });
 });
 
+describe("visual flow studies", () => {
+  it("makes a study from an engine and a configuration, on the core's defaults", () => {
+    const src = files("fixtures/research-vehicle");
+    const { id, ops } = newStudyOps("Study 3", "baseline", "demo", ["study_01"]);
+    expect(id).toBe("study_3");
+    const { evaluated } = apply(src, ops);
+    expect(evaluated.sims[id]).toMatchObject({ name: "Study 3", kind: "visual_flow", visual_flow: { engine: "demo", attitude: "scripted_tilt", duration: 10, tilt_deg: 50, swing_deg: 10, period: 4 } });
+    expect(newErrors(src, ops)).toEqual([]);
+    expect(apply(src, ops).check.diagnostics.filter((d) => d.path?.startsWith(`/sims/${id}`))).toEqual([]);
+  });
+
+  it("names the next free study", () => {
+    expect(nextStudyName([])).toBe("Study 1");
+    expect(nextStudyName(["Study 2", "Flow overview"])).toBe("Study 3");
+  });
+});
+
 describe("materials", () => {
   it("adds and replaces whole entries", () => {
     const { id, ops } = addMaterialOps("Carbon Fiber", { density: "1600 kg/m^3" }, []);
@@ -209,6 +226,23 @@ describe("materials", () => {
     const next = apply(empty, [...ops, ...setMaterialOps(id, { surface_density: "67 g/m^2" })]).evaluated.materials[id]!;
     expect(next.density ?? null).toBeNull();
     expect(next.surface_density).toBeCloseTo(0.067);
+  });
+
+  it("deletes an entry, and a rename moves the entry and the part that names it without an error", () => {
+    const { id, ops } = addMaterialOps("Alumnium", { density: "2700 kg/m^3" }, []);
+    const added = apply(empty, ops);
+    expect(added.evaluated.materials[id]).toBeDefined();
+    expect(apply(empty, [...ops, ...deleteMaterialOps(id)]).evaluated.materials[id]).toBeUndefined();
+
+    const part: PatchOp = { op: "add", path: "/c/nose", value: { type: "nose_cone", shape: "ogive", length: "100 mm", od: "40 mm", wall: "2 mm", material: id } as never };
+    const before = apply(empty, [...ops, part]);
+    expect(before.evaluated.components.find((c) => c.id === "nose")?.material).toBe(id);
+    const renamed = renameMaterialOps(id, "aluminium", { density: "2700 kg/m^3" }, ["/c/nose/material"]);
+    const after = apply(empty, [...ops, part, ...renamed]);
+    expect(after.evaluated.materials[id]).toBeUndefined();
+    expect(after.evaluated.materials["aluminium"]?.density).toBeCloseTo(2700);
+    expect(after.evaluated.components.find((c) => c.id === "nose")?.material).toBe("aluminium");
+    expect(newErrors(empty, [...ops, part, ...renamed])).toEqual(newErrors(empty, [...ops, part]));
   });
 });
 

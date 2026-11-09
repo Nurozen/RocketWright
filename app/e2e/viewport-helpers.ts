@@ -62,7 +62,7 @@ export function saveArtifact(sub: string, name: string, pngBase64: string): stri
 /**
  * The plain-web agent pane's guest (the Lecturn embed's iframe, B10), with a
  * thread open and its composer showing: a project without threads gets one
- * from the rail's New thread (`lecturn/thread.new`). Mentions land in that
+ * from the rail's New thread (`embed.createThread`). Mentions land in that
  * composer's chip strip (B12; B17 removed the old chat's composer).
  */
 export async function paneComposer(page: Page, timeoutMs = 90_000): Promise<FrameLocator> {

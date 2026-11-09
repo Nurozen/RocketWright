@@ -29,8 +29,16 @@ function checkOf(s: AppState, running: boolean): ShellModel["check"] {
     missing_inputs: "issues",
     no_parts: "empty",
   };
-  return { status: map[v.kind] ?? "unknown", issues: v.count ?? 0, label: v.label };
+  const status = map[v.kind] ?? "unknown";
+  if (status !== "errors" && status !== "issues") return { status, issues: v.count ?? 0, label: v.label };
+  // R2.6: the badge counts every row the panel lists, not only the worst severity.
+  const diagnostics = s.project.snapshot?.check?.diagnostics ?? [];
+  const errors = diagnostics.filter((d) => d.severity === "error").length;
+  const warnings = diagnostics.filter((d) => d.severity === "warning").length;
+  return { status, issues: errors + warnings, label: errors > 0 && warnings > 0 ? `${plural(errors, "error")}, ${plural(warnings, "warning")}` : v.label };
 }
+
+const plural = (n: number, word: string): string => `${String(n)} ${word}${n === 1 ? "" : "s"}`;
 
 function componentsNav(s: AppState): ShellNavSection {
   const comps = s.project.snapshot?.evaluated?.components ?? [];
@@ -127,6 +135,13 @@ export function stripCurrentStep(s: AppState): number | null {
   return cursor.shown ?? steps.at(-1)!.seq;
 }
 
+/** The moment the design last reached disk: its head step. Connecting, resyncing and job progress are not saves. */
+function lastSavedAt(head: { ts: string } | undefined): number | null {
+  if (head === undefined) return null;
+  const ms = Date.parse(head.ts);
+  return Number.isNaN(ms) ? null : ms;
+}
+
 export interface ShellExtras {
   /** `check.run` in flight. */
   checking?: boolean;
@@ -172,7 +187,7 @@ export function shellModelFrom(s: AppState, now: number, extras: ShellExtras = {
     projectName: snap?.project.name ?? (s.project.connection === "connecting" ? "Opening…" : "No project"),
     projectId: s.project.projectId,
     projects: extras.projects ?? (snap ? [{ id: snap.project.projectId, name: snap.project.name }] : []),
-    saveState: modified ? "Modified · not saved" : savedAgo(s.project.updatedAt, now),
+    saveState: modified ? "Modified · not saved" : savedAgo(lastSavedAt(head), now),
     saveTone: modified ? "amber" : "muted",
     check: checkOf(s, extras.checking === true),
     threads: railThreads(s).map((t) => ({
@@ -183,6 +198,7 @@ export function shellModelFrom(s: AppState, now: number, extras: ShellExtras = {
       ...(t.binding !== null && "artifact" in t.binding ? { artifact: t.binding.artifact } : {}),
     })),
     selectedThreadId: selectedRailId(s),
+    threadStart: s.chat.lecturn.threadStart,
     nav,
     selectedNavId,
     history,

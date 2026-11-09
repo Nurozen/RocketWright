@@ -1,26 +1,31 @@
 /**
  * Results page body (M1.51, R6.6, C §4.4): title and toolbar (Run selected,
  * Plot, Export CSV), run table, Outdated banner, plot panel with tabs, event
- * lines and a two-run overlay (A teal, B sand), trajectory inset, and the run
- * details footer. Everything shown comes from the runs slice (status computed
- * against the current model hash, I7) and the runs' own series.
+ * lines and an overlay of up to six runs, trajectory inset, and the run details
+ * footer. Everything shown comes from the runs slice (status computed against
+ * the current model hash, I7) and the runs' own series; `displayUnits` scales
+ * it for the screen and Export CSV stays SI.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
-import { SERIES_COLORS } from "../../state/types.ts";
+import { SERIES_COLORS, SERIES_SLOTS } from "../../state/types.ts";
+import { unitSystemOf } from "../../state/displayUnits.ts";
 import { hasNoParts } from "../../state/selectors.ts";
 import { useAppState, type AppStore } from "../../state/store.ts";
 import { plotEventMarkers, type EventMarker, type RunSummary } from "../../plots/events.ts";
 import type { DrawnEvent } from "../../plots/eventLines.ts";
-import { legendFigure, PLOT_TABS, plotTab, type PlotTabId } from "../../plots/quantities.ts";
+import { legendFigure, PLOT_TABS, plotAxis, plotTab, plotValues } from "../../plots/quantities.ts";
 import { seriesColumn } from "../../plots/series.ts";
 import { TimePlot, type PlotLine } from "../../plots/TimePlot.tsx";
 import { downloadText, exportFileName, exportRunsCsv, type ExportRun } from "./csv.ts";
-import { defaultOverlay, outdatedBanner, primaryRow, rowRef, runDetails, type ResultsRow } from "./model.ts";
+import { canRefly, defaultOverlay, legendRows, outdatedBanner, plotPrompt, primaryRow, rowRef, runDetails, runnableSims, type ResultsRow } from "./model.ts";
+import { Banner } from "../../ui/Banner.tsx";
 import { MenuButton } from "../../ui/Menu.tsx";
 import { useResultsRows } from "./parts.tsx";
+import { PlotTabs } from "./PlotTabs.tsx";
 import { ResultsIcon } from "./ResultsIcon.tsx";
 import { resultsUiStore, useResultsUi } from "./resultsUi.ts";
 import { RunTable } from "./RunTable.tsx";
+import { newSimulation, SimConditionsSheet } from "./SimConditionsSheet.tsx";
 import { runKey, useRunData, type RunData, type RunDataSource } from "./source.ts";
 import { launchRailOf, padModelOf, trajectoryPoints } from "./trajectory.ts";
 import { TrajectoryView, type TrajectoryPad, type TrajectoryPath } from "./TrajectoryView.tsx";
@@ -42,9 +47,11 @@ export function ResultsPage({ app, source }: ResultsPageProps) {
   const runError = useAppState(app, (s) => s.runs.error);
   const tabId = useResultsUi(app, (u) => u.plotTab);
   const showEvents = useResultsUi(app, (u) => u.showEvents);
+  const notice = useResultsUi(app, (u) => u.notice);
+  const sheetOpen = useResultsUi(app, (u) => u.conditions) !== null;
   const ui = resultsUiStore(app);
-
-  // First visit with runs: plot the first two Complete runs and select series A.
+  const system = useAppState(app, unitSystemOf);
+  // First visit with runs: plot the first two Complete runs (else the latest flown ones) and select series A.
   useEffect(() => {
     if (seeded.has(app)) return;
     const pick = defaultOverlay(rows);
@@ -56,7 +63,7 @@ export function ResultsPage({ app, source }: ResultsPageProps) {
     if (!rows.some((r) => r.selected) && first !== undefined) st.selection.select([rowRef(first)], "table");
   }, [app, rows]);
 
-  const overlayRows = useMemo(() => (["a", "b"] as const).flatMap((slot) => rows.filter((r) => r.series === slot && r.entry.run_id != null)), [rows]);
+  const overlayRows = useMemo(() => SERIES_SLOTS.flatMap((slot) => rows.filter((r) => r.series === slot && r.entry.run_id != null)), [rows]);
   const keys = useMemo(() => overlayRows.map((r) => ({ sim: r.sim, runId: r.entry.run_id! })), [overlayRows]);
   const loaded = useRunData(source, projectId, keys);
   const dataOf = (r: ResultsRow): RunData | null => {
@@ -70,11 +77,11 @@ export function ResultsPage({ app, source }: ResultsPageProps) {
       overlayRows.flatMap((r) => {
         const data = dataOf(r);
         const t = data ? seriesColumn(data.series, "t") : null;
-        const y = data ? seriesColumn(data.series, tab.column) : null;
+        const y = data ? plotValues(data.series, tab, system) : null;
         return t && y ? [{ id: r.key, label: r.name, color: r.color ?? SERIES_COLORS[0], t, y }] : [];
       }),
     // `loaded` changes whenever a series arrives.
-    [overlayRows, loaded, tab],
+    [overlayRows, loaded, tab, system],
   );
   const primary = primaryRow(rows);
   // Burnout, Apogee, Recovery (chute deployment) of one plotted run only, in its colour: the selected
@@ -117,17 +124,20 @@ export function ResultsPage({ app, source }: ResultsPageProps) {
     const data = dataOf(r);
     return data ? [{ name: r.name, sim: r.sim, runId: r.entry.run_id!, series: data.series }] : [];
   });
-  const runnable = (sims: string[]) => [...new Set(sims)].filter((sim) => rows.some((r) => r.sim === sim && r.status.kind !== "running" && r.status.kind !== "queued"));
-  const selectedSims = runnable([...rows.filter((r) => r.series !== null || r.selected).map((r) => r.sim)]);
-  const outdatedSims = runnable(rows.filter((r) => r.status.kind === "outdated" || r.status.kind === "not_run").map((r) => r.sim));
+  const selectedSims = runnableSims(rows, rows.filter((r) => r.series !== null || r.selected).map((r) => r.sim));
+  const outdatedSims = runnableSims(rows, rows.filter((r) => (r.status.kind === "outdated" || r.status.kind === "not_run") && canRefly(r)).map((r) => r.sim));
   const runAll = (sims: string[], force = false) => {
     for (const sim of sims) void app.getState().runs.run(sim, { force }).catch(() => undefined);
   };
+  // Beyond three entries the direct legend goes to two columns, so it does not fill the plot.
+  const legendEntries = lines.length + (eventRun ? 1 : 0);
+  const legendColumns = legendEntries > 3 ? 2 : 1;
   const loading = keys.some((k) => loaded[runKey(k)]?.status !== "ready");
   const loadError = keys.map((k) => loaded[runKey(k)]).find((s) => s?.status === "error");
+  const prompt = plotPrompt(rows, noParts);
 
   return (
-    <section className="rw-results" data-testid="results-page">
+    <section className="rw-results" data-testid="results-page" data-conditions={sheetOpen ? "open" : undefined}>
       <header className="rw-results__head">
         <h1 className="rw-page-title" data-testid="page.title">
           Flight results
@@ -184,10 +194,18 @@ export function ResultsPage({ app, source }: ResultsPageProps) {
       </header>
 
       <RunTable app={app} />
-      {runError && (
-        <p className="rw-results__error" role="alert">
-          {runError}
-        </p>
+      {(runError ?? notice) && (
+        <Banner
+          tone="danger"
+          className="rw-results__error"
+          testId="results.error"
+          onDismiss={() => {
+            app.getState().runs.dismissError();
+            ui.getState().set({ notice: null });
+          }}
+        >
+          {runError ?? notice}
+        </Banner>
       )}
 
       {banner && (
@@ -208,48 +226,42 @@ export function ResultsPage({ app, source }: ResultsPageProps) {
 
       <div className="rw-results__card">
         <section className="rw-results__plot" data-rw-region="plot" data-testid="plot">
-          <div className="rw-plot-tabs" role="tablist" aria-label="Plot">
-            {PLOT_TABS.map((t) => (
-              <button
-                key={t.id}
-                type="button"
-                role="tab"
-                className="rw-tab rw-plot-tab"
-                data-testid="plot.tab"
-                data-tab={t.id}
-                aria-selected={t.id === tabId}
-                onClick={() => ui.getState().set({ plotTab: t.id as PlotTabId })}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
+          <PlotTabs active={tabId} onSelect={(plotTab) => ui.getState().set({ plotTab })} />
           <div className="rw-results__chart" data-tab={tabId} data-loading={loading ? "true" : undefined}>
             {lines.length > 0 ? (
-              <TimePlot lines={lines} events={events} yLabel={tab.axis} onDrawn={onDrawn} topInset={14 + 22 * (lines.length + (eventRun ? 1 : 0))} avoid={legendRef} />
+              <TimePlot lines={lines} events={events} yLabel={plotAxis(tab, system)} onDrawn={onDrawn} topInset={14 + 22 * Math.ceil(legendEntries / legendColumns)} avoid={legendRef} />
             ) : (
-              <p className="rw-results__empty" data-testid="plot.empty">
-                {loadError?.status === "error"
-                  ? `Could not load the run series: ${loadError.error}`
-                  : rows.length === 0
-                    ? noParts
-                      ? "Nothing to fly yet. Add your first part on Design, then add a simulation."
-                      : "Nothing to fly yet. Add a simulation to see flight results here."
-                    : overlayRows.length === 0
-                    ? "Tick up to two runs to plot them."
-                    : "Loading run series…"}
-              </p>
+              <>
+                <p className="rw-results__empty" data-testid="plot.empty">
+                  {loadError?.status === "error" ? `Could not load the run series: ${loadError.error}` : overlayRows.length === 0 ? prompt.text : "Loading run series…"}
+                </p>
+                {loadError === undefined && overlayRows.length === 0 && prompt.action === "open-design" && (
+                  <button type="button" className="rw-button rw-button--primary rw-results__cta" onClick={() => app.getState().ui.navigate("assembly")}>
+                    Open Design
+                  </button>
+                )}
+                {loadError === undefined && overlayRows.length === 0 && prompt.action === "add-simulation" && (
+                  <button type="button" className="rw-button rw-button--primary rw-results__cta" onClick={() => void newSimulation(app)}>
+                    Add simulation
+                  </button>
+                )}
+                {loadError === undefined && overlayRows.length === 0 && prompt.action === "run" && (
+                  <button type="button" className="rw-button rw-button--primary rw-results__cta" onClick={() => void app.getState().runs.run(prompt.sim).catch(() => undefined)}>
+                    <ResultsIcon name="run" size={18} />
+                    {`Run ${prompt.name}`}
+                  </button>
+                )}
+              </>
             )}
             {lines.length > 0 && (
-              <ul className="rw-legend rw-list" data-testid="plot.legend" ref={legendRef}>
-                {overlayRows.map((r) => {
-                  const line = lines.find((l) => l.id === r.sim);
-                  if (!line) return null;
-                  const fig = legendFigure(tabId, r.metrics ?? ((r.entry.summary ?? null) as RunSummary | null));
+              <ul className="rw-legend rw-list" data-testid="plot.legend" data-columns={legendColumns} ref={legendRef}>
+                {legendRows(overlayRows, lines).map(({ row: r, line }) => {
+                  const fig = legendFigure(tabId, r.metrics ?? ((r.entry.summary ?? null) as RunSummary | null), system);
                   return (
                     <li key={r.key} data-testid="plot.series" data-sim={r.sim} data-row-key={r.key} data-series={r.series ?? undefined} data-color={line.color} data-points={line.t.length}>
                       <span className="rw-legend__swatch" data-series={r.series ?? undefined} aria-hidden />
                       {fig ? `${r.name} (${fig})` : r.name}
+                      {r.status.kind === "outdated" && " · Outdated"}
                     </li>
                   );
                 })}
@@ -297,7 +309,10 @@ export function ResultsPage({ app, source }: ResultsPageProps) {
             </span>
             <span className="rw-details__field" data-testid="details.field" data-field="environment" title={`Environment: ${details.environmentFull}`}>
               <ResultsIcon name="cloud" size={18} />
-              <span className="rw-details__text">Environment: {details.environment}</span>
+              <span className="rw-details__text">
+                <span className="rw-details__key">Environment: </span>
+                {details.environment}
+              </span>
             </span>
             <span className="rw-details__field" data-testid="details.field" data-field="warnings" data-tone={details.warnings > 0 ? "amber" : "muted"}>
               <span className="rw-status-glyph" data-tone={details.warnings > 0 ? "amber" : "muted"}>
@@ -333,6 +348,7 @@ export function ResultsPage({ app, source }: ResultsPageProps) {
           {paths.length > 0 ? <TrajectoryView paths={paths} pad={pad} /> : <p className="rw-results__empty">No trajectory to show.</p>}
         </aside>
       </div>
+      <SimConditionsSheet app={app} />
     </section>
   );
 }

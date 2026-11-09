@@ -14,7 +14,7 @@ import { OVERLAY_SELECTOR } from "../embed/bridge.ts";
 import { Banner } from "./Banner.tsx";
 import { Menu, MenuButton, type MenuEntry } from "./Menu.tsx";
 import { Modal } from "./Modal.tsx";
-import { placeFloating, Popover } from "./Popover.tsx";
+import { caretAt, placeFloating, Popover } from "./Popover.tsx";
 import { RadioCardGroup } from "./RadioCard.tsx";
 import { SideSheet } from "./SideSheet.tsx";
 import { StatStrip } from "./StatStrip.tsx";
@@ -536,6 +536,15 @@ describe("MenuButton", () => {
   });
 });
 
+describe("a pointer anchor with a band", () => {
+  it("opens below the row under the pointer, not at the pointer", () => {
+    render(<Menu open anchor={{ x: 40, y: 60, band: { top: 50, bottom: 76 } }} label="Row" items={[{ id: "a", label: "A" }]} onClose={() => {}} />);
+    const list = document.querySelector<HTMLElement>('[role="menu"]')!;
+    expect(list.style.left).toBe("40px");
+    expect(list.style.top).toBe("80px");
+  });
+});
+
 describe("placeFloating", () => {
   const view = { width: 1000, height: 800 };
   const anchor = { left: 100, top: 100, right: 140, bottom: 130 };
@@ -563,6 +572,85 @@ describe("placeFloating", () => {
 
   it("keeps a pointer menu near the window corner on screen", () => {
     expect(placeFloating({ left: 990, top: 790, right: 990, bottom: 790 }, size, view)).toEqual({ x: 792, y: 486 });
+  });
+});
+
+describe("caretAt", () => {
+  const anchor = { left: 100, top: 200, right: 140, bottom: 232 };
+
+  it("sits on the panel's left edge, level with the anchor", () => {
+    expect(caretAt(anchor, { left: 266, top: 200, right: 826, bottom: 760 })).toEqual({ x: 266, y: 216 });
+  });
+
+  it("stays clear of the corners when the panel moved up to fit", () => {
+    expect(caretAt({ ...anchor, top: 700, bottom: 732 }, { left: 266, top: 100, right: 826, bottom: 660 })).toEqual({ x: 266, y: 646 });
+  });
+
+  it("has nothing to point at when the panel covers the anchor", () => {
+    expect(caretAt(anchor, { left: 120, top: 200, right: 680, bottom: 760 })).toBeNull();
+  });
+});
+
+describe("Popover beside a rail", () => {
+  /** Like a real DOMRect, its edges are getters on the prototype: a spread of one copies nothing. */
+  class Rect {
+    constructor(
+      readonly x: number,
+      readonly y: number,
+      readonly width: number,
+      readonly height: number,
+    ) {}
+    get left() {
+      return this.x;
+    }
+    get top() {
+      return this.y;
+    }
+    get right() {
+      return this.x + this.width;
+    }
+    get bottom() {
+      return this.y + this.height;
+    }
+    toJSON() {
+      return {};
+    }
+  }
+  const rect = (left: number, top: number, width: number, height: number) => new Rect(left, top, width, height) as DOMRect;
+
+  function open(windowWidth: number) {
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: windowWidth });
+    Object.defineProperty(window, "innerHeight", { configurable: true, value: 768 });
+    const button = document.createElement("button");
+    const rail = document.createElement("aside");
+    button.getBoundingClientRect = () => rect(217, 252, 32, 32);
+    rail.getBoundingClientRect = () => rect(0, 56, 261, 712);
+    const proto = vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
+      return this.getAttribute("role") === "dialog" ? rect(0, 0, 560, 400) : rect(0, 0, 0, 0);
+    });
+    render(
+      <Popover open anchor={button} clearOf={rail} side="right" gap={6} caret title="Add part" onClose={() => {}}>
+        <p>Body</p>
+      </Popover>,
+    );
+    proto.mockRestore();
+    return { surface: document.querySelector<HTMLElement>('[role="dialog"]')!, caret: document.querySelector<HTMLElement>(".rw-ui-popover__caret")! };
+  }
+
+  it("opens past the rail, level with its button, with a caret toward it", () => {
+    const { surface, caret } = open(1536);
+    expect(surface.style.left).toBe("267px");
+    expect(surface.style.top).toBe("252px");
+    expect(caret.hidden).toBe(false);
+    expect(caret.style.left).toBe("267px");
+    expect(caret.style.top).toBe("268px");
+  });
+
+  it("stays on screen beside the rail at the minimum window width", () => {
+    const { surface } = open(1024);
+    const left = Number.parseFloat(surface.style.left);
+    expect(left).toBe(267);
+    expect(left + 560).toBeLessThanOrEqual(1024);
   });
 });
 

@@ -210,6 +210,7 @@
 /* ---- editor (lower ~40%) ------------------------------------------------------ */
 
 .rw-editor {
+  container: rw-editor / inline-size;
   flex: none;
   height: 335px;
   display: flex;
@@ -276,12 +277,31 @@
 .rw-editor__main {
   flex: 1;
   min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  border: var(--rw-hairline) solid var(--rw-line);
+  border-radius: var(--rw-radius);
+}
+
+/* The panel is a fixed height and tabs differ in field count: fields scroll, the status and actions below never do. */
+.rw-editor__scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 7px;
-  padding: 8px 14px 0;
-  border: var(--rw-hairline) solid var(--rw-line);
-  border-radius: var(--rw-radius);
+  padding: 8px 14px 8px;
+}
+
+.rw-editor__foot {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 7px 14px 10px;
+  border-top: var(--rw-hairline) solid var(--rw-line);
 }
 
 .rw-editor__fields {
@@ -293,11 +313,33 @@
 }
 
 .rw-editor__fields--extra,
+.rw-editor__fields--name,
+.rw-editor__fields[data-tab="Position"],
 .rw-editor__fields[data-tab="Material"],
 .rw-editor__fields[data-tab="Appearance"],
 .rw-editor__fields[data-tab="Mass override"] {
   grid-auto-flow: row;
   grid-template-rows: none;
+}
+
+/*
+ * The editor is as wide as the window minus the rail and agent pane, 349 px of
+ * content at the 1024 px minimum window. Two columns of fields beside the
+ * profile need 850 px; under that the fields go to one column, and under 574
+ * px the small profile goes (the workspace above still shows the part), so a
+ * field or the action row is never squeezed behind it.
+ */
+@container rw-editor (max-width: 849.98px) {
+  .rw-editor__fields {
+    grid-template-columns: minmax(0, 1fr);
+    grid-auto-flow: row;
+  }
+}
+
+@container rw-editor (max-width: 573.98px) {
+  .rw-editor__body > .rw-part {
+    display: none;
+  }
 }
 
 .rw-editor__note {
@@ -357,9 +399,8 @@
 
 .rw-editor__actions {
   display: flex;
-  gap: 12px;
-  margin-top: auto;
-  padding-bottom: 10px;
+  flex-wrap: wrap;
+  gap: 8px 12px;
 }
 
 .rw-editor__actions .rw-button {
@@ -680,10 +721,6 @@ li[data-state="later"] .rw-thread-history__name {
   height: 440px;
 }
 
-.rw-editor__main:has(.rw-outline, .rw-field-group, .rw-editor__add-group) {
-  overflow-y: auto;
-}
-
 .rw-outline {
   display: flex;
   flex-direction: column;
@@ -832,4 +869,121 @@ li[data-state="later"] .rw-thread-history__name {
 
 .rw-outline__input:disabled {
   opacity: 0.55;
+}
+
+/* ---- project materials (R2.4) --------------------------------------------------------- */
+
+.rw-mats {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) minmax(380px, 1.2fr);
+  gap: 14px;
+  min-height: 0;
+}
+
+.rw-mats__browse,
+.rw-mats__form {
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 14px;
+  border: var(--rw-hairline) solid var(--rw-line);
+  border-radius: var(--rw-radius);
+}
+
+.rw-mats__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.rw-mats__title {
+  margin: 0;
+  font-size: var(--rw-font-size-secondary);
+  font-weight: var(--rw-font-weight-regular);
+  color: var(--rw-text-secondary);
+}
+
+.rw-mats__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rw-mats__row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  width: 100%;
+  padding: 5px 8px;
+  border: 0;
+  border-radius: var(--rw-radius-sm);
+  background: none;
+  color: var(--rw-text-primary);
+  text-align: left;
+}
+
+.rw-mats__row:hover,
+.rw-mats__row[aria-pressed="true"] {
+  background: var(--rw-selection-row);
+}
+
+.rw-mats__meta {
+  margin-left: auto;
+  color: var(--rw-text-secondary);
+  font-size: var(--rw-font-size-secondary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.rw-mats__copy {
+  color: var(--rw-accent);
+  font-size: var(--rw-font-size-secondary);
+}
+
+.rw-mats__used {
+  margin: 0 0 2px;
+  color: var(--rw-text-secondary);
+  font-size: 11px;
+}
+
+.rw-mats__actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+/*
+ * The two columns need 674 px and the editor has 349 at the 1024 px minimum
+ * window. Under that the panes stack and share one scroller, the library keeps
+ * its own short list so the form stays reachable, and the panel brings the
+ * form into view when one opens.
+ */
+@container rw-editor (max-width: 673.98px) {
+  .rw-mats {
+    grid-template-columns: minmax(0, 1fr);
+    grid-auto-rows: max-content;
+    overflow-y: auto;
+  }
+
+  .rw-mats__browse,
+  .rw-mats__form {
+    overflow-y: visible;
+  }
+
+  .rw-mats__list--library {
+    max-height: 132px;
+    overflow-y: auto;
+  }
+}
+
+.rw-mats__empty {
+  margin: 0;
+  color: var(--rw-text-secondary);
+  font-size: var(--rw-font-size-secondary);
 }

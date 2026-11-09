@@ -115,9 +115,11 @@ describe("BC0 polish (concept 01)", () => {
     // One connector between each pair of steps, a flex item of its own with an equal share of the width.
     expect(select(all, '[data-testid="history.link"]')).toHaveLength(steps.length - 1);
     expect(css).toMatch(/\.rw-step__link \{[^}]*flex: 1 1 0;[^}]*height: var\(--rw-hairline\);[^}]*margin: 0 12px;/);
-    // Step text never truncates: it wraps within the step's width instead of running into Compare.
+    // With room, step text wraps within the step's width instead of running into Compare; only a narrow strip ends it in an ellipsis.
     expect(css).toMatch(/\.rw-step__name,\s*\.rw-step__date \{[^}]*overflow-wrap: anywhere;/);
-    expect(css).not.toMatch(/\.rw-step__(name|date)[^{]*\{[^}]*text-overflow: ellipsis;/);
+    const narrow = /@container rw-steps \(max-width: 479\.98px\) \{[\s\S]*?\n\}\n/.exec(css)?.[0] ?? "";
+    expect(narrow).toMatch(/\.rw-step__name,\s*\.rw-step__date \{[^}]*white-space: nowrap;[^}]*text-overflow: ellipsis;/);
+    expect(css.replace(narrow, "")).not.toMatch(/\.rw-step__(name|date)[^{]*\{[^}]*text-overflow: ellipsis;/);
   });
 
   it("Check model: check-in-circle icon, live status text, and the issue count", () => {

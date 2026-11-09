@@ -172,11 +172,12 @@ export async function connectMainRpc(rpcUrl: string, opts: MainRpcOptions = {}):
   const answerHost = async (request: HostRequest): Promise<void> => {
     const abort = new AbortController();
     answering.add(abort);
-    let answer: HostAnswer = { accepted: false };
+    // With no handler, or a handler that throws, no dialog could be shown: not the person cancelling.
+    let answer: HostAnswer = { accepted: false, declined: "unavailable" };
     try {
       if (opts.onHostRequest !== undefined) answer = await opts.onHostRequest(request, abort.signal);
     } catch {
-      answer = { accepted: false };
+      answer = { accepted: false, declined: "unavailable" };
     } finally {
       answering.delete(abort);
     }

@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { DESKTOP_INVOKE_CHANNELS, type DesktopBoot, type HostRequest } from "@rw/contracts";
-import { CONSENT_ACCEPT_BUTTON, CONSENT_CANCEL_BUTTON, CONSENT_DEADLINE_MS, createConsentDialogs, registerDesktopServices, type ConsentBoxOptions, type ConsentDialogLike, type DialogLike, type HandlerIpc } from "./nativeDialogs.ts";
+import { DESKTOP_INVOKE_CHANNELS, type DesktopBoot, type DisplayUnits, type HostRequest } from "@rw/contracts";
+import { CONSENT_ACCEPT_BUTTON, CONSENT_CANCEL_BUTTON, CONSENT_DEADLINE_MS, createConsentDialogs, registerDesktopServices, type ConsentBoxOptions, type ConsentDialogLike, type DesktopServices, type DialogLike, type HandlerIpc } from "./nativeDialogs.ts";
+import type { Preferences } from "./preferences.ts";
 import type { Recents } from "./recents.ts";
 
 type Handler = (event: { sender: unknown }, ...args: unknown[]) => unknown;
@@ -10,7 +11,7 @@ interface FakeWindow {
   isDestroyed(): boolean;
 }
 
-function setup(opts: { headless?: boolean; window?: FakeWindow | null } = {}) {
+function setup(opts: { headless?: boolean; window?: FakeWindow | null; exportFile?: DesktopServices<FakeWindow>["exportFile"] } = {}) {
   const handlers = new Map<string, Handler>();
   const ipc: HandlerIpc = {
     handle: (channel, listener) => void handlers.set(channel, listener),
@@ -21,6 +22,9 @@ function setup(opts: { headless?: boolean; window?: FakeWindow | null } = {}) {
     showOpenDialog: vi.fn<DialogLike<FakeWindow>["showOpenDialog"]>(() => Promise.resolve({ canceled: false, filePaths: ["/picked"] })),
     showSaveDialog: vi.fn<DialogLike<FakeWindow>["showSaveDialog"]>(() => Promise.resolve({ canceled: false, filePath: "/saved" })),
   };
+  const relaunch = vi.fn<() => void>();
+  const setDirty = vi.fn<(dirty: boolean) => void>();
+  const flushDone = vi.fn<(result: { id: number; problems: string[] }) => void>();
   const recents: Recents = {
     list: vi.fn<Recents["list"]>(() => Promise.resolve([{ dir: "/a", name: "A", lastOpened: "t", status: "ok" }])),
     see: vi.fn<Recents["see"]>(() => Promise.resolve()),
@@ -30,6 +34,8 @@ function setup(opts: { headless?: boolean; window?: FakeWindow | null } = {}) {
   let documents = "/docs";
   const boot: { value: DesktopBoot } = { value: { activeProjectId: null, notice: null } };
   const documentsCalls = { count: 0 };
+  const prefs = { get: vi.fn<Preferences["get"]>(() => ({ window: null, view: {}, lastTab: "results", defaultDisplayUnits: null })), update: vi.fn<Preferences["update"]>(() => Promise.resolve()) };
+  const openProviders = vi.fn<() => void>();
   const dispose = registerDesktopServices({
     ipc,
     dialog,
@@ -40,7 +46,13 @@ function setup(opts: { headless?: boolean; window?: FakeWindow | null } = {}) {
     },
     recents,
     boot: () => boot.value,
+    relaunch,
+    prefs,
+    openProviders,
+    setDirty,
+    flushDone,
     ...(opts.headless !== undefined ? { headless: opts.headless } : {}),
+    ...(opts.exportFile !== undefined ? { exportFile: opts.exportFile } : {}),
   });
   const call = (channel: string, ...args: unknown[]): Promise<unknown> => {
     const handler = handlers.get(channel);
@@ -48,11 +60,11 @@ function setup(opts: { headless?: boolean; window?: FakeWindow | null } = {}) {
     return Promise.resolve().then(() => handler({ sender: win.webContents }, ...args));
   };
   const callAs = (sender: unknown, channel: string, ...args: unknown[]): Promise<unknown> => Promise.resolve().then(() => handlers.get(channel)!({ sender }, ...args));
-  return { handlers, win, dialog, recents, boot, documentsCalls, setDocuments: (d: string) => (documents = d), call, callAs, dispose };
+  return { handlers, win, dialog, recents, boot, relaunch, prefs, openProviders, setDirty, flushDone, documentsCalls, setDocuments: (d: string) => (documents = d), call, callAs, dispose };
 }
 
 const c = DESKTOP_INVOKE_CHANNELS;
-const OWNED = [c.boot, c.pickFolder, c.pickFile, c.saveAs, c.recents, c.removeRecent, c.setActiveProject];
+const OWNED = [c.boot, c.pickFolder, c.pickFile, c.saveAs, c.exportFile, c.recents, c.removeRecent, c.setActiveProject, c.setDirty, c.flushDone, c.relaunch, c.prefs, c.setPrefs, c.openProviders];
 
 describe("sender check", () => {
   it("registers the services it owns and removes them", () => {
@@ -76,6 +88,61 @@ describe("sender check", () => {
     await expect(setup({ window: null }).callAs({}, c.boot)).rejects.toThrow("not the app window");
     const gone = setup({ window: { webContents: {}, isDestroyed: () => true } });
     await expect(gone.callAs(gone.win.webContents, c.boot)).rejects.toThrow("not the app window");
+  });
+});
+
+describe("preferences and Agent providers (R3.4)", () => {
+  it("answers prefs from what main holds", async () => {
+    const t = setup();
+    await expect(t.call(c.prefs)).resolves.toMatchObject({ lastTab: "results" });
+  });
+
+  it("passes a checked patch on, never the window bounds", async () => {
+    const t = setup();
+    await t.call(c.setPrefs, { lastTab: "results", window: { x: 0, y: 0, width: 1, height: 1 } });
+    expect(t.prefs.update).toHaveBeenCalledWith({ lastTab: "results" });
+  });
+
+  it("refuses a patch that is not an object", async () => {
+    const t = setup();
+    await expect(t.call(c.setPrefs, "nope")).rejects.toThrow(TypeError);
+  });
+
+  it("opens the providers panel, and reports a failure to the page", async () => {
+    const t = setup();
+    await t.call(c.openProviders);
+    expect(t.openProviders).toHaveBeenCalledOnce();
+    t.openProviders.mockImplementationOnce(() => {
+      throw new Error("the agent pane is not open");
+    });
+    await expect(t.call(c.openProviders)).rejects.toThrow("not open");
+  });
+});
+
+describe("setDirty", () => {
+  it("tells main what the page says, and refuses anything but a boolean", async () => {
+    const t = setup();
+    await t.call(c.setDirty, true);
+    await t.call(c.setDirty, false);
+    expect(t.setDirty.mock.calls).toEqual([[true], [false]]);
+    await expect(t.call(c.setDirty, "yes")).rejects.toThrow(/boolean/);
+  });
+});
+
+describe("flushDone", () => {
+  it("hands main the page's answer, and refuses anything else", async () => {
+    const t = setup();
+    await t.call(c.flushDone, { id: 3, problems: ["Delay: needs a number"] });
+    expect(t.flushDone.mock.calls).toEqual([[{ id: 3, problems: ["Delay: needs a number"] }]]);
+    for (const bad of [null, "x", { id: "3", problems: [] }, { id: 3 }, { id: 3, problems: [1] }]) await expect(t.call(c.flushDone, bad)).rejects.toThrow(/flushDone/);
+  });
+});
+
+describe("relaunch", () => {
+  it("relaunches when the app window asks", async () => {
+    const t = setup();
+    await t.call(c.relaunch);
+    expect(t.relaunch).toHaveBeenCalledOnce();
   });
 });
 
@@ -148,6 +215,55 @@ describe("pickers", () => {
   });
 });
 
+describe("export (D18)", () => {
+  const OUT = { path: "/saved", bytes: 1, sha256: "x" };
+  const writer = () => vi.fn<NonNullable<DesktopServices<FakeWindow>["exportFile"]>>(() => Promise.resolve(OUT));
+
+  it("asks where with the format's filter, then writes only to the path the person chose", async () => {
+    const exportFile = writer();
+    const t = setup({ exportFile });
+    const request = { projectId: "p", format: "glb", defaultName: "Rocket.glb", path: "/etc/page-supplied", allow_outside: true };
+    await expect(t.call(c.exportFile, request)).resolves.toEqual({ canceled: false, out: OUT });
+    expect(t.dialog.showSaveDialog).toHaveBeenCalledWith(t.win, { title: "Export 3D model", defaultPath: "/docs/Rocket.glb", filters: [{ name: "3D model", extensions: ["glb"] }] });
+    expect(exportFile.mock.calls).toEqual([[{ projectId: "p", format: "glb", defaultName: "Rocket.glb" }, "/saved"]]);
+  });
+
+  it("keeps the dialog in Documents whatever folder the page names", async () => {
+    const t = setup({ exportFile: writer() });
+    await t.call(c.exportFile, { projectId: "p", format: "ork", defaultName: "../../etc/a.ork" });
+    expect(vi.mocked(t.dialog.showSaveDialog).mock.calls[0]![1].defaultPath).toBe("/docs/a.ork");
+  });
+
+  it("passes the run a CSV needs", async () => {
+    const exportFile = writer();
+    const t = setup({ exportFile });
+    await t.call(c.exportFile, { projectId: "p", format: "csv", run: "baseline/r1" });
+    expect(exportFile.mock.calls[0]![0]).toEqual({ projectId: "p", format: "csv", run: "baseline/r1" });
+  });
+
+  it("writes nothing when the person cancels, or on a hidden run", async () => {
+    const exportFile = writer();
+    const t = setup({ exportFile });
+    vi.mocked(t.dialog.showSaveDialog).mockResolvedValueOnce({ canceled: true });
+    await expect(t.call(c.exportFile, { projectId: "p", format: "stl" })).resolves.toEqual({ canceled: true });
+    const hidden = setup({ exportFile, headless: true });
+    await expect(hidden.call(c.exportFile, { projectId: "p", format: "stl" })).resolves.toEqual({ canceled: true });
+    expect(hidden.dialog.showSaveDialog).not.toHaveBeenCalled();
+    expect(exportFile).not.toHaveBeenCalled();
+  });
+
+  it("refuses a malformed request and a window that is not the app's, before any dialog", async () => {
+    const t = setup({ exportFile: writer() });
+    await expect(t.call(c.exportFile, { projectId: "p", format: "constructor" })).rejects.toThrow("exportFile");
+    await expect(t.callAs({}, c.exportFile, { projectId: "p", format: "ork" })).rejects.toThrow("not the app window");
+    expect(t.dialog.showSaveDialog).not.toHaveBeenCalled();
+  });
+
+  it("says so when there is no server to write through", async () => {
+    await expect(setup().call(c.exportFile, { projectId: "p", format: "ork" })).rejects.toThrow("not connected");
+  });
+});
+
 describe("recents and boot", () => {
   it("answers boot with the current state when the page asks", async () => {
     const t = setup();
@@ -184,7 +300,7 @@ describe("consent dialog", () => {
   }
 
   /** Like Electron: an aborted box closes as if its Cancel was pressed, unless told to ignore the signal. */
-  function consent(opts: { headless?: boolean; window?: FakeWindow | null; ignoreAbort?: boolean } = {}) {
+  function consent(opts: { headless?: boolean; window?: FakeWindow | null; ignoreAbort?: boolean; displayUnits?: () => DisplayUnits | null } = {}) {
     const win: FakeWindow = { webContents: {}, isDestroyed: () => false };
     const boxes: Box[] = [];
     const order: string[] = [];
@@ -201,6 +317,7 @@ describe("consent dialog", () => {
       window: () => (opts.window === undefined ? win : opts.window),
       focus: () => void order.push("focus"),
       ...(opts.headless !== undefined ? { headless: opts.headless } : {}),
+      ...(opts.displayUnits !== undefined ? { displayUnits: opts.displayUnits } : {}),
     });
     const socket = new AbortController();
     const ask = (request: HostRequest, signal: AbortSignal = socket.signal) => dialogs.ask(request, signal);
@@ -260,15 +377,15 @@ describe("consent dialog", () => {
       expect(t.order).toEqual(["focus", "box"]);
     });
 
-    it.each(["/work/a\u202eb", "/work/a\nb", "/work/a\u2066b"])("refuses a path that would not read as what it is: %j", async (path) => {
+    it.each(["/work/a\u202eb", "/work/a\nb", "/work/a\u2066b", "/work/a\u200bb", "/work/a\u{e0041}b"])("refuses a path that would not read as what it is: %j", async (path) => {
       const t = consent();
-      await expect(t.ask({ ...OPEN, path })).resolves.toEqual({ accepted: false });
+      await expect(t.ask({ ...OPEN, path })).resolves.toEqual({ accepted: false, declined: "refused" });
       expect(t.showMessageBox).not.toHaveBeenCalled();
     });
 
     it("refuses a name that would not read as what it is", async () => {
       const t = consent();
-      await expect(t.ask({ ...NEW, name: "a\u202eb" })).resolves.toEqual({ accepted: false });
+      await expect(t.ask({ ...NEW, name: "a\u202eb" })).resolves.toEqual({ accepted: false, declined: "refused" });
       expect(t.showMessageBox).not.toHaveBeenCalled();
     });
   });
@@ -289,7 +406,7 @@ describe("consent dialog", () => {
     ])("refuses on %s", async (_name, result) => {
       const t = consent();
       t.showMessageBox.mockResolvedValueOnce(result);
-      await expect(t.ask(NEW)).resolves.toEqual({ accepted: false });
+      await expect(t.ask(NEW)).resolves.toEqual({ accepted: false, declined: "cancelled" });
     });
 
     it("lets a failing dialog reject, for the channel to answer as a refusal, and still shows the next", async () => {
@@ -313,17 +430,115 @@ describe("consent dialog", () => {
     });
   });
 
+  describe("default units on the reply (R3.4)", () => {
+    it("adds the preference to an accepted project_new", async () => {
+      const t = consent({ displayUnits: () => ({ length: "in" }) });
+      const answer = t.ask(NEW);
+      await settle();
+      t.boxes[0]!.answer(CONSENT_ACCEPT_BUTTON);
+      await expect(answer).resolves.toEqual({ accepted: true, displayUnits: { length: "in" } });
+    });
+
+    it("leaves it off when there is no preference", async () => {
+      const t = consent({ displayUnits: () => null });
+      const answer = t.ask(NEW);
+      await settle();
+      t.boxes[0]!.answer(CONSENT_ACCEPT_BUTTON);
+      await expect(answer).resolves.toEqual({ accepted: true });
+    });
+
+    it("never adds it to a cancel or to project_open", async () => {
+      const t = consent({ displayUnits: () => ({ length: "in" }) });
+      const refused = t.ask(NEW);
+      await settle();
+      t.boxes[0]!.answer(CONSENT_CANCEL_BUTTON);
+      await expect(refused).resolves.toEqual({ accepted: false, declined: "cancelled" });
+      const opened = t.ask(OPEN);
+      await settle();
+      t.boxes[1]!.answer(CONSENT_ACCEPT_BUTTON);
+      await expect(opened).resolves.toEqual({ accepted: true });
+    });
+  });
+
+  describe("what it refuses to show", () => {
+    it.each([
+      ["a zero-width character", "add\u200b a nose"],
+      ["a Unicode tag character", "add\u{e0041} a nose"],
+      ["a text-direction mark", "add\u202e a nose"],
+      ["too many lines", "x\n".repeat(50)],
+    ])("refuses a request holding %s", async (_label, request) => {
+      const t = consent();
+      await expect(t.ask({ ...NEW, request })).resolves.toEqual({ accepted: false, declined: "refused" });
+      expect(t.showMessageBox).not.toHaveBeenCalled();
+    });
+
+    it("keeps a request's newlines and backticks", async () => {
+      const t = consent();
+      void t.ask({ ...NEW, request: "first\n```\nsecond\n```" });
+      await settle();
+      expect(t.boxes[0]!.options.detail).toContain("first\n```\nsecond\n```");
+    });
+  });
+
+  describe("why it did not go ahead", () => {
+    it("says the deadline passed, and the socket going away reads as a timeout too", async () => {
+      const t = consent();
+      const answer = t.ask(NEW);
+      await settle();
+      await vi.advanceTimersByTimeAsync(CONSENT_DEADLINE_MS);
+      await expect(answer).resolves.toEqual({ accepted: false, declined: "timeout" });
+      const u = consent();
+      const leaving = new AbortController();
+      const second = u.ask(NEW, leaving.signal);
+      await settle();
+      leaving.abort();
+      await expect(second).resolves.toEqual({ accepted: false, declined: "timeout" });
+    });
+
+    it("says the app is closing when the box is closed by shutdown", async () => {
+      const t = consent();
+      const answer = t.ask(NEW);
+      await settle();
+      t.dialogs.close();
+      await expect(answer).resolves.toEqual({ accepted: false, declined: "unavailable" });
+      await expect(t.ask(OPEN)).resolves.toEqual({ accepted: false, declined: "unavailable" });
+    });
+  });
+
+  describe("a link's folder", () => {
+    it("names the real folder, cancels by default, and answers yes or no", async () => {
+      const t = consent();
+      const yes = t.dialogs.askOpenLink("/real/rv");
+      await settle();
+      expect(t.boxes[0]!.options).toMatchObject({ message: "A link wants to open a project", buttons: ["Cancel", "Open project"], defaultId: CONSENT_CANCEL_BUTTON, cancelId: CONSENT_CANCEL_BUTTON });
+      expect(t.boxes[0]!.options.detail).toContain("/real/rv");
+      t.boxes[0]!.answer(CONSENT_ACCEPT_BUTTON);
+      await expect(yes).resolves.toEqual({ accepted: true });
+      const no = t.dialogs.askOpenLink("/real/rv");
+      await settle();
+      t.boxes[1]!.answer(CONSENT_CANCEL_BUTTON);
+      await expect(no).resolves.toEqual({ accepted: false, declined: "cancelled" });
+    });
+
+    it("refuses a folder name it could not show truthfully, and answers on a hidden run", async () => {
+      const t = consent();
+      await expect(t.dialogs.askOpenLink("/real/a\u200bb")).resolves.toEqual({ accepted: false, declined: "refused" });
+      expect(t.showMessageBox).not.toHaveBeenCalled();
+      await expect(consent({ headless: true }).dialogs.askOpenLink("/real/rv")).resolves.toEqual({ accepted: false, declined: "unavailable" });
+    });
+  });
+
   describe("no one to ask", () => {
     it("refuses on a hidden run without a dialog", async () => {
       const t = consent({ headless: true });
-      await expect(t.ask(NEW)).resolves.toEqual({ accepted: false });
+      await expect(t.ask(NEW)).resolves.toEqual({ accepted: false, declined: "unavailable" });
       expect(t.showMessageBox).not.toHaveBeenCalled();
     });
 
     it("refuses before the window exists and after it is destroyed", async () => {
       for (const window of [null, { webContents: {}, isDestroyed: () => true }]) {
         const t = consent({ window });
-        await expect(t.ask(NEW)).resolves.toEqual({ accepted: false });
+        await expect(t.ask(NEW)).resolves.toEqual({ accepted: false, declined: "unavailable" });
         expect(t.showMessageBox).not.toHaveBeenCalled();
         expect(t.order).toEqual([]);
       }
@@ -339,7 +554,7 @@ describe("consent dialog", () => {
       expect(t.boxes).toHaveLength(1);
       expect(t.boxes[0]!.options.detail).toContain("solstice");
       t.boxes[0]!.answer(CONSENT_CANCEL_BUTTON);
-      await expect(first).resolves.toEqual({ accepted: false });
+      await expect(first).resolves.toEqual({ accepted: false, declined: "cancelled" });
       await settle();
       expect(t.boxes).toHaveLength(2);
       expect(t.boxes[1]!.options.detail).toBe("Folder: /work/rocket");
@@ -355,7 +570,7 @@ describe("consent dialog", () => {
       const third = t.ask(OPEN);
       await settle();
       leaving.abort();
-      await expect(dropped).resolves.toEqual({ accepted: false });
+      await expect(dropped).resolves.toEqual({ accepted: false, declined: "timeout" });
       await settle();
       expect(t.boxes).toHaveLength(1);
       t.boxes[0]!.answer(CONSENT_CANCEL_BUTTON);
@@ -367,6 +582,18 @@ describe("consent dialog", () => {
   });
 
   describe("the deadline (D10)", () => {
+    it("closes a link's sheet at the deadline as well", async () => {
+      const t = consent();
+      const answer = t.dialogs.askOpenLink("/real/rv");
+      await settle();
+      const { signal } = t.boxes[0]!.options;
+      await vi.advanceTimersByTimeAsync(CONSENT_DEADLINE_MS - 1);
+      expect(signal.aborted).toBe(false);
+      await vi.advanceTimersByTimeAsync(1);
+      expect(signal.aborted).toBe(true);
+      await expect(answer).resolves.toEqual({ accepted: false, declined: "timeout" });
+    });
+
     it("is under the server's guard and Lecturn's limit", () => {
       expect(CONSENT_DEADLINE_MS).toBeLessThan(115_000);
     });
@@ -380,7 +607,7 @@ describe("consent dialog", () => {
       expect(signal.aborted).toBe(false);
       await vi.advanceTimersByTimeAsync(1);
       expect(signal.aborted).toBe(true);
-      await expect(answer).resolves.toEqual({ accepted: false });
+      await expect(answer).resolves.toEqual({ accepted: false, declined: "timeout" });
     });
 
     it("answers on time even if the box ignores its signal, and holds the next box", async () => {
@@ -389,8 +616,8 @@ describe("consent dialog", () => {
       const next = t.ask(OPEN);
       await settle();
       await vi.advanceTimersByTimeAsync(CONSENT_DEADLINE_MS);
-      await expect(stuck).resolves.toEqual({ accepted: false });
-      await expect(next).resolves.toEqual({ accepted: false });
+      await expect(stuck).resolves.toEqual({ accepted: false, declined: "timeout" });
+      await expect(next).resolves.toEqual({ accepted: false, declined: "timeout" });
       expect(t.boxes).toHaveLength(1);
     });
 
@@ -400,7 +627,7 @@ describe("consent dialog", () => {
       await settle();
       await vi.advanceTimersByTimeAsync(CONSENT_DEADLINE_MS);
       t.boxes[0]!.answer(CONSENT_ACCEPT_BUTTON);
-      await expect(answer).resolves.toEqual({ accepted: false });
+      await expect(answer).resolves.toEqual({ accepted: false, declined: "timeout" });
     });
 
     it("counts from arrival, not from when the box opens", async () => {
@@ -409,11 +636,11 @@ describe("consent dialog", () => {
       await vi.advanceTimersByTimeAsync(CONSENT_DEADLINE_MS / 2);
       const second = t.ask(OPEN);
       await vi.advanceTimersByTimeAsync(CONSENT_DEADLINE_MS / 2);
-      await expect(first).resolves.toEqual({ accepted: false });
+      await expect(first).resolves.toEqual({ accepted: false, declined: "timeout" });
       await settle();
       expect(t.boxes).toHaveLength(2);
       await vi.advanceTimersByTimeAsync(CONSENT_DEADLINE_MS / 2);
-      await expect(second).resolves.toEqual({ accepted: false });
+      await expect(second).resolves.toEqual({ accepted: false, declined: "timeout" });
     });
 
     it("skips a queued request whose deadline passed while it waited", async () => {
@@ -436,13 +663,13 @@ describe("consent dialog", () => {
       await settle();
       t.socket.abort();
       expect(t.boxes[0]!.options.signal.aborted).toBe(true);
-      await expect(answer).resolves.toEqual({ accepted: false });
+      await expect(answer).resolves.toEqual({ accepted: false, declined: "timeout" });
     });
 
     it("never opens a box for a signal already aborted", async () => {
       const t = consent();
       t.socket.abort();
-      await expect(t.ask(NEW)).resolves.toEqual({ accepted: false });
+      await expect(t.ask(NEW)).resolves.toEqual({ accepted: false, declined: "timeout" });
       await settle();
       expect(t.showMessageBox).not.toHaveBeenCalled();
     });
@@ -454,9 +681,9 @@ describe("consent dialog", () => {
       await settle();
       t.dialogs.close();
       expect(t.boxes[0]!.options.signal.aborted).toBe(true);
-      await expect(open).resolves.toEqual({ accepted: false });
-      await expect(waiting).resolves.toEqual({ accepted: false });
-      await expect(t.ask(OPEN)).resolves.toEqual({ accepted: false });
+      await expect(open).resolves.toEqual({ accepted: false, declined: "unavailable" });
+      await expect(waiting).resolves.toEqual({ accepted: false, declined: "unavailable" });
+      await expect(t.ask(OPEN)).resolves.toEqual({ accepted: false, declined: "unavailable" });
       await settle();
       expect(t.showMessageBox).toHaveBeenCalledOnce();
       expect(vi.getTimerCount()).toBe(0);

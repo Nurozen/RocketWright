@@ -101,7 +101,9 @@ describe("Lecturn registration (B8, W2.1)", () => {
       expect(text).toContain("rw_project_new");
       expect(text).toContain("rw_project_open");
       expect(text).toMatch(/instead of rw init/);
-      expect(text).toMatch(/request only the work left/);
+      expect(text).toMatch(/request only the work the person asked for/);
+      expect(text).toMatch(/adding no checks, fixes or steps of your own/);
+      expect(text).toMatch(/does what it asks and no more/);
       expect(text).toMatch(/do not retry/);
     });
 

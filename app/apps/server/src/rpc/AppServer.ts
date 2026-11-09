@@ -44,9 +44,11 @@ import { randomBytes, timingSafeEqual } from "node:crypto";
 import { createReadStream, existsSync, realpathSync, statSync } from "node:fs";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
-import { basename, join, resolve } from "node:path";
+import { basename, join, resolve, sep } from "node:path";
 import type { Duplex } from "node:stream";
 import {
+  HOST_DECLINES,
+  type HostDecline,
   RPC_METHODS,
   RPC_PATH,
   RPC_VERSION,
@@ -160,14 +162,12 @@ export function allowedOrigin(origin: string | undefined): boolean {
   }
 }
 
-/** A contract method whose implementation lands in a later step. */
-function notYet(method: RpcMethod): never {
-  throw new RpcFail("internal", `${method} is not implemented yet`);
-}
 
 const RUN_FILE_RE = /^\/api\/projects\/([^/]+)\/runs\/([^/]+)\/([^/]+)\/(series\.csv|events\.json|engine\.json|visual\.json|cfd\.json)$/;
 const RUN_FILE_TYPE: Record<string, string> = { "series.csv": "text/csv; charset=utf-8", "events.json": "application/json", "engine.json": "application/json", "visual.json": "application/json", "cfd.json": "application/json" };
 const SAFE_SEGMENT = /^[A-Za-z0-9._-]+$/;
+/** PNG only: the drawing's SVG could run script if opened as a page on this origin. */
+const RENDER_FILE_RE = /^\/api\/projects\/([^/]+)\/renders\/([^/]+\.png)$/;
 
 /** `realpath`, or `path` itself when it cannot be resolved. */
 function realpathOr(path: string): string {
@@ -378,7 +378,10 @@ export class AppServer {
             if (s.kind === "project" && s.projectId === projectId) this.push(s.conn, "project.patch", { subscriptionId, patch });
           }
         },
-        updated: (project) => this.broadcast("project.updated", { project }),
+        updated: (project) => {
+          this.broadcast("project.updated", { project });
+          this.lecturn?.renameProject(project.projectId, project.name).catch((e: unknown) => this.log(`lecturn: retitling ${project.dir}: ${e instanceof Error ? e.message : String(e)}`));
+        },
       },
     );
     try {
@@ -404,7 +407,35 @@ export class AppServer {
     if (path === LIVE_MCP_PATH) return this.liveHandler(req, res);
     const m = RUN_FILE_RE.exec(path);
     if (m !== null && req.method === "GET") return this.runFile(req, res, m[1]!, m[2]!, m[3]!, m[4]!);
+    const r = RENDER_FILE_RE.exec(path);
+    if (r !== null && req.method === "GET") return this.renderFile(res, r[1]!, r[2]!);
     res.writeHead(404, { "content-type": "text/plain" }).end("not found");
+  }
+
+  /**
+   * A drawing `render` wrote under the project's `renders/`. The sidecar's
+   * tool result names the file but the host keeps only its structured part,
+   * so the window loads the picture from here. An `<img>` needs no CORS grant.
+   */
+  private renderFile(res: ServerResponse, rawProject: string, rawName: string): void {
+    const notFound = () => void res.writeHead(404, { "content-type": "text/plain" }).end("not found");
+    let projectId: string;
+    let name: string;
+    try {
+      projectId = decodeURIComponent(rawProject);
+      name = decodeURIComponent(rawName);
+    } catch {
+      return notFound();
+    }
+    const p = this.projects.get(projectId);
+    if (p === undefined || !SAFE_SEGMENT.test(name)) return notFound();
+    // The realpath check keeps a symlink in `renders/` from reaching outside the folder.
+    const real = realpathOr(join(p.info.dir, "renders", name));
+    if (!real.startsWith(`${join(realpathOr(p.info.dir), "renders")}${sep}`) || statSync(real, { throwIfNoEntry: false })?.isFile() !== true) return notFound();
+    res.writeHead(200, { "content-type": "image/png", "cache-control": "no-store", "x-content-type-options": "nosniff" });
+    createReadStream(real)
+      .on("error", () => res.destroy())
+      .pipe(res);
   }
 
   /**
@@ -585,7 +616,19 @@ export class AppServer {
       return {};
     },
 
-    "project.create": async (_c, params) => ({ project: await this.openProject(await this.creator.create(projectCreateArgs(params))) }),
+    "project.create": async (_c, params) => {
+      const args = projectCreateArgs(params);
+      const project = await this.openProject(await this.creator.create(args));
+      if (args.ork === undefined || project.name === args.name) return { project };
+      // `rw import ork` names the project after the rocket in the file; the person named it in the dialog.
+      try {
+        return { project: await this.project(project.projectId).setName(args.name) };
+      } catch (e) {
+        // The project exists and is open: reporting a failure would invite a retry that answers `conflict`.
+        this.log(`project.create: naming ${project.dir}: ${e instanceof Error ? e.message : String(e)}`);
+        return { project };
+      }
+    },
 
     "project.inspect": (_c, params) => inspectFolder(resolve(expandHome(str(params, "dir"))), (dir) => this.creator.collisions(dir)),
 
@@ -593,8 +636,12 @@ export class AppServer {
 
     "project.rename": async (_c, params) => ({ project: await this.hostOf(params).setName(str(params, "name")) }),
 
-    // U58: project.restartSidecar.
-    "project.restartSidecar": () => notYet("project.restartSidecar"),
+    // Only a sidecar that has given up: a live one may be mid-write, and one already restarting must not start twice.
+    "project.restartSidecar": (_c, params) => {
+      const p = this.hostOf(params);
+      if (p.sidecar.state === "failed") p.sidecar.restart();
+      return {};
+    },
 
     "project.subscribe": (conn, params, after) => {
       const p = this.hostOf(params);
@@ -665,13 +712,17 @@ export class AppServer {
 
     "component.remove": (_c, params) => this.hostOf(params).tool<MutationOut>("component_remove", { ...componentRemoveArgs(params) }, optStr(params, "label")),
 
-    "import.file": (_c, params) => this.hostOf(params).tool<schema.ImportOut>("import_file", { ...importFileArgs(params) }),
+    // Browser mode types the path (D18), and the sidecar reads a leading `~` as a folder in the project.
+    "import.file": (_c, params) => {
+      const args = importFileArgs(params);
+      return this.hostOf(params).tool<schema.ImportOut>("import_file", { ...args, path: expandHome(args.path) });
+    },
 
     "export.file": (conn, params) => {
       const args = exportFileArgs(params);
       // Writing outside the project needs main's role-bound socket (D11); the page's token alone must not write anywhere (D18).
       if (args.allow_outside === true && conn.role !== "main") throw new RpcFail("forbidden", "export.file: allow_outside is refused on this socket");
-      return this.hostOf(params).tool<schema.ExportOut>("export_file", { ...args });
+      return this.hostOf(params).tool<schema.ExportOut>("export_file", { ...args, path: expandHome(args.path) });
     },
 
     render: (_c, params) => this.hostOf(params).tool<schema.RenderResult>("render", { ...renderArgs(params) }),
@@ -729,6 +780,14 @@ export class AppServer {
       return {};
     },
 
+    "embed.createThread": async (_c, params) => {
+      const p = this.hostOf(params);
+      const title = str(params, "title");
+      const { appData } = params;
+      if (typeof appData !== "string" || Buffer.byteLength(appData) > 1024) throw new RpcFail("invalid_params", "appData: expected a string of at most 1024 bytes");
+      return { threadId: await this.viaLecturn("embed.createThread", (l) => l.createThread(p.info.projectId, title, appData)) };
+    },
+
     "embed.setHostContext": async (_c, params) => {
       const p = this.hostOf(params);
       const { text } = params;
@@ -756,7 +815,9 @@ export class AppServer {
       if (displayUnits !== undefined && (!isObject(displayUnits) || !Object.values(displayUnits).every((u) => typeof u === "string"))) {
         throw new RpcFail("invalid_params", "displayUnits: expected an object of strings");
       }
-      const answer = { requestId, accepted: params.accepted, ...(displayUnits === undefined ? {} : { displayUnits: displayUnits as Record<string, string> }) };
+      const declined = params.declined;
+      if (declined !== undefined && !(HOST_DECLINES as readonly unknown[]).includes(declined)) throw new RpcFail("invalid_params", "declined: not a known reason");
+      const answer = { requestId, accepted: params.accepted, ...(declined === undefined ? {} : { declined: declined as HostDecline }), ...(displayUnits === undefined ? {} : { displayUnits: displayUnits as Record<string, string> }) };
       if (!this.hostChannel.respond(answer)) throw new RpcFail("not_found", `no pending host request ${requestId}`);
       return {};
     },

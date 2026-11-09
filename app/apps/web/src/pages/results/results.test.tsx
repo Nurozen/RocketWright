@@ -16,22 +16,28 @@ import { parseSeriesCsv } from "../../plots/series.ts";
 import { exportFileName, exportRunsCsv } from "./csv.ts";
 import {
   assumptionsOf,
+  canRefly,
   defaultOverlay,
   environmentLabel,
   environmentShort,
   fmtWhen,
+  legendRows,
   modelRevision,
   nextSort,
   outdatedBanner,
+  plotPrompt,
   primaryRow,
   resultsRows,
   runDetails,
+  runnableSims,
   runSnapshots,
   sortRows,
 } from "./model.ts";
 import { followRerun, rowKey } from "../../state/selectors.ts";
+import { overflowTabs } from "./model.ts";
 import { ResultsPage } from "./ResultsPage.tsx";
 import { RunSnapshots } from "./RunSnapshots.tsx";
+import { RunTable } from "./RunTable.tsx";
 import { RunsRail } from "./RunsRail.tsx";
 import { cachedSource, eventsUrl, httpRunSource, parseRunEvents, seriesUrl } from "./source.ts";
 import {
@@ -90,6 +96,51 @@ function withRuns(s: AppState, opts: { overlay?: string[]; refs?: string[]; snap
 
 const state = (opts?: Parameters<typeof withRuns>[1]) => staticStore((s) => withRuns(s, opts)).getState();
 
+describe("plot tab strip (one row, the rest under More)", () => {
+  const widths = [100, 100, 100, 100];
+
+  it("leaves every tab on the row while they all fit, More not counted", () => {
+    expect(overflowTabs(widths, 400, 60, 0)).toEqual([]);
+  });
+
+  it("moves the tabs that do not fit beside More, from the end", () => {
+    expect(overflowTabs(widths, 399, 60, 0)).toEqual([3]);
+    expect(overflowTabs(widths, 260, 60, 0)).toEqual([2, 3]);
+  });
+
+  it("keeps the active tab on the row and the others in order", () => {
+    expect(overflowTabs(widths, 260, 60, 3)).toEqual([1, 2]);
+    expect(overflowTabs(widths, 100, 60, 2)).toEqual([0, 1, 3]);
+  });
+
+  it("does not hide tabs before the row has a width", () => {
+    expect(overflowTabs([0, 0], 0, 0, 0)).toEqual([]);
+    expect(overflowTabs(widths, 0, 60, 0)).toEqual([]);
+  });
+});
+
+describe("the plot's next step (R2.7)", () => {
+  const prompt = (edit: (runs: Entry[]) => Entry[], noParts = false) => {
+    const snap = snapshot();
+    snap.runs.runs = edit(snap.runs.runs);
+    return plotPrompt(resultsRows(state({ snap, overlay: [] })), noParts);
+  };
+  const neverRun = (runs: Entry[]) => runs.map((r) => ({ ...r, status: "not_run", run_id: null, model_hash: null, summary: null })) as Entry[];
+
+  it("sends a rocket with no parts to Design", () => {
+    expect(prompt(() => [], true)).toMatchObject({ action: "open-design", text: expect.stringContaining("Nothing to fly yet") });
+  });
+  it("offers to add a simulation when there is none", () => {
+    expect(prompt(() => [])).toMatchObject({ action: "add-simulation", text: expect.stringContaining("Nothing to fly yet") });
+  });
+  it("offers to fly the first simulation when none has flown", () => {
+    expect(prompt(neverRun)).toMatchObject({ action: "run", sim: "baseline", name: "Baseline" });
+  });
+  it("asks to tick runs once something has flown", () => {
+    expect(prompt((r) => r)).toEqual({ action: null, text: "Tick up to six runs to plot them." });
+  });
+});
+
 describe("results view model", () => {
   it("computes status per run and shows metrics only for Complete runs", () => {
     const rows = resultsRows(state());
@@ -130,10 +181,22 @@ describe("results view model", () => {
     expect(byRun.filter((r) => r.selected).map((r) => r.key)).toEqual(["baseline@0ldba5e11ne0"]);
   });
 
+  it("falls back to the latest flown runs for the first plot when an edit has outdated them all", () => {
+    const snap = snapshot();
+    snap.runs.model_hash = "e".repeat(64);
+    snap.evaluated!.model_hash = "e".repeat(64);
+    const rows = resultsRows(state({ snap, overlay: [] }));
+    expect(rows.filter((r) => r.status.kind === "complete")).toEqual([]);
+    expect(defaultOverlay(rows)).toEqual(["baseline", "higher_altitude"]);
+  });
+
   it("plots before/after when an overlaid sim's rerun supersedes its run", () => {
     const prev = [{ sim: "baseline", run_id: "aaa" }, { sim: "higher_altitude", run_id: "bbb" }];
     const next = [{ sim: "baseline", run_id: "ccc" }, { sim: "baseline", run_id: "aaa", superseded_by: "ccc" }, { sim: "higher_altitude", run_id: "bbb" }];
-    expect(followRerun(prev, next, ["baseline", "higher_altitude"])).toEqual(["baseline", "baseline@aaa"]);
+    // The earlier run joins the plot; what was plotted stays, in its own colour.
+    expect(followRerun(prev, next, ["baseline", "higher_altitude"])).toEqual(["baseline", "higher_altitude", "baseline@aaa"]);
+    // At the six-run cap the oldest other pick makes room, never the pair.
+    expect(followRerun(prev, next, ["x1", "baseline", "x2", "x3", "x4", "x5"])).toEqual(["baseline", "x2", "x3", "x4", "x5", "baseline@aaa"]);
     // Not overlaid, already known, or already plotted: no change.
     expect(followRerun(prev, next, ["higher_altitude"])).toBeNull();
     expect(followRerun(next, next, ["baseline", "higher_altitude"])).toBeNull();
@@ -150,6 +213,49 @@ describe("results view model", () => {
     expect(nextSort({ key: "apogee", dir: 1 }, "apogee")).toEqual({ key: "apogee", dir: -1 });
     expect(nextSort({ key: "apogee", dir: -1 }, "apogee")).toBeNull();
     expect(nextSort({ key: "apogee", dir: -1 }, "name")).toEqual({ key: "name", dir: 1 });
+  });
+
+  describe("after a re-run or a deleted sim", () => {
+    const superseded = () => {
+      const snap = snapshot();
+      const fin = snap.runs.runs.find((r) => r.sim === "fin_revision")!;
+      const old: Entry = { ...structuredClone(fin), run_id: "0ldba5e11ne0", status: "outdated", superseded_by: "newrun000001" };
+      fin.run_id = "newrun000001";
+      fin.model_hash = snap.evaluated!.model_hash;
+      fin.status = "complete";
+      snap.runs.runs.push(old);
+      return snap;
+    };
+    const deleted = () => {
+      const snap = snapshot();
+      delete (snap.evaluated!.sims as Record<string, unknown>)["fin_revision"];
+      return snap;
+    };
+
+    it("clears the banner once the sim has flown on the current model", () => {
+      const rows = resultsRows(state({ snap: superseded() }));
+      expect(rows.find((r) => r.key.startsWith("fin_revision@"))?.status.kind).toBe("outdated");
+      expect(outdatedBanner(rows)).toBeNull();
+    });
+
+    it("has no banner for a sim that no longer exists", () => {
+      expect(outdatedBanner(resultsRows(state({ snap: deleted() })))).toBeNull();
+    });
+
+    it("offers no re-fly for a deleted sim, a superseded run, or one already flying", () => {
+      const del = resultsRows(state({ snap: deleted() })).find((r) => r.sim === "fin_revision")!;
+      expect([del.inModel, canRefly(del)]).toEqual([false, false]);
+      const old = resultsRows(state({ snap: superseded() })).find((r) => r.key.startsWith("fin_revision@"))!;
+      expect(canRefly(old)).toBe(false);
+      expect(canRefly(resultsRows(state()).find((r) => r.sim === "fin_revision")!)).toBe(true);
+    });
+
+    it("bulk actions skip a deleted sim and a sim already flying, even when an earlier row is outdated", () => {
+      expect(runnableSims(resultsRows(state({ snap: deleted() })), ["fin_revision", "recovery_test"])).toEqual(["recovery_test"]);
+      const snap = superseded();
+      snap.jobs = [{ job_id: "j1", kind: "simulate", state: "running", progress: 0.5, sim: "fin_revision" }] as never;
+      expect(runnableSims(resultsRows(state({ snap })), ["fin_revision"])).toEqual([]);
+    });
   });
 
   it("raises the Outdated banner from the computed status", () => {
@@ -182,6 +288,12 @@ describe("results view model", () => {
     expect(environmentLabel(c)).toBe("calm (0 m/s, 15 °C)");
     expect(environmentLabel({ ...c, wind_speed_ms: 4.2, wind_direction_deg: 315, base_temperature_k: 285.15 })).toBe("wind 4.2 m/s from NW (12 °C)");
     expect(environmentLabel(null)).toBe("unknown");
+    expect(environmentLabel(c, "imperial")).toBe("calm (0 mph, 59 °F)");
+    expect(environmentShort({ ...c, wind_speed_ms: 4.2, wind_direction_deg: 315, base_temperature_k: 285.15 }, "imperial")).toBe("wind 9.4 mph NW, 54 °F");
+    expect(environmentShort({ ...c, wind_speed_ms: 4.4704, wind_direction_deg: 270 }, "imperial")).toBe("wind 10 mph W, 59 °F");
+    const us = assumptionsOf(c, "engineering", "imperial");
+    expect(us).toContain("Atmosphere: US Standard Atmosphere 1976, 59 °F and 29.92 inHg at the site");
+    expect(us).toContain("Launch rail 4.92 ft at 0.0° from vertical");
     // The footer's compact form fits beside the warnings at 1536 px without an ellipsis.
     expect(environmentShort(c)).toBe("calm, 15 °C");
     expect(environmentShort({ ...c, wind_speed_ms: 3, wind_direction_deg: 270 })).toBe("wind 3 m/s W, 15 °C");
@@ -204,6 +316,29 @@ describe("results view model", () => {
     expect(d).toMatchObject({ modelRev: "Model Rev 07", environment: "calm, 15 °C", environmentFull: "calm (0 m/s, 15 °C)", warnings: 1 });
     expect(runDetails(s, row, []).warnings).toBe(0);
     expect(runDetails(s, null).modelRev).toBe("Model rev unknown");
+    const inches = staticStore((x) => ({ ...withRuns(x), ui: { ...x.ui, units: "in" } })).getState();
+    expect(runDetails(inches, primaryRow(resultsRows(inches)))).toMatchObject({ environment: "calm, 59 °F", environmentFull: "calm (0 mph, 59 °F)" });
+  });
+
+  it("gives each of six plotted runs its own slot, and legends a run its rerun replaced", () => {
+    const snap = snapshot();
+    const base = snap.runs.runs.find((r) => r.sim === "baseline")!;
+    const extras = ["e1", "e2", "e3", "e4"].map((sim) => ({ ...structuredClone(base), sim, sim_name: sim, config: sim, run_id: `run-${sim}` }));
+    const before = { ...structuredClone(base), run_id: "0ldba5e11ne0", superseded_by: base.run_id! };
+    snap.runs.runs = [...snap.runs.runs, ...extras, before];
+    const overlay = ["baseline", "higher_altitude", "e1", "e2", "e3", "e4"];
+    const rows = resultsRows(state({ snap, overlay }));
+    expect(overlay.map((k) => rows.find((r) => r.key === k)!.series)).toEqual(["a", "b", "c", "d", "e", "f"]);
+    expect(new Set(rows.flatMap((r) => (r.color === null ? [] : [r.color]))).size).toBe(6);
+    expect(resultsRows(state({ snap, overlay: [...overlay.slice(1), "baseline@0ldba5e11ne0"] })).find((r) => r.key === "baseline@0ldba5e11ne0")!.series).toBe("f");
+    // The first load still starts from two: the cap is what ticking can reach.
+    expect(defaultOverlay(rows)).toEqual(["baseline", "higher_altitude"]);
+    // A superseded row shares its sim with the latest run; its line is found by row key.
+    const old = rows.find((r) => r.key === "baseline@0ldba5e11ne0")!;
+    const latest = rows.find((r) => r.key === "baseline")!;
+    const entries = legendRows([latest, old], [{ id: "baseline" }, { id: "baseline@0ldba5e11ne0" }]);
+    expect(entries.map((e) => [e.row.key, e.line.id])).toEqual([["baseline", "baseline"], ["baseline@0ldba5e11ne0", "baseline@0ldba5e11ne0"]]);
+    expect(legendRows([old], [{ id: "baseline" }])).toEqual([]);
   });
 
   it("lists snapshot cards for the plotted runs, A then B", () => {
@@ -221,6 +356,48 @@ describe("results view model", () => {
 
 const CSV_A = "t,altitude,x,y\n0,0,0,0\n0.5,10,0.1,0\n1,15,0.2,0.1\n";
 const CSV_B = "t,altitude,speed\n0,0,0\n0.5,12,20\n";
+
+describe("run table units", () => {
+  const FOOT = 0.3048;
+  const SI = { apogee_m: 347.575, max_velocity_ms: 105.2, flight_time_s: 91.4 };
+
+  /** Headers and baseline-row cells as the table renders them, through the same markup B1 reads. */
+  function table(edit: (s: AppState) => AppState = (s) => s, manifest?: string) {
+    const snap = snapshot();
+    const base = snap.runs.runs.find((r) => r.sim === "baseline")!;
+    base.summary = { ...base.summary!, ...SI };
+    if (manifest !== undefined) snap.files.files["rocketwright.toml"] = manifest;
+    const html = renderToStaticMarkup(<RunTable app={staticStore((s) => edit(withRuns(s, { snap, overlay: [] })))} />);
+    const header = (key: string) => new RegExp(`data-key="${key}"[^>]*>([^<]*)`).exec(html)![1]!;
+    const row = html.slice(html.indexOf('data-sim="baseline"'));
+    const cell = (id: string) => new RegExp(`data-testid="runs\\.${id}"[^>]*>([^<]*)`).exec(row)![1]!;
+    return {
+      apogee: [header("apogee"), cell("apogee")],
+      speed: [header("maxSpeed"), cell("max-speed")],
+      time: [header("flightTime"), cell("flight-time")],
+    };
+  }
+  const shownNumber = (cell: string) => Number(cell.replaceAll(",", ""));
+
+  it("shows metric by default, in the headers B1 reads", () => {
+    expect(table()).toEqual({ apogee: ["Apogee (m)", "348"], speed: ["Max speed (m/s)", "105"], time: ["Flight time (s)", "91"] });
+  });
+
+  it("states imperial headers and values for known SI inputs", () => {
+    const shown = table((s) => ({ ...s, ui: { ...s.ui, units: "in" } }));
+    expect(shown).toEqual({ apogee: ["Apogee (ft)", "1,140"], speed: ["Max speed (ft/s)", "345"], time: ["Flight time (s)", "91"] });
+    // The convert-by-header reading (D29): the number times its header's unit is the SI value, within the rounding shown.
+    expect(Math.abs(shownNumber(shown.apogee[1]!) * FOOT - SI.apogee_m)).toBeLessThanOrEqual(0.5 * FOOT);
+    expect(Math.abs(shownNumber(shown.speed[1]!) * FOOT - SI.max_velocity_ms)).toBeLessThanOrEqual(0.5 * FOOT);
+    expect(Math.abs(shownNumber(shown.time[1]!) - SI.flight_time_s)).toBeLessThanOrEqual(0.5);
+  });
+
+  it("reads imperial from the project's own display units", () => {
+    expect(table((s) => s, 'format = 1\n[display_units]\nlength = "in"\n').apogee).toEqual(["Apogee (ft)", "1,140"]);
+    expect(table((s) => s, 'format = 1\n[display_units]\nlength = "mm"\naltitude = "ft"\n').speed[0]).toBe("Max speed (ft/s)");
+    expect(table((s) => ({ ...s, ui: { ...s.ui, units: "in" } }), '[display_units]\naltitude = "m"\n').apogee).toEqual(["Apogee (m)", "348"]);
+  });
+});
 
 describe("CSV export", () => {
   it("writes the runs in long format over the union of columns", () => {
@@ -434,22 +611,23 @@ describe("static markup", () => {
     for (const region of ["run-table", "plot", "trajectory-inset", "run-details"]) expect(page).toContain(`data-rw-region="${region}"`);
     expect(testIds(page, "page.title")).toEqual(["Flight results"]);
     for (const id of ["results.run-selected", "results.plot-menu", "results.export-csv", "runs.table-header"]) expect(testIds(page, id), id).toHaveLength(1);
-    expect(testIds(page, "plot.tab")).toEqual(["Altitude", "Velocity", "Acceleration", "Stability"]);
+    expect(testIds(page, "plot.tab")).toEqual(["Altitude", "Velocity", "Acceleration", "Stability", "Mach", "Drag coefficient", "Mass", "Thrust", "Lateral distance"]);
     expect(page).toMatch(/data-testid="plot\.tab" data-tab="altitude" aria-selected="true"/);
-    // One row per sim that has a run; never-run Recovery test stays in the rail only.
-    expect(testIds(page, "runs.table-row")).toHaveLength(3);
-    expect(page).not.toMatch(/data-testid="runs\.table-row" data-sim="recovery_test"/);
-    expect(testIds(page, "runs.row-menu")).toHaveLength(3);
+    // One row per flight sim; never-run Recovery test reads Not run and offers Run (R2.7).
+    expect(testIds(page, "runs.table-row")).toHaveLength(4);
+    expect(page).toMatch(/data-testid="runs\.table-row" data-sim="recovery_test" data-status="not_run"/);
+    expect(testIds(page, "runs.row-menu")).toHaveLength(4);
     expect(page).toMatch(/data-testid="runs\.table-row" data-sim="baseline" data-status="complete" data-series="a" aria-selected="true"/);
     expect(page).toMatch(/data-testid="runs\.table-row" data-sim="higher_altitude" data-status="complete" data-series="b"/);
-    expect(testIds(page, "runs.apogee")).toEqual(["612", "700", "—"]);
+    // A Not run row holds its Run button where the numbers would be.
+    expect(testIds(page, "runs.apogee")).toEqual(["612", "700", "—", ""]);
   });
 
   it("shows the banner, the details footer, and the trajectory title", () => {
     expect(page).toContain("Fin revision uses an outdated model. Rebuild to run this simulation.");
     expect(testIds(page, "results.open-design")).toHaveLength(1);
     expect(page).toMatch(/Model Rev 07/);
-    expect(page).toContain("Environment: calm, 15 °C");
+    expect(page).toContain("Environment: </span>calm, 15 °C");
     // The footer shows the compact form; the spelled-out text is its title.
     expect(page).toMatch(/data-field="environment" title="Environment: calm \(0 m\/s, 15 °C\)"/);
     expect(page).toMatch(/Warnings: (<!-- -->)?1/);

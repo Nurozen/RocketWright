@@ -8,6 +8,7 @@
 import type { schema } from "@rw/contracts";
 import { Icon, type IconName } from "../../shell/Icon.tsx";
 import { PartThumb } from "../../render/PartThumb.tsx";
+import { matchesRailSearch } from "../../shell/railSearch.ts";
 import type { DeepReadonly } from "../../state/index.ts";
 import type { PartKind } from "../../state/ops/parts.ts";
 
@@ -147,9 +148,11 @@ export interface ComponentTreeProps {
   onToggleHidden(id: string): void;
   /** Expands or collapses a row with children. */
   onToggleCollapsed?(id: string): void;
+  /** A right-click on a row, at that window position. */
+  onContextMenu?(id: string, at: { x: number; y: number; band: { top: number; bottom: number } }): void;
 }
 
-export function ComponentTree({ rows, onSelect, onToggleHidden, onToggleCollapsed }: ComponentTreeProps) {
+export function ComponentTree({ rows, onSelect, onToggleHidden, onToggleCollapsed, onContextMenu }: ComponentTreeProps) {
   return (
     <ul className="rw-list rw-asm-tree" role="tree" aria-label="Components" data-testid="tree" data-count={rows.length}>
       {rows.map((r) => (
@@ -165,6 +168,12 @@ export function ComponentTree({ rows, onSelect, onToggleHidden, onToggleCollapse
           aria-selected={r.selected}
           {...(r.hasChildren ? { "aria-expanded": !r.collapsed } : {})}
           onClick={(e) => onSelect(r.id, e.metaKey || e.ctrlKey || e.shiftKey)}
+          onContextMenu={(e) => {
+            if (onContextMenu === undefined) return;
+            e.preventDefault();
+            const row = e.currentTarget.getBoundingClientRect();
+            onContextMenu(r.id, { x: e.clientX, y: e.clientY, band: { top: row.top, bottom: row.bottom } });
+          }}
         >
           <button
             type="button"
@@ -200,4 +209,20 @@ export function ComponentTree({ rows, onSelect, onToggleHidden, onToggleCollapse
       ))}
     </ul>
   );
+}
+
+/** The rows the rail search keeps: the matches and every ancestor, so the tree shape stays readable. */
+export function matchingTreeRows(rows: readonly TreeRow[], query: string): TreeRow[] {
+  if (query === "") return [...rows];
+  const keep = new Set<number>();
+  const ancestors: number[] = [];
+  rows.forEach((r, i) => {
+    ancestors.length = Math.min(ancestors.length, r.depth);
+    if (matchesRailSearch(r.label, query)) {
+      keep.add(i);
+      for (const a of ancestors) keep.add(a);
+    }
+    ancestors.push(i);
+  });
+  return rows.filter((_, i) => keep.has(i));
 }

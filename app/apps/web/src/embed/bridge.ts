@@ -2,7 +2,7 @@
  * The embedded agent pane's bridge on the page side (B10; D10, D11, D25).
  *
  * `PaneBridge` is the one surface the app uses to drive the Lecturn embed
- * (`insertMention`, `openThread`, `newThread`, `openProviders`, `setDraft`,
+ * (`insertMention`, `openThread`, `openProviders`, `setDraft`,
  * `setComposerPlaceholder`), hear it (`lecturn/navigate`, `thread.changed`,
  * `turn.state`, `ready`) and answer its ref-label asks (`onRefLabels`,
  * `lecturn/appRefs.describe`), whichever way the pane is mounted:
@@ -60,7 +60,6 @@ export interface PaneBridge {
   insertMention(params: MentionParams): void;
   setDraft(text: string): void;
   openThread(threadId: string): void;
-  newThread(params?: { title?: string; appData?: string }): void;
   openProviders(): void;
   on<E extends PaneEvent>(event: E, listener: (payload: PaneEvents[E]) => void): () => void;
   /** The guest composer's idle placeholder (≤ 200 chars); null hands it back to Lecturn's. Kept across remounts and retargets. */
@@ -155,7 +154,6 @@ export function startDesktopPane(el: Element, projectId: string, deps: DesktopPa
     insertMention: (params) => bridgeSend("lecturn/composer.insertMention", params),
     setDraft: (text) => bridgeSend("lecturn/composer.setDraft", { text }),
     openThread: (threadId) => bridgeSend("lecturn/thread.open", { threadId }),
-    newThread: (params = {}) => bridgeSend("lecturn/thread.new", params),
     openProviders: () => bridgeSend("lecturn/providers.open", {}),
     on: events.on,
     setComposerPlaceholder: (text) => {
@@ -210,7 +208,6 @@ export interface BrowserEmbedLike {
   insertMention(params: MentionParams): void;
   setDraft(text: string): void;
   openThread(threadId: string): void;
-  newThread(params?: { title?: string; appData?: string }): void;
   openProviders(): void;
   setComposerPlaceholder(text: string | null): void;
   retarget(target: { url: string; token: string }): void;
@@ -324,7 +321,6 @@ export function startBrowserPane(el: HTMLElement, projectId: string, deps: Brows
     insertMention: (params) => run((e) => e.insertMention(params)),
     setDraft: (text) => run((e) => e.setDraft(text)),
     openThread: (id) => run((e) => e.openThread(id)),
-    newThread: (params = {}) => run((e) => e.newThread(params)),
     openProviders: () => run((e) => e.openProviders()),
     on: events.on,
     setComposerPlaceholder: (text) => {

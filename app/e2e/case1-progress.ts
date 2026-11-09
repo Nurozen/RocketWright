@@ -17,21 +17,20 @@ export interface ProgressRow {
 }
 
 export interface Progress {
-  enabled: StageId[];
   counts: Record<RowStatus, number>;
   rows: ProgressRow[];
 }
 
 export const progressPath = (): string => join(barOutDir(), "e2e/b1/progress.json");
 
-export function buildProgress(rows: readonly BoundRow[], statuses: ReadonlyMap<string, RowStatus>, enabled: ReadonlySet<StageId>): Progress {
+export function buildProgress(rows: readonly BoundRow[], statuses: ReadonlyMap<string, RowStatus>): Progress {
   const counts: Record<RowStatus, number> = { reached: 0, "not-found": 0, "wrong-unit": 0, pending: 0 };
   const out: ProgressRow[] = rows.map((row) => {
     const status = statuses.get(row.key) ?? "pending";
     counts[status] += 1;
     return { key: row.key, stage: row.stage, part: row.part ?? row.dialog ?? null, label: row.label, status };
   });
-  return { enabled: [...enabled], counts, rows: out };
+  return { counts, rows: out };
 }
 
 export function writeProgress(progress: Progress, path: string = progressPath()): void {

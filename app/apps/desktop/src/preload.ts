@@ -31,7 +31,7 @@
   const { contextBridge, ipcRenderer, webUtils } = require("electron") as typeof import("electron");
   const PREFIX = "--rw-desktop=";
   const arg = process.argv.find((a: string) => a.startsWith(PREFIX));
-  let config: { rpcUrl?: unknown; serverUrl?: unknown } = {};
+  let config: { rpcUrl?: unknown; serverUrl?: unknown; startupError?: unknown } = {};
   if (arg !== undefined) {
     try {
       config = JSON.parse(decodeURIComponent(arg.slice(PREFIX.length))) as typeof config;
@@ -52,12 +52,14 @@
     removeRecent: "rw-desktop:remove-recent",
     setActiveProject: "rw-desktop:set-active-project",
     setDirty: "rw-desktop:set-dirty",
+    flushDone: "rw-desktop:flush-done",
     prefs: "rw-desktop:prefs",
     setPrefs: "rw-desktop:set-prefs",
     openProviders: "rw-desktop:open-providers",
     relaunch: "rw-desktop:relaunch",
   };
   const COMMAND = "rw-desktop:command";
+  const FLUSH = "rw-desktop:flush";
   contextBridge.exposeInMainWorld("lecturnEmbedIpc", {
     send: (channel: unknown, payload: unknown) => {
       if (typeof channel === "string" && SEND.includes(channel)) ipcRenderer.send(channel, payload);
@@ -68,6 +70,7 @@
     platform: process.platform,
     rpcUrl: url(config.rpcUrl),
     serverUrl: url(config.serverUrl),
+    startupError: typeof config.startupError === "string" ? config.startupError : null,
     versions: { electron: process.versions.electron, chrome: process.versions.chrome },
     boot: () => ipcRenderer.invoke(INVOKE.boot),
     pickFolder: (options: unknown) => ipcRenderer.invoke(INVOKE.pickFolder, options),
@@ -78,6 +81,7 @@
     removeRecent: (dir: unknown) => ipcRenderer.invoke(INVOKE.removeRecent, dir),
     setActiveProject: (project: unknown) => ipcRenderer.invoke(INVOKE.setActiveProject, project),
     setDirty: (dirty: unknown) => ipcRenderer.invoke(INVOKE.setDirty, dirty),
+    flushDone: (result: unknown) => ipcRenderer.invoke(INVOKE.flushDone, result),
     prefs: () => ipcRenderer.invoke(INVOKE.prefs),
     setPrefs: (patch: unknown) => ipcRenderer.invoke(INVOKE.setPrefs, patch),
     openProviders: () => ipcRenderer.invoke(INVOKE.openProviders),
@@ -86,6 +90,11 @@
       const listener = (_e: unknown, command: unknown) => cb(command);
       ipcRenderer.on(COMMAND, listener);
       return () => void ipcRenderer.removeListener(COMMAND, listener);
+    },
+    onFlush: (cb: (id: unknown) => void) => {
+      const listener = (_e: unknown, id: unknown) => cb(id);
+      ipcRenderer.on(FLUSH, listener);
+      return () => void ipcRenderer.removeListener(FLUSH, listener);
     },
     pathForFile: (file: File) => webUtils.getPathForFile(file),
     lecturn: {

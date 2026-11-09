@@ -51,7 +51,6 @@ function fakeBridge() {
     insertMention: () => void sent.push("insertMention"),
     setDraft: () => void sent.push("setDraft"),
     openThread: () => void sent.push("openThread"),
-    newThread: () => void sent.push("newThread"),
     openProviders: () => void sent.push("openProviders"),
     on: (event, l) => {
       let set = listeners.get(event);
@@ -82,6 +81,16 @@ describe("openRef (B12, state/navigation.ts)", () => {
     store.getState().ui.navigate("components");
     await openRef(store, "rw:c/nose");
     expect(store.getState().ui.page).toBe("components");
+  });
+
+  it("records who asked: a chip by default, the caller's source otherwise, and history for a step", async () => {
+    const { store } = await setup();
+    await openRef(store, "rw:c/fins");
+    expect(store.getState().selection.source).toBe("chat");
+    await openRef(store, "rw:c/nose", "check");
+    expect(store.getState().selection).toMatchObject({ refs: ["rw:c/nose"], source: "check" });
+    await openRef(store, "rw:step/2", "check");
+    expect(store.getState().selection.source).toBe("history");
   });
 
   it("rw:run/<id> opens Results with the run plotted; rw:step/<n> selects the history step", async () => {

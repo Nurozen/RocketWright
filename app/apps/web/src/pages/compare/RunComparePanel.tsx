@@ -8,9 +8,9 @@ import type { RunComparisonView } from "./comparison.ts";
 import { Icon } from "../../shell/Icon.tsx";
 
 const RUN_METRICS = [
-  { key: "apogee_m", label: "Apogee", unit: "m" },
-  { key: "max_velocity_ms", label: "Max speed", unit: "m/s" },
-  { key: "flight_time_s", label: "Flight time", unit: "s" },
+  { key: "apogee_m", label: "Apogee" },
+  { key: "max_velocity_ms", label: "Max speed" },
+  { key: "flight_time_s", label: "Flight time" },
 ] as const;
 
 /** `+8.2%` from a to b (`—` when either is missing). */

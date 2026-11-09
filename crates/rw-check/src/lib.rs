@@ -22,6 +22,7 @@ pub mod types;
 mod asserts;
 mod clearance;
 mod dims;
+mod material;
 mod motor;
 mod recovery;
 mod statics;
@@ -120,6 +121,7 @@ pub fn check_static(input: &CheckInput<'_>) -> CheckReport {
     );
     diags.extend(found.diagnostics);
     diags.extend(recovery::deployment_diags(model));
+    diags.extend(material::missing_material_diags(model));
 
     let mut inputs = input.inputs.clone();
     for m in &motor {

@@ -4,8 +4,8 @@ import { cpSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writ
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { RunManifest } from "../../packages/contracts/src/generated/index.ts";
-import { assertPostQuitArgs, checkCell, createPostQuitReader, listRunManifests, runsTree, scoreRun, type PostQuitReader, type RunScoreInput, type TableRead } from "../case1-compare.ts";
-import { readEnv } from "../case1-plan.ts";
+import { assertPostQuitArgs, checkCell, createPostQuitReader, judgeRebuild, listRunManifests, runsTree, scoreRun, type PostQuitReader, type RunScoreInput, type TableRead } from "../case1-compare.ts";
+import { loadCase1Plan, readEnv } from "../case1-plan.ts";
 import { FIXTURE_DIR } from "../case1-script.ts";
 import { SCRATCH, sidecarBinary } from "../live.ts";
 
@@ -178,6 +178,46 @@ describe("scoreRun", () => {
     };
     const problems = scoreRun(input(project, { reader, table: [{ ...TABLE, apogee: { ...TABLE.apogee, shown: "300" } }] })).problems;
     expect(problems.join()).toMatch(/apogee_m 300 is outside/);
+  });
+});
+
+describe("judgeRebuild", () => {
+  const verdictFor = (project: string, over: { reader?: PostQuitReader } = {}) => {
+    const reader = over.reader ?? createPostQuitReader(bin, project);
+    return judgeRebuild({ plan: loadCase1Plan(bin), project, reader, run: { runClickedAtMs: CLICK, quitAtMs: QUIT, table: [TABLE, TABLE] } });
+  };
+
+  it("passes the app's flight of the finished model and reports its numbers", () => {
+    const verdict = verdictFor(appFlown());
+    expect(verdict).toMatchObject({ diffs: [], problems: [] });
+    expect(verdict.flight?.oracle.map((r) => r.key)).toEqual(["apogee_m", "max_velocity_ms", "time_to_apogee_s"]);
+  });
+
+  it("scores the run: a project never flown fails however good the model is", () => {
+    const project = join(root, `never${next++}`);
+    cpSync(FIXTURE_DIR, project, { recursive: true });
+    const verdict = verdictFor(project);
+    expect(verdict.problems.join()).toMatch(/exactly one flight run/);
+    expect(verdict.flight).toBeUndefined();
+  });
+
+  it("fails a runs/ tree that changes during the reads after the run is scored", () => {
+    const project = appFlown();
+    const real = createPostQuitReader(bin, project);
+    let evals = 0;
+    const reader: PostQuitReader = {
+      ...real,
+      calls: real.calls,
+      check: () => real.check(),
+      runSummary: (id) => real.runSummary(id),
+      model: () => {
+        evals += 1;
+        writeFileSync(join(project, "runs/simulation_5", runId, "stray"), "x");
+        return real.model();
+      },
+    };
+    expect(verdictFor(project, { reader }).problems.join()).toMatch(/runs\/ changed during the post-quit reads/);
+    expect(evals).toBe(1);
   });
 });
 

@@ -16,6 +16,7 @@ import type { PatchOp, RwRef, schema } from "@rw/contracts";
 import { useStore } from "zustand";
 import { createStore, type StoreApi } from "zustand/vanilla";
 import { Icon } from "../../shell/Icon.tsx";
+import { DiagnosticText, diagnosticPlainText } from "../../ui/DiagnosticText.tsx";
 import { StatusBadge } from "../../shell/StatusIcon.tsx";
 import { ViewportToolbar, type ViewChip } from "../../shell/ViewportToolbar.tsx";
 import { trackWrite, useDirtyField } from "../../state/dirtyFields.ts";
@@ -223,7 +224,8 @@ function ConfigurationsWorkspace({ store, client, ui }: { store: AppStore; clien
   const write = async (ops: PatchOp[], label: string): Promise<boolean> => {
     setPending(true);
     try {
-      await client!.call("model.patch", { projectId: projectId!, ops, label });
+      const out = await client!.call("model.patch", { projectId: projectId!, ops, label });
+      store.getState().draft.noteLanded(out.model_hash);
       ui.setState({ error: null });
       return true;
     } catch (e) {
@@ -457,7 +459,7 @@ function MotorPanel({
   const cfg = model.configs[config.id];
   const mounts = motorMounts(model);
   const addMountHint = (
-    <span className="rw-motor__add-mount" data-testid="motor.add-mount" title="Motors go in an inner tube marked as a motor mount. Ask the agent to add one, then assign a motor here.">
+    <span className="rw-motor__add-mount" data-testid="motor.add-mount" title="Motors go in an inner tube marked as a motor mount. Add an inner tube with + beside Components, turn on Motor mount in its editor on the Components page, then assign a motor here.">
       {ADD_MOUNT_FIRST}
     </span>
   );
@@ -1019,9 +1021,14 @@ function RecoveryPanel({ store, config, patch }: { store: AppStore; config: Conf
       {diags.length > 0 && (
         <ul className="rw-cfg__diags" data-testid="recovery.validation">
           {diags.map((d, i) => (
-            <li key={`${d.code}-${i}`} data-code={d.code} data-severity={d.severity} title={d.hint ?? d.code}>
-              <Icon name="alert" size={14} /> {d.message}
-              {d.hint ? ` (${d.hint})` : ""}
+            <li key={`${d.code}-${i}`} data-code={d.code} data-severity={d.severity} title={diagnosticPlainText(d.hint ?? d.code)}>
+              <Icon name="alert" size={14} /> <DiagnosticText text={d.message} />
+              {d.hint ? (
+                <>
+                  {" ("}
+                  <DiagnosticText text={d.hint} />)
+                </>
+              ) : null}
             </li>
           ))}
         </ul>
@@ -1111,7 +1118,7 @@ function StagePanel({ store, config, patch }: { store: AppStore; config: ConfigR
         <ul className="rw-cfg__diags" data-testid="stage.validation">
           {diags.map((d, i) => (
             <li key={`${d.code}-${i}`} data-code={d.code} data-severity={d.severity}>
-              <Icon name="alert" size={14} /> {d.message}
+              <Icon name="alert" size={14} /> <DiagnosticText text={d.message} />
             </li>
           ))}
         </ul>
@@ -1134,7 +1141,7 @@ function ConfigurationsToolbar({ store, ui }: { store: AppStore; ui: Configurati
       view={chipOf(view)}
       units={units}
       unitOptions={UNITS}
-      onUnitsChange={(u) => store.getState().ui.setUnits(u as Units)}
+      onUnitsChange={(u) => void store.getState().ui.setProjectUnits(u as Units)}
       onViewChange={(v) => store.getState().ui.setView({ view: v.toLowerCase() as typeof view })}
     >
       <span className="rw-toolbar__sep" aria-hidden />

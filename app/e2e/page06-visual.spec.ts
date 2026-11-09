@@ -48,6 +48,9 @@ async function openVisual(page: Page): Promise<void> {
   await page.waitForFunction(() => (window as { __rwShell?: { status: string } }).__rwShell?.status === "ready");
   await tier(page, "visual").click();
   await expect(page.getByTestId("propsim-page")).toHaveAttribute("data-tier", "visual");
+  // Nothing runs on open (R2.7).
+  await expect(visual(page)).toHaveAttribute("data-state", "idle");
+  await page.getByTestId("visual.run").click();
   await expect(visual(page)).toHaveAttribute("data-state", "ready", { timeout: 60_000 });
   await expect(page.getByTestId("visual.viewport")).toHaveAttribute("data-state", "ready", { timeout: 60_000 });
   expect(errors).toEqual([]);
@@ -111,6 +114,7 @@ test("a study runs as a visual run: studies, layers, transport, traces, and the 
   // Open engineering run goes to the Engineering tier, which never shows the visual label.
   await page.getByTestId("visual.open-engineering").click();
   await expect(tier(page, "engineering")).toHaveAttribute("aria-selected", "true");
+  await page.getByTestId("engineering.run").click();
   await expect(page.getByTestId("propsim.engineering")).toHaveAttribute("data-state", "ready", { timeout: 60_000 });
   await expect(page.getByText(VISUAL_LABEL)).toHaveCount(0);
 });

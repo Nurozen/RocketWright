@@ -25,6 +25,22 @@ afterEach(() => {
 });
 
 describe("DialogQueues", () => {
+  it("holds a dialog open until it is released, with its options already logged", async () => {
+    const { app, dialog } = fakeApp();
+    const q = new DialogQueues();
+    await q.install(app);
+    await q.enqueueHeld("showMessageBox", "consent", { response: 1 });
+    let answered: unknown = "pending";
+    const box = Promise.resolve(dialog["showMessageBox"]!({ message: "m" })).then((a) => (answered = a));
+    const calls = await q.waitForCalls("showMessageBox", 1, 1000);
+    expect(calls[0]).toMatchObject({ options: { message: "m" }, answer: { response: 1 } });
+    expect(answered).toBe("pending");
+    await q.release("consent");
+    await box;
+    expect(answered).toEqual({ response: 1 });
+    await expect(q.release("consent")).rejects.toThrow(/no held dialog/);
+  });
+
   it("answers per method, in order, and logs the options", async () => {
     const { app, dialog } = fakeApp();
     const q = new DialogQueues();

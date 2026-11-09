@@ -86,6 +86,12 @@
   font-variant-numeric: tabular-nums;
 }
 
+.rw-eng__actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .rw-eng__provenance {
   color: var(--rw-text-secondary);
   font-size: var(--rw-font-size-secondary);
@@ -229,6 +235,27 @@
   padding: 14px 12px 0;
   border-right: var(--rw-hairline) solid var(--rw-line);
   overflow: hidden;
+}
+
+.rw-vis-side__new {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 0 12px;
+}
+
+.rw-vis-side__hint {
+  margin: 0;
+  color: var(--rw-text-secondary);
+  font-size: var(--rw-font-size-secondary);
+}
+
+.rw-vis-side__run {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 0 12px;
 }
 
 .rw-vis-side__group + .rw-vis-side__group {
@@ -761,6 +788,12 @@
 
 .rw-cfd__import-side {
   margin-top: 16px;
+}
+
+.rw-cfd__pick {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 /* Simulate rail extras (M5.5): Trajectory and Stability analysis from the flight runs; Thermal analysis empty state. */

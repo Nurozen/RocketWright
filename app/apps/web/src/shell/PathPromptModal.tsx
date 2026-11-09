@@ -41,7 +41,7 @@ export function PathPromptModal({ prompts }: { prompts: PathPrompts }) {
       }
     >
       <form id={formId} onSubmit={submit}>
-        <TextField label="Path" value={path} onChange={setPath} hint="Type the full path on this computer." autoComplete="off" spellCheck={false} />
+        <TextField label="Path" value={path} onChange={setPath} hint={request.hint ?? "Type the full path on this computer."} autoComplete="off" spellCheck={false} />
       </form>
     </Modal>
   );

@@ -2,6 +2,7 @@
 import type { ProjectInfo, ProjectPatch, ProjectSnapshot, RwRef, SnapshotKey } from "@rw/contracts";
 import { RpcCallError, type RpcLike } from "../rpc.ts";
 import type { AppState, DeepReadonly, ProjectSlice, SliceCtx } from "../types.ts";
+import { DEFAULT_LENGTH_UNIT, isLengthUnit, manifestDisplayUnits, MANIFEST } from "../displayUnits.ts";
 import { handshake, loadWasm } from "../wasm.ts";
 import { onEmbedThreads, onLecturnSwitch } from "./chat.ts";
 import { followRerun, rowKey } from "./runs.ts";
@@ -24,14 +25,16 @@ export function createProjectSlice(ctx: SliceCtx): ProjectSlice {
     hello: null,
     snapshot: null,
     subscriptionId: null,
-    updatedAt: null,
     error: null,
 
     async connect(client: RpcLike, projectId: string): Promise<void> {
-      ctx.get().project.disconnect();
+      // The same project over a new socket (D19): the mirror stays up and drafts stay put until the fresh snapshot lands; a real change underneath marks them stale.
+      const resuming = ctx.projectId === projectId && ctx.client !== client && ctx.get().project.snapshot !== null;
+      if (resuming) for (const fn of ctx.cleanup.splice(0)) fn();
+      else ctx.get().project.disconnect();
       ctx.client = client;
       ctx.projectId = projectId;
-      ctx.patch("project", { projectId, connection: "connecting", hello: client.hello, error: null });
+      ctx.patch("project", { projectId, connection: "connecting", hello: client.hello, error: null, ...(resuming ? { subscriptionId: null } : {}) });
 
       const mine = (sid: string): boolean => sid === ctx.get().project.subscriptionId;
       ctx.cleanup.push(
@@ -46,7 +49,7 @@ export function createProjectSlice(ctx: SliceCtx): ProjectSlice {
         }),
       );
 
-      const wasm = loadWasm(client.hello.coreVersion, wrapLoad(ctx));
+      const wasm = resuming && ctx.core !== null ? null : loadWasm(client.hello.coreVersion, wrapLoad(ctx));
       try {
         const sub = await client.call("project.subscribe", { projectId });
         if (ctx.client !== client) return;
@@ -57,12 +60,18 @@ export function createProjectSlice(ctx: SliceCtx): ProjectSlice {
         // The caller decides what a project that will not open means: `ProjectSurface` falls back to Welcome.
         throw e;
       }
+      if (wasm === null) return;
       const handle = await wasm;
       if (ctx.client !== client) return;
       // Prefer the sidecar's own version once the mirror reports it.
       const sidecarVersion = ctx.get().project.snapshot?.sidecar.version;
       const h = ctx.core !== null && sidecarVersion != null ? handshake(ctx.core, sidecarVersion) : handle;
       ctx.patch("draft", { engine: h.status });
+    },
+
+    searchLibrary(query) {
+      const { client, projectId } = ctx.conn();
+      return client.call("library.search", { ...query, projectId });
     },
 
     disconnect(): void {
@@ -75,7 +84,7 @@ export function createProjectSlice(ctx: SliceCtx): ProjectSlice {
       ctx.client = null;
       ctx.projectId = null;
       if (ctx.get().project.connection !== "idle") {
-        ctx.patch("project", { projectId: null, connection: "idle", hello: null, snapshot: null, subscriptionId: null, updatedAt: null, error: null });
+        ctx.patch("project", { projectId: null, connection: "idle", hello: null, snapshot: null, subscriptionId: null, error: null });
       }
     },
   };
@@ -133,7 +142,7 @@ export function applySnapshot(ctx: SliceCtx, snap: ProjectSnapshot): void {
     }
     snapshot = same ? prev : (Object.freeze(next) as unknown as DeepReadonly<ProjectSnapshot>);
   }
-  ctx.patch("project", { snapshot, updatedAt: ctx.now() });
+  ctx.patch("project", { snapshot });
   afterMirrorChange(ctx, prev);
 }
 
@@ -153,7 +162,7 @@ export function applyPatch(ctx: SliceCtx, patch: ProjectPatch): void {
     if (k === "projectId" || v === undefined) continue;
     next[k as SnapshotKey] = share(next[k], v);
   }
-  ctx.patch("project", { snapshot: Object.freeze(next) as unknown as DeepReadonly<ProjectSnapshot>, updatedAt: ctx.now() });
+  ctx.patch("project", { snapshot: Object.freeze(next) as unknown as DeepReadonly<ProjectSnapshot> });
   afterMirrorChange(ctx, prev);
 }
 
@@ -163,9 +172,20 @@ function afterMirrorChange(ctx: SliceCtx, prev: AppState["project"]["snapshot"])
   const snap = s.project.snapshot;
   if (snap === null) return;
 
+  // Units: the project's `[display_units]` is what the toolbar shows (R3.4), including an undo or an agent's edit of it.
+  if (snap.files !== prev?.files) {
+    const length = manifestDisplayUnits(snap.files.files[MANIFEST])["length"];
+    if (isLengthUnit(length) && length !== s.ui.units) s.ui.setUnits(length);
+    // The table is gone (an undo of the first choice): back to what a project without one shows, which is also what a reload would show.
+    else if (length === undefined && manifestDisplayUnits(prev?.files.files[MANIFEST])["length"] !== undefined && s.ui.units !== DEFAULT_LENGTH_UNIT) s.ui.setUnits(DEFAULT_LENGTH_UNIT);
+  }
+
   // Draft: another writer committed underneath unsaved edits.
   const hash = snap.evaluated?.model_hash ?? snap.files.model_hash;
-  if (s.draft.ops.length > 0 && s.draft.baseHash !== null && s.draft.baseHash !== hash && !s.draft.stale) {
+  // Another write of ours on the way through is not the end of the wait for the last one, and not another writer either.
+  const passing = ctx.landed?.through.includes(hash) === true;
+  if (ctx.landed != null && hash !== ctx.landed.from && !passing) ctx.landed = null;
+  if (s.draft.ops.length > 0 && s.draft.baseHash !== null && s.draft.baseHash !== hash && !s.draft.stale && !ctx.draftWriting && !passing) {
     ctx.patch("draft", { stale: true });
   }
 

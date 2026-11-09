@@ -61,16 +61,30 @@ export function mergeCurves(motors: readonly Curve[], curves: readonly Curve[]):
  */
 export async function loadProjectMotors(client: Pick<RpcLike, "call">, projectId: string, cache: Map<string, Curve>): Promise<Curve[]> {
   const { motors } = await client.call("motor.search", { projectId });
-  return Promise.all(
-    motors
-      .filter((m) => m.source.kind !== "generic")
-      .map(async (m) => {
-        const key = `${m.id}@${m.sha256}`;
-        const hit = cache.get(key);
-        if (hit !== undefined) return hit;
-        const { curve } = await client.call("motor.show", { projectId, id: m.id });
-        cache.set(key, curve);
-        return curve;
-      }),
+  const listed = motors.filter((m) => m.source.kind !== "generic");
+  const show = async (id: string, key: string): Promise<Curve> => {
+    const hit = cache.get(key);
+    if (hit !== undefined) return hit;
+    const { curve } = await client.call("motor.show", { projectId, id });
+    cache.set(key, curve);
+    return curve;
+  };
+  const curves = await Promise.all(listed.map((m) => show(m.id, `${m.id}@${m.sha256}`)));
+  // `motor.search` sorts by impulse, but a config naming only the file flies the file's first curve, which only `motor.show` can tell.
+  const byFile = new Map<string, number[]>();
+  listed.forEach((m, i) => {
+    if (m.source.kind !== "library") return;
+    byFile.set(m.source.path, [...(byFile.get(m.source.path) ?? []), i]);
+  });
+  await Promise.all(
+    [...byFile].map(async ([path, rows]) => {
+      if (rows.length < 2) return;
+      const first = await show(`lib:${path}`, `first:${path}@${listed[rows[0]!]!.sha256}`);
+      const at = rows.find((i) => curves[i]!.designation.toLowerCase() === first.designation.toLowerCase());
+      if (at === undefined || at === rows[0]) return;
+      const head = rows[0]!;
+      [curves[head], curves[at]] = [curves[at]!, curves[head]!];
+    }),
   );
+  return curves;
 }

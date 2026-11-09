@@ -4,16 +4,18 @@
  * that answer `internal` until their step lands. Every frame is validated
  * against the IF10 schemas (`TestClient`).
  */
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { existsSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import type { RpcMethod } from "@rw/contracts";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { TestClient, makeValidator } from "@rw/contracts/mock/harness";
 import { AppServer } from "../src/rpc/AppServer.ts";
 import { sidecarBin, tempProject } from "./helpers/harness.ts";
 
 const validator = makeValidator();
 const SEED = "fixtures/research-vehicle";
+/** A synthetic curve: ThrustCurve data is never committed. */
+const ENG = "; synthetic\nC6 18 70 0-3-5 0.0110 0.0240 Synth\n   0.050 6.000\n   0.200 12.000\n   0.400 6.000\n   1.500 4.500\n   1.800 0.000\n";
 
 describe("contract batch (U13)", () => {
   let server: AppServer;
@@ -71,6 +73,20 @@ describe("contract batch (U13)", () => {
     expect(motors[0]!.id).toMatch(/:/);
   });
 
+  it("reads a typed ~ as home for both import and export (D18)", async () => {
+    vi.stubEnv("HOME", outside);
+    try {
+      writeFileSync(join(outside, "Tilde_C6.eng"), ENG);
+      expect((await c.call("import.file", { projectId, path: "~/Tilde_C6.eng", kind: "motor", dry_run: true })).dry_run).toBe(true);
+      // Home is outside the project, so a renderer's export there is refused rather than landing in a folder called `~`.
+      expect(await c.request("export.file", { projectId, format: "ork", path: "~/out.ork" })).toMatchObject({ ok: false, error: { code: "api_error" } });
+      expect(existsSync(join(dir, "~"))).toBe(false);
+      expect(existsSync(join(outside, "out.ork"))).toBe(false);
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
   it("import.file reads a motor from outside the project", async () => {
     const path = join(outside, "Acme_T1.eng");
     writeFileSync(path, "; test motor\nT1 18 70 0 0.0125 0.0242 RW\n0.05 10.0\n0.5 8.0\n1.0 0.0\n");
@@ -93,6 +109,30 @@ describe("contract batch (U13)", () => {
     expect(await c.request("render", { projectId, view: "nope" as never })).toMatchObject({ ok: false, error: { code: "invalid_params" } });
   }, 60_000);
 
+  it("serves a drawing the render wrote, and nothing else from renders/", async () => {
+    const out = await c.call("render", { projectId, view: "fin" });
+    expect(out.path).toMatch(/^renders\/[^/]+\.png$/);
+    const base = `${server.url}/api/projects/${encodeURIComponent(projectId)}/renders`;
+    const ok = await fetch(`${base}/${out.path.slice("renders/".length)}?v=${out.png_sha256}`);
+    expect(ok.status).toBe(200);
+    expect(ok.headers.get("content-type")).toBe("image/png");
+    expect(ok.headers.get("cache-control")).toBe("no-store");
+    expect(createHash("sha256").update(Buffer.from(await ok.arrayBuffer())).digest("hex")).toBe(out.png_sha256);
+
+    // The SVG sits beside the PNG but could run script as a page here.
+    expect(out.svg_path).toBeDefined();
+    expect((await fetch(`${base}/${out.svg_path!.slice("renders/".length)}`)).status).toBe(404);
+    expect((await fetch(`${base}/missing.png`)).status).toBe(404);
+    expect((await fetch(`${base}/..%2Frocketwright.png`)).status).toBe(404);
+    expect((await fetch(`${base}/%E0%A4%A.png`)).status).toBe(404);
+    expect((await fetch(`${server.url}/api/projects/nope/renders/x.png`)).status).toBe(404);
+
+    // A link planted in renders/ does not reach a picture outside the project.
+    writeFileSync(join(outside, "secret.png"), "not for the window");
+    symlinkSync(join(outside, "secret.png"), join(dir, "renders", "link.png"));
+    expect((await fetch(`${base}/link.png`)).status).toBe(404);
+  }, 60_000);
+
   it("motor.show returns a motor and its curve", async () => {
     const { info, curve } = await c.call("motor.show", { projectId, id: "generic:RW_C6G" });
     expect(info.id).toBe("generic:RW_C6G");
@@ -105,13 +145,10 @@ describe("contract batch (U13)", () => {
     expect(await c.request("run.delete", { projectId } as never)).toMatchObject({ ok: false, error: { code: "invalid_params" } });
   });
 
-  it("the unimplemented methods answer internal until their steps land", async () => {
-    const stubs: [RpcMethod, Record<string, unknown>][] = [
-      ["project.restartSidecar", { projectId }],
-    ];
-    for (const [method, params] of stubs) {
-      expect(await c.request(method, params as never), method).toMatchObject({ ok: false, error: { code: "internal" } });
-    }
+  it("project.restartSidecar leaves a healthy sidecar alone and validates its params", async () => {
+    expect(await c.call("project.restartSidecar", { projectId })).toEqual({});
+    expect((await c.call("project.list", {})).projects.map((p) => p.projectId)).toContain(projectId);
+    expect(await c.request("project.restartSidecar", {} as never)).toMatchObject({ ok: false, error: { code: "invalid_params" } });
   });
 
   it("every frame matched the IF10 schemas", () => {

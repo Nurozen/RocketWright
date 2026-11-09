@@ -1,8 +1,11 @@
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { stat } from "node:fs/promises";
+import { createServer } from "node:net";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import type { RecentsFile } from "@rw/contracts";
-import { createRecents, parseRecents, pidAlive, type Recents, type RecentsOptions } from "./recents.ts";
+import { createRecents, LAST_ACTIVE_TIMEOUT_MS, parseRecents, pidAlive, PROBE_TIMEOUT_MS, type Recents, type RecentsOptions } from "./recents.ts";
+import { REOPEN_TIMEOUT_MS } from "./reopen.ts";
 
 const temps: string[] = [];
 afterEach(() => {
@@ -35,6 +38,125 @@ function store(file: string, opts: Partial<RecentsOptions> = {}): Recents {
 }
 
 const readFile = (file: string): RecentsFile => JSON.parse(readFileSync(file, "utf8")) as RecentsFile;
+
+describe("what counts as a project", () => {
+  it("accepts a JSON manifest, as Rust and Open folder do", async () => {
+    const dir = root();
+    const file = join(dir, "recents.json");
+    const json = join(dir, "json-project");
+    mkdirSync(json);
+    writeFileSync(join(json, "rocketwright.json"), "{}");
+    await store(file).see({ dir: json, name: "J" });
+    expect(await store(file).list()).toMatchObject([{ dir: json, status: "ok" }]);
+    expect(await store(file).pickLastActive()).toEqual({ dir: json, status: "ok" });
+  });
+
+  it("reads a folder with neither manifest as missing, and a directory named like one too", async () => {
+    const dir = root();
+    const file = join(dir, "recents.json");
+    const a = project(dir, "a");
+    await store(file).see({ dir: a, name: "A" });
+    rmSync(join(a, "rocketwright.toml"));
+    expect((await store(file).list())[0]?.status).toBe("missing");
+    mkdirSync(join(a, "rocketwright.toml"));
+    expect((await store(file).list())[0]?.status).toBe("missing");
+  });
+});
+
+describe("a Recent on a stalled mount", () => {
+  const stalled = (dir: string) => join(dir, "stalled");
+  /** Every stat under a folder named `stalled…` never answers; everything else is real. */
+  function hangingStat(calls: string[] = []): NonNullable<RecentsOptions["stat"]> {
+    return (path) => {
+      calls.push(path);
+      return path.includes("/stalled") ? new Promise(() => undefined) : stat(path);
+    };
+  }
+
+  it("does not hold up the list, and reads as no access rather than missing", async () => {
+    const dir = root();
+    const file = join(dir, "recents.json");
+    const a = project(dir, "a");
+    const hung = project(dir, "stalled");
+    await store(file).see({ dir: a, name: "A" });
+    await store(file).see({ dir: hung, name: "H" });
+    const list = await store(file, { stat: hangingStat(), probeTimeoutMs: 20 }).list();
+    expect(Object.fromEntries(list.map((r) => [r.dir, r.status]))).toEqual({ [a]: "ok", [stalled(dir)]: "denied" });
+  });
+
+  it("gives up on the last project too, so a launch never waits on it", async () => {
+    const dir = root();
+    const file = join(dir, "recents.json");
+    await store(file).see({ dir: project(dir, "stalled"), name: "H" });
+    expect(await store(file, { stat: hangingStat(), lastActiveTimeoutMs: 20 }).pickLastActive()).toEqual({ dir: stalled(dir), status: "denied" });
+  });
+
+  it("gives a last project still being answered for (a privacy prompt) longer than a row, inside the reopen deadline", async () => {
+    const dir = root();
+    const file = join(dir, "recents.json");
+    const a = project(dir, "a");
+    await store(file).see({ dir: a, name: "A" });
+    const slowStat: NonNullable<RecentsOptions["stat"]> = async (path) => {
+      await new Promise((r) => setTimeout(r, 80));
+      return stat(path);
+    };
+    expect(await store(file, { stat: slowStat, probeTimeoutMs: 20 }).pickLastActive()).toEqual({ dir: a, status: "ok" });
+    expect((await store(file, { stat: slowStat, probeTimeoutMs: 20 }).list())[0]?.status).toBe("denied");
+    expect(LAST_ACTIVE_TIMEOUT_MS).toBeGreaterThan(PROBE_TIMEOUT_MS);
+    // What is left has to cover `project.open` once the person has answered.
+    expect(LAST_ACTIVE_TIMEOUT_MS).toBeLessThanOrEqual(REOPEN_TIMEOUT_MS - 5000);
+  });
+
+  it("reads a healthy row by its own stat when two dead mounts hold the slots", async () => {
+    const dir = root();
+    const file = join(dir, "recents.json");
+    const a = project(dir, "a");
+    // Most recent first: both dead mounts are probed ahead of the healthy row.
+    await store(file).see({ dir: a, name: "A" });
+    for (const n of ["stalled1", "stalled2"]) await store(file).see({ dir: project(dir, n), name: n });
+    const list = await store(file, { stat: hangingStat(), probeTimeoutMs: 20 }).list();
+    expect(Object.fromEntries(list.map((r) => [r.dir, r.status]))).toEqual({ [a]: "ok", [join(dir, "stalled1")]: "denied", [join(dir, "stalled2")]: "denied" });
+  });
+
+  it("gives a row its full time from when its stat starts, not from when it joined the queue", async () => {
+    const dir = root();
+    const file = join(dir, "recents.json");
+    const a = project(dir, "a");
+    await store(file).see({ dir: a, name: "A" });
+    await store(file).see({ dir: project(dir, "b"), name: "B" });
+    await store(file).see({ dir: project(dir, "c"), name: "C" });
+    // Each stat takes most of the limit, so the third starts well after the limit has passed since the list began.
+    const slowStat: NonNullable<RecentsOptions["stat"]> = async (path) => {
+      await new Promise((r) => setTimeout(r, 120));
+      return stat(path);
+    };
+    const list = await store(file, { stat: slowStat, probeTimeoutMs: 200 }).list();
+    expect(list.map((r) => r.status)).toEqual(["ok", "ok", "ok"]);
+  });
+
+  it("never waits forever when every thread it may use is stuck", async () => {
+    const dir = root();
+    const file = join(dir, "recents.json");
+    const a = project(dir, "a");
+    await store(file).see({ dir: a, name: "A" });
+    for (const n of ["stalled1", "stalled2", "stalled3", "stalled4"]) await store(file).see({ dir: project(dir, n), name: n });
+    const list = await store(file, { stat: hangingStat(), probeTimeoutMs: 10 }).list();
+    expect(list).toHaveLength(5);
+    expect(list.every((r) => r.status === "denied")).toBe(true);
+  });
+
+  it("does not pile stalled probes onto the fs thread pool", async () => {
+    const dir = root();
+    const file = join(dir, "recents.json");
+    for (const n of ["stalled1", "stalled2", "stalled3", "stalled4"]) await store(file).see({ dir: project(dir, n), name: n });
+    const calls: string[] = [];
+    const recents = store(file, { stat: hangingStat(calls), probeTimeoutMs: 10 });
+    await recents.list();
+    await recents.list();
+    // Three at most, however many mounts are dead: libuv has four threads, and main needs one for its own files.
+    expect(calls.filter((c) => c.endsWith("rocketwright.toml")).length).toBeLessThanOrEqual(3);
+  });
+});
 
 describe("a corrupt file", () => {
   it.each([["not json", "{nope"], ["wrong version", '{"version":2,"recents":[],"lastActive":null}'], ["not an object", "[1,2]"], ["no list", '{"version":1,"lastActive":"/a"}'], ["empty", ""]])("reads as empty (%s)", async (_label, content) => {
@@ -186,9 +308,41 @@ describe("status", () => {
     const status = async (opts: Partial<RecentsOptions>): Promise<string | undefined> => (await store(file, opts).list())[0]?.status;
     expect(await status({ pidAlive: () => true })).toBe("locked");
     expect(await status({ pidAlive: () => false })).toBe("ok");
-    await expect(store(file, { pidAlive: () => true, openDirs: () => [a] }).list()).resolves.toEqual([]);
+    expect(await store(file, { pidAlive: () => true, openDirs: () => [a] }).list()).toMatchObject([{ dir: a, status: "ok", open: true }]);
     writeFileSync(join(a, ".rw/lock"), "garbage");
     expect(await status({ pidAlive: () => true })).toBe("ok");
+  });
+
+  it("does not read a dead owner's record as locked just because its pid was reused", async () => {
+    const dir = root();
+    const file = join(dir, "recents.json");
+    const a = project(dir, "a");
+    mkdirSync(join(a, ".rw"));
+    await store(file).see({ dir: a, name: "A" });
+    const lock = (body: unknown): void => writeFileSync(join(a, ".rw/lock"), JSON.stringify(body));
+    const status = async (opts: Partial<RecentsOptions>): Promise<string | undefined> => (await store(file, opts).list())[0]?.status;
+
+    // A socket that refuses the connection: the owner is gone, whoever has its pid now.
+    lock({ pid: 4242, socket: join(dir, "dead.sock"), started: "2026-01-01T00:00:00Z" });
+    expect(await status({ pidAlive: () => true })).toBe("ok");
+
+    // A real listener: held.
+    const sock = join(dir, "live.sock");
+    const server = createServer();
+    await new Promise<void>((ok) => server.listen(sock, ok));
+    try {
+      lock({ pid: 4242, socket: sock, started: "2026-01-01T00:00:00Z" });
+      expect(await status({ pidAlive: () => true })).toBe("locked");
+    } finally {
+      await new Promise<void>((ok) => server.close(() => ok()));
+    }
+
+    // No socket recorded: a pid that started after the record cannot be the owner.
+    lock({ pid: 4242, started: "2026-01-01T00:00:00Z" });
+    expect(await status({ pidAlive: () => true, pidStartedAt: async () => new Date("2026-06-01T00:00:00Z") })).toBe("ok");
+    expect(await status({ pidAlive: () => true, pidStartedAt: async () => new Date("2025-06-01T00:00:00Z") })).toBe("locked");
+    // Cannot tell: a project in use must not read as free.
+    expect(await status({ pidAlive: () => true, pidStartedAt: async () => null })).toBe("locked");
   });
 
   it("checks a pid without signalling it", () => {

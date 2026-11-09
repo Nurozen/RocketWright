@@ -10,8 +10,12 @@ import { Icon } from "../shell/Icon.tsx";
 import { useDismiss, useFocusScope } from "./useDismiss.tsx";
 import "./ui.css";
 
-/** An element to sit next to, or a pointer position in client coordinates. */
-export type Anchor = HTMLElement | { x: number; y: number };
+/**
+ * An element to sit next to, or a pointer position in client coordinates.
+ * `band` is the vertical extent of the row under the pointer: the surface opens
+ * clear of it, so a context menu never covers the label of the row it acts on.
+ */
+export type Anchor = HTMLElement | { x: number; y: number; band?: { top: number; bottom: number } | undefined };
 
 export type PlacementSide = "bottom" | "right";
 export type PlacementAlign = "start" | "end";
@@ -53,11 +57,30 @@ export function placeFloating(anchor: Box, surface: { width: number; height: num
 }
 
 /**
+ * Where a surface's caret goes: on its left edge, level with the anchor and
+ * clear of the rounded corners. Null when the surface is not to the anchor's
+ * right (flipped, or pushed back over it on a narrow window), where a caret on
+ * that edge would point at nothing.
+ */
+export function caretAt(anchor: Box, surface: Box, inset = 14): { x: number; y: number } | null {
+  if (surface.left < anchor.right) return null;
+  const level = (anchor.top + anchor.bottom) / 2;
+  return { x: surface.left, y: Math.max(surface.top + inset, Math.min(level, surface.bottom - inset)) };
+}
+
+export interface AnchoredOptions extends Placement {
+  /** With `side: "right"`, the surface starts past this element's right edge too (a rail it must not cover). */
+  clearOf?: HTMLElement | null | undefined;
+  /** Moved to `caretAt`, and hidden when it returns null. */
+  caret?: RefObject<HTMLElement | null> | undefined;
+}
+
+/**
  * Keeps a `position: fixed` surface next to its anchor as it, the page or the
  * window changes. Rects are painted pixels, but `left` and `top` are multiplied
  * by CSS `zoom` (View zoom), so the result is divided by the surface's zoom.
  */
-export function useAnchoredPosition(surfaceRef: RefObject<HTMLElement | null>, anchor: () => Anchor | null, placement?: Placement): void {
+export function useAnchoredPosition(surfaceRef: RefObject<HTMLElement | null>, anchor: () => Anchor | null, placement?: AnchoredOptions): void {
   const place = (): void => {
     const surface = surfaceRef.current;
     const at = anchor();
@@ -65,11 +88,21 @@ export function useAnchoredPosition(surfaceRef: RefObject<HTMLElement | null>, a
     const margin = placement?.margin ?? 8;
     const zoom = surface.currentCSSZoom || 1;
     surface.style.maxHeight = `${(window.innerHeight - 2 * margin) / zoom}px`;
-    const box: Box = at instanceof HTMLElement ? at.getBoundingClientRect() : { left: at.x, top: at.y, right: at.x, bottom: at.y };
+    const box: Box = at instanceof HTMLElement ? at.getBoundingClientRect() : { left: at.x, top: at.band?.top ?? at.y, right: at.x, bottom: at.band?.bottom ?? at.y };
+    const clear = placement?.clearOf?.getBoundingClientRect().right;
     const { width, height } = surface.getBoundingClientRect();
-    const { x, y } = placeFloating(box, { width, height }, { width: window.innerWidth, height: window.innerHeight }, placement);
+    const { x, y } = placeFloating(clear === undefined ? box : { left: box.left, top: box.top, bottom: box.bottom, right: Math.max(box.right, clear) }, { width, height }, { width: window.innerWidth, height: window.innerHeight }, placement);
     surface.style.left = `${x / zoom}px`;
     surface.style.top = `${y / zoom}px`;
+    const caret = placement?.caret?.current;
+    if (caret !== null && caret !== undefined) {
+      const point = caretAt(box, { left: x, top: y, right: x + width, bottom: y + height });
+      caret.hidden = point === null;
+      if (point !== null) {
+        caret.style.left = `${point.x / zoom}px`;
+        caret.style.top = `${point.y / zoom}px`;
+      }
+    }
   };
   const latest = useRef(place);
   latest.current = place;
@@ -118,6 +151,12 @@ export interface PopoverProps {
   label?: string | undefined;
   side?: PlacementSide | undefined;
   align?: PlacementAlign | undefined;
+  /** Space between anchor and panel, in px. */
+  gap?: number | undefined;
+  /** With `side="right"`, also start past this element's right edge. */
+  clearOf?: HTMLElement | null | undefined;
+  /** Draw a small pointer from the panel toward the anchor (`side="right"`). */
+  caret?: boolean | undefined;
   /** Close on a press outside the panel (default true). */
   dismissOnOutside?: boolean | undefined;
   initialFocus?: RefObject<HTMLElement | null> | undefined;
@@ -126,33 +165,38 @@ export interface PopoverProps {
   children: ReactNode;
 }
 
-function PopoverSurface({ anchor, onClose, title, label, side, align, dismissOnOutside, initialFocus, className, testId, children }: Omit<PopoverProps, "open">) {
+function PopoverSurface({ anchor, onClose, title, label, side, align, gap, clearOf, caret, dismissOnOutside, initialFocus, className, testId, children }: Omit<PopoverProps, "open">) {
   const surfaceRef = useRef<HTMLDivElement>(null);
+  const caretRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
   useDismiss({ open: true, surfaceRef, onDismiss: onClose, outside: dismissOnOutside, ignore: () => (anchor instanceof HTMLElement ? [anchor] : []) });
   useFocusScope(true, surfaceRef, initialFocus);
-  useAnchoredPosition(surfaceRef, () => anchor, { side, align });
+  useAnchoredPosition(surfaceRef, () => anchor, { side, align, gap, clearOf, caret: caretRef });
   return createPortal(
-    <div
-      ref={surfaceRef}
-      className={className ? `rw-ui-popover ${className}` : "rw-ui-popover"}
-      role="dialog"
-      aria-labelledby={title === undefined ? undefined : titleId}
-      aria-label={title === undefined ? label : undefined}
-      tabIndex={-1}
-      data-testid={testId}
-      {...OVERLAY_EVENTS}
-    >
-      {title !== undefined && (
-        <header className="rw-ui-popover__head">
-          <h2 id={titleId} className="rw-ui-popover__title">
-            {title}
-          </h2>
-          <CloseButton onClick={onClose} />
-        </header>
-      )}
-      {children}
-    </div>,
+    <>
+      <div
+        ref={surfaceRef}
+        className={className ? `rw-ui-popover ${className}` : "rw-ui-popover"}
+        role="dialog"
+        aria-labelledby={title === undefined ? undefined : titleId}
+        aria-label={title === undefined ? label : undefined}
+        tabIndex={-1}
+        data-testid={testId}
+        {...OVERLAY_EVENTS}
+      >
+        {title !== undefined && (
+          <header className="rw-ui-popover__head">
+            <h2 id={titleId} className="rw-ui-popover__title">
+              {title}
+            </h2>
+            <CloseButton onClick={onClose} />
+          </header>
+        )}
+        {children}
+      </div>
+      {/* A sibling, not a child: the panel scrolls, so anything past its edge would be clipped. */}
+      {caret === true && <div ref={caretRef} className="rw-ui-popover__caret" aria-hidden="true" />}
+    </>,
     document.body,
   );
 }

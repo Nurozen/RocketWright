@@ -21,6 +21,8 @@ export const jobUri = (jobId: string): string => `${JOB_URI_PREFIX}${jobId}`;
 
 /** Snapshot keys a resource URI refreshes (`[]` for URIs the mirror ignores). */
 export function mirrorKeysFor(uri: string): MirrorKey[] {
+  // The run list has a row per sim, and a mutation that adds, renames or removes one only announces the model.
+  if (uri === MIRROR_RESOURCES.evaluated) return ["evaluated", "runs"];
   for (const k of MIRROR_KEYS) if (MIRROR_RESOURCES[k] === uri) return [k];
   if (uri.startsWith("rw://runs/")) return ["runs"];
   return [];

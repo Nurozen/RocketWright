@@ -1,11 +1,11 @@
 /**
- * The B1 drive and its ratchet. Every control is found the way a person finds
- * it, by visible label and role through visible navigation (D27). This file
- * and the spec are source-scanned: only the calls that scan allows may appear
- * here (`__tests__/case1-scan.test.ts`), so lifecycle work (launching, quitting,
- * the post-quit reads) comes in through `Lifecycle`.
+ * The B1 drive. Every control is found the way a person finds it, by visible
+ * label and role through visible navigation (D27). This file and the spec are
+ * source-scanned: only the calls that scan allows may appear here
+ * (`__tests__/case1-scan.test.ts`), so lifecycle work (launching, quitting, the
+ * post-quit reads) comes in through `Lifecycle`.
  *
- * Later steps only add to `B1_STAGES`.
+ * Every stage is required, in this order: there is no partial rebuild to pass.
  */
 import type { Expect, Locator, Page } from "@playwright/test";
 import type { TableCell, TableRead } from "./case1-compare.ts";
@@ -13,42 +13,6 @@ import { boundRows, typedValue, type BoundRow } from "./case1-script.ts";
 
 export const STAGE_IDS = ["launch", "welcome", "choose", "new", "materials", "nose", "body", "others", "block", "fields", "motor", "deploy", "sim", "run", "quit", "reopen", "compare"] as const;
 export type StageId = (typeof STAGE_IDS)[number];
-
-/** What each stage needs enabled before it: a stage cannot run ahead of the parts and fields it depends on. */
-export const STAGE_NEEDS: Readonly<Record<StageId, readonly StageId[]>> = {
-  launch: [],
-  welcome: ["launch"],
-  choose: ["welcome"],
-  new: ["welcome"],
-  materials: ["new"],
-  nose: ["new"],
-  body: ["nose"],
-  others: ["body"],
-  block: ["others"],
-  fields: ["others", "block", "materials"],
-  motor: ["others", "fields"],
-  deploy: ["others", "fields"],
-  sim: ["new"],
-  run: ["materials", "fields", "motor", "deploy", "sim"],
-  quit: ["new"],
-  reopen: ["quit"],
-  compare: ["quit"],
-};
-
-/** The enabled stages: the steps that make a stage reachable add it. */
-export const B1_STAGES: ReadonlySet<StageId> = new Set<StageId>(["launch", "welcome", "choose", "new", "nose", "body", "quit", "reopen", "compare"]);
-
-/** One message per stage enabled without a stage it needs. */
-export function validateStages(enabled: ReadonlySet<StageId>): string[] {
-  const problems: string[] = [];
-  for (const id of STAGE_IDS) {
-    if (!enabled.has(id)) continue;
-    for (const need of STAGE_NEEDS[id]) {
-      if (!enabled.has(need)) problems.push(`stage ${id} is enabled but ${need}, which it needs, is not`);
-    }
-  }
-  return problems;
-}
 
 export type RowStatus = "reached" | "not-found" | "wrong-unit" | "pending";
 
@@ -90,21 +54,17 @@ export interface DriveContext {
   tableReads: TableRead[];
 }
 
-/** The keys of the rows the enabled stages cover: what the comparison may score. */
-export function enabledRowKeys(enabled: ReadonlySet<StageId>, rows: readonly BoundRow[] = boundRows()): Set<string> {
-  const out = new Set<string>();
-  for (const row of rows) if (enabled.has(row.stage)) out.add(row.key);
-  return out;
-}
-
 const exactly = (name: string) => ({ name, exact: true });
+
+/** A tree row by the name it shows: not a row whose name continues with a number (`Centering ring 2`). */
+const treeName = (name: string) => new RegExp(`${name.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&")}(?! \\d)`, "i");
 
 async function navigate(ctx: DriveContext, row: BoundRow): Promise<void> {
   const { page } = ctx;
   if (row.page !== undefined) await page.getByRole("tab", exactly(row.page)).click();
   if (row.local !== undefined) await page.getByRole("tab", exactly(row.local)).click();
   if (row.local === "Components" && row.part !== undefined && row.control !== "add-part" && row.control !== "material") {
-    await page.getByRole("treeitem", { name: row.part }).nth(row.nth ?? 0).click();
+    await page.getByRole("treeitem", { name: treeName(row.part) }).first().click();
   }
   if (row.tab !== undefined) await page.getByRole("tab", exactly(row.tab)).click();
 }
@@ -120,7 +80,7 @@ function scopeOf(page: Page, row: BoundRow): Page | Locator {
 
 async function pressAdd(ctx: DriveContext, row: BoundRow): Promise<void> {
   if (row.add === undefined) return;
-  const once = `${row.part ?? ""}#${row.nth ?? 0}/${row.add}`;
+  const once = `${row.part ?? ""}/${row.add}`;
   if (row.control !== "material" && ctx.added.has(once)) return;
   await ctx.page.getByRole("button", exactly(row.add)).click();
   ctx.added.add(once);
@@ -129,14 +89,17 @@ async function pressAdd(ctx: DriveContext, row: BoundRow): Promise<void> {
 async function addPart(ctx: DriveContext, row: BoundRow): Promise<void> {
   const { page } = ctx;
   await page.getByRole("button", exactly("Add part")).click();
-  if (row.attachTo !== undefined) await page.getByLabel("Attach to", { exact: true }).selectOption({ label: row.attachTo });
-  await page.getByRole("button", exactly(row.label)).click();
+  // Inside the popover: the viewport labels parts with buttons, and the editor has its own Attach to.
+  const palette = page.getByRole("dialog", exactly("Add part"));
+  if (row.attachTo !== undefined) await palette.getByLabel("Attach to", { exact: true }).selectOption({ label: row.attachTo });
+  await palette.getByRole("button", exactly(row.label)).click();
 }
 
 async function assignMotor(ctx: DriveContext, row: BoundRow): Promise<void> {
   const { page } = ctx;
   await page.getByLabel(row.label, { exact: true }).fill(row.option ?? "");
-  await page.getByRole("button", { name: row.option ?? "" }).first().click();
+  // The row in the Motors list: its own About button also names the motor, and picks nothing.
+  await page.getByRole("listbox", exactly("Motors")).getByRole("option", { name: row.option ?? "" }).first().click();
   await page.getByRole("button", exactly("Assign to configuration")).click();
 }
 
@@ -160,6 +123,11 @@ async function assertLabelAndUnit(ctx: DriveContext, scope: Page | Locator, inpu
 
 async function enterField(ctx: DriveContext, row: BoundRow): Promise<void> {
   const scope = scopeOf(ctx.page, row);
+  if (row.turnOff !== undefined) {
+    const box = scope.getByRole("checkbox", exactly(row.turnOff));
+    await box.click();
+    await ctx.expect(box).toBeChecked({ checked: false, timeout: ctx.timeouts.row });
+  }
   // Unscoped rows take the first match: the part's own field comes before its nested groups.
   const input = row.group === undefined && row.dialog === undefined && row.inRow !== true ? scope.getByLabel(row.label, { exact: true }).first() : scope.getByLabel(row.label, { exact: true });
   await assertLabelAndUnit(ctx, scope, input, row);
@@ -265,13 +233,27 @@ const STAGE_BODIES: Readonly<Record<StageId, StageBody>> = {
   motor: onlyRows("motor"),
   deploy: onlyRows("deploy"),
   async sim(ctx, rows) {
-    const { page } = ctx;
+    const { page, expect } = ctx;
     await page.getByRole("tab", exactly("Results")).click();
     await page.getByRole("button", exactly("New simulation")).click();
-    await driveRows(ctx, "sim", rows);
+    const sheet = page.getByRole("dialog", { name: "Simulation conditions" });
+    const field = (group: string, label: string) => sheet.getByRole("group", exactly(group)).getByLabel(label, { exact: true });
     // Exact: "Save and run" contains "Save", and this stage must fly nothing (D23).
-    await page.getByRole("dialog", { name: "Simulation conditions" }).getByRole("button", exactly("Save")).click();
-    await ctx.expect(notRunRow(page)).toBeVisible({ timeout: ctx.timeouts.row });
+    const save = async () => {
+      await sheet.getByRole("button", exactly("Save")).click();
+      await expect(sheet).toBeHidden({ timeout: ctx.timeouts.row });
+      await expect(notRunRow(page)).toBeVisible({ timeout: ctx.timeouts.row });
+    };
+    // Off the defaults first, then read back through the row: a Save that never reached the model fails here (D23).
+    await field("Launch", "Rail length").fill("2.5");
+    await field("Wind", "Speed").fill("4");
+    await save();
+    await notRunRow(page).getByRole("button", { name: /actions$/ }).click();
+    await page.getByRole("menuitem", exactly("Simulation conditions")).click();
+    await expect(field("Launch", "Rail length")).toHaveValue("2.5", { timeout: ctx.timeouts.row });
+    await expect(field("Wind", "Speed")).toHaveValue("4", { timeout: ctx.timeouts.row });
+    await driveRows(ctx, "sim", rows);
+    await save();
   },
   async run(ctx) {
     const { page } = ctx;
@@ -306,16 +288,13 @@ const STAGE_BODIES: Readonly<Record<StageId, StageBody>> = {
 };
 
 /**
- * Runs the enabled stages in the fixed order. Rows of other stages, and rows
- * a failed stage never reached, stay `pending`. Write `progress.json` from
- * `ctx.statuses` in a `finally`: the first failing stage throws.
+ * Runs every stage in the fixed order. Rows a failed stage never reached stay
+ * `pending`. Write `progress.json` from `ctx.statuses` in a `finally`: the
+ * first failing stage throws.
  */
-export async function runStages(ctx: DriveContext, enabled: ReadonlySet<StageId> = B1_STAGES, rows: readonly BoundRow[] = boundRows()): Promise<void> {
-  const problems = validateStages(enabled);
-  if (problems.length > 0) throw new Error(problems.join("\n"));
+export async function runStages(ctx: DriveContext, rows: readonly BoundRow[] = boundRows()): Promise<void> {
   for (const row of rows) ctx.statuses.set(row.key, "pending");
   for (const id of STAGE_IDS) {
-    if (!enabled.has(id)) continue;
     const body = STAGE_BODIES[id];
     await body(ctx, rows);
   }

@@ -200,14 +200,6 @@ fn always_tools_ask_and_name_the_path() {
         why("export_file", json!({"path": "out.svg"})).as_deref(),
         Some(r#"Export writes "out.svg", outside the model"#)
     );
-    assert!(
-        why(
-            "export_file",
-            json!({"path": "/Users/x/.ssh/k", "allow_outside": true})
-        )
-        .unwrap()
-        .starts_with("Export writes outside the project: /Users/x/.ssh/k")
-    );
     assert_eq!(
         why("cfd_import", json!({})).as_deref(),
         Some("CFD import reads files outside the model")
@@ -232,10 +224,6 @@ fn reasons_are_plain_prose() {
             json!({"sim": "b", "a": "https://thrustcurve.org/x"}),
         ),
         why("export_file", json!({"path": "out.svg"})),
-        why(
-            "export_file",
-            json!({"path": "/tmp/k", "allow_outside": true}),
-        ),
         why("import_file", json!({"path": "motors/c6.eng"})),
         why("cfd_import", json!({})),
         why("run_delete", json!({"run": "baseline/f8eb21388e28"})),
@@ -397,6 +385,42 @@ fn calls_without_lecturn_approval_behave_as_today() {
                "_meta": {"lecturn/context": {"threadId": "lt1"}}}),
     );
     assert!(r["_meta"].get("lecturn/approval-required").is_none(), "{r}");
+    assert!(s.stop().success());
+}
+
+#[test]
+fn allow_outside_is_refused_on_the_agent_path_however_it_was_asked() {
+    // Auto and Full send `approved: true` without asking anyone, so approval
+    // cannot stand in for the person choosing the destination.
+    let p = TempProject::fixture("fixtures/research-vehicle");
+    let elsewhere = TempProject::new();
+    let target = elsewhere.0.join("escape.glb");
+    let args =
+        json!({"format": "glb", "path": target.display().to_string(), "allow_outside": true});
+    let mut s = Sidecar::started(&p.0);
+    for approval in [
+        Some(json!({"approved": true, "requestId": "r1"})),
+        Some(unapproved()),
+        None,
+    ] {
+        let r = call(&mut s.rpc, "export_file", args.clone(), approval.clone());
+        assert_eq!(r["isError"], true, "{approval:?}: {r}");
+        let e = &r["_meta"]["rw/error"];
+        assert_eq!(e["code"], "invalid_input", "{r}");
+        assert!(e["hint"].as_str().unwrap().contains("File > Export"), "{r}");
+        assert!(r["_meta"].get("lecturn/approval-required").is_none(), "{r}");
+        assert!(!target.exists(), "{approval:?} wrote outside the project");
+    }
+    // The app's own Export path and the CLI's flag are not the agent.
+    for origin in ["ui", "cli"] {
+        let r = s.rpc.result(
+            "tools/call",
+            json!({"name": "export_file", "arguments": args, "_meta": {"rw/origin": origin}}),
+        );
+        assert_eq!(r["isError"], false, "{origin}: {r}");
+        assert!(target.exists(), "{origin} did not write");
+        std::fs::remove_file(&target).unwrap();
+    }
     assert!(s.stop().success());
 }
 

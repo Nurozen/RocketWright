@@ -32,6 +32,23 @@
   height: 100%;
   min-height: 0;
   padding: 0 10px 15px 11px;
+  overflow: hidden auto; /* Only scrolls once the narrow layout below stacks the plot card. */
+  container: rw-results / inline-size;
+}
+
+/*
+ * The conditions sheet takes the agent column's place and more: the shell gives
+ * the column the sheet's width, so the page and history strip narrow beside it
+ * instead of running under it. The pane keeps its own width at the window edge,
+ * where the sheet covers it.
+ */
+.rw-shell:has(.rw-results[data-conditions="open"]) {
+  grid-template-columns: calc(var(--rw-rail-w) + var(--rw-hairline)) minmax(0, 1fr) var(--rw-sheet-w);
+}
+
+.rw-shell:has(.rw-results[data-conditions="open"]) .rw-agent {
+  justify-self: end;
+  width: calc(var(--rw-agent-w) + var(--rw-hairline));
 }
 
 .rw-results__head {
@@ -113,12 +130,39 @@
   background: var(--rw-text-secondary);
 }
 
-.rw-dot[data-series="a"] {
-  background: var(--rw-series-a);
+/* One overlay slot's colour and row tint: dots, swatches, table rows and the rail read these. */
+[data-series="a"] {
+  --rw-run-series: var(--rw-series-a);
+  --rw-run-series-row: var(--rw-selection-row);
 }
 
-.rw-dot[data-series="b"] {
-  background: var(--rw-series-b);
+[data-series="b"] {
+  --rw-run-series: var(--rw-series-b);
+  --rw-run-series-row: var(--rw-series-b-row);
+}
+
+[data-series="c"] {
+  --rw-run-series: var(--rw-series-c);
+  --rw-run-series-row: var(--rw-series-c-row);
+}
+
+[data-series="d"] {
+  --rw-run-series: var(--rw-series-d);
+  --rw-run-series-row: var(--rw-series-d-row);
+}
+
+[data-series="e"] {
+  --rw-run-series: var(--rw-series-e);
+  --rw-run-series-row: var(--rw-series-e-row);
+}
+
+[data-series="f"] {
+  --rw-run-series: var(--rw-series-f);
+  --rw-run-series-row: var(--rw-series-f-row);
+}
+
+.rw-dot[data-series]:not([data-series="none"]) {
+  background: var(--rw-run-series);
 }
 
 /* ---- run table ----------------------------------------------------------- */
@@ -211,13 +255,25 @@
 }
 
 .rw-runtable td.rw-runtable__menu {
-  width: 56px;
+  width: 124px;
   overflow: visible;
-  text-align: center;
+  text-align: right;
+  white-space: nowrap;
 }
 
 .rw-runtable th.rw-runtable__menu {
-  width: 56px;
+  width: 124px;
+}
+
+.rw-runtable__rerun {
+  margin-right: 4px;
+}
+
+.rw-runtable__failure {
+  color: var(--rw-danger);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .rw-runtable__menu .rw-menu-button {
@@ -230,38 +286,21 @@
   gap: 10px;
 }
 
-.rw-runtable tr[data-series="a"] {
-  background: var(--rw-selection-row);
+.rw-runtable tr[data-series] {
+  background: var(--rw-run-series-row);
 }
 
-.rw-runtable tr[data-series="b"] {
-  background: var(--rw-series-b-row);
+.rw-runtable tr[data-series] td {
+  border-top-color: var(--rw-run-series);
+  border-bottom-color: var(--rw-run-series);
 }
 
-.rw-runtable tr[data-series="a"] td {
-  border-top-color: var(--rw-series-a);
-  border-bottom-color: var(--rw-series-a);
+.rw-runtable tr[data-series] td:first-child {
+  box-shadow: inset 1px 0 0 var(--rw-run-series);
 }
 
-.rw-runtable tr[data-series="b"] td {
-  border-top-color: var(--rw-series-b);
-  border-bottom-color: var(--rw-series-b);
-}
-
-.rw-runtable tr[data-series="a"] td:first-child {
-  box-shadow: inset 1px 0 0 var(--rw-series-a);
-}
-
-.rw-runtable tr[data-series="a"] td:last-child {
-  box-shadow: inset -1px 0 0 var(--rw-series-a);
-}
-
-.rw-runtable tr[data-series="b"] td:first-child {
-  box-shadow: inset 1px 0 0 var(--rw-series-b);
-}
-
-.rw-runtable tr[data-series="b"] td:last-child {
-  box-shadow: inset -1px 0 0 var(--rw-series-b);
+.rw-runtable tr[data-series] td:last-child {
+  box-shadow: inset -1px 0 0 var(--rw-run-series);
 }
 
 .rw-runtable tr[data-status="not_run"] td:not(.rw-runtable__menu),
@@ -317,15 +356,44 @@
   min-width: 0;
 }
 
-.rw-plot-tabs {
+/* Nine tabs stay on one row (the mockup's strip): they tighten as the page narrows, and past
+   that the ones that do not fit move into the More menu. They stay laid out, out of the flow
+   and out of the accessibility tree, so PlotTabs can still measure them. */
+.rw-plot-bar {
+  position: relative;
   display: flex;
   flex: none;
-  height: 32px;
+  min-height: 32px;
   padding-left: 2px;
   border-bottom: var(--rw-hairline) solid var(--rw-line);
+  overflow: hidden;
+}
+
+.rw-plot-tabs {
+  display: flex;
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.rw-plot-tab[data-overflow],
+.rw-plot-more[data-overflow="none"] {
+  position: absolute;
+  visibility: hidden;
+}
+
+.rw-plot-more {
+  flex: none;
+}
+
+.rw-plot-more__button {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
 }
 
 .rw-plot-tab {
+  flex: none;
+  height: 32px;
   padding: 0 14px;
   font-size: var(--rw-font-size-body);
 }
@@ -341,6 +409,10 @@
   margin: 0;
   padding: 24px;
   color: var(--rw-text-secondary);
+}
+
+.rw-results__cta {
+  margin-left: 24px;
 }
 
 .rw-timeplot {
@@ -390,6 +462,12 @@
   font-size: var(--rw-font-size-secondary);
 }
 
+.rw-legend[data-columns="2"] {
+  display: grid;
+  grid-template-columns: repeat(2, auto);
+  column-gap: 18px;
+}
+
 .rw-legend li {
   display: flex;
   align-items: center;
@@ -403,8 +481,8 @@
   background: var(--rw-series-a);
 }
 
-.rw-legend__swatch[data-series="b"] {
-  background: var(--rw-series-b);
+.rw-legend__swatch[data-series] {
+  background: var(--rw-run-series);
 }
 
 /* The event lines' key: a dashed rule in the run's colour (set inline), as the lines are drawn. */
@@ -443,8 +521,9 @@
 }
 
 /* The footer stays inside the plot column (the trajectory inset sits beside
-   it). The environment text is compact enough to fit at 1536 px; in a
-   narrower window it gives way first and ends in an ellipsis. */
+   it). The environment text is compact enough to fit at 1536 px; beside the
+   conditions sheet or in a narrower window it gives way first and ends in an
+   ellipsis (the full text is its tooltip), so the footer stays one line. */
 .rw-details__field[data-field="environment"] {
   flex: 0 1 auto;
   min-width: 0;
@@ -658,19 +737,9 @@
   color: var(--rw-success);
 }
 
-.rw-run-row[data-series="b"] .rw-status-glyph[data-tone="teal"],
-.rw-run-row__status[data-tone="teal"][data-series="b"] {
-  color: var(--rw-series-b);
-}
-
-.rw-runs-rail__search {
-  width: calc(100% - 16px);
-  height: 32px;
-  margin: 0 8px 8px;
-  padding: 0 10px;
-  border: var(--rw-hairline) solid var(--rw-line);
-  border-radius: var(--rw-radius-sm);
-  background: var(--rw-panel);
+.rw-run-row[data-series]:not([data-series="a"]) .rw-status-glyph[data-tone="teal"],
+.rw-run-row__status[data-tone="teal"][data-series]:not([data-series="a"]) {
+  color: var(--rw-run-series);
 }
 
 /* ---- run snapshot row ----------------------------------------------------- */
@@ -757,7 +826,202 @@
   font-size: var(--rw-font-size-body);
 }
 
+/* ---- simulation conditions sheet (R2.5) ----------------------------------- */
+
+.rw-simcond .rw-field-group {
+  padding-bottom: 14px;
+  margin-bottom: 14px;
+  border-bottom: var(--rw-hairline) solid var(--rw-line);
+}
+
+.rw-simcond .rw-field-group:last-child {
+  margin-bottom: 0;
+  border-bottom: 0;
+}
+
+.rw-simcond .rw-field-group__title {
+  margin: 0 0 8px;
+  color: var(--rw-text-primary);
+  font-size: var(--rw-font-size-pane-title);
+  font-weight: var(--rw-font-weight-strong);
+}
+
+.rw-simcond__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 16px;
+}
+
+.rw-simcond__cell {
+  min-width: 0;
+}
+
+/* Label above the value, the unit inside its right edge. */
+.rw-simcond .rw-field {
+  position: relative;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 4px;
+}
+
+.rw-simcond .rw-field__select {
+  grid-column: 1;
+  width: 100%;
+}
+
+/* Fixed by the chosen atmosphere: read, not edited. */
+.rw-simcond .rw-spinbox__input:disabled {
+  color: var(--rw-text-secondary);
+}
+
+.rw-simcond .rw-field__unit {
+  position: absolute;
+  right: 10px;
+  bottom: 7px;
+  pointer-events: none;
+}
+
+.rw-simcond .rw-spinbox__input {
+  padding-right: 44px;
+}
+
+.rw-simcond .rw-spinbox__arrows {
+  display: none;
+}
+
+.rw-simcond__cell[data-invalid="true"] .rw-spinbox {
+  border-color: var(--rw-danger);
+}
+
+.rw-simcond__error {
+  margin: 4px 0 0;
+  color: var(--rw-danger);
+  font-size: var(--rw-font-size-secondary);
+}
+
+.rw-simcond__action {
+  flex: 1;
+  justify-content: center;
+}
+
+.rw-simcond__run {
+  flex: 2;
+  justify-content: center;
+}
+
 .rw-snap__meta {
   padding-left: 20px;
   color: var(--rw-text-secondary);
+}
+
+/* ---- narrow page: beside the conditions sheet, and on small windows ------- */
+
+/* The sort labels stay on one line when the page narrows beside the sheet. */
+@container rw-results (max-width: 860px) {
+  .rw-runtable th:nth-child(3) {
+    width: 16%;
+  }
+
+  /* The footer stays one line: the cloud icon and the tooltip still name the value. */
+  .rw-details__key {
+    display: none;
+  }
+
+  .rw-plot-tab {
+    padding: 0 9px;
+  }
+}
+
+/* Under this the toolbar no longer fits beside the title, nor the columns in the width. */
+@container rw-results (max-width: 640px) {
+  .rw-plot-tab {
+    padding: 0 6px;
+  }
+
+  .rw-results__head {
+    flex-wrap: wrap;
+    row-gap: 8px;
+    height: auto;
+    min-height: 75px;
+    padding: 10px 0 10px 8px;
+  }
+
+  .rw-results__actions {
+    flex-wrap: wrap;
+  }
+
+  /* The table scrolls sideways under a pinned actions column, so every row keeps its menu in view. */
+  .rw-runtable {
+    overflow-x: auto;
+  }
+
+  /* Wide enough that an Outdated row's Run in the pinned column leaves the metric columns room. */
+  .rw-runtable table {
+    min-width: 610px;
+  }
+
+  .rw-runtable th,
+  .rw-runtable td {
+    padding: 0 8px;
+  }
+
+  .rw-runtable__check {
+    width: 32px;
+  }
+
+  .rw-runtable__dot {
+    width: 18px;
+  }
+
+  /* Sized so a Not run row's Run button stays clear of the pinned column at the narrowest window. */
+  .rw-runtable th:nth-child(3) {
+    width: 104px;
+  }
+
+  .rw-runtable th:nth-child(4) {
+    width: 100px;
+  }
+
+  .rw-runtable__status {
+    gap: 6px;
+  }
+
+  .rw-runtable th.rw-runtable__menu,
+  .rw-runtable td.rw-runtable__menu {
+    position: sticky;
+    right: 0;
+    width: 100px;
+    padding: 0;
+    border-left: var(--rw-hairline) solid var(--rw-line);
+    background: var(--rw-bg-canvas);
+  }
+
+  .rw-runtable tr[data-series] td.rw-runtable__menu {
+    background: linear-gradient(var(--rw-run-series-row), var(--rw-run-series-row)), var(--rw-bg-canvas);
+  }
+
+  .rw-assumptions {
+    left: 8px;
+    width: auto;
+  }
+}
+
+/* Too narrow for the plot and the trajectory side by side: stack them and let the page scroll. */
+@container rw-results (max-width: 560px) {
+  .rw-results__card {
+    flex: none;
+    flex-direction: column;
+  }
+
+  .rw-results__plot {
+    flex: none;
+    min-height: 320px;
+  }
+
+  .rw-results__inset {
+    height: 260px;
+    width: auto;
+    margin-top: 0;
+    border-top: var(--rw-hairline) solid var(--rw-line);
+    border-left: 0;
+  }
 }

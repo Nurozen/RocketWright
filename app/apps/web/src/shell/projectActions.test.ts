@@ -1,6 +1,6 @@
 import type { ProjectInspection } from "@rw/contracts";
 import { describe, expect, it, vi } from "vitest";
-import { nameProblem, openFolder, recentAge, splitFolder, targetPreview, type ProjectRpc } from "./projectActions.ts";
+import { createProject, exportDefaultName, exportedNotice, fileBase, fileStem, importedNotice, importKindOf, nameProblem, openFolder, recentAge, splitFolder, targetPreview, type ProjectRpc } from "./projectActions.ts";
 
 const INFO = { projectId: "p", dir: "/w/a", name: "a" };
 
@@ -97,5 +97,54 @@ describe("recent ages", () => {
 
   it("says nothing for an unreadable time", () => {
     expect(recentAge("not a date", NOW)).toBe("");
+  });
+});
+
+describe("import and export helpers", () => {
+  it.each([
+    ["/a/rocket.ork", "ork"],
+    ["/a/ROCKET.ORK", "ork"],
+    ["C6.eng", "motor"],
+    ["/a/b.c/D9.Rse", "motor"],
+    ["/a/notes.txt", null],
+    ["/a.ork/plain", null],
+  ])("reads %s as %s", (path, kind) => {
+    expect(importKindOf(path)).toBe(kind);
+  });
+
+  it("names a file from its path", () => {
+    expect(fileBase("/a/b/My rocket.v2.ork")).toBe("My rocket.v2.ork");
+    expect(fileStem("/a/b/My rocket.v2.ork")).toBe("My rocket.v2");
+  });
+
+  it("creates from an .ork with no template, and from a template without a source", async () => {
+    const { call, client } = rpc({});
+    await createProject(client, { name: " A ", location: " /w ", template: "minimal", ork: "/x/a.ork" });
+    await createProject(client, { name: "B", location: "/w", template: "minimal" });
+    expect(call.mock.calls.map((c) => c[1])).toEqual([
+      { name: "A", location: "/w", source: { ork: "/x/a.ork" } },
+      { name: "B", location: "/w", template: "minimal" },
+    ]);
+  });
+
+  it("warns about every part the format left out", () => {
+    expect(exportedNotice({ path: "/o/a.ork" })).toEqual({ tone: "success", text: "Exported to /o/a.ork." });
+    expect(exportedNotice({ path: "/o/a.ork", skipped: [] }).tone).toBe("success");
+    expect(exportedNotice({ path: "/o/a.ork", skipped: ["lox_tank"] })).toEqual({ tone: "warning", text: "Exported to /o/a.ork, leaving out a part this format cannot hold: lox_tank." });
+    expect(exportedNotice({ path: "a", skipped: ["1", "2", "3", "4", "5", "6", "7"] }).text).toBe("Exported to a, leaving out 7 parts this format cannot hold: 1, 2, 3, 4, 5, and 2 more.");
+  });
+
+  it("carries the file's import warnings to the person", () => {
+    expect(importedNotice("a.ork", {})).toEqual({ tone: "success", text: "Imported a.ork." });
+    const d = { code: "RW-W010", severity: "warning", path: "/c/x", message: "pod approximated" } as NonNullable<Parameters<typeof importedNotice>[1]["diagnostics"]>[number];
+    expect(importedNotice("a.ork", { diagnostics: [d] })).toEqual({ tone: "warning", text: "Imported a.ork, with a warning: pod approximated" });
+  });
+
+  it("starts the save dialog from a safe name", () => {
+    expect(exportDefaultName("Solstice", "ork")).toBe("Solstice.ork");
+    expect(exportDefaultName("Solstice", "rasp")).toBe("Solstice-motors.eng");
+    expect(exportDefaultName("a/b:c", "stl")).toBe("a-b-c.stl");
+    expect(exportDefaultName("  ", "glb")).toBe("rocket.glb");
+    expect(exportDefaultName("Solstice", "csv", "baseline")).toBe("results-baseline.csv");
   });
 });

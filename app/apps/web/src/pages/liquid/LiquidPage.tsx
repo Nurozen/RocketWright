@@ -17,6 +17,8 @@ import type { RwRef } from "@rw/contracts";
 import { useStore } from "zustand";
 import { createStore, type StoreApi } from "zustand/vanilla";
 import { Icon } from "../../shell/Icon.tsx";
+import { matchesRailSearch, NO_RAIL_MATCHES, useRailSearch } from "../../shell/railSearch.ts";
+import { diagnosticPlainText } from "../../ui/DiagnosticText.tsx";
 import type { RpcLike } from "../../state/rpc.ts";
 import { NO_LIQUID_ENGINE, useAppState, type AppStore } from "../../state/index.ts";
 import { AssemblyViewport } from "../../viewport/AssemblyViewport.tsx";
@@ -27,6 +29,8 @@ import type { AssemblyModel } from "../../viewport/scene.ts";
 import { cameraBasis, type ViewPose } from "../../viewport/views.ts";
 import { ThreadHistory, useOpenThreadHistory } from "../components/AgentExtras.tsx";
 import { ConnectivityDiagram } from "./Diagram.tsx";
+import { AddEngineRailButton, EngineEditor, NewEngineButton, type EngineEditorProps } from "./EngineEditor.tsx";
+import { designFor, designKey, isModified, type DesignEntry } from "./engineOps.ts";
 import {
   CATEGORIES,
   bcLabel,
@@ -85,8 +89,8 @@ export interface LiquidUi {
   engine: string | null;
   inspectorTab: InspectorTab;
   sourcesOpen: boolean;
-  /** `engine_design` per engine and model hash. */
-  design: { key: string; state: "loading" | "ready" | "error"; out: EngineDesignOut | null; error?: string } | null;
+  /** The last `engine_design` per engine, kept when the engine changes under it (R3.2: last result shown stale). */
+  designs: Record<string, DesignEntry>;
   /** The blowdown analysis per engine (`engine.simulate`). */
   analysis: Record<string, AnalysisState>;
 }
@@ -94,12 +98,20 @@ export interface LiquidUi {
 export type LiquidStore = StoreApi<LiquidUi>;
 
 export function createLiquidUi(): LiquidStore {
-  return createStore<LiquidUi>()(() => ({ engine: null, inspectorTab: "connection", sourcesOpen: false, design: null, analysis: {} }));
+  return createStore<LiquidUi>()(() => ({ engine: null, inspectorTab: "connection", sourcesOpen: false, designs: {}, analysis: {} }));
+}
+
+/** Opens a new or duplicated engine where it can be edited. The selection goes too: a feed ref would keep the old engine on screen. */
+function showNewEngine(store: AppStore, ui: LiquidStore, id: string): void {
+  ui.setState({ engine: id });
+  store.getState().selection.select([], "inspector");
+  store.getState().ui.navigate("liquid", "properties");
 }
 
 export interface LiquidSlots {
   content: ReactNode;
   nav: ReactNode;
+  navAdd: ReactNode;
   agentExtra: ReactNode;
 }
 
@@ -107,6 +119,7 @@ export function liquidSlots(store: AppStore, client: RpcLike | null, glbDeps: Gl
   return {
     content: <LiquidWorkspace store={store} client={client} glbDeps={glbDeps} ui={ui} />,
     nav: <PropulsionTree store={store} ui={ui} />,
+    navAdd: <AddEngineRailButton app={store} onShow={(id) => showNewEngine(store, ui, id)} />,
     agentExtra: <LiquidAgentExtra store={store} ui={ui} />,
   };
 }
@@ -127,7 +140,7 @@ function useEngineView(store: AppStore, ui: LiquidStore): EngineView | null {
   const diagnostics = useAppState(store, (s) => s.project.snapshot?.check?.diagnostics ?? null);
   const refs = useAppState(store, (s) => s.selection.refs);
   const preferred = useStore(ui, (s) => s.engine);
-  const designOut = useStore(ui, (s) => s.design?.out ?? null);
+  const designs = useStore(ui, (s) => s.designs);
   const ids = useMemo(() => engineIds(engines as Record<string, unknown> | null), [engines]);
   const id = pickEngine(ids, refs, preferred);
   useEffect(() => {
@@ -140,26 +153,54 @@ function useEngineView(store: AppStore, ui: LiquidStore): EngineView | null {
     const target = refs.map(feedTarget).find((t): t is FeedTarget => t !== null && t.engine === id) ?? null;
     const connection = connectionOf(engine, target);
     // The check report owns the badge; before the first check, the design's own diagnostics stand in.
-    const diags = diagnostics ?? (designOut?.engine === id ? designOut.diagnostics : null);
+    const diags = diagnostics ?? designs[id]?.out?.diagnostics ?? null;
     return { id, engine, target, connection, missing: missingInputs(diags as Diagnostic[] | null, id) };
-  }, [id, engines, refs, diagnostics, designOut]);
+  }, [id, engines, refs, diagnostics, designs]);
 }
 
-/** `engine.design` for the engine on screen, refetched when the model changes. */
-function useEngineDesign(store: AppStore, client: RpcLike | null, ui: LiquidStore, engineId: string | null): void {
+let designRequests = 0;
+
+/**
+ * Asks the sidecar for one engine's design and stores it under the engine it
+ * was computed from. Only the newest request for an engine lands; a failure
+ * keeps the last result beside the error, still filed under its own engine,
+ * so an edited engine goes on reading as Modified.
+ */
+export function requestDesign(store: AppStore, client: RpcLike | null, ui: LiquidStore, engineId: string): Promise<void> {
+  const st = store.getState();
+  const engine = st.project.snapshot?.evaluated?.engines?.[engineId] as EvalEngine | undefined;
+  const projectId = st.project.projectId;
+  if (client === null || projectId === null || engine === undefined) return Promise.resolve();
+  const key = designKey(engineId, engine);
+  const seq = ++designRequests;
+  const prior = ui.getState().designs[engineId];
+  const last = prior?.out ?? null;
+  const lastKey = prior !== undefined && last !== null ? prior.key : key;
+  const land = (entry: Pick<DesignEntry, "key" | "state" | "out" | "error">) => {
+    ui.setState((s) => ({ designs: { ...s.designs, [engineId]: { seq, ...entry } } }));
+  };
+  land({ key: lastKey, state: "loading", out: last });
+  const current = () => ui.getState().designs[engineId]?.seq === seq;
+  return client.call("engine.design", { projectId, engine: engineId }).then(
+    (out) => {
+      if (current()) land({ key, state: "ready", out });
+    },
+    (e: unknown) => {
+      if (current()) land({ key: lastKey, state: "error", out: last, error: message(e) });
+    },
+  );
+}
+
+/**
+ * The first visit to an engine computes its design. After that only Compute
+ * does, so an edit reads as Modified instead of quietly changing the numbers.
+ */
+function useFirstDesign(store: AppStore, client: RpcLike | null, ui: LiquidStore, engineId: string | null): void {
   const projectId = useAppState(store, (s) => s.project.projectId);
-  const hash = useAppState(store, (s) => s.project.snapshot?.evaluated?.model_hash ?? "");
-  const key = `${engineId ?? ""}@${hash}`;
   useEffect(() => {
-    const cur = ui.getState().design;
-    if (client === null || projectId === null || engineId === null || (cur?.key === key && cur.state !== "error")) return;
-    ui.setState({ design: { key, state: "loading", out: cur?.key.startsWith(`${engineId}@`) ? cur.out : null } });
-    // Only the newest request lands (the key moves on with the engine and the model).
-    client
-      .call("engine.design", { projectId, engine: engineId })
-      .then((out) => ui.getState().design?.key === key && ui.setState({ design: { key, state: "ready", out } }))
-      .catch((e: unknown) => ui.getState().design?.key === key && ui.setState({ design: { key, state: "error", out: null, error: message(e) } }));
-  }, [client, projectId, engineId, key, ui]);
+    if (client === null || projectId === null || engineId === null || ui.getState().designs[engineId] !== undefined) return;
+    void requestDesign(store, client, ui, engineId);
+  }, [store, client, projectId, engineId, ui]);
 }
 
 /**
@@ -209,13 +250,22 @@ export function liquidPose(view: string): ViewPose {
 
 function LiquidWorkspace({ store, client, glbDeps, ui }: { store: AppStore; client: RpcLike | null; glbDeps: GlbDeps; ui: LiquidStore }) {
   const view = useEngineView(store, ui);
-  useEngineDesign(store, client, ui, view?.id ?? null);
+  useFirstDesign(store, client, ui, view?.id ?? null);
   const tabRaw = useAppState(store, (s) => s.ui.tab);
   const tab: LiquidTab = isLiquidTab(tabRaw) ? tabRaw : "system";
   const snap = useAppState(store, (s) => s.project.snapshot);
-  const design = useStore(ui, (s) => s.design);
-  const out = design !== null && design.key.startsWith(`${view?.id ?? ""}@`) ? design.out : null;
+  const entry = useStore(ui, (s) => (view === null ? null : (s.designs[view.id] ?? null)));
+  const out = entry?.out ?? null;
+  const compute = () => (view === null ? Promise.resolve() : requestDesign(store, client, ui, view.id));
   const setTab = (t: LiquidTab) => store.getState().ui.navigate("liquid", t);
+  const showEngine = (id: string) => showNewEngine(store, ui, id);
+  const engineDeleted = (id: string) => {
+    ui.setState((s) => {
+      const { [id]: _gone, ...designs } = s.designs;
+      return { designs, engine: s.engine === id ? null : s.engine };
+    });
+    store.getState().selection.select([], "inspector");
+  };
   const ids = engineIds(snap?.evaluated?.engines as Record<string, unknown> | null | undefined);
 
   return (
@@ -224,7 +274,7 @@ function LiquidWorkspace({ store, client, glbDeps, ui }: { store: AppStore; clie
         <h1 className="rw-page-title" data-testid="page.title">
           Liquid propulsion
         </h1>
-        {ids.length > 1 && view !== null && (
+        {view !== null && (
           <label className="rw-liq__engine">
             <span>Engine</span>
             <select
@@ -252,13 +302,22 @@ function LiquidWorkspace({ store, client, glbDeps, ui }: { store: AppStore; clie
         ))}
       </nav>
       {view === null ? (
-        <p className="rw-liq__empty" data-testid="liquid.empty">
-          {snap === null ? "Opening the project…" : NO_LIQUID_ENGINE}
-        </p>
+        <div className="rw-liq__empty-state">
+          <p className="rw-liq__empty" data-testid="liquid.empty">
+            {snap === null ? "Opening the project…" : NO_LIQUID_ENGINE}
+          </p>
+          {snap !== null && <NewEngineButton app={store} primary onShow={showEngine} />}
+        </div>
       ) : tab === "properties" ? (
-        <PropertiesView view={view} out={out} state={design?.state ?? "loading"} error={design?.error} />
+        <PropertiesView
+          view={view}
+          out={out}
+          state={entry?.state ?? "loading"}
+          editor={{ app: store, engineId: view.id, engine: view.engine, entry, onCompute: compute, canCompute: client !== null, onShow: showEngine, onDeleted: engineDeleted }}
+        />
       ) : (
         <div className={`rw-liq__body rw-liq__body--${tab}`}>
+          <DesignNotice modified={isModified(entry, view.id, view.engine)} error={entry?.state === "error" ? (entry.error ?? "") : null} busy={entry?.state === "loading"} canCompute={client !== null} onCompute={() => void compute()} />
           <ModuleViewport store={store} view={view} out={out} glbDeps={glbDeps} />
           {tab === "system" ? (
             <div className="rw-liq__lower">
@@ -269,13 +328,38 @@ function LiquidWorkspace({ store, client, glbDeps, ui }: { store: AppStore; clie
                 onSelectNode={(id) => store.getState().selection.select([nodeRef(view.id, id)], "diagram")}
                 onSelectEdge={(i) => store.getState().selection.select([edgeRef(view.id, i)], "diagram")}
               />
-              <LiquidInspector store={store} client={client} ui={ui} view={view} out={out} />
+              <LiquidInspector store={store} client={client} ui={ui} view={view} entry={entry} />
             </div>
           ) : (
             <ParametersPanel view={view} />
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+/** Assembly and System draw with the last computed sizing: an edit since then, or a failed Compute, has to say so here. */
+function DesignNotice({ modified, error, busy, canCompute, onCompute }: { modified: boolean; error: string | null; busy: boolean; canCompute: boolean; onCompute: () => void }) {
+  if (!modified && error === null) return null;
+  return (
+    <div className="rw-liq-notice" data-testid="liquid.notice">
+      <div className="rw-liq-notice__text">
+        {modified && (
+          <p className="rw-liq-editor__modified" role="status" data-testid="liquid.notice-modified">
+            <Icon name="alert" size={18} />
+            Modified, needs recompute. This view still shows the last computed sizing.
+          </p>
+        )}
+        {error !== null && (
+          <p className="rw-liq-editor__error" role="alert" data-testid="liquid.design-error">
+            Compute failed: {error}
+          </p>
+        )}
+      </div>
+      <button type="button" className="rw-button" data-testid="liquid.notice-compute" disabled={!canCompute || busy} aria-busy={busy} onClick={onCompute}>
+        Compute
+      </button>
     </div>
   );
 }
@@ -360,7 +444,7 @@ const NOT_RUN: AnalysisState = { kind: "not_run" };
 
 function InputStatus({ row, action = null }: { row: InputRow; action?: ReactNode }) {
   return (
-    <div className="rw-liq-input" data-testid="insp.input" data-key={row.key} data-tone={row.tone} title={row.diagnostic ? `${row.diagnostic.code}: ${row.diagnostic.message}${row.diagnostic.hint ? ` (${row.diagnostic.hint})` : ""}` : undefined}>
+    <div className="rw-liq-input" data-testid="insp.input" data-key={row.key} data-tone={row.tone} title={row.diagnostic ? diagnosticPlainText(`${row.diagnostic.code}: ${row.diagnostic.message}${row.diagnostic.hint ? ` (${row.diagnostic.hint})` : ""}`) : undefined}>
       <span className="rw-liq-input__label">{row.label}</span>
       <span className="rw-liq-input__value">
         {row.value}
@@ -387,22 +471,27 @@ function Endpoint({ view, ids }: { view: EngineView; ids: readonly string[] }) {
   );
 }
 
-function LiquidInspector({ store, client, ui, view, out }: { store: AppStore; client: RpcLike | null; ui: LiquidStore; view: EngineView; out: EngineDesignOut | null }) {
+function LiquidInspector({ store, client, ui, view, entry }: { store: AppStore; client: RpcLike | null; ui: LiquidStore; view: EngineView; entry: DesignEntry | null }) {
+  const out = entry?.out ?? null;
   const tab = useStore(ui, (s) => s.inspectorTab);
   const sourcesOpen = useStore(ui, (s) => s.sourcesOpen);
-  const analysis = useStore(ui, (s) => s.analysis[view.id] ?? NOT_RUN);
+  const stored = useStore(ui, (s) => s.analysis[view.id] ?? NOT_RUN);
+  const engineKey = designKey(view.id, view.engine);
+  // A completed run belongs to the engine it flew: after an edit, Run is offered again.
+  const analysis = stored.kind === "complete" && stored.key !== engineKey ? NOT_RUN : stored;
   const projectId = useAppState(store, (s) => s.project.projectId);
   const rows = inputRows(view.engine, view.id, view.missing, view.connection, analysis);
   const blocked = view.missing.length > 0;
   const runAnalysis = () => {
     if (client === null || projectId === null || blocked) return;
     ui.setState((s) => ({ analysis: { ...s.analysis, [view.id]: { kind: "running" } } }));
+    // `engine.simulate` returns no burn time, and only a design of this engine as it stands can supply one.
+    const b = designFor(entry, view.id, view.engine)?.design?.blowdown;
     client
       .call("engine.simulate", { projectId, engine: view.id })
       .then((r) => {
-        const b = out?.design?.blowdown;
         const summary = b ? `${fmt(b.burn_time, 3)} s burn` : `run ${r.run_id}`;
-        ui.setState((s) => ({ analysis: { ...s.analysis, [view.id]: { kind: "complete", summary } } }));
+        ui.setState((s) => ({ analysis: { ...s.analysis, [view.id]: { kind: "complete", summary, key: engineKey } } }));
       })
       .catch((e: unknown) => ui.setState((s) => ({ analysis: { ...s.analysis, [view.id]: { kind: "failed", message: message(e) } } })));
   };
@@ -610,11 +699,10 @@ function ParametersPanel({ view }: { view: EngineView }) {
   );
 }
 
-function PropertiesView({ view, out, state, error }: { view: EngineView; out: EngineDesignOut | null; state: "loading" | "ready" | "error"; error?: string | undefined }) {
+function PropertiesView({ view, out, state, editor }: { view: EngineView; out: EngineDesignOut | null; state: "loading" | "ready" | "error"; editor: Omit<EngineEditorProps, "children"> }) {
   const groups = propertyGroups(out);
-  return (
-    <div className="rw-liq-props" data-testid="liquid.properties" data-state={state}>
-      {state === "error" && <p className="rw-liq__empty">engine_design failed: {error}</p>}
+  const details = (
+    <>
       {state === "loading" && groups.length === 0 && <p className="rw-liq__empty">Computing the design…</p>}
       {out !== null && groups.length === 0 && <p className="rw-liq__empty">The chamber cannot be sized yet: {out.missing_inputs.join(", ") || "inputs missing"}.</p>}
       <div className="rw-liq-props__grid">
@@ -642,6 +730,13 @@ function PropertiesView({ view, out, state, error }: { view: EngineView; out: En
         <h2 className="rw-liq-panel__title">Source references</h2>
         <SourceList thermo={out?.design?.thermo ?? null} />
       </section>
+    </>
+  );
+  return (
+    <div className="rw-liq-props" data-testid="liquid.properties" data-state={state}>
+      <EngineEditor key={view.id} {...editor}>
+        {details}
+      </EngineEditor>
     </div>
   );
 }
@@ -659,17 +754,20 @@ export function PropulsionTree({ store, ui }: { store: AppStore; ui: LiquidStore
     const ref: RwRef | null = categoryTarget(view.engine, view.id, c);
     if (ref !== null) store.getState().selection.select([ref], "tree");
   };
+  const query = useRailSearch();
   // The categories are an engine's; with no engine the rows and their eyes would act on nothing.
   if (view === null && hasSnapshot) {
     return (
       <p className="rw-rail__empty" data-testid="propulsion.tree-empty">
-        No liquid engine yet.
+        No liquid engine yet. Press + to add one.
       </p>
     );
   }
+  const shownCategories = CATEGORIES.filter((c) => matchesRailSearch(c.label, query));
+  if (shownCategories.length === 0) return <p className="rw-rail__empty">{NO_RAIL_MATCHES}</p>;
   return (
     <ul className="rw-list" role="listbox" aria-label="Propulsion system" data-testid="propulsion.tree">
-      {CATEGORIES.map((c) => {
+      {shownCategories.map((c) => {
         const off = hidden.includes(hiddenKey(c.id));
         return (
           <li key={c.id} className="rw-nav-row" role="option" data-testid="rail.nav-row" data-category={c.id} data-hidden={off ? "true" : undefined} aria-selected={selected === c.id} onClick={() => select(c.id)}>
@@ -717,7 +815,7 @@ export function LiquidAgentExtra({ store, ui }: { store: AppStore; ui: LiquidSto
   return (
     <>
       {missing.length > 0 && (
-        <div className="rw-liq-missing" data-testid="agent.missing-inputs" data-count={missing.length} title={missing.map((d) => `${d.code}: ${d.message}`).join("\n")}>
+        <div className="rw-liq-missing" data-testid="agent.missing-inputs" data-count={missing.length} title={missing.map((d) => diagnosticPlainText(`${d.code}: ${d.message}`)).join("\n")}>
           <Icon name="alert" size={22} className="rw-liq-missing__icon" />
           <span className="rw-liq-missing__text">Missing inputs · {missing.length}</span>
           <button type="button" className="rw-button rw-button--primary rw-liq-missing__review" data-testid="agent.review-inputs" onClick={review}>

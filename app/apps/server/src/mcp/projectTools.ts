@@ -19,13 +19,18 @@
  * The server's "already created" prefix on the first message is added there:
  * `request` here is exactly what the dialog showed.
  */
+import { lstatSync, realpathSync } from "node:fs";
 import { isAbsolute, join, resolve } from "node:path";
 import {
+  DIALOG_UNSAFE_NAME,
+  DIALOG_UNSAFE_TEXT,
   PROJECT_TEMPLATES,
   PROJECT_TOOLS,
   PROJECT_TOOL_REQUEST_MAX,
+  PROJECT_TOOL_REQUEST_MAX_LINES,
   type HostRequest,
   type HostResponse,
+  type DisplayUnits,
   type HostShow,
   type JsonObject,
   type ProjectInfo,
@@ -33,7 +38,7 @@ import {
   type ProjectTool,
   type ProjectToolResult,
 } from "@rw/contracts";
-import { refuseOverlong, defaultProjectLocation, expandHome, type ProjectCreateArgs } from "../project/create.ts";
+import { projectedRealpath, refuseOverlong, defaultProjectLocation, expandHome, type ProjectCreateArgs } from "../project/create.ts";
 import { folderState, holdsProject } from "../project/inspect.ts";
 import { RpcFail } from "../rpc/errors.ts";
 import { HostChannelError } from "../rpc/HostChannel.ts";
@@ -125,7 +130,7 @@ function definition(name: ProjectTool, title: string, description: string, prope
 const REQUEST_ARG = {
   type: "string",
   maxLength: PROJECT_TOOL_REQUEST_MAX,
-  description: "Only the work left to do after this step; it becomes the new thread's first message. Leave it out when nothing is left.",
+  description: `Only the work the person asked for that is left after this step, in their terms, with no checks, fixes or steps of your own, in at most ${PROJECT_TOOL_REQUEST_MAX_LINES} lines; it becomes the new thread's first message. Leave it out when nothing is left.`,
 } as const;
 
 const AFTER =
@@ -158,20 +163,24 @@ const DEFINITIONS: readonly SidecarTool[] = [
   ),
 ];
 
-/** Characters that hide or reorder what a dialog shows. `\n` is kept; `\p{Cc}` includes it. */
-const UNSAFE_IN_DIALOG = /[^\P{Cc}\n]|\p{Bidi_Control}|[\u2028\u2029]/gu;
+/** The characters to take out of a request: the same set the dialog refuses, so the two cannot drift. */
+const UNSAFE_IN_REQUEST = new RegExp(DIALOG_UNSAFE_TEXT.source, "gu");
 
 /**
- * D13: the text a person approves and the new thread receives. Newlines and
- * backticks stay for fenced blocks; a tab becomes a space so words stay apart.
- * Null when nothing is left.
+ * D13: the text a person approves and the new thread receives, which must be
+ * the same text. Newlines and backticks stay for fenced blocks; a tab becomes a
+ * space so words stay apart. Invisible characters go, so neither side sees
+ * something the other does not. Null when nothing is left.
  */
 export function cleanRequest(raw: unknown): string | null {
   if (raw === undefined || raw === null) return null;
   if (typeof raw !== "string") throw new RpcFail("invalid_params", "request: expected a string");
-  const text = raw.replace(/\r\n?/g, "\n").replace(/\t/g, " ").replace(UNSAFE_IN_DIALOG, "");
+  const text = raw.replace(/\r\n?/g, "\n").replace(/\t/g, " ").replace(UNSAFE_IN_REQUEST, "");
   if (Array.from(text).length > PROJECT_TOOL_REQUEST_MAX) {
     throw new RpcFail("invalid_params", `request: at most ${PROJECT_TOOL_REQUEST_MAX} characters; say only the work left to do`);
+  }
+  if (text.split("\n").length > PROJECT_TOOL_REQUEST_MAX_LINES) {
+    throw new RpcFail("invalid_params", `request: at most ${PROJECT_TOOL_REQUEST_MAX_LINES} lines; say only the work left to do`);
   }
   return text.trim() === "" ? null : text;
 }
@@ -184,7 +193,7 @@ function refuseUnknownArgs(args: JsonObject, allowed: readonly string[]): void {
 
 /** A name or path cannot be cleaned as a request is: that would name another folder. */
 function refuseUnsafe(key: string, value: string): void {
-  if (value.replace(UNSAFE_IN_DIALOG, "") !== value) throw new RpcFail("invalid_params", `${key}: cannot contain control or text-direction characters`);
+  if (DIALOG_UNSAFE_NAME.test(value)) throw new RpcFail("invalid_params", `${key}: cannot contain control, text-direction or invisible characters`);
 }
 
 function absoluteArg(key: string, value: string): string {
@@ -192,6 +201,31 @@ function absoluteArg(key: string, value: string): string {
   const expanded = expandHome(value);
   if (!isAbsolute(expanded)) throw new RpcFail("invalid_params", `${key}: expected an absolute path or one starting with ~`);
   return resolve(expanded);
+}
+
+/**
+ * A symbolic link at the target would send the files somewhere the dialog does
+ * not name, and the link's own name is all `join(location, name)` shows. The
+ * resolved location is shown instead, but the target's own last step cannot
+ * be followed honestly for a project that does not exist yet, so it is refused.
+ */
+function refuseSymlink(target: string): void {
+  let symlink: boolean;
+  try {
+    symlink = lstatSync(target).isSymbolicLink();
+  } catch {
+    return;
+  }
+  if (symlink) throw new RpcFail("conflict", `${target} is a symbolic link, so a project cannot be created there`);
+}
+
+/** The real folder behind a path that exists, so the dialog names what `open` will use. */
+function realTarget(path: string): string {
+  try {
+    return realpathSync(path);
+  } catch {
+    return path;
+  }
 }
 
 function stringArg(args: JsonObject, key: string): string {
@@ -269,13 +303,13 @@ export class ProjectTools {
     }
     if (guard.aborted) return overrunResult(stage.now, tool);
 
-    const refused = await this.ask(plan, guard);
-    if (refused !== null) return refused;
+    const consent = await this.ask(plan, guard);
+    if ("refused" in consent) return consent.refused;
 
     stage.now = { at: "working", plan };
     let project: ProjectInfo;
     try {
-      project = await this.bringUp(plan);
+      project = await this.bringUp(plan, consent.displayUnits);
     } catch (e) {
       return plan.tool === "project_new" ? creationFailure(e, plan) : refusal(e);
     }
@@ -297,10 +331,12 @@ export class ProjectTools {
   private async planNew(args: JsonObject): Promise<NewProject> {
     refuseUnknownArgs(args, ["name", "location", "template", "request"]);
     const create = projectCreateArgs({ name: args.name, location: args.location, template: args.template } as JsonObject);
-    const location = absoluteArg("location", create.location ?? defaultProjectLocation());
+    // The shown folder must be the real one: `rw init` and `folderState` follow links, `resolve` does not.
+    const location = projectedRealpath(absoluteArg("location", create.location ?? defaultProjectLocation()));
     refuseUnsafe("name", create.name);
     const request = cleanRequest(args.request);
     const target = join(location, create.name);
+    refuseSymlink(target);
     refuseOverlong(target);
     const state = folderState(target);
     if (state === "project") throw alreadyProject(target);
@@ -309,12 +345,12 @@ export class ProjectTools {
       const clashes = await this.deps.collisions(target);
       if (clashes.length > 0) throw new RpcFail("conflict", `${target} holds files a new project would replace: ${clashes.join(", ")}`);
     }
-    return { tool: "project_new", target, name: create.name, template: create.template, create: { ...create, location }, request };
+    return { tool: "project_new", target, name: create.name, template: create.template, create: { ...create, location, exact: true }, request };
   }
 
   private planOpen(args: JsonObject): OpenProject {
     refuseUnknownArgs(args, ["path", "request"]);
-    const target = absoluteArg("path", stringArg(args, "path"));
+    const target = realTarget(absoluteArg("path", stringArg(args, "path")));
     const request = cleanRequest(args.request);
     if (!this.deps.isOpen(target)) {
       const state = folderState(target);
@@ -325,8 +361,8 @@ export class ProjectTools {
     return { tool: "project_open", target, request };
   }
 
-  /** Shows the dialog. Null means accepted; anything else is the agent's answer. */
-  private async ask(plan: Plan, guard: AbortSignal): Promise<CallResult | null> {
+  /** Shows the dialog. `refused` is the agent's answer; otherwise accepted, with main's default units (R3.4). */
+  private async ask(plan: Plan, guard: AbortSignal): Promise<{ refused: CallResult } | { displayUnits?: DisplayUnits | undefined }> {
     const nothing = plan.tool === "project_new" ? "Nothing was created." : "Nothing was opened.";
     let answer: HostResponse;
     try {
@@ -335,20 +371,39 @@ export class ProjectTools {
       if (!(e instanceof HostChannelError)) throw e;
       switch (e.code) {
         case "aborted":
-          return toolError("timeout", `The person did not answer the confirmation in time. ${nothing} ${STOP}`);
+          return { refused: toolError("timeout", `The person did not answer the confirmation in time. ${nothing} ${STOP}`) };
         case "busy":
-          return toolError("busy", `Another confirmation is already on screen. ${nothing} ${STOP}`);
+          return { refused: toolError("busy", `Another confirmation is already on screen. ${nothing} ${STOP}`) };
         case "no_host":
         case "disconnected":
-          return toolError("unavailable", `${plan.tool} needs the RocketWright desktop app, and no desktop window can answer. ${nothing}`);
+          return { refused: toolError("unavailable", `${plan.tool} needs the RocketWright desktop app, and no desktop window can answer. ${nothing}`) };
       }
     }
-    return answer.accepted ? null : toolError("cancelled", `The person cancelled. ${nothing} ${STOP}`);
+    if (answer.accepted) return { displayUnits: answer.displayUnits };
+    switch (answer.declined) {
+      case "timeout":
+        return { refused: toolError("timeout", `The person did not answer the confirmation in time. ${nothing} ${STOP}`) };
+      case "unavailable":
+        return { refused: toolError("unavailable", `${plan.tool} needs the RocketWright desktop app, and no desktop window could show the confirmation. ${nothing}`) };
+      case "refused":
+        return { refused: toolError("invalid_args", `The app refused to show this confirmation because the text cannot be shown faithfully. ${nothing} ${STOP}`) };
+      default:
+        return { refused: toolError("cancelled", `The person cancelled. ${nothing} ${STOP}`) };
+    }
   }
 
-  private async bringUp(plan: Plan): Promise<ProjectInfo> {
-    if (plan.tool === "project_open") return this.deps.open(plan.target);
-    const dir = await this.deps.create(plan.create);
+  private async bringUp(plan: Plan, displayUnits: DisplayUnits | undefined): Promise<ProjectInfo> {
+    // The dialog named this folder: nothing may have turned it into another one while the person read it.
+    const now = plan.tool === "project_new" ? projectedRealpath(plan.target) : realTarget(plan.target);
+    if (now !== plan.target) throw new RpcFail("conflict", `${plan.target} changed to ${now} while the confirmation was open; nothing was done`);
+    if (plan.tool === "project_open") {
+      const project = await this.deps.open(plan.target);
+      const opened = realTarget(project.dir);
+      if (opened !== plan.target) throw new RpcFail("conflict", `the project opened at ${opened}, not at the approved ${plan.target}; do not retry, tell the person`);
+      return project;
+    }
+    const dir = await this.deps.create(displayUnits === undefined ? plan.create : { ...plan.create, displayUnits });
+    if (dir !== plan.target) throw new RpcFail("conflict", `the project was created at ${dir}, not at the approved ${plan.target}; do not retry, tell the person`);
     try {
       return await this.deps.open(dir);
     } catch (e) {

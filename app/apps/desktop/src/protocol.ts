@@ -11,8 +11,11 @@
  *   the window is ready is queued (`linkQueue`). `main.ts` installs it only
  *   in packaged builds or with `RW_REGISTER_PROTOCOL=1`, so a dev or test
  *   run never rewrites the user's handler or blocks a parallel window.
- * - `openFromLink` maps a link to `project.open` on the app server (main's
- *   RPC), then activates the project (`projectActivator`).
+ * - `openFromLink` resolves the link's real folder, asks the person first when
+ *   that folder is neither open here nor in Recents, resolves it again after
+ *   the answer and refuses if it moved, then maps it to `project.open` on the
+ *   app server (main's RPC) and activates the project (`projectActivator`). A
+ *   link the app could not act on is shown, not just logged.
  * - `projectActivator` is the one way main brings a project forward (links and
  *   `host.show`): it raises the window, has the pane open the thread once the
  *   project's view is mounted (`PaneController.openThread`), and asks the page
@@ -21,7 +24,7 @@
  * Electron-free: `app` and the RPC come in through the `*Like` slices.
  */
 import { isAbsolute } from "node:path";
-import type { ProjectInfo } from "@rw/contracts";
+import type { HostDecline, ProjectInfo } from "@rw/contracts";
 
 export const PROTOCOL_SCHEME = "rocketwright";
 
@@ -67,6 +70,8 @@ export interface ProtocolOptions {
   register: boolean;
   /** Called for each well-formed link, in arrival order. */
   onOpen: (link: OpenLink) => void;
+  /** Called for each link that is not one this app can act on. */
+  onInvalid?: (raw: string) => void;
   /** Brings the window forward when another instance was started. */
   focus?: () => void;
   log?: (line: string) => void;
@@ -87,6 +92,7 @@ export function installProtocol(opts: ProtocolOptions): boolean {
     const link = parseOpenUrl(raw);
     if (link === null) {
       log(`protocol: ignored ${raw.slice(0, 120)}`);
+      opts.onInvalid?.(raw);
       return;
     }
     opts.onOpen(link);
@@ -139,21 +145,60 @@ export function projectActivator(deps: ActivatorDeps): (projectId: string, threa
 }
 
 export interface OpenDeps {
+  /** The real path of the link's folder; rejects when it cannot be resolved. */
+  realpath(dir: string): Promise<string>;
+  /** True when the folder is already open here or in Recents: a link to it needs no question. */
+  known(dir: string): Promise<boolean>;
+  /** The native confirmation; resolves false when the person did not agree. */
+  confirm(dir: string): Promise<{ accepted: boolean; declined?: HostDecline }>;
   /** `project.open` on the app server (main's RPC). */
   openProject(dir: string): Promise<ProjectInfo>;
   /** Brings the opened project (and the link's thread) forward. */
   activateProject(projectId: string, threadId?: string): void;
+  /** Shows the person why the link did not open. */
+  showFailure(message: string): void;
   log?: (line: string) => void;
 }
 
-/** `project.open` then the thread; resolves with the project (null when the open failed). */
+/**
+ * The link's folder through the consent gate and `project.open`, then the
+ * thread; resolves with the project (null when it did not open). A declined
+ * question is the person's choice and shows nothing, except when the box
+ * itself could not be shown truthfully.
+ */
 export async function openFromLink(link: OpenLink, deps: OpenDeps): Promise<ProjectInfo | null> {
+  const fail = (message: string): null => {
+    deps.log?.(`protocol: ${message}`);
+    deps.showFailure(message);
+    return null;
+  };
+  let dir: string;
+  try {
+    dir = await deps.realpath(link.workspace);
+  } catch (e) {
+    return fail(`The link's folder ${link.workspace} could not be opened: ${e instanceof Error ? e.message : String(e)}`);
+  }
+  if (!(await deps.known(dir))) {
+    const answer = await deps.confirm(dir);
+    if (!answer.accepted) {
+      if (answer.declined === "refused") return fail(`The link's folder ${dir} has invisible characters in its name, so it cannot be shown for confirmation.`);
+      deps.log?.(`protocol: not opening ${dir}: ${answer.declined ?? "cancelled"}`);
+      return null;
+    }
+    // The sheet can stay up for a while, and what the person agreed to was this folder, not this name.
+    let now: string;
+    try {
+      now = await deps.realpath(link.workspace);
+    } catch (e) {
+      return fail(`The link's folder ${dir} could not be opened: ${e instanceof Error ? e.message : String(e)}`);
+    }
+    if (now !== dir) return fail(`The link's folder ${dir} changed while you were being asked, so it was not opened. Open the link again if you still want it.`);
+  }
   let project: ProjectInfo;
   try {
-    project = await deps.openProject(link.workspace);
+    project = await deps.openProject(dir);
   } catch (e) {
-    deps.log?.(`protocol: project.open ${link.workspace} failed: ${e instanceof Error ? e.message : String(e)}`);
-    return null;
+    return fail(`The link's folder ${dir} could not be opened: ${e instanceof Error ? e.message : String(e)}`);
   }
   deps.activateProject(project.projectId, link.thread);
   return project;

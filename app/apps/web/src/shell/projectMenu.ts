@@ -14,7 +14,7 @@ import { RECENT_STATUS_TEXT } from "./projectActions.ts";
 /** A long Recent belongs on Welcome; the menu has to fit under the header. */
 const MAX_MENU_RECENTS = 8;
 
-const ACTIONS = ["project.new", "project.open", "project.openSample", "project.rename", "project.close"] as const;
+const ACTIONS = ["project.new", "project.open", "project.openSample", "file.import", "file.export", "project.rename", "project.close"] as const;
 
 function recentEntries(recent: RecentProject, onCommand: (c: DesktopCommand) => void, onRemove: (dir: string) => void): MenuEntry[] {
   const missing = recent.status === "missing";
@@ -63,7 +63,8 @@ export function projectMenuEntries({ projects, projectId, projectName, menu, onS
   if (menu === undefined) return entries;
 
   const errors: MenuEntry[] = menu.errors.map((text, i) => ({ kind: "heading", id: `error:${i}`, label: text }));
-  const recents = menu.recents.slice(0, MAX_MENU_RECENTS).flatMap((r) => recentEntries(r, menu.onCommand, menu.onRemoveRecent));
+  // Open projects are the list above; Recent is for reaching the others.
+  const recents = menu.recents.filter((r) => r.open !== true).slice(0, MAX_MENU_RECENTS).flatMap((r) => recentEntries(r, menu.onCommand, menu.onRemoveRecent));
   const middle = recents.length > 0 ? [{ kind: "heading", id: "recent", label: commandLabel("project.openRecent") } as const, ...recents] : [];
   const section = [...errors, ...middle];
   return [

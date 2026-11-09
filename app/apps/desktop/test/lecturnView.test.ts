@@ -739,6 +739,17 @@ describe("composite capture", () => {
   });
 });
 
+describe("Agent providers (R3.4)", () => {
+  it("opens Lecturn's panel in the mounted guest, and says so when there is none", async () => {
+    const t = setup();
+    expect(t.pane.openProviders()).toBe(false);
+    const v = await t.mounted();
+    guest(v, "ui/notifications/initialized", {});
+    expect(t.pane.openProviders()).toBe(true);
+    expect(v.webContents.sent.at(-1)).toEqual(["lecturn-embed:to-guest", { jsonrpc: "2.0", method: "lecturn/providers.open", params: {} }]);
+  });
+});
+
 describe("rocketwright://open into the pane", () => {
   it("opens the thread in the mounted view, or mounts the project at that thread", async () => {
     const t = setup();

@@ -199,6 +199,7 @@ function start(): void {
         url={rpc!}
         requestedProjectId={params.get("project")}
         initialPage={pageOfBar(page)}
+        pageForced={surface !== null || isBarPage(requested)}
         runSource={cachedSource(httpRunSource(http))}
         httpBase={http}
         onOutcome={(o) => {
@@ -208,9 +209,9 @@ function start(): void {
       />,
     );
   } else if (mode === "fatal") {
-    const error = "The app server did not start.";
+    const error = desktop?.startupError ?? "The app server did not start.";
     window.__rwShell = { status: "error", error };
-    reactRoot.render(<FatalScreen error={error} />);
+    reactRoot.render(<FatalScreen error={error} onRelaunch={() => void desktop?.relaunch().catch((e: unknown) => console.error(e))} />);
   } else {
     reactRoot.render(<StaticShell page={page} />);
     publishReady();

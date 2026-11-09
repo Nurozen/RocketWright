@@ -11,27 +11,35 @@
  * outside its rect. B17 removed the old chat that used to stand in for it.
  *
  * The rail (B12) lists the project's Lecturn threads and its
- * actions go through the pane's bridge (`lecturn/thread.open`,
- * `lecturn/thread.new {title, appData}`); Settings opens Lecturn's providers
+ * actions go through the pane's bridge (`lecturn/thread.open`), and new
+ * threads through the app server (`embed.createThread`); Settings opens Lecturn's providers
  * panel; `embed/wiring.ts` handles navigate, mentions, the D12 fallback,
  * run subtitles and the host context.
  */
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
 import type { PageId, RwRef } from "@rw/contracts";
-import { ensurePageThread, navigatePage, newPageThread, openArtifactThread, openProviders, openThread } from "../embed/rail.ts";
+import { ensurePageThread, navigatePage, newPageThread, openArtifactThread, openProviders, openThread, showStartChat } from "../embed/rail.ts";
 import { setPane } from "../embed/threads.ts";
 import { wirePane } from "../embed/wiring.ts";
 import type { PaneBridge } from "../embed/bridge.ts";
 import { EmbedPane } from "../embed/EmbedPane.tsx";
+import { StartChatPrompt } from "../embed/StartChatPrompt.tsx";
 import { defaultCompare, versionLabel } from "../pages/compare/model.ts";
-import type { RpcLike } from "../state/rpc.ts";
+import { deleteKeyTarget, isPartDeleteKey, overlayOpen } from "../pages/assembly/partOps.ts";
+import { PartDialogs } from "../pages/assembly/PartActions.tsx";
+import { RpcCallError, type RpcLike } from "../state/rpc.ts";
+import { openRef } from "../state/navigation.ts";
 import { type AppStore, useAppState } from "../state/store.ts";
 import type { ViewId } from "@rw/contracts";
 import { AppShell, type ShellHandlers } from "./AppShell.tsx";
+import { checkIssuesOf, type CheckPanelModel } from "./CheckIssuesPanel.tsx";
+import { ErrorBoundary } from "./ErrorBoundary.tsx";
 import type { CommandHandlers } from "./commands.ts";
 import { shellModelFrom } from "./connect.ts";
+import { TagVersionDialog } from "./TagVersionDialog.tsx";
 import { isTopTab, PAGE_TABS, pageOf, type DesignTab, type TopTab, type ProjectMenuModel, type ShellHistoryStep, type ShellNavRow, type ShellProject } from "./model.ts";
-import { undoKey } from "./undo.ts";
+import { settleForHistory, undoKey, type HistoryMove } from "./undo.ts";
+import { UnsavedPrompt } from "./useProjectActions.tsx";
 import { ViewportToolbar, type ViewChip } from "./ViewportToolbar.tsx";
 
 export interface ConnectedShellProps {
@@ -58,12 +66,16 @@ export interface ConnectedShellProps {
   onPaneBridge?: (bridge: PaneBridge | null) => void;
   /** Show another open project; `AppRoot` owns which one is on screen. */
   onSwitchProject?: (projectId: string) => void;
+  /** A shell action failed; given the window's banner rather than the pane's error line. */
+  onError?: ((message: string) => void) | undefined;
   /** Recents and the project commands; `AppRoot` owns both. */
   projectMenu?: ProjectMenuModel | undefined;
   /** Filled while mounted: the native menu commands that act on this project's shell. */
   commandsRef?: RefObject<CommandHandlers | null> | undefined;
   /** Header Help. */
   onOpenHelp?: (() => void) | undefined;
+  /** Header Settings (R3.4); `AppRoot` owns the dialog. Without it the gear opens Lecturn's providers panel. */
+  onOpenSettings?: (() => void) | undefined;
 }
 
 /** Shell slots a page may own; absent ones keep the shell defaults. */
@@ -110,16 +122,27 @@ const chipOf = (v: ViewId): ViewChip => (v[0]!.toUpperCase() + v.slice(1)) as Vi
 
 const message = (e: unknown): string => (e instanceof Error ? e.message : String(e));
 
-export function ConnectedShell({ store, client = null, renderPage, renderCompare, toolbarControls, pageSlots, now = Date.now, onPaneBridge, onSwitchProject, projectMenu, commandsRef, onOpenHelp }: ConnectedShellProps) {
+export function ConnectedShell({ store, client = null, renderPage, renderCompare, toolbarControls, pageSlots, now = Date.now, onPaneBridge, onSwitchProject, onError, projectMenu, commandsRef, onOpenHelp, onOpenSettings }: ConnectedShellProps) {
   const s = useAppState(store, (x) => x);
   const [clock, setClock] = useState(now());
   const [checking, setChecking] = useState(false);
+  const [checkError, setCheckError] = useState<string | null>(null);
   const [projects, setProjects] = useState<ShellProject[] | null>(null);
   const [projectsError, setProjectsError] = useState<string | null>(null);
   const [reverting, setReverting] = useState(false);
+  /** The step the Tag dialog names, captured on open so later steps cannot change its target. */
+  const [tagging, setTagging] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [lastDesign, setLastDesign] = useState<DesignTab>("assembly");
 
+  // The embed covers the agent pane's error line, so with a window to tell, failures go on its banner. A dropped socket has its own banner there.
+  const fail = useCallback(
+    (e: unknown) => {
+      if (e instanceof RpcCallError && e.code === "closed") return;
+      (onError ?? setError)(message(e));
+    },
+    [onError],
+  );
   useEffect(() => {
     const t = setInterval(() => setClock(now()), 30_000);
     return () => clearInterval(t);
@@ -132,8 +155,8 @@ export function ConnectedShell({ store, client = null, renderPage, renderCompare
   const lecturnListed = s.chat.lecturn.threads !== null;
   const [bridge, setBridge] = useState<PaneBridge | null>(null);
   useEffect(() => {
-    if (connected) ensurePageThread(store).catch((e: unknown) => setError(message(e)));
-  }, [store, connected, page, lecturnListed, bridge]);
+    if (connected) ensurePageThread(store).catch(fail);
+  }, [store, connected, page, lecturnListed, bridge, fail]);
   useEffect(() => {
     const local = PAGE_TABS[page].local;
     if (local !== null) setLastDesign(local);
@@ -177,26 +200,38 @@ export function ConnectedShell({ store, client = null, renderPage, renderCompare
   );
   useEffect(() => {
     if (bridge === null || client === null || projectId === null) return;
-    return wirePane(store, client, projectId, bridge, { onError: (e) => setError(message(e)) });
-  }, [store, client, projectId, bridge]);
-  const run = (p: Promise<unknown>) => void p.catch((e: unknown) => setError(message(e)));
+    return wirePane(store, client, projectId, bridge, { onError: fail });
+  }, [store, client, projectId, bridge, fail]);
+  const run = (p: Promise<unknown>) => void p.catch(fail);
   // Revert, undo, and redo are all `history_restore` (never a separate undo stack).
-  const restore = (version: string) => {
+  const restore = (kind: HistoryMove, target: () => string | null) => {
     if (client === null || projectId === null || reverting) return;
     setReverting(true);
     run(
-      client
-        .call("history.restore", { projectId, version })
-        .then(() => store.getState().ui.setCompare(null))
+      settleForHistory(store, kind)
+        .then(async (go) => {
+          if (!go) return;
+          const version = target();
+          if (version === null) return;
+          await client.call("history.restore", { projectId, version });
+          store.getState().ui.setCompare(null);
+        })
         .finally(() => setReverting(false)),
     );
   };
+  /** The target undo or redo move to now: the model rendered with the click can be a step behind what just settled. */
+  const liveMove = (kind: "undo" | "redo") => (): string | null => shellModelFrom(store.getState(), now(), { checking: false }).undo?.[kind]?.id ?? null;
 
   const handlers: ShellHandlers = {
     onCheckModel: () => {
       if (client === null || projectId === null) return;
       setChecking(true);
-      run(client.call("check.run", { projectId }).finally(() => setChecking(false)));
+      setCheckError(null);
+      // Said in the panel that asked: this pane's error line is hidden behind the embed.
+      void client
+        .call("check.run", { projectId })
+        .catch((e: unknown) => setCheckError(message(e)))
+        .finally(() => setChecking(false));
     },
     onOpenProjects: () => {
       projectMenu?.onOpen();
@@ -211,7 +246,7 @@ export function ConnectedShell({ store, client = null, renderPage, renderCompare
     },
     onSwitchProject: (id) => onSwitchProject?.(id),
     onSelectThread: (id) => run(openThread(store, id)),
-    onNewThread: () => newPageThread(store),
+    onNewThread: () => run(newPageThread(store)),
     onSelectNav: (row: ShellNavRow) => {
       if (row.ref === undefined) return;
       if (page === "results") {
@@ -240,18 +275,18 @@ export function ConnectedShell({ store, client = null, renderPage, renderCompare
     onRevert: () => {
       const version = model.currentStepId;
       if (version === null || version === model.shownStepId) return;
-      restore(version);
+      restore("revert", () => version);
     },
+    ...(client !== null && projectId !== null ? { onTag: () => setTagging(model.currentStepId) } : {}),
     onUndo: () => {
-      const t = model.undo?.undo;
-      if (t) restore(t.id);
+      if (model.undo?.undo || store.getState().draft.ops.length > 0) restore("undo", liveMove("undo"));
     },
     onRedo: () => {
-      const t = model.undo?.redo;
-      if (t) restore(t.id);
+      if (model.undo?.redo) restore("redo", liveMove("redo"));
     },
-    // W3.6: with the embed, Settings shows Lecturn's providers panel in the pane.
-    onOpenSettings: () => openProviders(store),
+    // W3.6: with the embed, the agent pane's own button shows Lecturn's providers panel in the pane.
+    onOpenProviders: () => openProviders(store),
+    onOpenSettings: onOpenSettings ?? (() => openProviders(store)),
     ...(onOpenHelp !== undefined ? { onOpenHelp } : {}),
   };
   const goToTab = (t: TopTab) => run(navigatePage(store, pageOf(t, t === "design" ? lastDesign : null)));
@@ -264,9 +299,12 @@ export function ConnectedShell({ store, client = null, renderPage, renderCompare
   useEffect(() => {
     if (commandsRef === undefined) return;
     const table: CommandHandlers = {
-      "edit.undo": () => keys.current.onUndo?.(),
-      "edit.redo": () => keys.current.onRedo?.(),
-      "app.settings": () => keys.current.onOpenSettings?.(),
+      "edit.undo": () => {
+        if (!overlayOpen(document)) keys.current.onUndo?.();
+      },
+      "edit.redo": () => {
+        if (!overlayOpen(document)) keys.current.onRedo?.();
+      },
       "view.tab": ({ tab }) => {
         if (isTopTab(tab)) toTab.current(tab);
       },
@@ -278,19 +316,51 @@ export function ConnectedShell({ store, client = null, renderPage, renderCompare
   }, [commandsRef]);
   useEffect(() => {
     const on = (e: KeyboardEvent) => {
+      // A control that handled the key already said so (the fin outline's Delete, for one).
+      if (e.defaultPrevented) return;
       const k = undoKey(e);
-      if (k === null) return;
+      if (k !== null) {
+        e.preventDefault();
+        // A dialog owns the keyboard; the model must not change behind it.
+        if (overlayOpen(document)) return;
+        if (k === "undo") keys.current.onUndo?.();
+        else keys.current.onRedo?.();
+        return;
+      }
+      if (!isPartDeleteKey(e) || overlayOpen(document)) return;
+      const id = deleteKeyTarget(store.getState());
+      if (id === null) return;
       e.preventDefault();
-      if (k === "undo") keys.current.onUndo?.();
-      else keys.current.onRedo?.();
+      store.getState().ui.setPartDialog({ kind: "delete", id });
     };
     window.addEventListener("keydown", on);
     return () => window.removeEventListener("keydown", on);
-  }, []);
+  }, [store]);
 
   const snap = s.project.snapshot;
   const compareOpen = s.ui.compare !== null && renderCompare !== undefined;
+  const checkIssues = useMemo(() => checkIssuesOf(snap?.check?.diagnostics ?? [], snap?.evaluated?.components ?? [], { engines: snap?.evaluated?.engines, configs: snap?.evaluated?.configs, sims: snap?.evaluated?.sims }), [snap?.check, snap?.evaluated]);
+  const checkPanel: CheckPanelModel = {
+    issues: checkIssues,
+    checked: snap?.check != null,
+    running: checking,
+    error: checkError,
+    onRunAgain: () => handlers.onCheckModel?.(),
+    onGoTo: (ref) => {
+      // The Compare view stands in for the page, so the target would be selected out of sight.
+      store.getState().ui.setCompare(null);
+      run(openRef(store, ref, "check"));
+    },
+  };
 
+  // The pane's own "no threads" line is Lecturn's, and offers nothing to do.
+  const startChat = showStartChat(s) ? <StartChatPrompt start={s.chat.lecturn.threadStart} onStart={() => run(newPageThread(store))} /> : null;
+  const agentExtras = startChat === null ? slots?.agentExtra : (
+    <>
+      {startChat}
+      {slots?.agentExtra}
+    </>
+  );
   const embed = embedded ? <EmbedPane key={projectId} projectId={projectId} client={client} onBridge={onBridge} /> : undefined;
   // Without an embed (no project yet): the page's hint, or what went wrong.
   const hint = error ?? (slots?.agentExtra !== undefined ? null : HINTS[page]);
@@ -314,12 +384,14 @@ export function ConnectedShell({ store, client = null, renderPage, renderCompare
       onTabChange={goToTab}
       onLocalTabChange={(id) => run(navigatePage(store, id as PageId))}
       handlers={handlers}
+      checkPanel={checkPanel}
       projectMenu={projectMenu === undefined || projectsError === null ? projectMenu : { ...projectMenu, errors: [...projectMenu.errors, projectsError] }}
       agent={agent}
       agentEmbed={embed}
-      agentExtras={slots?.agentExtra}
+      agentExtras={agentExtras}
       compareOpen={compareOpen}
       reverting={reverting}
+      tagLabel={model.currentStepId !== null ? `Tag ${versionLabel(model.currentStepId, snap)}…` : null}
       revertLabel={model.currentStepId !== null && model.currentStepId !== model.shownStepId ? `Revert to ${versionLabel(model.currentStepId, snap)}` : null}
       headStepId={model.headStepId}
       historyExtra={slots?.historyExtra}
@@ -330,7 +402,12 @@ export function ConnectedShell({ store, client = null, renderPage, renderCompare
       {...(slots?.railFooter !== undefined ? { railFooter: slots.railFooter } : {})}
       page={page}
     >
-      {compareOpen ? renderCompare() : renderPage?.(page)}
+      <ErrorBoundary key={compareOpen ? "compare" : page}>{compareOpen ? renderCompare() : renderPage?.(page)}</ErrorBoundary>
+      <PartDialogs store={store} />
+      {s.ui.leaving !== null && <UnsavedPrompt question={{ problems: s.ui.leaving.problems, answer: (leave) => store.getState().ui.answerLeave(leave) }} />}
+      {tagging !== null && client !== null && projectId !== null && (
+        <TagVersionDialog versionLabel={versionLabel(tagging, snap)} onTag={(name) => client.call("history.tag", { projectId, name, version: tagging })} onClose={() => setTagging(null)} />
+      )}
     </AppShell>
   );
 }

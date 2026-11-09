@@ -7,25 +7,28 @@
 import type { HistoryListOut, RwRef, schema } from "@rw/contracts";
 import { runRows, type RunRow } from "../../state/selectors.ts";
 import { parseRef } from "../../state/slices/selection.ts";
-import type { AppState, DeepReadonly } from "../../state/types.ts";
-import { fmtNum } from "../../plots/quantities.ts";
+import { SERIES_SLOTS, type AppState, type DeepReadonly, type SeriesSlot } from "../../state/types.ts";
+import { unitSystemOf, type UnitSystem } from "../../state/displayUnits.ts";
+import { fmtFlight, fmtNum } from "../../plots/quantities.ts";
 import type { RunSummary } from "../../plots/events.ts";
 
 type Conditions = schema.Conditions;
 type Diagnostic = schema.Diagnostic;
 type HistoryStep = schema.HistoryStep;
 
-export type SeriesSlot = "a" | "b";
+export type { SeriesSlot };
 
 export interface ResultsRow extends RunRow {
   /** Summary shown in the metric cells (only for Complete runs). */
   metrics: RunSummary | null;
-  /** Overlay slot (checkbox ticked): A teal, B sand. */
+  /** Overlay slot (checkbox ticked), `SERIES_SLOTS` in pick order. */
   series: SeriesSlot | null;
   /** The single selected run (rail and table highlight). */
   selected: boolean;
   /** Hidden with the rail eye toggle. */
   hidden: boolean;
+  /** The row's sim is still in the model, so it can be flown (a deleted sim's runs stay listed). */
+  inModel: boolean;
 }
 
 export type SortKey = "name" | "status" | "apogee" | "maxSpeed" | "flightTime";
@@ -93,14 +96,16 @@ export function nextSort(cur: SortState | null, key: SortKey): SortState | null 
 /** The run table rows, statuses computed against the current model hash. */
 export function resultsRows(s: AppState, opts: { sort?: SortState | null; hidden?: readonly string[] } = {}): ResultsRow[] {
   const hidden = new Set(opts.hidden ?? []);
+  const sims = s.project.snapshot?.evaluated?.sims ?? null;
   const rows = runRows(s).map((r): ResultsRow => {
     const slot = s.runs.overlay.indexOf(r.key);
     return {
       ...r,
       metrics: r.status.kind === "complete" ? ((r.entry.summary ?? r.job?.summary ?? null) as RunSummary | null) : null,
-      series: slot === 0 ? "a" : slot === 1 ? "b" : null,
+      series: SERIES_SLOTS[slot] ?? null,
       selected: isRowSelected(s.selection.refs, r),
       hidden: hidden.has(r.key),
+      inModel: sims?.[r.sim] != null,
     };
   });
   return sortRows(rows, opts.sort ?? null);
@@ -113,9 +118,23 @@ export interface OutdatedBanner {
   more: number;
 }
 
-/** The Outdated banner: shown while any run's model revision differs from the current one. */
+/** A row whose sim can be flown now: its sim's latest row, still in the model, with nothing flying. */
+export function canRefly(r: Pick<ResultsRow, "inModel" | "entry" | "status">): boolean {
+  return r.inModel && r.entry.superseded_by == null && r.status.kind !== "running" && r.status.kind !== "queued";
+}
+
+/** Of `sims`, the ones a bulk Run may fly: a superseded row says nothing about its sim's latest flight. */
+export function runnableSims(rows: readonly ResultsRow[], sims: readonly string[]): string[] {
+  return [...new Set(sims)].filter((sim) => rows.some((r) => r.sim === sim && canRefly(r)));
+}
+
+/**
+ * The Outdated banner: shown while a sim's latest run is on an older model. A
+ * run its re-run replaced stays Outdated for before/after, and a deleted sim's
+ * run has nothing to fly, so neither keeps the banner up.
+ */
 export function outdatedBanner(rows: readonly ResultsRow[]): OutdatedBanner | null {
-  const outdated = rows.filter((r) => r.status.kind === "outdated");
+  const outdated = rows.filter((r) => r.status.kind === "outdated" && canRefly(r));
   const first = outdated[0];
   if (first === undefined) return null;
   return {
@@ -125,9 +144,42 @@ export function outdatedBanner(rows: readonly ResultsRow[]): OutdatedBanner | nu
   };
 }
 
-/** Runs worth plotting first: the first two Complete runs (row keys). */
+export type PlotPrompt =
+  | { text: string; action: "open-design" | "add-simulation" | null }
+  /** Offers to run the sim that has never flown. */
+  | { text: string; action: "run"; sim: string; name: string };
+
+/** What the plot says when no run is plotted: the next step from "I have a rocket" to "it flew" (R2.7). */
+export function plotPrompt(rows: readonly ResultsRow[], noParts: boolean): PlotPrompt {
+  if (rows.length === 0) {
+    return noParts
+      ? { text: "Nothing to fly yet. Add your first part on Design, then add a simulation.", action: "open-design" }
+      : { text: "Nothing to fly yet. Add a simulation to see flight results here.", action: "add-simulation" };
+  }
+  const flown = rows.some((r) => r.entry.run_id != null || r.status.kind === "running" || r.status.kind === "queued");
+  const first = rows.find((r) => r.status.kind === "not_run" || r.status.kind === "cancelled");
+  if (!flown && first !== undefined) return { text: "Nothing has flown yet. Run a simulation to see its flight here.", action: "run", sim: first.sim, name: first.name };
+  return { text: "Tick up to six runs to plot them.", action: null };
+}
+
+/**
+ * Runs worth plotting first (row keys): the first two Complete runs, else the
+ * latest flown ones, because one edit makes every run Outdated and the flights
+ * are still on disk. Two even though the plot takes six: a comparison to read,
+ * not every run at once.
+ */
 export function defaultOverlay(rows: readonly ResultsRow[]): string[] {
-  return rows.filter((r) => r.status.kind === "complete").slice(0, 2).map((r) => r.key);
+  const complete = rows.filter((r) => r.status.kind === "complete");
+  const pick = complete.length > 0 ? complete : rows.filter((r) => r.status.kind === "outdated" && r.entry.run_id != null && r.entry.superseded_by == null);
+  return pick.slice(0, 2).map((r) => r.key);
+}
+
+/** The plotted rows that have a drawn line, matched by row key: a run its latest replaced shares the sim id, so the sim id cannot tell them apart. */
+export function legendRows<L extends { id: string }>(rows: readonly ResultsRow[], lines: readonly L[]): { row: ResultsRow; line: L }[] {
+  return rows.flatMap((row) => {
+    const line = lines.find((l) => l.id === row.key);
+    return line === undefined ? [] : [{ row, line }];
+  });
 }
 
 /** The run the details footer describes: the selected run, else series A, else the first Complete run. */
@@ -162,35 +214,37 @@ const CARDINALS = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
 const cardinal = (deg: number): string => CARDINALS[Math.round((((deg % 360) + 360) % 360) / 45) % 8]!;
 
 /** `calm (0 m/s, 15 °C)` or `wind 4.0 m/s from NW (12 °C)` (the footer's tooltip). */
-export function environmentLabel(c: DeepReadonly<Conditions> | null | undefined): string {
+export function environmentLabel(c: DeepReadonly<Conditions> | null | undefined, system: UnitSystem = "metric"): string {
   if (!c) return "unknown";
-  const temp = `${fmtNum(c.base_temperature_k - 273.15)} °C`;
-  if (c.wind_speed_ms < 0.5) return `calm (${fmtNum(c.wind_speed_ms)} m/s, ${temp})`;
-  return `wind ${fmtNum(c.wind_speed_ms, 1)} m/s from ${cardinal(c.wind_direction_deg)} (${temp})`;
+  const temp = fmtFlight(c.base_temperature_k, "temperature", system);
+  if (c.wind_speed_ms < 0.5) return `calm (${fmtFlight(c.wind_speed_ms, "wind", system)}, ${temp})`;
+  return `wind ${fmtFlight(c.wind_speed_ms, "wind", system, 1)} from ${cardinal(c.wind_direction_deg)} (${temp})`;
 }
 
 /** The footer's compact form: `calm, 15 °C` or `wind 3 m/s W, 15 °C` (wind to 0.1 m/s, trailing `.0` dropped). */
-export function environmentShort(c: DeepReadonly<Conditions> | null | undefined): string {
+export function environmentShort(c: DeepReadonly<Conditions> | null | undefined, system: UnitSystem = "metric"): string {
   if (!c) return "unknown";
-  const temp = `${fmtNum(c.base_temperature_k - 273.15)} °C`;
+  const temp = fmtFlight(c.base_temperature_k, "temperature", system);
   if (c.wind_speed_ms < 0.5) return `calm, ${temp}`;
-  const speed = fmtNum(c.wind_speed_ms, 1).replace(/\.0$/, "");
-  return `wind ${speed} m/s ${cardinal(c.wind_direction_deg)}, ${temp}`;
+  const speed = fmtFlight(c.wind_speed_ms, "wind", system, 1).replace(/\.0 /, " ");
+  return `wind ${speed} ${cardinal(c.wind_direction_deg)}, ${temp}`;
 }
 
 const ATMOSPHERE: Record<string, string> = { ussa1976: "US Standard Atmosphere 1976", isa_custom: "ISA (custom base)" };
 
 /** The assumptions behind a run, as short sentences from its conditions and tier. */
-export function assumptionsOf(c: DeepReadonly<Conditions> | null | undefined, provenance: string | null | undefined): string[] {
+export function assumptionsOf(c: DeepReadonly<Conditions> | null | undefined, provenance: string | null | undefined, system: UnitSystem = "metric"): string[] {
   const out: string[] = [];
   if (provenance) out.push(provenance === "engineering" ? "Engineering result (tier 1 flight simulation)" : `${provenance} result: not an engineering number`);
   if (!c) return out;
-  out.push(`Atmosphere: ${ATMOSPHERE[c.atmosphere] ?? c.atmosphere}, ${fmtNum(c.base_temperature_k - 273.15)} °C and ${fmtNum(c.base_pressure_pa / 100)} hPa at the site`);
+  out.push(
+    `Atmosphere: ${ATMOSPHERE[c.atmosphere] ?? c.atmosphere}, ${fmtFlight(c.base_temperature_k, "temperature", system)} and ${fmtFlight(c.base_pressure_pa, "pressure", system, system === "imperial" ? 2 : 0)} at the site`,
+  );
   out.push(c.geodetic === "flat" ? "Flat earth, flat ground plane" : `Earth model: ${c.geodetic}`);
   const g = c.gravity;
-  out.push(g == null || g.model === "wgs84" ? "Gravity: WGS84" : `Gravity: constant ${fmtNum(g.g_ms2, 3)} m/s²`);
-  out.push(c.wind_speed_ms < 0.5 ? "No wind" : `Wind ${fmtNum(c.wind_speed_ms, 1)} m/s, turbulence ${fmtNum(c.wind_turbulence * 100)}%`);
-  out.push(`Launch rail ${fmtNum(c.rail_length_m, 2)} m at ${fmtNum(c.rod_angle_deg, 1)}° from vertical${c.launch_into_wind ? ", into the wind" : ""}`);
+  out.push(g == null || g.model === "wgs84" ? "Gravity: WGS84" : `Gravity: constant ${fmtFlight(g.g_ms2, "acceleration", system, 3)}`);
+  out.push(c.wind_speed_ms < 0.5 ? "No wind" : `Wind ${fmtFlight(c.wind_speed_ms, "wind", system, 1)}, turbulence ${fmtNum(c.wind_turbulence * 100)}%`);
+  out.push(`Launch rail ${fmtFlight(c.rail_length_m, "length", system, 2)} at ${fmtNum(c.rod_angle_deg, 1)}° from vertical${c.launch_into_wind ? ", into the wind" : ""}`);
   out.push(`Integrator ${c.integrator}, ${c.integrator === "rk4" ? "step" : "max step"} ${c.time_step_s} s`);
   return out;
 }
@@ -215,12 +269,13 @@ export function runDetails(s: AppState, row: ResultsRow | null, diagnostics?: re
   const sim = row ? snap?.evaluated?.sims[row.sim] : undefined;
   const conditions = sim?.conditions ?? null;
   const diags = diagnostics ?? snap?.check?.diagnostics ?? [];
+  const system = unitSystemOf(s);
   return {
     modelRev: modelRevision(snap?.history, row?.entry.model_hash).label,
-    environment: environmentShort(conditions),
-    environmentFull: environmentLabel(conditions),
+    environment: environmentShort(conditions, system),
+    environmentFull: environmentLabel(conditions, system),
     warnings: diags.filter((d) => d.severity === "warning").length,
-    assumptions: assumptionsOf(conditions, row?.entry.provenance),
+    assumptions: assumptionsOf(conditions, row?.entry.provenance, system),
   };
 }
 
@@ -244,12 +299,30 @@ export function fmtWhen(iso: string | null | undefined, timeZone?: string): stri
   return d.toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit", ...(timeZone ? { timeZone } : {}) });
 }
 
-/** Snapshot cards for the history strip's second row: the overlaid runs (A then B), else every run with a result. */
+/** Snapshot cards for the history strip's second row: the overlaid runs in slot order, else every run with a result. */
 export function runSnapshots(s: AppState, rows: readonly ResultsRow[], timeZone?: string): RunSnapshot[] {
-  const overlaid = (["a", "b"] as const).flatMap((slot) => rows.filter((r) => r.series === slot));
+  const overlaid = SERIES_SLOTS.flatMap((slot) => rows.filter((r) => r.series === slot));
   const pick = overlaid.length > 0 ? overlaid : rows.filter((r) => r.entry.run_id != null);
   return pick.map((r) => {
     const rev = modelRevision(s.project.snapshot?.history, r.entry.model_hash);
     return { key: r.key, sim: r.sim, ref: rowRef(r), title: `${r.name} run`, modelRev: rev.label, when: fmtWhen(rev.step?.ts, timeZone), series: r.series, color: r.color };
   });
+}
+
+/**
+ * The tabs that go behind the More control, by index: none while every tab fits, else
+ * whichever cannot share the row with the active tab and that control. Tabs keep their
+ * order and leave from the end; the active tab is never one of them.
+ */
+export function overflowTabs(widths: readonly number[], available: number, moreWidth: number, active: number): number[] {
+  if (available <= 0 || widths.reduce((sum, w) => sum + w, 0) <= available) return [];
+  const room = available - moreWidth - (widths[active] ?? 0);
+  let used = 0;
+  const hidden: number[] = [];
+  widths.forEach((w, i) => {
+    if (i === active) return;
+    if (hidden.length === 0 && used + w <= room) used += w;
+    else hidden.push(i);
+  });
+  return hidden;
 }

@@ -7,6 +7,7 @@
  * conversion and labels.
  */
 import type { CheckReport, EvaluatedModel, schema } from "@rw/contracts";
+import { LENGTH_UNITS } from "../../state/displayUnits.ts";
 import type { DeepReadonly, Units } from "../../state/index.ts";
 
 type Clearance = schema.Clearance;
@@ -31,7 +32,7 @@ export interface InspectorView {
   clearance: InspectorRow[];
 }
 
-export const UNITS: readonly Units[] = ["mm", "cm", "m", "in"];
+export const UNITS: readonly Units[] = LENGTH_UNITS;
 
 const LENGTH: Record<Units, { per: number; digits: number }> = {
   mm: { per: 1000, digits: 1 },

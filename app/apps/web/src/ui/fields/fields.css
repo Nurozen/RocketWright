@@ -22,6 +22,46 @@
   white-space: nowrap;
 }
 
+.rw-field--text {
+  grid-template-columns: minmax(80px, 1fr) 156px;
+}
+
+.rw-field__text {
+  height: 30px;
+  min-width: 0;
+  padding: 0 10px;
+  border: var(--rw-hairline) solid var(--rw-line);
+  border-radius: var(--rw-radius-sm);
+  background: var(--rw-panel);
+  color: var(--rw-text-primary);
+  font: inherit;
+  outline: none;
+}
+
+.rw-field__text:focus {
+  border-color: var(--rw-accent);
+}
+
+/* The check's words and the rename warning span the whole row, under the field. */
+.rw-field__diag,
+.rw-field__note {
+  grid-column: 1 / -1;
+  font-size: var(--rw-font-size-secondary);
+  line-height: 1.3;
+}
+
+.rw-field__diag {
+  color: var(--rw-danger);
+}
+
+.rw-field__diag[data-severity="warning"] {
+  color: var(--rw-warning);
+}
+
+.rw-field__note {
+  color: var(--rw-text-secondary);
+}
+
 .rw-field__unit {
   color: var(--rw-text-secondary);
   font-size: var(--rw-font-size-secondary);

@@ -34,7 +34,7 @@ describe("the native menu", () => {
   it("sends the project commands to the page, labelled from the one table", () => {
     const actions = fakeActions();
     const t = buildMenuTemplate(state(), actions);
-    for (const id of ["project.new", "project.open", "project.openSample", "project.rename", "project.close", "help.quickStart", "app.settings"] as const) {
+    for (const id of ["project.new", "project.open", "project.openSample", "file.import", "file.export", "project.rename", "project.close", "help.quickStart", "app.settings"] as const) {
       const item = byId(t, id);
       expect(item.label).toBe(APP_COMMANDS.find((c) => c.id === id)!.label);
       click(item);
@@ -48,6 +48,10 @@ describe("the native menu", () => {
     expect(accelerated("CmdOrCtrl+W")).toEqual(["project.close"]);
     expect(accelerated("CmdOrCtrl+Shift+W")).toEqual(["window.close"]);
     expect(accelerated("CmdOrCtrl+Z")).toEqual(["edit.undo"]);
+    expect(accelerated("CmdOrCtrl+N")).toEqual(["project.new"]);
+    expect(accelerated("CmdOrCtrl+O")).toEqual(["project.open"]);
+    expect(accelerated("CmdOrCtrl+,")).toEqual(["app.settings"]);
+    expect([1, 2, 3, 4].map((n) => accelerated(`CmdOrCtrl+${n}`))).toEqual([["view.tab:design"], ["view.tab:propulsion"], ["view.tab:simulate"], ["view.tab:results"]]);
   });
 
   it.each(platforms)("has no close, zoom or Delete shortcut that would bypass the app on %s", (platform) => {
@@ -100,8 +104,10 @@ describe("the native menu", () => {
 
   it("only offers project-bound items with a project open", () => {
     const t = buildMenuTemplate(state({ projectOpen: false }), fakeActions());
-    for (const id of ["project.close", "project.rename", "app.settings", "view.tab:design"]) expect(byId(t, id).enabled, id).toBe(false);
+    for (const id of ["project.close", "project.rename", "file.export", "view.tab:design"]) expect(byId(t, id).enabled, id).toBe(false);
+    expect(byId(t, "app.settings").enabled, "default units are settable from Welcome").not.toBe(false);
     expect(byId(t, "project.new").enabled).toBeUndefined();
+    expect(byId(t, "file.import").enabled, "an .ork starts a new project (D17)").toBeUndefined();
     expect(byId(t, "project.openSample").enabled).toBeUndefined();
   });
 
@@ -265,6 +271,28 @@ describe("createMenuController", () => {
     expect(byId(h.applied.at(-1)!, "project.close").enabled).toBe(true);
     await h.controller.setProjectOpen(false);
     expect(byId(h.applied.at(-1)!, "project.close").enabled).toBe(false);
+  });
+
+  it("installs a working menu at once, with Recent still loading", () => {
+    const h = harness(() => new Promise(() => undefined));
+    h.controller.install();
+    expect(h.applied).toHaveLength(1);
+    expect(children(byId(h.applied[0]!, "project.openRecent")).map((r) => r.label)).toEqual(["Loading recent projects…"]);
+  });
+
+  it("applies whether a project is showing before Recents have been read", () => {
+    const h = harness(() => new Promise(() => undefined));
+    void h.controller.setProjectOpen(true);
+    expect(byId(h.applied.at(-1)!, "project.close").enabled).toBe(true);
+  });
+
+  it("hides a project already in the header's list, but not on Welcome", async () => {
+    const open = { ...recent("open"), open: true } as RecentProject;
+    const h = harness(() => Promise.resolve([recent("a"), open]));
+    await h.controller.setProjectOpen(true);
+    expect(children(byId(h.applied.at(-1)!, "project.openRecent")).map((r) => r.label)).toEqual(["a"]);
+    await h.controller.setProjectOpen(false);
+    expect(children(byId(h.applied.at(-1)!, "project.openRecent")).map((r) => r.label)).toEqual(["a", "open"]);
   });
 
   it("drops a slow rebuild once a newer one has been asked for", async () => {

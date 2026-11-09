@@ -15,7 +15,7 @@ import { parse } from "smol-toml";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { CheckReport, EvaluatedModel, ModelGetOut, SimulateOut } from "../../packages/contracts/src/generated/index.ts";
 import { REPO_ROOT, round, stableStringify } from "../bar/paths.ts";
-import { allRowKeys, compareCase1, compareEvaluatedConditions, comparePersisted, flightOracleRows, loadOracle, matchParts, type Diff, type Oracle, type OracleRow, type RunSummaryRecord } from "../case1-compare.ts";
+import { compareCase1, compareEvaluatedConditions, comparePersisted, flightOracleRows, loadOracle, matchParts, type Diff, type Oracle, type OracleRow, type RunSummaryRecord } from "../case1-compare.ts";
 import { loadCase1Plan, readEnv, type Case1Plan } from "../case1-plan.ts";
 import { FIXTURE_DIR, sourceFields, type TomlScalar } from "../case1-script.ts";
 import { SCRATCH, sidecarBinary } from "../live.ts";
@@ -127,11 +127,10 @@ interface Comparison {
 }
 
 function compare(b: Build): Comparison {
-  const enabled = allRowKeys();
-  const { mapping } = matchParts(b.plan, b.model, enabled);
+  const { mapping } = matchParts(b.plan, b.model);
   return {
-    model: compareCase1(b.plan, { model: b.model, check: b.check }, enabled, b.oracle),
-    conditions: [...compareEvaluatedConditions(b.plan, b.model, enabled, mapping), ...comparePersisted(b.project, enabled, mapping)],
+    model: compareCase1(b.plan, { model: b.model, check: b.check }, b.oracle),
+    conditions: [...compareEvaluatedConditions(b.plan, b.model, mapping), ...comparePersisted(b.project, mapping)],
   };
 }
 

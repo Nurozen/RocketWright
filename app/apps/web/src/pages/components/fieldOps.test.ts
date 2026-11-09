@@ -4,7 +4,7 @@ import type { EvaluatedModel, PatchOp, schema } from "@rw/contracts";
 import { loadRwWasm } from "@rw/rw-wasm";
 import { describe, expect, it } from "vitest";
 import { editorFields, groupsOf, rangeError, limitsOf, type FieldGroup, type FieldSpec } from "../../ui/fields/index.ts";
-import { evaluatedValue, fieldWriteOps, groupAddOps, tablePresent } from "./fieldOps.ts";
+import { evaluatedValue, fieldValue, fieldWriteOps, groupAddOps, tablePresent } from "./fieldOps.ts";
 import { fieldTarget, sourceHasTable, tableScalars } from "./source.ts";
 
 const repo = new URL("../../../../../../", import.meta.url);
@@ -17,6 +17,17 @@ const nose = (over: Record<string, unknown> = {}, shape: Record<string, unknown>
 
 const field = (type: string, key: string): FieldSpec => editorFields(type).find((f) => f.key === key)!;
 const group = (type: string, key: string): FieldGroup => groupsOf(editorFields(type)).find((g) => g.key === key)!;
+
+describe("thickness and the bore it replaces", () => {
+  const tube = { id: "body", name: "Body", shape: { type: "body_tube", length: 0.3, od: 0.0248, id: 0.0241 } } as unknown as Comp;
+  const FILES = { "rocket.rw.toml": ['[params.bore]', 'value = "24.1 mm"', "", "[c.body]", 'type = "body_tube"', 'length = "300 mm"', 'od = "24.8 mm"', 'id = "= params.bore"'].join("\n") };
+
+  it("clears the tube's own id when the id is a parameter reference, and leaves the parameter's value alone", () => {
+    const ops = fieldWriteOps([tube], FILES, field("body_tube", "thickness"), "0.4 mm");
+    expect(ops).toContainEqual({ op: "remove", path: "/c/body/id" });
+    expect(ops).not.toContainEqual({ op: "remove", path: "/params/bore/value" });
+  });
+});
 
 describe("the source reader", () => {
   const FILES = {
@@ -132,6 +143,20 @@ describe("Add writes the whole group", () => {
     expect(groupAddOps([has], {}, group("nose_cone", "shoulder"), "mm")).toEqual([]);
   });
 
+  it("a Thickness edit on an id that names a parameter, and a typed formula, are accepted by the real engine", async () => {
+    const rw = await loadRwWasm(readFileSync(new URL("../../../../../packages/rw-wasm/pkg/rw_wasm_bg.wasm", import.meta.url)));
+    const rocket = read("templates/minimum/rocket.rw.toml").replace('id = "24.1 mm"', 'id = "= params.bore"');
+    const files = { "rocket.rw.toml": `[params.bore]\nvalue = "24.1 mm"\n\n[params.scale]\nvalue = 2\n\n${rocket}`, "rocketwright.toml": read("templates/minimum/rocketwright.toml") };
+    const apply = (ops: readonly PatchOp[]) => rw.applyAndEval!({ files, ops }) as { evaluated: EvaluatedModel };
+    const before = apply([]);
+    const part = (m: EvaluatedModel, id: string) => m.components.find((c) => c.id === id)!;
+    const thickness = fieldWriteOps([part(before.evaluated, "body")], files, field("body_tube", "thickness"), "0.4 mm");
+    expect((part(apply(thickness).evaluated, "body").shape as unknown as { od: number }).od).toBeCloseTo(0.0248, 6);
+
+    const formula = fieldWriteOps([part(before.evaluated, "fins")], files, field("trapezoidal_fin_set", "span"), "= 20 mm * params.scale");
+    expect((part(apply(formula).evaluated, "fins").shape as unknown as { span: number }).span).toBeCloseTo(0.04, 6);
+  });
+
   it("is accepted by the real engine and adds no error, with siblings intact on a later edit", async () => {
     const rw = await loadRwWasm(readFileSync(new URL("../../../../../packages/rw-wasm/pkg/rw_wasm_bg.wasm", import.meta.url)));
     const rocket = read("fixtures/case1/rocket.rw.toml")
@@ -161,5 +186,65 @@ describe("Add writes the whole group", () => {
     const again = (comp(edited.evaluated, "nose").shape as unknown as { shoulder: { length: number; capped: boolean } }).shoulder;
     expect(again.capped).toBe(true);
     expect(again.length).toBeCloseTo(0.025, 9);
+  });
+});
+
+describe("the bore of a tube", () => {
+  const tube = { id: "body", name: "Body", shape: { type: "body_tube", length: 0.3, od: 0.025, id: 0.023 } } as unknown as Comp;
+  const withId = { "rocket.rw.toml": '[c.body]\nid = "23 mm"\n' };
+  const withThickness = { "rocket.rw.toml": '[c.body]\nthickness = "1 mm"\n' };
+
+  it("clears the id when a thickness is typed, because the model reads the id first", () => {
+    expect(fieldWriteOps([tube], withId, field("body_tube", "thickness"), "1 mm")).toEqual([
+      { op: "add", path: "/c/body/thickness", value: "1 mm" },
+      { op: "remove", path: "/c/body/id" },
+    ]);
+  });
+
+  it("clears the thickness when an id is typed", () => {
+    expect(fieldWriteOps([tube], withThickness, field("body_tube", "id"), "20 mm")).toEqual([
+      { op: "add", path: "/c/body/id", value: "20 mm" },
+      { op: "remove", path: "/c/body/thickness" },
+    ]);
+  });
+
+  it("leaves another kind's id alone: a ring's id and thickness are not alternatives", () => {
+    const ring = { id: "r", name: "R", shape: { type: "centering_ring", length: 0.002, od: 0.023, id: 0.019 } } as unknown as Comp;
+    expect(fieldWriteOps([ring], { "rocket.rw.toml": '[c.r]\nthickness = "1 mm"\n' }, field("centering_ring", "id"), "19 mm")).toEqual([{ op: "add", path: "/c/r/id", value: "19 mm" }]);
+  });
+
+  it("shows the wall a bore implies when no thickness is written", () => {
+    expect(fieldValue(tube, withId, field("body_tube", "thickness"))).toBeCloseTo(0.001, 9);
+  });
+});
+
+describe("what a field shows", () => {
+  it("reads a field the evaluated model does not carry from the source", () => {
+    const part = { id: "lug", name: "Lug", shape: { type: "launch_lug" }, attach: { to: "body.mid", at: "fore", offset: 0 } } as unknown as Comp;
+    const files = { "rocket.rw.toml": '[c.lug]\nattach = { to = "body.mid", spin = "19 deg" }\n' };
+    expect(fieldValue(part, files, field("launch_lug", "attach.spin"))).toBeCloseTo((19 * Math.PI) / 180, 9);
+  });
+
+  it("does not take an anchor the model filled in for one a person chose", () => {
+    const part = { id: "lug", name: "Lug", shape: { type: "launch_lug" }, attach: { to: "body.mid", at: "mid", offset: 0 } } as unknown as Comp;
+    expect(fieldValue(part, { "rocket.rw.toml": '[c.lug]\nattach = { to = "body.mid" }\n' }, field("launch_lug", "attach.at"))).toBeNull();
+  });
+});
+
+describe("groups the editor adds", () => {
+  it("starts a custom finish at the part's own roughness, in micrometres", () => {
+    const part = nose({ roughness: 0.00002 });
+    expect(groupAddOps([part], {}, group("nose_cone", "finish"), "mm")).toEqual([{ op: "add", path: "/c/nose/finish", value: { roughness: "20 um" } }]);
+  });
+
+  it("writes instances and a joint whole, with their required members", () => {
+    expect(groupAddOps([nose()], {}, group("nose_cone", "instances"), "mm")).toEqual([{ op: "add", path: "/c/nose/instances", value: { count: 2, pattern: "radial" } }]);
+    expect(groupAddOps([nose()], {}, group("nose_cone", "joint"), "mm")).toEqual([{ op: "add", path: "/c/nose/joint", value: { type: "friction" } }]);
+  });
+
+  it("offers instances until the source has them: every part evaluates to at least one", () => {
+    const part = nose({ instances: [{ x: 0, roll: 0 }] });
+    expect(tablePresent({}, part, ["instances"])).toBe(false);
+    expect(tablePresent({ "rocket.rw.toml": '[c.nose]\ninstances = { count = 2, pattern = "radial" }\n' }, part, ["instances"])).toBe(true);
   });
 });

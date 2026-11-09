@@ -17,7 +17,7 @@ import { execFile } from "node:child_process";
 import { realpathSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
-import type { ProjectTemplate } from "@rw/contracts";
+import type { DisplayUnits, ProjectTemplate } from "@rw/contracts";
 import { RpcFail } from "../rpc/errors.ts";
 import { sidecarBinary, sidecarEnv } from "../sidecar/SidecarClient.ts";
 import { folderState } from "./inspect.ts";
@@ -45,6 +45,10 @@ export interface ProjectCreateArgs {
   location?: string;
   template?: ProjectTemplate;
   ork?: string;
+  /** The default-units preference (R3.4); `rw init` only, since `rw import ork` has no such flag and the file's own units apply. */
+  displayUnits?: DisplayUnits;
+  /** The folder is exactly `location/name`: a name already taken is refused, never renumbered (the agent's consent named this path). */
+  exact?: boolean;
 }
 
 interface RwOutput {
@@ -67,6 +71,20 @@ function absolutePath(key: string, path: string): string {
   const expanded = expandHome(path);
   if (!isAbsolute(expanded)) throw new RpcFail("invalid_params", `${key}: expected an absolute path or one starting with ~`);
   return resolve(expanded);
+}
+
+/** `,` and `=` are this flag's own separators, so a unit containing one would become another entry. */
+const UNIT_KEY = /^[a-z_]+$/;
+const UNIT_SYMBOL = /^[^,=\p{Cc}]+$/u;
+
+/** `rw init`'s flag for these units, in sorted key order; no flag for none. */
+export function displayUnitsFlag(units: DisplayUnits | undefined): string[] {
+  if (units === undefined) return [];
+  const entries = Object.entries(units).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
+  for (const [key, unit] of entries) {
+    if (!UNIT_KEY.test(key) || !UNIT_SYMBOL.test(unit)) throw new RpcFail("invalid_params", `displayUnits: cannot use ${key} = ${JSON.stringify(unit)}`);
+  }
+  return entries.length === 0 ? [] : [`--display-units=${entries.map(([key, unit]) => `${key}=${unit}`).join(",")}`];
 }
 
 /** The realpath of the nearest ancestor that resolves, plus the rest: what `path` will be once created. */
@@ -144,24 +162,25 @@ export class ProjectCreator {
   async create(req: ProjectCreateArgs): Promise<string> {
     const location = absolutePath("location", req.location ?? defaultProjectLocation());
     const ork = req.ork === undefined ? undefined : absolutePath("source.ork", req.ork);
-    const dedupe = req.template === "sample" && req.name === SAMPLE_PROJECT_NAME;
+    const units = displayUnitsFlag(req.displayUnits);
+    const dedupe = req.exact !== true && req.template === "sample" && req.name === SAMPLE_PROJECT_NAME;
     for (let n = 1; ; n++) {
       const name = n === 1 ? req.name : `${req.name} ${n}`;
       const target = join(location, name);
       refuseOverlong(target);
-      const made = await this.gated(target, () => this.createAt(target, name, req.template, ork, dedupe));
+      const made = await this.gated(target, () => this.createAt(target, name, req.template, ork, dedupe, units));
       if (made) return target;
     }
   }
 
   /** False when `dedupe` found the name taken. */
-  private async createAt(target: string, name: string, template: ProjectTemplate | undefined, ork: string | undefined, dedupe: boolean): Promise<boolean> {
+  private async createAt(target: string, name: string, template: ProjectTemplate | undefined, ork: string | undefined, dedupe: boolean, units: string[]): Promise<boolean> {
     const state = folderState(target);
     if (dedupe && state !== "missing") return false;
     if (state === "project") throw new RpcFail("conflict", `${target} already holds a project`);
     if (state === "file") throw new RpcFail("conflict", `${target} is a file, so a project cannot be created there`);
     // `--name=` so that a name starting with `-` is not read as a flag.
-    const args = ork === undefined ? ["init", target, `--name=${name}`, ...(template === undefined ? [] : [`--template=${template}`]), "--json"] : ["import", "ork", ork, target, "--json"];
+    const args = ork === undefined ? ["init", target, `--name=${name}`, ...(template === undefined ? [] : [`--template=${template}`]), ...units, "--json"] : ["import", "ork", ork, target, "--json"];
     const run = await runRw(this.bin, args);
     if (!created(run)) throw failureOf(run);
     return true;

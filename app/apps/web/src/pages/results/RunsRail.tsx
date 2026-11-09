@@ -4,11 +4,12 @@
  * text. Selecting a row selects the run everywhere (`rw:sim/<id>`).
  */
 import { useState } from "react";
-import type { AppStore } from "../../state/store.ts";
+import { useAppState, type AppStore } from "../../state/store.ts";
 import { Icon } from "../../shell/Icon.tsx";
 import { primaryRow, rowRef } from "./model.ts";
 import { StatusGlyph, useResultsRows } from "./parts.tsx";
 import { resultsUiStore } from "./resultsUi.ts";
+import { newSimulation } from "./SimConditionsSheet.tsx";
 
 export interface RunsRailProps {
   app: AppStore;
@@ -18,6 +19,7 @@ export interface RunsRailProps {
 
 export function RunsRail({ app, onOpenRun }: RunsRailProps) {
   const rows = useResultsRows(app, { sorted: false, includeHidden: true });
+  const noConfigs = useAppState(app, (s) => Object.keys(s.project.snapshot?.evaluated?.configs ?? {}).length === 0);
   const [query, setQuery] = useState<string | null>(null);
   const q = query?.trim().toLowerCase() ?? "";
   const shown = q === "" ? rows : rows.filter((r) => r.name.toLowerCase().includes(q));
@@ -34,12 +36,12 @@ export function RunsRail({ app, onOpenRun }: RunsRailProps) {
           <Icon name="search" size={18} />
         </button>
         <span className="rw-header__sep" aria-hidden />
-        <button type="button" className="rw-icon-button" aria-label="Add to Runs" title="New simulations are added in the model (sims/*.rw.toml)" disabled>
+        <button type="button" className="rw-icon-button" aria-label="New simulation" title="New simulation" disabled={noConfigs} onClick={() => void newSimulation(app)}>
           <Icon name="plus" size={18} />
         </button>
       </div>
       {query !== null && (
-        <input className="rw-runs-rail__search" type="search" placeholder="Filter runs" aria-label="Filter runs" value={query} autoFocus onChange={(e) => setQuery(e.target.value)} />
+        <input className="rw-rail__search" type="search" placeholder="Filter runs" aria-label="Filter runs" value={query} autoFocus onChange={(e) => setQuery(e.target.value)} />
       )}
       <ul className="rw-list" role="listbox" aria-label="Runs">
         {shown.map((r) => (

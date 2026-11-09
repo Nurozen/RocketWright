@@ -13,7 +13,9 @@
  * Pure.
  */
 import type { HistoryStep, Revision } from "@rw/contracts";
+import { settleWrites, writesPending } from "../state/dirtyFields.ts";
 import type { DeepReadonly } from "../state/index.ts";
+import type { AppStore } from "../state/store.ts";
 
 type Step = Pick<DeepReadonly<HistoryStep>, "seq" | "title"> & { tool?: string | null | undefined };
 type Rev = Pick<DeepReadonly<Revision>, "number" | "step">;
@@ -85,12 +87,81 @@ export function undoState(steps: readonly Step[], revisions: readonly Rev[] = []
   return { shown: line[at]!, undo: at > 0 ? line[at - 1]! : null, redo: at < line.length - 1 ? line[at + 1]! : null };
 }
 
+export type HistoryMove = "undo" | "redo" | "revert";
+
+/** How long a move waits for the mirror to show the write it just waited for. */
+const MIRROR_WAIT_MS = 1_500;
+
+function mirrorHash(store: Pick<AppStore, "getState">): string | null {
+  const snap = store.getState().project.snapshot;
+  return snap?.evaluated?.model_hash ?? snap?.files.model_hash ?? null;
+}
+
+/** Resolves to whether `ready` said so within the wait: the push of a landed write comes a moment after its answer. */
+function untilMirror(store: AppStore, ready: () => boolean): Promise<boolean> {
+  if (ready()) return Promise.resolve(true);
+  return new Promise((resolve) => {
+    const finish = (caughtUp: boolean) => {
+      clearTimeout(timer);
+      off();
+      resolve(caughtUp);
+    };
+    const timer = setTimeout(() => finish(false), MIRROR_WAIT_MS);
+    const off = store.subscribe(() => {
+      if (ready()) finish(true);
+    });
+  });
+}
+
+const BEHIND_WORDS: Record<HistoryMove, { done: string; press: string }> = {
+  undo: { done: "undone", press: "Undo" },
+  redo: { done: "redone", press: "Redo" },
+  revert: { done: "reverted", press: "Revert" },
+};
+
+/**
+ * Settles the draft before the history moves. Writes already on their way (a
+ * blur from clicking Undo starts one) land first, and the mirror catches up
+ * with whichever write last answered (even one that answered before this
+ * click: its push comes separately), so the target is worked out from the
+ * state the person is undoing. A draft still
+ * open after that is one that could not be saved or is out of date: left open
+ * across a restore it goes stale and blocks every direct edit, so it is
+ * dropped. For Undo, dropping it is the whole move: it was the latest change.
+ *
+ * Resolves to whether the history should still move. Rejects, with words for
+ * the person, if the mirror has not caught up within the wait: the target
+ * would come from the history before that write, and Undo would take back two
+ * edits. Nothing has moved, so pressing again is safe.
+ */
+export async function settleForHistory(store: AppStore, kind: HistoryMove): Promise<boolean> {
+  const before = mirrorHash(store);
+  const writing = writesPending();
+  const problems = await settleWrites();
+  const hash = await store.getState().draft.settled();
+  // A write that failed changed nothing, so no push is coming for it.
+  const caughtUp = hash !== null ? await untilMirror(store, () => mirrorHash(store) === hash) : writing && problems.length === 0 ? await untilMirror(store, () => mirrorHash(store) !== before) : true;
+  if (!caughtUp) {
+    const { done, press } = BEHIND_WORDS[kind];
+    throw new Error(`The last change has not finished saving, so nothing was ${done}. Press ${press} again in a moment.`);
+  }
+  const draft = store.getState().draft;
+  if (draft.ops.length === 0) return true;
+  draft.discard();
+  return kind !== "undo";
+}
+
+/** True when a key event belongs to the control it landed in: a shortcut must leave these alone. */
+export function isEditableTarget(target: EventTarget | null): boolean {
+  const el = target as { tagName?: string; isContentEditable?: boolean } | null;
+  const tag = el?.tagName?.toUpperCase();
+  return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || el?.isContentEditable === true;
+}
+
 /** The shortcut an undo/redo key event means, or null (text fields keep their own undo). */
 export function undoKey(e: Pick<KeyboardEvent, "key" | "metaKey" | "ctrlKey" | "shiftKey" | "altKey" | "target">): "undo" | "redo" | null {
   if (e.altKey || !(e.metaKey || e.ctrlKey)) return null;
-  const el = e.target as { tagName?: string; isContentEditable?: boolean } | null;
-  const tag = el?.tagName?.toUpperCase();
-  if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || el?.isContentEditable === true) return null;
+  if (isEditableTarget(e.target)) return null;
   const k = e.key.toLowerCase();
   if (k === "z") return e.shiftKey ? "redo" : "undo";
   if (k === "y" && e.ctrlKey && !e.metaKey) return "redo";

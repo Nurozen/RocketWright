@@ -17,6 +17,11 @@ describe("statusOf: runs (computed against the current model hash, I7)", () => {
     expect(pick(statusOf({ kind: "run", run: run({}), modelHash: H }))).toEqual({ kind: "complete", label: "Complete", icon: "check", tone: "teal" });
   });
 
+  it("a failed run carries its job's reason", () => {
+    expect(statusOf({ kind: "run", run: run({ status: "failed" }), modelHash: H, job: job({ state: "failed", error: "diverged at t=2 s" }) })).toMatchObject({ kind: "failed", label: "Failed", reason: "diverged at t=2 s" });
+    expect(statusOf({ kind: "run", run: run({ status: "failed" }), modelHash: H }).reason).toBeUndefined();
+  });
+
   it("a stored `complete` on another hash is Outdated (amber warning)", () => {
     const v = statusOf({ kind: "run", run: run({ model_hash: OLD }), modelHash: H });
     expect(pick(v)).toEqual({ kind: "outdated", label: "Outdated", icon: "warning", tone: "amber" });
@@ -45,6 +50,11 @@ describe("statusOf: runs (computed against the current model hash, I7)", () => {
     expect(statusOf({ kind: "job", job: job({ state: "failed", error: "diverged" }) })).toMatchObject({ kind: "failed", tone: "danger", reason: "diverged" });
     expect(statusOf({ kind: "job", job: job({ state: "queued", progress: 0 }) }).kind).toBe("queued");
     expect(statusOf({ kind: "job", job: job({ state: "cancelled" }) }).kind).toBe("cancelled");
+  });
+
+  it("a cancelled job leaves its row Cancelled, even with no stored run", () => {
+    expect(statusOf({ kind: "run", run: run({}), modelHash: H, job: job({ state: "cancelled" }) }).kind).toBe("cancelled");
+    expect(statusOf({ kind: "run", run: null, modelHash: H, job: job({ state: "cancelled" }) }).kind).toBe("cancelled");
   });
 });
 

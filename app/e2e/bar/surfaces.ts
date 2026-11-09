@@ -9,17 +9,33 @@ import { isSurfaceId, readJson, SURFACES, SURFACES_PATH, type SurfaceId } from "
 
 /**
  * How the window starts. `zero-project`: no project open, a seeded profile
- * supplying Recents. `project`: the sample rocket open at boot, Recents still
- * seeded (they cover other projects, since Recent omits the ones open here).
+ * supplying Recents. `project`: the sample rocket, or the surface's `seed`,
+ * open at boot, Recents still seeded (they cover other projects, since Recent
+ * omits the ones open here).
  */
 export type SurfaceBoot = "zero-project" | "project";
 
 /** Where the agent pane is at capture time (`apps/desktop/src/surfacePane.ts`). Null: not decided until the surface is built. */
 export type SurfacePane = "absent" | "visible" | "overlay";
 
+/**
+ * A project written on disk before launch, for a surface the sample cannot
+ * reach: a copy of `fixtures/<fixture>` as `<name>`, with `ops` applied by
+ * `rw call model_patch`. Captures run with no test hooks, so a state that needs
+ * a changed model has to exist before the window opens.
+ */
+export interface SurfaceSeed {
+  fixture: string;
+  name: string;
+  label: string;
+  ops: { op: string; path: string; value?: unknown }[];
+}
+
 export interface SurfaceSpec {
   title: string;
   boot: SurfaceBoot;
+  /** A `project` boot's project when it is not the sample. */
+  seed?: SurfaceSeed;
   /** Files in the usability bar's `mockups/` and `existing/` (one mockup may serve two surfaces). */
   mockup: string;
   existing: string;

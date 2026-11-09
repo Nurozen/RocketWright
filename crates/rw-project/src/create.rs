@@ -220,6 +220,54 @@ fn refuse_collisions(
     ))
 }
 
+/// `conflict` when `dir` itself is a symbolic link, dangling or not: the
+/// project would land wherever it points, which is not the folder the caller
+/// named. A link higher up the path is the caller's own layout and is allowed.
+pub fn refuse_symlink_target(dir: &Path) -> Result<(), ApiError> {
+    // `components` drops a trailing slash, which would make `lstat` follow the link.
+    let is_link = std::fs::symlink_metadata(dir.components().as_path())
+        .is_ok_and(|m| m.file_type().is_symlink());
+    if !is_link {
+        return Ok(());
+    }
+    Err(err(
+        ApiErrorCode::Conflict,
+        format!(
+            "{} is a symbolic link, so a project cannot be created there",
+            dir.display()
+        ),
+        Some("create the project in a real folder".into()),
+    ))
+}
+
+/// Makes `dir` and its missing parents without following a link at `dir`.
+/// `create_dir_all` accepts a link to a folder as already done; `create_dir`
+/// never follows one, so a link planted at any moment before this call is
+/// seen here rather than written through.
+fn make_project_dir(dir: &Path) -> Result<(), ApiError> {
+    let dir = dir.components().as_path();
+    let io = |e: std::io::Error| err(ApiErrorCode::Io, format!("{}: {e}", dir.display()), None);
+    // Parents only on NotFound: making them first would turn a file in the
+    // path from ENOTDIR into EEXIST, which callers read as a different error.
+    let made = match std::fs::create_dir(dir) {
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+            if let Some(parent) = dir.parent() {
+                std::fs::create_dir_all(parent).map_err(io)?;
+            }
+            std::fs::create_dir(dir)
+        }
+        first => first,
+    };
+    match made {
+        Err(e) if e.kind() != std::io::ErrorKind::AlreadyExists => Err(io(e)),
+        Err(e) => {
+            refuse_symlink_target(dir)?;
+            if dir.is_dir() { Ok(()) } else { Err(io(e)) }
+        }
+        Ok(()) => Ok(()),
+    }
+}
+
 /// Takes `.rw/lock` on `dir` (created if missing) before anything is
 /// written there: a live owner fails with `RW-E007` and nothing changes.
 fn lock_new_project(
@@ -227,9 +275,10 @@ fn lock_new_project(
     hint: &str,
     planned: &[(String, Vec<u8>, FileStatus)],
 ) -> Result<ProjectLock, ApiError> {
-    std::fs::create_dir_all(dir)
-        .map_err(|e| err(ApiErrorCode::Io, format!("{}: {e}", dir.display()), None))?;
+    make_project_dir(dir)?;
     let lock = ProjectLock::acquire(dir, None).map_err(|e| locked_error(&e))?;
+    // An existing folder may have been swapped for a link before the lock.
+    refuse_symlink_target(dir)?;
     // A project, or a colliding file, may have appeared while the lock was free.
     if layout::is_project(dir) {
         return Err(conflict(dir, hint));
@@ -351,7 +400,8 @@ pub fn project_files(i: &ProjectCreateIn) -> Result<Vec<(String, String)>, ApiEr
 }
 
 /// Creates a project in `dir` (created if missing). Fails with `conflict`
-/// when `dir` already holds a project or a file the project would replace.
+/// when `dir` is a symbolic link, or already holds a project or a file the
+/// project would replace.
 /// `dry_run` writes nothing, refuses the same way, and reports the files and
 /// the delta the new project would have.
 pub fn create_project(
@@ -360,6 +410,7 @@ pub fn create_project(
     ctx: &CallCtx,
 ) -> Result<MutationOut, ApiError> {
     const HINT: &str = "edit it with model_patch, or create the project in an empty directory";
+    refuse_symlink_target(dir)?;
     if layout::is_project(dir) {
         return Err(conflict(dir, HINT));
     }
@@ -422,6 +473,7 @@ pub fn import_project(
     ctx: &CallCtx,
 ) -> Result<ImportOut, ApiError> {
     const HINT: &str = "run the import from inside it to replace its model (one history step)";
+    refuse_symlink_target(dir)?;
     if layout::is_project(dir) {
         return Err(conflict(dir, HINT));
     }
@@ -844,6 +896,110 @@ mod tests {
             let e = create_project(&dir, &ProjectCreateIn::default(), &ctx()).unwrap_err();
             assert!(e.message.contains("rocket.rw.toml"), "{e:?}");
         }
+    }
+
+    /// A link at the target would put the project wherever it points, so it
+    /// is refused, live or dangling, with or without a trailing slash, and the
+    /// place it points to stays untouched.
+    #[cfg(unix)]
+    #[test]
+    fn a_symlink_target_is_refused() {
+        let d = TempDir::new("create-symlink");
+        let real = d.path().join("real");
+        std::fs::create_dir_all(&real).unwrap();
+        let live = d.path().join("live");
+        std::os::unix::fs::symlink(&real, &live).unwrap();
+        let gone = d.path().join("gone");
+        let dangling = d.path().join("dangling");
+        std::os::unix::fs::symlink(&gone, &dangling).unwrap();
+        for link in [&live, &dangling, &live.join(""), &dangling.join("")] {
+            for dry_run in [true, false] {
+                let i = ProjectCreateIn {
+                    dry_run,
+                    ..ProjectCreateIn::default()
+                };
+                let e = create_project(link, &i, &ctx()).unwrap_err();
+                assert_eq!(e.code, ApiErrorCode::Conflict, "{e:?}");
+                assert!(e.message.contains("symbolic link"), "{}", e.message);
+            }
+        }
+        assert!(
+            snapshot(&real).is_empty(),
+            "nothing written through the link"
+        );
+        assert!(!gone.exists(), "a dangling link's target is not created");
+    }
+
+    /// The last check, in the step that makes the folder: a link that arrives
+    /// after the earlier checks still stops the project landing behind it.
+    #[cfg(unix)]
+    #[test]
+    fn the_step_that_makes_the_folder_refuses_a_symlink() {
+        let d = TempDir::new("create-symlink-lock");
+        let real = d.path().join("real");
+        std::fs::create_dir_all(&real).unwrap();
+        let link = d.path().join("link");
+        std::os::unix::fs::symlink(&real, &link).unwrap();
+        let e = lock_new_project(&link, "hint", &[])
+            .map(|_| ())
+            .unwrap_err();
+        assert_eq!(e.code, ApiErrorCode::Conflict, "{e:?}");
+        assert!(!real.join(".rw").exists(), "no lock through the link");
+    }
+
+    /// The app maps ENOTDIR to a bad location, so a file in the path must
+    /// report that and not the EEXIST of making its parent.
+    #[cfg(unix)]
+    #[test]
+    fn a_file_in_the_path_reports_not_a_directory() {
+        let d = TempDir::new("create-file-in-path");
+        let file = d.path().join("plain-file");
+        std::fs::write(&file, "x").unwrap();
+        for dir in [file.join("Under"), file.join("deeper").join("Under")] {
+            let e = create_project(&dir, &ProjectCreateIn::default(), &ctx()).unwrap_err();
+            assert_eq!(e.code, ApiErrorCode::Io, "{e:?}");
+            assert!(e.message.contains("os error 20"), "{}", e.message);
+        }
+        assert_eq!(std::fs::read_to_string(&file).unwrap(), "x");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn an_import_refuses_a_symlink_target() {
+        let d = TempDir::new("create-import-symlink");
+        let src = d.path().join("bird.ork");
+        std::fs::write(&src, include_str!("../../rw-ork/tests/data/simple.ork.xml")).unwrap();
+        let real = d.path().join("real");
+        std::fs::create_dir_all(&real).unwrap();
+        let link = d.path().join("link");
+        std::os::unix::fs::symlink(&real, &link).unwrap();
+        for dry_run in [true, false] {
+            let e = import_project(&link, src.to_str().unwrap(), dry_run, &ctx()).unwrap_err();
+            assert_eq!(e.code, ApiErrorCode::Conflict, "{e:?}");
+            assert!(e.message.contains("symbolic link"), "{}", e.message);
+        }
+        assert!(
+            snapshot(&real).is_empty(),
+            "nothing written through the link"
+        );
+    }
+
+    /// Missing parents are still made, and a link higher up the path is the
+    /// caller's own layout (macOS's `/tmp` is one).
+    #[cfg(unix)]
+    #[test]
+    fn missing_parents_are_made_and_a_linked_parent_is_allowed() {
+        let d = TempDir::new("create-parents");
+        let deep = d.path().join("a/b/p");
+        create_project(&deep, &ProjectCreateIn::default(), &ctx()).unwrap();
+        assert!(layout::is_project(&deep));
+
+        let real = d.path().join("real");
+        std::fs::create_dir_all(&real).unwrap();
+        let link = d.path().join("link");
+        std::os::unix::fs::symlink(&real, &link).unwrap();
+        create_project(&link.join("p"), &ProjectCreateIn::default(), &ctx()).unwrap();
+        assert!(layout::is_project(&real.join("p")));
     }
 
     /// D3 for project-creating imports, including the dry run.

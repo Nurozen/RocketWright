@@ -9,9 +9,23 @@ export function createElectronHost(bridge: DesktopBridge): HostApi {
     pickFolder: (options) => bridge.pickFolder(options),
     pickFile: (options) => bridge.pickFile(options),
     saveAs: (options) => bridge.saveAs(options),
+    exportFile: (request) => bridge.exportFile(request),
     recents: () => bridge.recents(),
     removeRecent: (dir) => bridge.removeRecent(dir),
     setActiveProject: (project) => bridge.setActiveProject(project),
+    setDirty: (dirty) => bridge.setDirty(dirty),
+    onFlush: (flush) =>
+      bridge.onFlush((id) => {
+        // A flush that throws has not saved, so it is reported as a problem rather than as silence.
+        void flush()
+          .catch((e: unknown) => [e instanceof Error ? e.message : String(e)])
+          .then((problems) => bridge.flushDone({ id, problems }))
+          .catch((e: unknown) => console.error("flushDone", e));
+      }),
+    relaunch: () => bridge.relaunch(),
+    prefs: () => bridge.prefs(),
+    setPrefs: (patch) => bridge.setPrefs(patch),
+    openProviders: () => bridge.openProviders(),
     onCommand: (listener) => bridge.onCommand(listener),
     pathForFile: (file) => {
       // `webUtils.getPathForFile` returns "" for a File that is not on disk (e.g. built by script).

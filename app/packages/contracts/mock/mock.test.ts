@@ -67,6 +67,10 @@ describe("mock RPC: every method", () => {
     expect(await call("embed.setThreadAppData", { ...P, threadId: lt!.threadId, appData: JSON.stringify({ page: "results" }), subtitle: "Apogee 305 m" })).toEqual({});
     const written = await host.push("embed.threads", (p) => p.projectId === SEED_PROJECT_ID && p.threads[0]?.subtitle === "Apogee 305 m");
     expect(written.threads[0]?.appData).toBe('{"page":"results"}');
+    const madeBefore = srv.mock.embedThreads().length;
+    const newThread = await call("embed.createThread", { ...P, title: "New thread", appData: JSON.stringify({ page: "assembly" }) });
+    expect(srv.mock.embedThreads().map((t) => t.threadId)).toContain(newThread.threadId);
+    expect(srv.mock.embedThreads()).toHaveLength(madeBefore + 1);
     expect(await call("embed.setHostContext", { ...P, text: "- Page: assembly" })).toEqual({ applied: true });
     expect(srv.mock.hostContexts.get(SEED_PROJECT_ID)).toBe("- Page: assembly");
     expect((await call("project.defaults", {})).location).toBe(MOCK_DEFAULT_LOCATION);
@@ -407,6 +411,7 @@ describe("mock RPC: Lecturn (B8)", () => {
     const lt = (await c.push("embed.threads", (p) => p.projectId === SEED_PROJECT_ID)).threads[0]!;
     expect(await c.request("embed.setThreadAppData", { ...P, threadId: lt.threadId, appData: "x".repeat(1025) })).toMatchObject({ ok: false, error: { code: "invalid_params" } });
     expect(await c.request("embed.setThreadAppData", { ...P, threadId: "nope", appData: null })).toMatchObject({ ok: false, error: { code: "not_found" } });
+    expect(await c.request("embed.createThread", { ...P, title: "T", appData: "x".repeat(1025) })).toMatchObject({ ok: false, error: { code: "invalid_params" } });
     expect(await c.request("embed.setHostContext", { ...P, text: "x".repeat(4097) })).toMatchObject({ ok: false, error: { code: "invalid_params" } });
   });
 });

@@ -106,7 +106,6 @@ function fakeEmbed() {
     insertMention: (p) => void commands.push(["insertMention", p]),
     setDraft: (t) => void commands.push(["setDraft", t]),
     openThread: (t) => void commands.push(["openThread", t]),
-    newThread: (p) => void commands.push(["newThread", p]),
     openProviders: () => void commands.push(["openProviders", null]),
     setComposerPlaceholder: (t) => void placeholders.push(t),
     retarget: (t) => void retargets.push(t),
@@ -159,13 +158,11 @@ describe("desktop pane", () => {
     expect(d.sent).toEqual([[PANE_HOST_CHANNEL, { type: "mount", projectId: "p1" }]]);
     pane.bridge.insertMention({ ref: "rw:c/fins", label: "Fins" });
     pane.bridge.openThread("lt-1");
-    pane.bridge.newThread({ title: "Fin study", appData: '{"page":"components"}' });
     pane.bridge.openProviders();
     pane.bridge.setDraft("hi");
     expect(d.sent.slice(1)).toEqual([
       [EMBED_HOST_BRIDGE_CHANNEL, { method: "lecturn/composer.insertMention", params: { ref: "rw:c/fins", label: "Fins" } }],
       [EMBED_HOST_BRIDGE_CHANNEL, { method: "lecturn/thread.open", params: { threadId: "lt-1" } }],
-      [EMBED_HOST_BRIDGE_CHANNEL, { method: "lecturn/thread.new", params: { title: "Fin study", appData: '{"page":"components"}' } }],
       [EMBED_HOST_BRIDGE_CHANNEL, { method: "lecturn/providers.open", params: {} }],
       [EMBED_HOST_BRIDGE_CHANNEL, { method: "lecturn/composer.setDraft", params: { text: "hi" } }],
     ]);

@@ -2,10 +2,11 @@
  * Collapsible inspector strip at the right edge of the 01 workspace (concepts
  * §4.1): `<Part> ›` title, then the Attachment, Mass, and Clearance cards.
  */
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Icon, type IconName } from "../../shell/Icon.tsx";
 import { PartThumb } from "../../render/PartThumb.tsx";
 import { ADD_FIRST_PART } from "../../state/empty-text.ts";
+import { DiagnosticText, diagnosticPlainText } from "../../ui/DiagnosticText.tsx";
 import type { InspectorRow, InspectorView } from "./inspector-model.ts";
 
 export interface InspectorProps {
@@ -14,16 +15,26 @@ export interface InspectorProps {
   thumb?: { url: string | undefined; icon: IconName } | null;
   /** The project has no parts: there is nothing to select yet (R0.3a). */
   noParts?: boolean;
+  /** Controls for the selected part, below its cards. */
+  actions?: ReactNode;
+  /** A card's `›`: opens the selected part in the Components editor. Without it the cards have no chevron. */
+  onOpenCard?: () => void;
 }
 
 export const INSPECTOR_WIDTH = 224;
 
-function Card({ title, testid, rows }: { title: string; testid: string; rows: InspectorRow[] }) {
+function Card({ title, testid, rows, onOpen }: { title: string; testid: string; rows: InspectorRow[]; onOpen: (() => void) | undefined }) {
   return (
     <section className="rw-insp-card" data-testid={testid} aria-label={title}>
       <h3 className="rw-insp-card__title">
-        <span>{title}</span>
-        <Icon name="chevron-right" size={16} />
+        {onOpen === undefined ? (
+          <span>{title}</span>
+        ) : (
+          <button type="button" className="rw-insp-card__open" title="Edit this part on the Components page" onClick={onOpen}>
+            <span>{title}</span>
+            <Icon name="chevron-right" size={16} />
+          </button>
+        )}
       </h3>
       <dl className="rw-insp-card__rows">
         {rows.map((r) => (
@@ -35,7 +46,9 @@ function Card({ title, testid, rows }: { title: string; testid: string; rows: In
             data-severity={r.severity}
           >
             <dt title={r.label}>{r.label}</dt>
-            <dd title={r.value}>{r.value}</dd>
+            <dd title={diagnosticPlainText(r.value)}>
+              <DiagnosticText text={r.value} />
+            </dd>
           </div>
         ))}
       </dl>
@@ -43,7 +56,7 @@ function Card({ title, testid, rows }: { title: string; testid: string; rows: In
   );
 }
 
-export function Inspector({ view, thumb = null, noParts = false }: InspectorProps) {
+export function Inspector({ view, thumb = null, noParts = false, actions, onOpenCard }: InspectorProps) {
   const [open, setOpen] = useState(true);
   return (
     <aside
@@ -73,9 +86,10 @@ export function Inspector({ view, thumb = null, noParts = false }: InspectorProp
         (view ? (
           <>
             {thumb && <PartThumb url={thumb.url} icon={thumb.icon} size={96} width={INSPECTOR_WIDTH - 28} testId="insp.thumbnail" className="rw-inspector__thumb" />}
-            <Card title="Attachment" testid="insp.attachment" rows={view.attachment} />
-            <Card title="Mass" testid="insp.mass" rows={view.mass} />
-            <Card title="Clearance" testid="insp.clearance" rows={view.clearance} />
+            <Card title="Attachment" testid="insp.attachment" rows={view.attachment} onOpen={onOpenCard} />
+            <Card title="Mass" testid="insp.mass" rows={view.mass} onOpen={onOpenCard} />
+            <Card title="Clearance" testid="insp.clearance" rows={view.clearance} onOpen={onOpenCard} />
+            {actions !== undefined && <div className="rw-inspector__actions">{actions}</div>}
           </>
         ) : (
           <p className="rw-inspector__empty">{noParts ? `${ADD_FIRST_PART}.` : "Select a part in the tree or the viewport."}</p>

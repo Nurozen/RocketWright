@@ -170,7 +170,7 @@ impl Session {
                         ApiErrorCode::InvalidInput,
                         format!("`{}` is outside the project; nothing written", i.path),
                     ),
-                    "export inside the project (e.g. exports/rocket.glb), or pass allow_outside: true (rw export --allow-outside), which needs the user's approval",
+                    "export inside the project (e.g. exports/rocket.glb); to save it anywhere else, use File > Export in the app",
                 ));
             }
         };

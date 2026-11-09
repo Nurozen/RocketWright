@@ -32,8 +32,7 @@ export type LifecycleEvent =
   | { type: "closed"; projectId: string; next: string | null }
   /** The project could not be shown (a failed `project.subscribe`). */
   | { type: "openFailed"; projectId: string; error: string }
-  | { type: "startFailed"; error: string }
-  | { type: "connectionLost"; reason: string };
+  | { type: "startFailed"; error: string };
 
 export const INITIAL_LIFECYCLE: LifecycleState = { phase: "connecting" };
 
@@ -59,9 +58,6 @@ export function lifecycle(state: LifecycleState, event: LifecycleEvent): Lifecyc
       return state.phase === "project" && state.projectId === event.projectId ? { phase: "welcome", notice: event.error } : state;
     case "startFailed":
       return state.phase === "connecting" || state.phase === "listing" ? { phase: "fatal", error: event.error } : state;
-    case "connectionLost":
-      // A shown project keeps its page and says the connection closed (its store does); only an empty window has nothing left.
-      return state.phase === "project" ? state : { phase: "fatal", error: event.reason };
   }
 }
 

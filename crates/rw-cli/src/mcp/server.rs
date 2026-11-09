@@ -535,10 +535,14 @@ impl ServerHandler for RwServer {
             meta::CTX.into(),
             serde_json::to_value(&ctx).unwrap_or(Value::Null),
         );
-        // App-decided approval (D6): only calls Lecturn proxied are gated.
-        let gate = m
-            .get(meta::LECTURN_APPROVAL)
-            .and_then(|a| approval::gate(def, &args, a));
+        // App-decided approval (D6): only calls Lecturn proxied are gated. The
+        // refusal for an outside path comes first and covers every agent path.
+        let gate = approval::refuse_outside(def, &args, ctx.origin)
+            .map(approval::Gate::Refuse)
+            .or_else(|| {
+                m.get(meta::LECTURN_APPROVAL)
+                    .and_then(|a| approval::gate(def, &args, a))
+            });
         let outcome = match gate {
             Some(approval::Gate::Refuse(e)) => Err(e),
             Some(approval::Gate::Ask(reason)) => {

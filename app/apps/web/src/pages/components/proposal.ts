@@ -77,7 +77,8 @@ function shownValue(c: Comp, key: string): number | string | null {
 /** Editor fields whose evaluated value differs between `base` and `cur` (old → new). */
 export function changedFields(base: Comp | undefined, cur: Comp | undefined): ChangedField[] {
   if (base === undefined || cur === undefined) return [];
-  const specs: FieldSpec[] = editorFields(cur.shape.type);
+  // Attach targets are ids, not words; a move shows below as the part's new position.
+  const specs: FieldSpec[] = editorFields(cur.shape.type).filter((f) => f.key !== "attach.to" && f.key !== "attach.at");
   const out: ChangedField[] = [];
   for (const f of specs) {
     const a = shownValue(base, f.key);

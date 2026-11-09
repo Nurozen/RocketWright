@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { anyDirtyField, flushDirtyFields, flushProject, registerDirtyField, resetDirtyFields, trackWrite } from "./dirtyFields.ts";
+import { anyDirtyField, flushDirtyFields, flushProject, onDirtyFieldsChanged, registerDirtyField, resetDirtyFields, settleWrites, trackWrite, watchDirty, writesPending } from "./dirtyFields.ts";
 import type { AppStore } from "./store.ts";
 
 afterEach(resetDirtyFields);
@@ -69,6 +69,20 @@ describe("the dirty field registry", () => {
   });
 });
 
+describe("settleWrites", () => {
+  it("still lists a write while something waits for it, and tells every waiter how it went", async () => {
+    let fail: (e: Error) => void = () => undefined;
+    void trackWrite(new Promise<void>((_, reject) => (fail = reject))).catch(() => undefined);
+    const first = settleWrites();
+    const second = settleWrites();
+    expect(writesPending()).toBe(true);
+    fail(new Error("disk full"));
+    await expect(first).resolves.toEqual(["disk full"]);
+    await expect(second).resolves.toEqual(["disk full"]);
+    expect(writesPending()).toBe(false);
+  });
+});
+
 describe("flushProject", () => {
   it("commits an open draft after the fields", async () => {
     const commit = vi.fn<() => Promise<void>>(() => Promise.resolve());
@@ -91,5 +105,93 @@ describe("flushProject", () => {
   it("says why the draft could not be saved", async () => {
     const commit = vi.fn<() => Promise<void>>(() => Promise.reject(new Error("refused")));
     await expect(flushProject(draftStore({ ops: [{}], stale: false, commit }))).resolves.toEqual(["refused"]);
+  });
+});
+
+describe("watchDirty", () => {
+  const tick = () => new Promise<void>((r) => setTimeout(r, 0));
+
+  function watch() {
+    const target = new EventTarget();
+    const sent: boolean[] = [];
+    let dirty = false;
+    let poke = (): void => undefined;
+    const stop = watchDirty({
+      isDirty: () => dirty,
+      send: (d) => sent.push(d),
+      target,
+      sources: [
+        (l) => {
+          poke = l;
+          return () => undefined;
+        },
+      ],
+    });
+    return { target, sent, stop, setDirty: (d: boolean) => (dirty = d), poke: () => poke() };
+  }
+
+  it("says nothing until something is dirty, and only says each change once", async () => {
+    const w = watch();
+    await tick();
+    expect(w.sent).toEqual([]);
+    w.setDirty(true);
+    w.target.dispatchEvent(new Event("input"));
+    w.target.dispatchEvent(new Event("input"));
+    await tick();
+    expect(w.sent).toEqual([true]);
+    w.target.dispatchEvent(new Event("keyup"));
+    await tick();
+    expect(w.sent).toEqual([true]);
+    w.setDirty(false);
+    w.target.dispatchEvent(new Event("focusout"));
+    await tick();
+    expect(w.sent).toEqual([true, false]);
+    w.stop();
+  });
+
+  it("reads after the keystroke's own render, not during the event", async () => {
+    const w = watch();
+    w.target.dispatchEvent(new Event("input"));
+    w.setDirty(true);
+    await tick();
+    expect(w.sent).toEqual([true]);
+    w.stop();
+  });
+
+  it("hears a store change and a field coming or going", async () => {
+    const w = watch();
+    w.setDirty(true);
+    w.poke();
+    await tick();
+    expect(w.sent).toEqual([true]);
+    w.stop();
+
+    let told = 0;
+    onDirtyFieldsChanged(() => told++);
+    const off = registerDirtyField({ dirty: () => false, commit: () => null });
+    expect(told).toBe(1);
+    off();
+    expect(told).toBe(2);
+    await trackWrite(Promise.resolve());
+    await tick();
+    expect(told).toBe(3);
+  });
+
+  it("says clean when the watch ends with work outstanding, so main is not left asking", async () => {
+    const w = watch();
+    w.setDirty(true);
+    w.poke();
+    await tick();
+    w.stop();
+    expect(w.sent).toEqual([true, false]);
+  });
+
+  it("stops listening when it ends", async () => {
+    const w = watch();
+    w.stop();
+    w.setDirty(true);
+    w.target.dispatchEvent(new Event("input"));
+    await tick();
+    expect(w.sent).toEqual([]);
   });
 });

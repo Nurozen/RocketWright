@@ -1,0 +1,366 @@
+{
+  "app_approvals": [],
+  "caller_thread": "thread-caller",
+  "caller_tree": {
+    "after": {
+      ".gitignore": "sha256:8b7d66d149b68694ad999e1e79fee58b1dad43b22112e5143ade53adf02ee4f4",
+      "configs/default.rw.toml": "sha256:797fedcd84d5081f7b931c6b62fd37bc14fe04337d4f5ba80e1a104992880837",
+      "rocket.rw.toml": "sha256:55b657192bbdc3aefc1a62b3d14d697a57939d4e797b0bd5aec45dbf78604398",
+      "rocketwright.toml": "sha256:211eb19ffa8dc9eeb20ac003408df103df33823ed5e61c955bd55e033b23820f",
+      "sims/default.rw.toml": "sha256:517de6427ce5d74056b54002863b61d3b88981fee71dd589e97e424a6556d817"
+    },
+    "before": {
+      ".gitignore": "sha256:8b7d66d149b68694ad999e1e79fee58b1dad43b22112e5143ade53adf02ee4f4",
+      "configs/default.rw.toml": "sha256:797fedcd84d5081f7b931c6b62fd37bc14fe04337d4f5ba80e1a104992880837",
+      "rocket.rw.toml": "sha256:55b657192bbdc3aefc1a62b3d14d697a57939d4e797b0bd5aec45dbf78604398",
+      "rocketwright.toml": "sha256:211eb19ffa8dc9eeb20ac003408df103df33823ed5e61c955bd55e033b23820f",
+      "sims/default.rw.toml": "sha256:517de6427ce5d74056b54002863b61d3b88981fee71dd589e97e424a6556d817"
+    }
+  },
+  "control": {
+    "files": [
+      {
+        "path": ".gitignore",
+        "status": "A"
+      },
+      {
+        "path": "configs/default.rw.toml",
+        "status": "A"
+      },
+      {
+        "path": "rocket.rw.toml",
+        "status": "A"
+      },
+      {
+        "path": "rocketwright.toml",
+        "status": "A"
+      }
+    ],
+    "model": {
+      "asserts": [],
+      "components": [],
+      "config": "default",
+      "configs": {
+        "default": {
+          "deployments": [],
+          "id": "default",
+          "motors": [],
+          "name": "Default",
+          "stages": []
+        }
+      },
+      "diagnostics": [],
+      "materials": {},
+      "model_hash": "e7a4f02952b8794b1e32c491fa4373653e2ad330ddd07e15bab1d7a923bac919",
+      "name": "solstice-rocket",
+      "params": {},
+      "reference": {
+        "area": 0,
+        "diameter": 0,
+        "length": 0
+      },
+      "report": [],
+      "schema": "rw/1",
+      "sims": {},
+      "stages": [],
+      "units": {
+        "angle": "rad",
+        "area": "m^2",
+        "length": "m",
+        "mass": "kg",
+        "time": "s"
+      }
+    },
+    "template": "empty",
+    "tree": {
+      ".gitignore": "sha256:8b7d66d149b68694ad999e1e79fee58b1dad43b22112e5143ade53adf02ee4f4",
+      "configs/default.rw.toml": "sha256:d2794994d436c4f3a89905fe3825a5e5f08c89baf4bb409ab70759864319d19a",
+      "rocket.rw.toml": "sha256:04405feb9ac5775a5b1f289ee1edc177e76e5c50ec77b30ea39df6d601c884ef",
+      "rocketwright.toml": "sha256:ae9e4a8d9202450f58b6ec748bfd7c5076a1f59859a274be5a1071664250c0b2"
+    }
+  },
+  "dialogs": [
+    {
+      "detail": "Name: solstice-rocket\nFolder: /tmp/rw-b2l-rec/docs/RocketWright/solstice-rocket\n\nAdd a nose cone to the rocket.",
+      "message": "The agent wants to create a new project",
+      "response": 1
+    }
+  ],
+  "documents": "/tmp/rw-b2l-rec/docs",
+  "note": "Hand-shaped transcript in the form the driver records (no live run yet); the trees, rw init file lists, evaluated models and the component_add result are real rw output.",
+  "path": "remaining",
+  "prompt": "Create a new empty project called solstice-rocket and add a nose cone",
+  "provider_requests": [],
+  "shell": {
+    "projects": [
+      {
+        "id": "project-caller",
+        "workspaceRoot": "/tmp/rw-b2l-rec/caller-rocket"
+      },
+      {
+        "id": "project-new",
+        "workspaceRoot": "/private/tmp/rw-b2l-rec/docs/RocketWright/solstice-rocket"
+      }
+    ],
+    "threads": [
+      {
+        "id": "thread-caller",
+        "projectId": "project-caller"
+      },
+      {
+        "id": "thread-new",
+        "projectId": "project-new"
+      }
+    ]
+  },
+  "target": "/tmp/rw-b2l-rec/docs/RocketWright/solstice-rocket",
+  "target_model": {
+    "asserts": [],
+    "components": [
+      {
+        "aero": true,
+        "anchors": [
+          {
+            "kind": "axial",
+            "name": "tip",
+            "r": 0,
+            "x": 0
+          },
+          {
+            "kind": "axial",
+            "name": "base",
+            "r": 0.012400000000000001,
+            "x": 0.1
+          }
+        ],
+        "children": [],
+        "containment": "axial",
+        "cut": false,
+        "id": "nose",
+        "instances": [
+          {
+            "index": 0,
+            "offset": [
+              0,
+              0,
+              0
+            ],
+            "roll": 0
+          }
+        ],
+        "name": "nose",
+        "radial": 0,
+        "roll": 0,
+        "shape": {
+          "length": 0.1,
+          "od": 0.024800000000000003,
+          "shape": "ogive",
+          "shape_param": 1,
+          "thickness": 0,
+          "type": "nose_cone"
+        },
+        "stage": "main",
+        "x_aft": 0.1,
+        "x_fore": 0
+      }
+    ],
+    "config": "default",
+    "configs": {
+      "default": {
+        "deployments": [],
+        "id": "default",
+        "motors": [],
+        "name": "Default",
+        "stages": [
+          {
+            "active": true,
+            "separation": "never",
+            "separation_delay": 0,
+            "stage": "main"
+          }
+        ]
+      }
+    },
+    "diagnostics": [],
+    "materials": {},
+    "model_hash": "a48e948dd3e2ad41051b3bc5c84e3e43496473ee2e5867700018348072b8ac23",
+    "name": "solstice-rocket",
+    "params": {},
+    "reference": {
+      "area": 0.0004830512864159667,
+      "diameter": 0.024800000000000003,
+      "length": 0.1
+    },
+    "report": [],
+    "schema": "rw/1",
+    "sims": {},
+    "stages": [
+      {
+        "first": "nose",
+        "id": "main",
+        "members": [
+          "nose"
+        ],
+        "name": "Main",
+        "x_aft": 0.1,
+        "x_fore": 0
+      }
+    ],
+    "units": {
+      "angle": "rad",
+      "area": "m^2",
+      "length": "m",
+      "mass": "kg",
+      "time": "s"
+    }
+  },
+  "target_tree": {
+    ".gitignore": "sha256:8b7d66d149b68694ad999e1e79fee58b1dad43b22112e5143ade53adf02ee4f4",
+    "configs/default.rw.toml": "sha256:d2794994d436c4f3a89905fe3825a5e5f08c89baf4bb409ab70759864319d19a",
+    "rocket.rw.toml": "sha256:e4eff7f8ac92f37e9a6d52a3a012f9ae6efdb3da34d852412899642920307249",
+    "rocketwright.toml": "sha256:ae9e4a8d9202450f58b6ec748bfd7c5076a1f59859a274be5a1071664250c0b2"
+  },
+  "threads": {
+    "thread-caller": {
+      "id": "thread-caller",
+      "messages": [],
+      "projectId": "project-caller",
+      "runs": [
+        {
+          "id": "run-1",
+          "status": "completed"
+        }
+      ],
+      "turnItems": [
+        {
+          "id": "i-search",
+          "input": {
+            "query": "project"
+          },
+          "ordinal": 1,
+          "output": {
+            "content": [
+              {
+                "text": "rw_project_new",
+                "type": "text"
+              }
+            ]
+          },
+          "runId": "run-1",
+          "status": "completed",
+          "toolName": "ToolSearch",
+          "type": "dynamic_tool"
+        },
+        {
+          "id": "i-new",
+          "input": {
+            "name": "solstice-rocket",
+            "request": "Add a nose cone to the rocket.",
+            "template": "empty"
+          },
+          "ordinal": 2,
+          "output": {
+            "content": [
+              {
+                "text": "Project \"solstice-rocket\" is open at /tmp/rw-b2l-rec/docs/RocketWright/solstice-rocket, and thread thread-new was started there. This thread stays in its own project. Do not call this tool again for this project.",
+                "type": "text"
+              }
+            ],
+            "structuredContent": {
+              "project": {
+                "dir": "/tmp/rw-b2l-rec/docs/RocketWright/solstice-rocket",
+                "name": "solstice-rocket",
+                "projectId": "rw-project-1"
+              },
+              "threadId": "thread-new"
+            }
+          },
+          "runId": "run-1",
+          "status": "completed",
+          "toolName": "mcp__lecturn__rw_project_new",
+          "type": "dynamic_tool"
+        },
+        {
+          "id": "i-close",
+          "ordinal": 3,
+          "runId": "run-1",
+          "status": "completed",
+          "text": "The project is open and a new thread there is adding the nose cone.",
+          "type": "assistant_message"
+        }
+      ]
+    },
+    "thread-new": {
+      "id": "thread-new",
+      "messages": [
+        {
+          "id": "m-1",
+          "role": "user",
+          "runId": "run-new",
+          "text": "This project was just created and is open; do not create it again.\n\nAdd a nose cone to the rocket."
+        },
+        {
+          "id": "m-2",
+          "role": "assistant",
+          "runId": "run-new",
+          "text": "Added an ogive nose cone."
+        }
+      ],
+      "projectId": "project-new",
+      "runs": [
+        {
+          "id": "run-new",
+          "status": "completed"
+        }
+      ],
+      "turnItems": [
+        {
+          "id": "n-1",
+          "input": {
+            "component": {
+              "length": "100 mm",
+              "od": "24.8 mm",
+              "shape": "ogive",
+              "type": "nose_cone"
+            },
+            "id": "nose"
+          },
+          "ordinal": 1,
+          "output": {
+            "content": [
+              {
+                "text": "added",
+                "type": "text"
+              }
+            ],
+            "structuredContent": {
+              "dry_run": false,
+              "files": [
+                {
+                  "path": "rocket.rw.toml",
+                  "status": "M"
+                }
+              ],
+              "model_hash": "a48e948dd3e2ad41051b3bc5c84e3e43496473ee2e5867700018348072b8ac23",
+              "step": "step:2"
+            }
+          },
+          "runId": "run-new",
+          "status": "completed",
+          "toolName": "mcp__lecturn__rw_component_add",
+          "type": "dynamic_tool"
+        },
+        {
+          "id": "n-2",
+          "ordinal": 2,
+          "runId": "run-new",
+          "status": "completed",
+          "text": "Added an ogive nose cone.",
+          "type": "assistant_message"
+        }
+      ]
+    }
+  },
+  "timed_out": false,
+  "trial": 1
+}

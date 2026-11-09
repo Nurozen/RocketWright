@@ -93,7 +93,36 @@
     }
   ],
   "config": "baseline",
-  "diagnostics": [],
+  "diagnostics": [
+    {
+      "code": "RW-W004",
+      "hint": "Pick a material with a `surface_density`.",
+      "message": "`chute` has no material, so it has no mass in checks or flights",
+      "path": "/c/chute/material",
+      "severity": "warning"
+    },
+    {
+      "code": "RW-W004",
+      "hint": "Pick a material with a `density`.",
+      "message": "`fins` has no material, so it has no mass in checks or flights",
+      "path": "/c/fins/material",
+      "severity": "warning"
+    },
+    {
+      "code": "RW-W004",
+      "hint": "Pick a material with a `density`.",
+      "message": "`mount` has no material, so it has no mass in checks or flights",
+      "path": "/c/mount/material",
+      "severity": "warning"
+    },
+    {
+      "code": "RW-W004",
+      "hint": "Pick a material with a `density`.",
+      "message": "`ring` has no material, so it has no mass in checks or flights",
+      "path": "/c/ring/material",
+      "severity": "warning"
+    }
+  ],
   "dims": {
     "components": [
       {
@@ -229,6 +258,6 @@
     "min": 3.4249,
     "ref_diameter": 0.0416
   },
-  "status": "clean",
+  "status": "warnings",
   "tier": "static"
 }

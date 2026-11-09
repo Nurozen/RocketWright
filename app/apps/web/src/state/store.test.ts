@@ -124,7 +124,7 @@ describe("project: read-only mirror", () => {
   it("mirrors the subscribed snapshot, deep-frozen", async () => {
     const { store, srv } = await setup();
     const s = store.getState();
-    expect(s.project).toMatchObject({ projectId: P, connection: "open", updatedAt: 1000, error: null });
+    expect(s.project).toMatchObject({ projectId: P, connection: "open", error: null });
     expect(s.project.snapshot).toEqual(srv.mock.snapshot(P));
     const snap = s.project.snapshot as unknown as ProjectSnapshot;
     expect(Object.isFrozen(snap)).toBe(true);
@@ -194,7 +194,6 @@ describe("project: read-only mirror", () => {
     } as unknown as Parameters<typeof applySnapshot>[0];
     applySnapshot(ctx, ctxSnap);
     expect(store.getState().project.snapshot).toBe(before);
-    expect(store.getState().project.updatedAt).toBe(2000);
     applySnapshot(ctx, { ...ctxSnap, sidecar: { state: "restarting", version: ctxSnap.sidecar.version } });
     const after = store.getState().project.snapshot!;
     expect(after).not.toBe(before);
@@ -208,8 +207,125 @@ describe("project: read-only mirror", () => {
   });
 });
 
+describe("project units (R3.4)", () => {
+  const withManifest = (snap: ProjectSnapshot, manifest: string): ProjectSnapshot => ({ ...snap, files: { ...snap.files, files: { ...snap.files.files, "rocketwright.toml": manifest } } });
+  const sliceCtx = (store: AppStore) =>
+    ({
+      get: store.getState,
+      patch: (key: keyof AppState, partial: object | ((s: object) => object)) =>
+        store.setState((s) => ({ [key]: { ...s[key], ...(typeof partial === "function" ? partial(s[key]) : partial) } }) as Partial<AppState>),
+      now: () => 2000,
+      core: null,
+    }) as unknown as Parameters<typeof applySnapshot>[0];
+
+  it("the toolbar shows the project's own length unit", async () => {
+    const { store, srv } = await setup();
+    const snap = srv.mock.snapshot(P);
+    applySnapshot(sliceCtx(store), withManifest(snap, '[display_units]\nlength = "in"\n'));
+    expect(store.getState().ui.units).toBe("in");
+    applyPatch(sliceCtx(store), { projectId: P, files: withManifest(snap, '[display_units]\nlength = "cm"\n').files });
+    expect(store.getState().ui.units).toBe("cm");
+  });
+
+  it("undoing the first units choice goes back to what a project with no table shows", async () => {
+    const { store, srv } = await setup();
+    const snap = srv.mock.snapshot(P);
+    applySnapshot(sliceCtx(store), withManifest(snap, 'name = "x"\n'));
+    expect(store.getState().ui.units).toBe("mm");
+    applyPatch(sliceCtx(store), { projectId: P, files: withManifest(snap, '[display_units]\nlength = "in"\n').files });
+    expect(store.getState().ui.units).toBe("in");
+    applyPatch(sliceCtx(store), { projectId: P, files: withManifest(snap, 'name = "x"\n').files });
+    expect(store.getState().ui.units).toBe("mm");
+  });
+
+  it("a mirror change with no table leaves the toolbar alone", async () => {
+    const { store, srv } = await setup();
+    const snap = srv.mock.snapshot(P);
+    applySnapshot(sliceCtx(store), withManifest(snap, 'name = "x"\n'));
+    store.getState().ui.setUnits("in");
+    applyPatch(sliceCtx(store), { projectId: P, files: withManifest(snap, 'name = "y"\n').files });
+    expect(store.getState().ui.units).toBe("in");
+  });
+
+  it("a length the toolbar cannot show leaves it where it is", async () => {
+    const { store, srv } = await setup();
+    store.getState().ui.setUnits("cm");
+    applySnapshot(sliceCtx(store), withManifest(srv.mock.snapshot(P), '[display_units]\nlength = "ft"\n'));
+    expect(store.getState().ui.units).toBe("cm");
+  });
+
+  it("the control writes [display_units] and shows the choice at once", async () => {
+    const { store, client } = await setup();
+    const calls: unknown[] = [];
+    const real = client.call.bind(client);
+    client.call = ((method: string, params: never) => {
+      calls.push([method, params]);
+      return real(method as never, params);
+    }) as typeof client.call;
+    const pending = store.getState().ui.setProjectUnits("in");
+    expect(store.getState().ui.units).toBe("in");
+    await pending;
+    expect(calls).toContainEqual(["model.patch", { projectId: P, ops: [{ op: "add", path: "/project/display_units", value: { length: "in" } }], label: "Set units to in" }]);
+  });
+
+  it("a failed write puts the control back and says why", async () => {
+    const { store, client } = await setup();
+    client.call = (() => Promise.reject(new Error("the sidecar has gone"))) as typeof client.call;
+    await store.getState().ui.setProjectUnits("in");
+    expect(store.getState().ui).toMatchObject({ units: "mm", partDialog: { kind: "error", message: "the sidecar has gone" } });
+  });
+
+  it("quick changes write in order, the last choice last", async () => {
+    const { store, client } = await setup();
+    const writes: string[] = [];
+    const real = client.call.bind(client);
+    client.call = ((method: string, params: { ops?: { path: string; value: unknown }[] }) => {
+      if (method === "model.patch") writes.push(JSON.stringify(params.ops?.[0]?.value));
+      return real(method as never, params as never);
+    }) as typeof client.call;
+    const { ui } = store.getState();
+    await Promise.all([ui.setProjectUnits("in"), ui.setProjectUnits("cm"), ui.setProjectUnits("mm")]);
+    expect(writes).toEqual(['{"length":"in"}', '{"length":"cm"}', '{"length":"mm"}']);
+    expect(store.getState().ui.units).toBe("mm");
+  });
+
+  it("with no project it is only the local control", async () => {
+    const store = createAppStore();
+    stores.push(store);
+    await store.getState().ui.setProjectUnits("cm");
+    expect(store.getState().ui.units).toBe("cm");
+  });
+});
+
 describe("draft: WASM preview + sidecar dry run", () => {
   const span: PatchOp = { op: "replace", path: "/c/fins/span", value: "90 mm" };
+
+  it("keeps the mirror and the draft through a same-project reconnect", async () => {
+    const { srv, store, client } = await setup();
+    await store.getState().draft.edit([span], "Fin span 90 mm");
+    const snapshot = store.getState().project.snapshot;
+    client.close();
+    expect(store.getState().project.connection).toBe("closed");
+    const next = await connect(srv);
+    const reconnected = store.getState().project.connect(next, P);
+    expect(store.getState().project.snapshot).toBe(snapshot);
+    expect(store.getState().draft.ops).toEqual([span]);
+    await reconnected;
+    expect(store.getState().project).toMatchObject({ connection: "open", projectId: P });
+    expect(store.getState().project.subscriptionId).not.toBeNull();
+    expect(store.getState().draft).toMatchObject({ ops: [span], stale: false, label: "Fin span 90 mm" });
+    expect(store.getState().draft.engine).toEqual({ state: "ready", coreVersion: CORE, preview: true });
+  });
+
+  it("after a full disconnect, connecting starts from an empty mirror", async () => {
+    const { srv, store, client } = await setup();
+    client.close();
+    const next = await connect(srv);
+    store.getState().project.disconnect();
+    expect(store.getState().project.snapshot).toBeNull();
+    await store.getState().project.connect(next, P);
+    expect(store.getState().project.snapshot).not.toBeNull();
+  });
 
   it("previews through the version-matched core, then commits through model.patch", async () => {
     const core = fakeCore();
@@ -349,17 +465,19 @@ describe("runs", () => {
     expect(rows().recovery_test).toBe("outdated");
   });
 
-  it("overlays at most two series (A teal, B sand)", async () => {
+  it("overlays at most six series, the oldest pick dropping out, each with its slot's colour", async () => {
     const { store } = await setup();
     const { toggleOverlay } = store.getState().runs;
     toggleOverlay("baseline");
     toggleOverlay("fin_revision");
     toggleOverlay("recovery_test");
-    expect(store.getState().runs.overlay).toEqual(["fin_revision", "recovery_test"]);
+    expect(store.getState().runs.overlay).toEqual(["baseline", "fin_revision", "recovery_test"]);
     const colors = Object.fromEntries(runRows(store.getState()).map((r) => [r.sim, r.color]));
-    expect(colors).toEqual({ baseline: null, fin_revision: "#61b5ad", higher_altitude: null, recovery_test: "#f1ae6e" });
+    expect(colors).toEqual({ baseline: "#61b5ad", fin_revision: "#f1ae6e", higher_altitude: null, recovery_test: "#3a6bb8" });
+    for (const key of ["s4", "s5", "s6", "s7"]) toggleOverlay(key);
+    expect(store.getState().runs.overlay).toEqual(["fin_revision", "recovery_test", "s4", "s5", "s6", "s7"]);
     toggleOverlay("fin_revision");
-    expect(store.getState().runs.overlay).toEqual(["recovery_test"]);
+    expect(store.getState().runs.overlay).toEqual(["recovery_test", "s4", "s5", "s6", "s7"]);
   });
 });
 
@@ -372,7 +490,7 @@ describe("chat", () => {
     store.getState().project.disconnect();
     const s = store.getState();
     expect(s.project).toMatchObject({ connection: "idle", snapshot: null, projectId: null });
-    expect(s.chat.lecturn).toEqual({ embedded: true, threads: null, activeThreadId: null, activeKey: null });
+    expect(s.chat.lecturn).toEqual({ embedded: true, threads: null, activeThreadId: null, activeKey: null, threadStart: { state: "idle" } });
     expect(s.selection.refs).toEqual([]);
     srv.mock.playStep({ afterMs: 0, commit: "after disconnect" });
     await new Promise((r) => setTimeout(r, 30));

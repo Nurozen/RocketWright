@@ -88,13 +88,15 @@ jobs:
         if: steps.cache.outputs.cache-hit != 'true'
         env:
           ELECTRON_VERSION: ${{ steps.pin.outputs.electron }}
+          # Authenticated: anonymous release downloads time out when GitHub sheds load.
+          GH_TOKEN: ${{ github.token }}
         run: |
           zip="electron-v$ELECTRON_VERSION-darwin-arm64.zip"
           dir="$RUNNER_TEMP/electron-zip"
           mkdir -p "$dir"
-          base="https://github.com/electron/electron/releases/download/v$ELECTRON_VERSION"
-          [[ -f "$dir/$zip" ]] || curl -fsSL --retry 3 -o "$dir/$zip" "$base/$zip"
-          curl -fsSL --retry 3 -o "$dir/SHASUMS256.txt" "$base/SHASUMS256.txt"
+          tag="v$ELECTRON_VERSION"
+          [[ -f "$dir/$zip" ]] || gh release download "$tag" -R electron/electron -p "$zip" -D "$dir"
+          gh release download "$tag" -R electron/electron -p SHASUMS256.txt -D "$dir" --clobber
           (cd "$dir" && grep " \*$zip\$" SHASUMS256.txt | shasum -a 256 -c -)
           ditto -x -k "$dir/$zip" "$RUNNER_TEMP/electron"
           echo "RW_ELECTRON=$RUNNER_TEMP/electron/Electron.app/Contents/MacOS/Electron" >> "$GITHUB_ENV"

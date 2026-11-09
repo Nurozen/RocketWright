@@ -15,6 +15,7 @@ function fakeBridge(overrides: Partial<DesktopBridge> = {}) {
     calls.push([name, ...args]);
     return Promise.resolve(result);
   };
+  const flushListeners = new Set<(id: number) => void>();
   const bridge: DesktopBridge = {
     boot: record("boot", { activeProjectId: "p1", notice: "n" }),
     pickFolder: record("pickFolder", "/picked/folder"),
@@ -25,6 +26,11 @@ function fakeBridge(overrides: Partial<DesktopBridge> = {}) {
     removeRecent: record("removeRecent", undefined),
     setActiveProject: record("setActiveProject", undefined),
     setDirty: record("setDirty", undefined),
+    flushDone: record("flushDone", undefined),
+    onFlush: (listener) => {
+      flushListeners.add(listener);
+      return () => void flushListeners.delete(listener);
+    },
     prefs: record("prefs", { window: null, view: {}, lastTab: null, defaultDisplayUnits: null }),
     setPrefs: record("setPrefs", undefined),
     openProviders: record("openProviders", undefined),
@@ -36,7 +42,7 @@ function fakeBridge(overrides: Partial<DesktopBridge> = {}) {
     pathForFile: () => "/dropped/rocket.ork",
     ...overrides,
   };
-  return { bridge, calls, listeners };
+  return { bridge, calls, listeners, flushListeners };
 }
 
 describe("electron host", () => {
@@ -80,9 +86,67 @@ describe("electron host", () => {
     expect(listeners.size).toBe(0);
   });
 
+  it("answers a request to save with what the flush reports", async () => {
+    const { bridge, calls, flushListeners } = fakeBridge();
+    const off = createElectronHost(bridge).onFlush(() => Promise.resolve(["Delay: needs a number"]));
+    for (const l of flushListeners) l(7);
+    await vi.waitFor(() => expect(calls).toEqual([["flushDone", { id: 7, problems: ["Delay: needs a number"] }]]));
+    off();
+    expect(flushListeners.size).toBe(0);
+  });
+
+  it("reports a flush that throws as a failure, never as saved", async () => {
+    const { bridge, calls, flushListeners } = fakeBridge();
+    createElectronHost(bridge).onFlush(() => Promise.reject(new Error("socket closed")));
+    for (const l of flushListeners) l(8);
+    await vi.waitFor(() => expect(calls).toEqual([["flushDone", { id: 8, problems: ["socket closed"] }]]));
+  });
+
   it("reports a dropped file's path, and null for one not on disk", () => {
     expect(createElectronHost(fakeBridge().bridge).pathForFile(FILE)).toBe("/dropped/rocket.ork");
     expect(createElectronHost(fakeBridge({ pathForFile: () => "" }).bridge).pathForFile(FILE)).toBeNull();
+  });
+});
+
+describe("preferences and Agent providers (R3.4)", () => {
+  it("are main's on the desktop", async () => {
+    const { bridge, calls } = fakeBridge();
+    const host = createElectronHost(bridge);
+    await expect(host.prefs()).resolves.toMatchObject({ lastTab: null });
+    await host.setPrefs({ lastTab: "results" });
+    const inPane = vi.fn<() => void>();
+    await host.openProviders(inPane);
+    expect(calls).toEqual([["prefs"], ["setPrefs", { lastTab: "results" }], ["openProviders"]]);
+    expect(inPane).not.toHaveBeenCalled();
+  });
+
+  it("last only as long as the tab in a browser, and the page's bridge opens the panel", async () => {
+    const host = createBrowserHost(vi.fn<PathPrompt>());
+    await host.setPrefs({ defaultDisplayUnits: { length: "in" } });
+    await expect(host.prefs()).resolves.toMatchObject({ defaultDisplayUnits: { length: "in" } });
+    await expect(createBrowserHost(vi.fn<PathPrompt>()).prefs()).resolves.toMatchObject({ defaultDisplayUnits: null });
+    const inPane = vi.fn<() => void>();
+    await host.openProviders(inPane);
+    expect(inPane).toHaveBeenCalledOnce();
+  });
+});
+
+describe("relaunch", () => {
+  it("goes to main on the desktop", async () => {
+    const { bridge, calls } = fakeBridge();
+    await createElectronHost(bridge).relaunch();
+    expect(calls).toEqual([["relaunch"]]);
+  });
+
+  it("reloads the page in a browser", async () => {
+    const reload = vi.fn<() => void>();
+    vi.stubGlobal("window", { location: { reload } });
+    try {
+      await createBrowserHost(vi.fn<PathPrompt>()).relaunch();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+    expect(reload).toHaveBeenCalledOnce();
   });
 });
 
@@ -119,6 +183,40 @@ describe("browser host", () => {
       { kind: "file", title: "Import", filters: [{ name: "OpenRocket", extensions: ["ork"] }] },
       { kind: "save", title: "Save as", defaultPath: "out.csv" },
     ]);
+  });
+});
+
+describe("export", () => {
+  const OUT = { path: "exports/a.ork", bytes: 1, sha256: "x" };
+  const request = { projectId: "p1", format: "ork" as const, defaultName: "a.ork" };
+
+  it("leaves the desktop's export to main and its save dialog", async () => {
+    const { bridge, calls } = fakeBridge({ exportFile: () => Promise.resolve({ canceled: false, out: OUT }) });
+    const write = vi.fn<(path: string) => Promise<typeof OUT>>();
+    const seen = vi.spyOn(bridge, "exportFile");
+    expect(await createElectronHost(bridge).exportFile(request, write)).toEqual({ canceled: false, out: OUT });
+    expect(seen).toHaveBeenCalledWith(request);
+    expect(write).not.toHaveBeenCalled();
+    expect(calls).toEqual([]);
+  });
+
+  it("in a browser, asks for a path in the project and writes through the page's own socket", async () => {
+    const asked: PathPromptRequest[] = [];
+    const host = createBrowserHost((r) => {
+      asked.push(r);
+      return Promise.resolve("exports/typed.ork");
+    });
+    const write = vi.fn<(path: string) => Promise<typeof OUT>>(() => Promise.resolve(OUT));
+    expect(await host.exportFile(request, write)).toEqual({ canceled: false, out: OUT });
+    expect(write.mock.calls).toEqual([["exports/typed.ork"]]);
+    expect(asked[0]).toMatchObject({ kind: "save", title: "Export", defaultPath: "exports/a.ork" });
+    expect(asked[0]?.hint).toContain("inside the project");
+  });
+
+  it("writes nothing when a browser's prompt is cancelled", async () => {
+    const write = vi.fn<(path: string) => Promise<typeof OUT>>();
+    expect(await createBrowserHost(() => Promise.resolve(null)).exportFile(request, write)).toEqual({ canceled: true });
+    expect(write).not.toHaveBeenCalled();
   });
 });
 
