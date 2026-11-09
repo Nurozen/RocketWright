@@ -14,12 +14,13 @@
  */
 import type { PageLike } from "../regions.ts";
 import { measureDom, measurePanePixels, type EmbedContext, type TokenReport } from "../visual-tokens.ts";
-import { isPageId } from "./paths.ts";
+import { isPageId, isSurfaceId } from "./paths.ts";
 import { decodePng } from "./png.ts";
+import { measureSurface, type SurfaceMeasure } from "./surfaces.ts";
 
-function shellPage(): string | null {
-  const s = (window as unknown as { __rwShell?: { status: string; page?: string } }).__rwShell;
-  return s?.status === "ready" ? (s.page ?? null) : null;
+function shellPage(): { page: string | null; surface: string | null } {
+  const s = (window as unknown as { __rwShell?: { status: string; page?: string; surface?: string } }).__rwShell;
+  return s?.status === "ready" ? { page: s.page ?? null, surface: s.surface ?? null } : { page: null, surface: null };
 }
 
 /** The embed rect's top-left in the main page, or null when the page shows no embed (the old chat). */
@@ -37,13 +38,20 @@ export async function embedContext(page: PageLike, embed: PageLike | null): Prom
   return origin === null ? null : { page: embed, origin };
 }
 
-export default async function measure(page: PageLike, embed: PageLike | null = null): Promise<TokenReport> {
-  const id = await page.evaluate(shellPage, null);
+export default async function measure(page: PageLike, embed: PageLike | null = null): Promise<TokenReport | SurfaceMeasure> {
+  const { page: id, surface } = await page.evaluate(shellPage, null);
+  if (surface !== null) {
+    if (!isSurfaceId(surface)) throw new Error(`shell surface unknown: ${surface}`);
+    return measureSurface(page, surface);
+  }
   if (id === null || !isPageId(id)) throw new Error(`shell page not ready or unknown: ${String(id)}`);
   return measureDom(page, id, undefined, undefined, await embedContext(page, embed));
 }
 
-/** D31: the pane probes sampled from the composite capture (PNG bytes); a report without them is returned as is. */
-export function measureCapture(report: TokenReport, png: Uint8Array): TokenReport {
-  return report.panePixels === undefined ? report : measurePanePixels(report, decodePng(png));
+/** D31: the pane probes sampled from the composite capture (PNG bytes); a report without them is returned as is (a surface's has none). */
+export function measureCapture(report: TokenReport, png: Uint8Array): TokenReport;
+export function measureCapture(report: SurfaceMeasure, png: Uint8Array): SurfaceMeasure;
+export function measureCapture(report: TokenReport | SurfaceMeasure, png: Uint8Array): TokenReport | SurfaceMeasure {
+  if (!("panePixels" in report) || report.panePixels === undefined) return report;
+  return measurePanePixels(report, decodePng(png));
 }

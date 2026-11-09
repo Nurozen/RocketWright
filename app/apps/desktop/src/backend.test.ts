@@ -13,6 +13,7 @@ import { EMBED_RENDERER_IPC_GLOBAL } from "@lecturn/embed/renderer";
 import { EMBED_HOST_BRIDGE_CHANNEL, EMBED_PANE_RECT_CHANNEL, PANE_HOST_CHANNEL, PANE_MAIN_CHANNEL, PANE_SEND_CHANNELS } from "@rw/contracts";
 import {
   bootProjects,
+  seededProfileDir,
   appUrl,
   buildPreload,
   childEnv,
@@ -96,6 +97,13 @@ describe("server spawn", () => {
     expect(existsSync(dir)).toBe(false);
     expect(documentsDirOverride(false, { RW_DOCUMENTS_DIR: dir })).toBe(dir);
     expect(statSync(dir).isDirectory()).toBe(true);
+  });
+
+  it("lets only an unpackaged capture use a seeded profile", () => {
+    expect(seededProfileDir(false, {})).toBeUndefined();
+    expect(seededProfileDir(false, { RW_SEEDED_PROFILE: "" })).toBeUndefined();
+    expect(seededProfileDir(false, { RW_SEEDED_PROFILE: "/tmp/rw-bar-surface/profile" })).toBe("/tmp/rw-bar-surface/profile");
+    expect(seededProfileDir(true, { RW_SEEDED_PROFILE: "/tmp/rw-bar-surface/profile" })).toBeUndefined();
   });
 
   it("takes the run's profile from RW_USER_DATA_DIR and names the base dir the server really uses (CPW2B)", () => {
@@ -308,6 +316,9 @@ describe("CLI flags", () => {
     expect(bootProjects([], true)).toBeNull();
     expect(bootProjects(["/a"], true)).toEqual(["/a"]);
     expect(bootProjects(["/a", "/b"], false)).toEqual(["/a", "/b"]);
+    // `--zero-project`: a hidden run boots a server with no project, as B3 captures need.
+    expect(bootProjects([], true, true)).toEqual([]);
+    expect(bootProjects(["/a"], true, true)).toEqual(["/a"]);
   });
 
   it("parses projects, modes, and implies --hidden from --smoke", () => {

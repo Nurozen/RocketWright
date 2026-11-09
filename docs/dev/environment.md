@@ -67,7 +67,8 @@ with a message naming the missing file:
   `tests/oracle/*.json` come from the same harness.
 - **Bar reference material** (`make bar*`, `pnpm bar:calibrate`,
   `pnpm bar:packet`): the concept exemplar PNGs and the embed mockups
-  (`RW_BAR_EXEMPLARS`, `RW_BAR_EMBED_ASSETS`); see `bar-tooling.md`.
+  (`RW_BAR_EXEMPLARS`, `RW_BAR_EMBED_ASSETS`, `RW_USABILITY_BAR`); see
+  `bar-tooling.md`.
 
 ## Vendored Lecturn (plan B7)
 
@@ -154,6 +155,9 @@ child connects only when it has a Lecturn base dir:
   (`app/e2e/lecturn-env.ts`), so no run writes under the real
   `~/Library/Application Support/Electron`; hidden runs always use a fresh
   temp profile, removed on exit.
+- `RW_SEEDED_PROFILE`: a surface capture's Electron profile (holding its
+  seeded `recents.json`), replacing a hidden run's temp profile. Unpackaged
+  only; the harness owns the directory and removes it.
 - `RW_DOCUMENTS_DIR`: stands in for the OS Documents folder, for native
   dialogs and the server's default project location. Unpackaged runs only;
   a shipped app ignores it. E2E uses a short `/tmp` path (socket limit).

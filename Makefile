@@ -285,10 +285,14 @@ bar:
 # pending; ROWS=all gates every row. Critic packet scope: FIDELITY=1 (fidelity
 # verdicts; the page's fidelity milestone, 01-04 M3), BC=BC5 (that checkpoint's
 # milestone; fidelity on from BC5), MILESTONE=M3 (override); default M1.
+# SURFACES=s-welcome,s-new-project captures the usability pass's new surfaces
+# (tests/bar/surfaces.json, app/e2e/capture/surfaces/) into
+# dist/bar-visual/<surface>/ with a critic packet; a surface no step has built
+# yet is reported, not captured, and the run exits non-zero.
 # Needs a GUI session (Electron window).
 bar-visual: vendor-lecturn wasm bin-plain
 	$(PNPM) --filter @rw/web build
-	$(lecturn_env) RW_SIDECAR_BIN="$${RW_SIDECAR_BIN:-$(DEV_SIDECAR)}" node app/e2e/bar/visual.ts --pages "$(or $(PAGES),01)" --rows "$(or $(ROWS),shell)" \
+	$(lecturn_env) RW_SIDECAR_BIN="$${RW_SIDECAR_BIN:-$(DEV_SIDECAR)}" node app/e2e/bar/visual.ts $(if $(SURFACES),--surfaces "$(SURFACES)",) $(if $(PAGES),--pages "$(PAGES)",$(if $(SURFACES),,--pages 01)) --rows "$(or $(ROWS),shell)" \
 	  $(if $(filter 1 true yes,$(FIDELITY)),--fidelity,) $(if $(BC),--bc "$(BC)",) $(if $(MILESTONE),--milestone "$(MILESTONE)",)
 # B2 parity scoreboard (M1.16): report mode exits 0; GATE=1 fails on any
 # non-passing toleranced generic-matrix row. CASE=1|2..7, KEYS=apogee_m,...

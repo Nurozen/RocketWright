@@ -16,8 +16,9 @@ import { createHash } from "node:crypto";
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, extname, join, resolve } from "node:path";
 import type { TokenReport } from "../visual-tokens.ts";
-import { CHECKLIST_DIR, CRITIC_PROMPT_PATH, embedAssetsDir, exemplarDir, isPageId, readJson, reviewsDir, stableStringify, type PageId } from "./paths.ts";
+import { CHECKLIST_DIR, CRITIC_PROMPT_PATH, embedAssetsDir, exemplarDir, isPageId, readJson, reviewsDir, stableStringify, SURFACE_CRITIC_PROMPT_PATH, usabilityBarDir, type PageId, type SurfaceId } from "./paths.ts";
 import { MILESTONES, loadRegions, type Checklist, type Milestone } from "./spec.ts";
+import { surfaceSpec } from "./surfaces.ts";
 
 /** Path fragments a packet input may never come from (clean-room rules, builder brief). */
 export const DENIED_PATH_FRAGMENTS = [
@@ -176,6 +177,60 @@ export function buildPacket(input: PacketInput): PacketManifest {
     fidelity: input.fidelity,
     files,
     references: Object.fromEntries(refs.map((r) => [r.file, { source: r.spec.source, role: r.spec.role }])),
+  };
+  writeFileSync(join(input.out, "manifest.json"), stableStringify(manifest));
+  return manifest;
+}
+
+export interface SurfacePacketInput {
+  surface: SurfaceId;
+  capture: string;
+  out: string;
+  /** Overrides the usability bar directory (tests). */
+  bar?: string;
+}
+
+export interface SurfacePacketManifest {
+  surface: SurfaceId;
+  title: string;
+  files: Record<string, string>;
+  references: Record<"mockup.png" | "existing.png", { source: string; role: string }>;
+}
+
+/**
+ * The critic packet for one B3 surface: capture, mockup, nearest existing
+ * page, the checks critics tick before judging, the surface prompt, manifest.
+ * The surface has no tokens, regions or checklist (those are per page).
+ */
+export function buildSurfacePacket(input: SurfacePacketInput): SurfacePacketManifest {
+  const spec = surfaceSpec(input.surface);
+  const bar = input.bar ?? usabilityBarDir();
+  const refs = [
+    { file: "mockup.png" as const, path: join(bar, "mockups", spec.mockup), source: `mockups/${spec.mockup}`, role: "Approved mockup of this surface: direction and layout only. Copy, numbers and pixel positions are not requirements." },
+    { file: "existing.png" as const, path: join(bar, "existing", spec.existing), source: `existing/${spec.existing}`, role: "The nearest existing page: the design language this surface must match." },
+  ];
+  for (const p of [...refs.map((r) => r.path), input.capture]) {
+    assertAllowedPath(p);
+    if (!existsSync(p)) throw new Error(`packet: missing input ${p}`);
+  }
+  if (existsSync(input.out) && readdirSync(input.out).length > 0) throw new Error(`packet: output directory ${input.out} is not empty`);
+  mkdirSync(input.out, { recursive: true });
+
+  for (const r of refs) copyFileSync(r.path, join(input.out, r.file));
+  copyFileSync(input.capture, join(input.out, "capture.png"));
+  copyFileSync(SURFACE_CRITIC_PROMPT_PATH, join(input.out, "critic-prompt.md"));
+  writeFileSync(join(input.out, "checks.json"), `${JSON.stringify({ surface: input.surface, checks: spec.checks }, null, 2)}\n`);
+
+  const files: Record<string, string> = {};
+  for (const f of readdirSync(input.out).sort()) files[f] = sha256(join(input.out, f));
+  const manifest: SurfacePacketManifest = {
+    surface: input.surface,
+    title: spec.title,
+    files,
+    references: {
+      "mockup.png": { source: refs[0]!.source, role: refs[0]!.role },
+      "existing.png": { source: refs[1]!.source, role: refs[1]!.role },
+    },
   };
   writeFileSync(join(input.out, "manifest.json"), stableStringify(manifest));
   return manifest;

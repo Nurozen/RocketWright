@@ -12,6 +12,8 @@ export const CHECKLIST_DIR = join(BAR_DATA_DIR, "checklists");
 export const TOKENS_PATH = join(BAR_DATA_DIR, "tokens.json");
 export const REGIONS_PATH = join(BAR_DATA_DIR, "regions.json");
 export const CRITIC_PROMPT_PATH = join(BAR_DATA_DIR, "critic-prompt.md");
+export const SURFACE_CRITIC_PROMPT_PATH = join(BAR_DATA_DIR, "surface-critic-prompt.md");
+export const SURFACES_PATH = join(BAR_DATA_DIR, "surfaces.json");
 export const ART_NUMBERS_PATH = join(BAR_DATA_DIR, "art-numbers.txt");
 export const ART_DEFECTS_PATH = join(BAR_DATA_DIR, "art-defects.json");
 
@@ -21,6 +23,18 @@ export type PageId = (typeof PAGES)[number];
 
 export function isPageId(s: string): s is PageId {
   return (PAGES as readonly string[]).includes(s);
+}
+
+/**
+ * B3 surface ids, a separate key type from `PageId` (which indexes the frozen
+ * checklists, region tables and fidelity milestones; a surface has none of
+ * those). `tests/bar/surfaces.json` holds each surface's data.
+ */
+export const SURFACES = ["s-welcome", "s-new-project", "s-project-menu", "s-add-part", "s-context-menu", "s-sim-conditions", "s-check-issues", "s-liquid-editor"] as const;
+export type SurfaceId = (typeof SURFACES)[number];
+
+export function isSurfaceId(s: string): s is SurfaceId {
+  return (SURFACES as readonly string[]).includes(s);
 }
 
 /**
@@ -67,6 +81,20 @@ export function embedAssetsDir(env: NodeJS.ProcessEnv = process.env): string {
   const artifacts = findArtifactsDir();
   if (!artifacts) throw new Error("bar: embed bar assets not found (maintainer-only, not in the repository); set RW_BAR_EMBED_ASSETS to the rocketwright-lecturn bar directory");
   return join(artifacts, "features/rocketwright-lecturn/bar");
+}
+
+/**
+ * The usability pass's bar assets: approved surface mockups (`mockups/`) and
+ * captures of the existing pages (`existing/`). Maintainer-only, never
+ * committed. `$RW_USABILITY_BAR` wins; otherwise
+ * `artifacts/features/rocketwright-usability/bar` above the repo.
+ */
+export function usabilityBarDir(env: NodeJS.ProcessEnv = process.env): string {
+  const fromEnv = env["RW_USABILITY_BAR"];
+  if (fromEnv) return resolve(fromEnv);
+  const artifacts = findArtifactsDir();
+  if (!artifacts) throw new Error("bar: usability bar assets not found (maintainer-only, not in the repository); set RW_USABILITY_BAR to the rocketwright-usability bar directory");
+  return join(artifacts, "features/rocketwright-usability/bar");
 }
 
 /** `artifacts/reviews/rocketwright_bar/` (the bar checkpoint output root). */

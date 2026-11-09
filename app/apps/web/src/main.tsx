@@ -16,7 +16,8 @@
  *   toolbar, Components tree); Design > Components (M2.9) and Configurations
  *   (M2.10) are live pages too, as are Propulsion > Liquid propulsion (M4.7)
  *   and Simulate > Propulsion simulation's Engineering tier (M4.8); static,
- *   the workspace holds the spike viewport.
+ *   the workspace holds the spike viewport. `?surface=s-*` (B3 captures)
+ *   starts on that surface's page and adds it to `window.__rwShell`.
  * - `?mode=render`: the hidden-window render path used by the desktop capture
  *   (M1.9): the viewport alone, publishing its probe on `window.__rwProbe`.
  * - `?mode=render&job=1`: `rocketwright-render` (RL3): a full-window canvas
@@ -44,7 +45,7 @@ import { PLACEHOLDER_ALT, PLACEHOLDER_HEIGHT, PLACEHOLDER_SRC, PLACEHOLDER_WIDTH
 import { cachedSource, httpRunSource } from "./pages/results/source.ts";
 import { AppRoot, FatalScreen } from "./shell/AppRoot.tsx";
 import { launchMode } from "./shell/lifecycle.ts";
-import { isBarPage, pageOfBar, PLACEHOLDER_SHELL, type BarPage } from "./shell/model.ts";
+import { BAR_SURFACES, isBarPage, isBarSurface, pageOfBar, PLACEHOLDER_SHELL, type BarPage } from "./shell/model.ts";
 import { ShellApp } from "./shell/ShellApp.tsx";
 import { Viewport } from "./viewport/Viewport.tsx";
 import { runRenderJob, type JobOptions, type JobReply } from "./render/job.ts";
@@ -55,7 +56,7 @@ type Status<T> = { status: "pending" } | ({ status: "ready" } & T) | { status: "
 declare global {
   interface Window {
     __rwProbe?: Status<{ probe: ViewportProbe }>;
-    __rwShell?: Status<{ page: string }>;
+    __rwShell?: Status<{ page: string; surface?: string }>;
     /** This window's broker host answering one op directly, as a server push would reach it (e2e probes, e.g. page 04's `plot_render`). */
     __rwBroker?: (op: BrokerOp, args: unknown) => Promise<BrokerResponse>;
     /** Set by the Electron preload (`apps/desktop/src/preload.ts`) when the desktop app spawned a server. */
@@ -174,7 +175,10 @@ function start(): void {
     return;
   }
   const requested = params.get("page");
-  const page = isBarPage(requested) ? requested : "01";
+  // A B3 surface capture (`?surface=`): the page it starts on comes from the surface.
+  const surfaceParam = params.get("surface");
+  const surface = isBarSurface(surfaceParam) ? surfaceParam : null;
+  const page = surface !== null ? BAR_SURFACES[surface] : isBarPage(requested) ? requested : "01";
   window.__rwShell = { status: "pending" };
   const desktop = window.rwDesktop;
   const rpc = pageRpcUrl({ search: location.search, hash: location.hash, desktopUrl: desktop?.rpcUrl, envUrl: import.meta.env.VITE_RW_RPC_URL as string | undefined });
@@ -186,7 +190,7 @@ function start(): void {
     void fonts
       .then(() => new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r()))))
       .then(() => {
-        if (window.__rwShell?.status === "pending") window.__rwShell = { status: "ready", page };
+        if (window.__rwShell?.status === "pending") window.__rwShell = { status: "ready", page, ...(surface !== null ? { surface } : {}) };
       });
   const reactRoot = createRoot(root);
   if (mode === "live") {

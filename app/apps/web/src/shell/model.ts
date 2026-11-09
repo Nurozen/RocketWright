@@ -40,6 +40,23 @@ export function isBarPage(v: string | null): v is BarPage {
   return v !== null && Object.hasOwn(BAR_PAGES, v);
 }
 
+/** B3 surface id (`?surface=`, tests/bar/surfaces.json) → the bar page the window starts on. */
+export const BAR_SURFACES = {
+  "s-welcome": "01",
+  "s-new-project": "01",
+  "s-project-menu": "01",
+  "s-add-part": "02",
+  "s-context-menu": "02",
+  "s-sim-conditions": "04",
+  "s-check-issues": "01",
+  "s-liquid-editor": "05",
+} as const satisfies Record<string, BarPage>;
+export type BarSurface = keyof typeof BAR_SURFACES;
+
+export function isBarSurface(v: string | null): v is BarSurface {
+  return v !== null && Object.hasOwn(BAR_SURFACES, v);
+}
+
 /** State page (`ui.page`, IF11 PageId) → header tab and Design local tab. */
 export const PAGE_TABS: Readonly<Record<PageId, { tab: TopTab; local: DesignTab | null }>> = {
   assembly: { tab: "design", local: "assembly" },
