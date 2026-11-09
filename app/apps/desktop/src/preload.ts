@@ -53,6 +53,7 @@
     setActiveProject: "rw-desktop:set-active-project",
     setDirty: "rw-desktop:set-dirty",
     flushDone: "rw-desktop:flush-done",
+    dirtyAnswer: "rw-desktop:dirty-answer",
     prefs: "rw-desktop:prefs",
     setPrefs: "rw-desktop:set-prefs",
     openProviders: "rw-desktop:open-providers",
@@ -60,6 +61,7 @@
   };
   const COMMAND = "rw-desktop:command";
   const FLUSH = "rw-desktop:flush";
+  const DIRTY_CHECK = "rw-desktop:dirty-check";
   contextBridge.exposeInMainWorld("lecturnEmbedIpc", {
     send: (channel: unknown, payload: unknown) => {
       if (typeof channel === "string" && SEND.includes(channel)) ipcRenderer.send(channel, payload);
@@ -82,6 +84,7 @@
     setActiveProject: (project: unknown) => ipcRenderer.invoke(INVOKE.setActiveProject, project),
     setDirty: (dirty: unknown) => ipcRenderer.invoke(INVOKE.setDirty, dirty),
     flushDone: (result: unknown) => ipcRenderer.invoke(INVOKE.flushDone, result),
+    dirtyAnswer: (result: unknown) => ipcRenderer.invoke(INVOKE.dirtyAnswer, result),
     prefs: () => ipcRenderer.invoke(INVOKE.prefs),
     setPrefs: (patch: unknown) => ipcRenderer.invoke(INVOKE.setPrefs, patch),
     openProviders: () => ipcRenderer.invoke(INVOKE.openProviders),
@@ -95,6 +98,11 @@
       const listener = (_e: unknown, id: unknown) => cb(id);
       ipcRenderer.on(FLUSH, listener);
       return () => void ipcRenderer.removeListener(FLUSH, listener);
+    },
+    onDirtyCheck: (cb: (id: unknown) => void) => {
+      const listener = (_e: unknown, id: unknown) => cb(id);
+      ipcRenderer.on(DIRTY_CHECK, listener);
+      return () => void ipcRenderer.removeListener(DIRTY_CHECK, listener);
     },
     pathForFile: (file: File) => webUtils.getPathForFile(file),
     lecturn: {

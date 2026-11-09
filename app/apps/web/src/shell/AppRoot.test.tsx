@@ -93,6 +93,7 @@ function fakeHost(over: Partial<HostApi> = {}) {
     removeRecent: () => Promise.resolve(),
     setDirty: () => Promise.resolve(),
     onFlush: () => () => undefined,
+    onDirtyCheck: () => () => undefined,
     setActiveProject: (p) => {
       active.push(p);
       return Promise.resolve();
@@ -485,6 +486,30 @@ describe("closing and commands", () => {
     dirty = false;
     await expect(flush!()).resolves.toEqual([]);
     expect(commit).toHaveBeenCalledOnce();
+    await act(async () => root?.unmount());
+    root = null;
+    expect(off).toHaveBeenCalledOnce();
+  });
+
+  it("answers main's dirty check from the surface, and stops when it goes", async () => {
+    const t = fakeClient(["a"]);
+    let check: (() => boolean) | undefined;
+    const off = vi.fn<() => void>();
+    await mount(
+      t,
+      fakeHost({
+        onDirtyCheck: (f) => {
+          check = f;
+          return off;
+        },
+      }),
+    );
+    expect(check!()).toBe(false);
+    let dirty = true;
+    registerDirtyField({ dirty: () => dirty, commit: () => null });
+    expect(check!()).toBe(true);
+    dirty = false;
+    expect(check!()).toBe(false);
     await act(async () => root?.unmount());
     root = null;
     expect(off).toHaveBeenCalledOnce();

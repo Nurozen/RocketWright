@@ -1,6 +1,6 @@
 import { EventEmitter } from "node:events";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createPageFlush, guardQuit, once, PAGE_FLUSH_TIMEOUT_MS, QUIT_DISCARD_BUTTON, QUIT_KEEP_BUTTON, QUIT_PROMPT, QUIT_SAVE_BUTTON, quitChoice, quitSaveFailedPrompt, SAVE_FAILED_DISCARD_BUTTON, SAVE_FAILED_KEEP_BUTTON, type QuitChoice, type QuitGuardDeps } from "./quit.ts";
+import { createPageDirtyCheck, createPageFlush, guardQuit, PAGE_DIRTY_CHECK_TIMEOUT_MS, once, PAGE_FLUSH_TIMEOUT_MS, QUIT_DISCARD_BUTTON, QUIT_KEEP_BUTTON, QUIT_PROMPT, QUIT_SAVE_BUTTON, quitChoice, quitSaveFailedPrompt, SAVE_FAILED_DISCARD_BUTTON, SAVE_FAILED_KEEP_BUTTON, type QuitChoice, type QuitGuardDeps } from "./quit.ts";
 
 function harness(over: Partial<QuitGuardDeps> = {}) {
   const app = new EventEmitter();
@@ -9,8 +9,11 @@ function harness(over: Partial<QuitGuardDeps> = {}) {
   const flushes: ((problems: string[]) => void)[] = [];
   const failed: { problems: string[]; answer: (discard: boolean) => void }[] = [];
   let dirty = false;
+  const closes: number[] = [];
   const guard = guardQuit(app as never, {
     isDirty: () => dirty,
+    checkPage: () => Promise.resolve(false),
+    closeWindow: () => void closes.push(1),
     ask: () => new Promise<QuitChoice>((resolve) => answers.push(resolve)),
     flush: () => new Promise<string[]>((resolve) => flushes.push(resolve)),
     confirmSaveFailed: (problems) => new Promise<boolean>((answer) => failed.push({ problems, answer })),
@@ -33,7 +36,7 @@ function harness(over: Partial<QuitGuardDeps> = {}) {
     return e.prevented;
   };
   const settle = () => new Promise<void>((r) => setTimeout(r, 0));
-  return { codes, answers, flushes, failed, quit, close, settle, setDirty: (d: boolean) => (dirty = d) };
+  return { codes, closes, answers, flushes, failed, quit, close, settle, setDirty: (d: boolean) => (dirty = d) };
 }
 
 describe("quitting without orphans (quit.ts)", () => {
@@ -72,11 +75,122 @@ describe("quitting without orphans (quit.ts)", () => {
     expect(t.answers).toHaveLength(1);
   });
 
-  it("lets a clean window close go on to window-all-closed", async () => {
+  it("lets a clean window close go on to window-all-closed, once the page has said it is clean", async () => {
     const t = harness();
-    expect(t.close()).toBe(false);
+    expect(t.close()).toBe(true);
+    expect(t.closes).toEqual([]);
     await t.settle();
+    expect(t.closes).toEqual([1]);
+    // The close main issues itself goes through, and only that one.
+    expect(t.close()).toBe(false);
+    expect(t.close()).toBe(true);
     expect(t.codes).toEqual([]);
+    expect(t.answers).toHaveLength(0);
+  });
+
+  describe("when main has not heard of the edit yet", () => {
+    /** The page's report runs on a timer, so typing and quitting can pass each other. */
+    const unreported = () => {
+      let answer!: (dirty: boolean) => void;
+      const t = harness({ checkPage: () => new Promise<boolean>((resolve) => (answer = resolve)) });
+      return { t, answer: (dirty: boolean) => answer(dirty) };
+    };
+
+    it("asks on a quit when the page holds typed work, and does not end the app", async () => {
+      const { t, answer } = unreported();
+      expect(t.quit()).toBe(true);
+      await t.settle();
+      expect(t.codes).toEqual([]);
+      answer(true);
+      await t.settle();
+      expect(t.answers).toHaveLength(1);
+      expect(t.codes).toEqual([]);
+    });
+
+    it("asks on a window close when the page holds typed work, and leaves the window open", async () => {
+      const { t, answer } = unreported();
+      expect(t.close()).toBe(true);
+      answer(true);
+      await t.settle();
+      expect(t.answers).toHaveLength(1);
+      expect(t.closes).toEqual([]);
+    });
+
+    it("still shuts down when the page answers that it is clean", async () => {
+      const { t, answer } = unreported();
+      t.quit();
+      answer(false);
+      await t.settle();
+      expect(t.codes).toEqual([0]);
+      expect(t.answers).toHaveLength(0);
+    });
+
+    it("holds other quits and closes while the page is being asked, and asks it once", async () => {
+      const checkPage = vi.fn<() => Promise<boolean>>(() => new Promise<boolean>(() => undefined));
+      const t = harness({ checkPage });
+      expect(t.quit()).toBe(true);
+      expect(t.quit()).toBe(true);
+      expect(t.close()).toBe(true);
+      await t.settle();
+      expect(checkPage).toHaveBeenCalledOnce();
+      expect(t.codes).toEqual([]);
+    });
+
+    it("trusts main's own copy when it already knows, without asking the page", () => {
+      const checkPage = vi.fn<() => Promise<boolean>>(() => Promise.resolve(false));
+      const t = harness({ checkPage });
+      t.setDirty(true);
+      t.quit();
+      expect(t.answers).toHaveLength(1);
+      expect(checkPage).not.toHaveBeenCalled();
+    });
+
+    it("asks when the report lands while the page is being asked", async () => {
+      const { t, answer } = unreported();
+      t.quit();
+      t.setDirty(true);
+      answer(false);
+      await t.settle();
+      expect(t.answers).toHaveLength(1);
+      expect(t.codes).toEqual([]);
+    });
+
+    it("does not let a failed check hold the quit open", async () => {
+      const t = harness({ checkPage: () => Promise.reject(new Error("no page")) });
+      t.quit();
+      await t.settle();
+      expect(t.codes).toEqual([0]);
+    });
+  });
+
+  describe("asking the page whether it holds typed work (createPageDirtyCheck)", () => {
+    beforeEach(() => void vi.useFakeTimers());
+    afterEach(() => void vi.useRealTimers());
+
+    const check = (send: (id: number) => boolean = () => true) => createPageDirtyCheck({ send });
+
+    it("answers with what the page reports, by id", async () => {
+      const ids: number[] = [];
+      const c = check((id) => (ids.push(id), true));
+      const asked = c.check();
+      c.done({ id: ids[0]!, dirty: true });
+      await expect(asked).resolves.toBe(true);
+    });
+
+    it("does not let a page that never answers hold a quit open", async () => {
+      const c = check();
+      const asked = c.check();
+      await vi.advanceTimersByTimeAsync(PAGE_DIRTY_CHECK_TIMEOUT_MS);
+      await expect(asked).resolves.toBe(false);
+    });
+
+    it("answers at once when there is no page, or the page goes away", async () => {
+      await expect(check(() => false).check()).resolves.toBe(false);
+      const c = check();
+      const asked = c.check();
+      c.pageGone();
+      await expect(asked).resolves.toBe(false);
+    });
   });
 
   it("holds a window close with typed work, and Quit without saving ends the app", async () => {
@@ -93,6 +207,7 @@ describe("quitting without orphans (quit.ts)", () => {
   it("never asks once the shutdown has started", async () => {
     const t = harness();
     t.quit();
+    await t.settle();
     t.setDirty(true);
     expect(t.quit()).toBe(true);
     expect(t.close()).toBe(false);

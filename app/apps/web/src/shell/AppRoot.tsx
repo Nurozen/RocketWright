@@ -230,10 +230,13 @@ export function AppRoot({ url, requestedProjectId, initialPage, pageForced = fal
     const offMenu = host.onCommand((command) => void run(command));
     // Save and quit: main waits for this, so a project-less window answers that nothing is unsaved.
     const offFlush = host.onFlush(async () => (await surfaceRef.current?.flush()) ?? []);
+    // Main asks this at the moment of a quit, so a keystroke its own copy has not heard of still counts.
+    const offDirtyCheck = host.onDirtyCheck(() => surfaceRef.current?.hasUnsavedWork() ?? false);
     if (host.kind !== "browser") {
       return () => {
         offMenu();
         offFlush();
+        offDirtyCheck();
       };
     }
     // No native menu here to own the keys (R0.12). The desktop must not listen too: an accelerator would run twice.
@@ -245,6 +248,7 @@ export function AppRoot({ url, requestedProjectId, initialPage, pageForced = fal
     return () => {
       offMenu();
       offFlush();
+      offDirtyCheck();
       window.removeEventListener("keydown", onKey);
     };
   }, [host, openHelp, openSettings]);

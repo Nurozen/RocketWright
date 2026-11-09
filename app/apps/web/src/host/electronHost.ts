@@ -22,6 +22,17 @@ export function createElectronHost(bridge: DesktopBridge): HostApi {
           .then((problems) => bridge.flushDone({ id, problems }))
           .catch((e: unknown) => console.error("flushDone", e));
       }),
+    onDirtyCheck: (isDirty) =>
+      bridge.onDirtyCheck((id) => {
+        // A check that throws cannot say the page is clean, so it reads as dirty and the person is asked.
+        let dirty = true;
+        try {
+          dirty = isDirty();
+        } catch (e) {
+          console.error("dirtyCheck", e);
+        }
+        void bridge.dirtyAnswer({ id, dirty }).catch((e: unknown) => console.error("dirtyAnswer", e));
+      }),
     relaunch: () => bridge.relaunch(),
     prefs: () => bridge.prefs(),
     setPrefs: (patch) => bridge.setPrefs(patch),

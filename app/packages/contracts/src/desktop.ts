@@ -21,6 +21,7 @@ export const DESKTOP_INVOKE_CHANNELS = {
   setActiveProject: "rw-desktop:set-active-project",
   setDirty: "rw-desktop:set-dirty",
   flushDone: "rw-desktop:flush-done",
+  dirtyAnswer: "rw-desktop:dirty-answer",
   prefs: "rw-desktop:prefs",
   setPrefs: "rw-desktop:set-prefs",
   openProviders: "rw-desktop:open-providers",
@@ -32,6 +33,15 @@ export const DESKTOP_COMMAND_CHANNEL = "rw-desktop:command";
 
 /** Main → page: save typed work the way Close does, then answer on `flushDone` with this request's id (Save and quit). */
 export const DESKTOP_FLUSH_CHANNEL = "rw-desktop:flush";
+
+/** Main → page: does this page hold typed work right now? Answer on `dirtyAnswer` with this request's id. Main's copy can be behind the keystroke. */
+export const DESKTOP_DIRTY_CHECK_CHANNEL = "rw-desktop:dirty-check";
+
+/** The page's answer to one dirty check. */
+export interface DesktopDirtyAnswer {
+  id: number;
+  dirty: boolean;
+}
 
 /** What the page reports back for one flush; `problems` is empty when everything was saved. */
 export interface DesktopFlushResult {
@@ -235,6 +245,8 @@ export interface DesktopBridge {
   setDirty(dirty: boolean): Promise<void>;
   /** Answers one `onFlush` request. */
   flushDone(result: DesktopFlushResult): Promise<void>;
+  /** Answers one `onDirtyCheck` request. */
+  dirtyAnswer(result: DesktopDirtyAnswer): Promise<void>;
   prefs(): Promise<DesktopPrefs>;
   setPrefs(patch: Partial<DesktopPrefs>): Promise<void>;
   openProviders(): Promise<void>;
@@ -242,6 +254,8 @@ export interface DesktopBridge {
   onCommand(listener: (command: DesktopCommand) => void): () => void;
   /** Main asking the page to save (Save and quit); the id goes back with `flushDone`. */
   onFlush(listener: (id: number) => void): () => void;
+  /** Main asking whether the page holds typed work (before a quit or a close); the id goes back with `dirtyAnswer`. */
+  onDirtyCheck(listener: (id: number) => void): () => void;
   /** A dropped file's path (`File.path` is gone; `webUtils.getPathForFile`). */
   pathForFile(file: File): string;
 }
