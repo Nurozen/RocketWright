@@ -67,12 +67,12 @@ async function open(page: Page, study = "study_01"): Promise<void> {
   await page.goto(`${WEB}?rpc=${encodeURIComponent(RPC)}&http=${encodeURIComponent(HTTP)}&page=06`);
   await page.waitForFunction(() => (window as { __rwShell?: { status: string } }).__rwShell?.status === "ready");
   await page.locator('[data-testid="propsim.tier-tab"][data-tier="visual"]').click();
-  await expect(page.getByTestId("propsim.visual")).toHaveAttribute("data-state", "ready", { timeout: 60_000 });
   if (study !== "study_01") {
     await page.locator(`[data-testid="visual.study"][data-study="${study}"]`).click();
     await expect(page.getByTestId("propsim.visual")).toHaveAttribute("data-study", study);
-    await expect(page.getByTestId("propsim.visual")).toHaveAttribute("data-state", "ready", { timeout: 60_000 });
   }
+  await page.getByTestId("visual.run").click();
+  await expect(page.getByTestId("propsim.visual")).toHaveAttribute("data-state", "ready", { timeout: 60_000 });
   await page.waitForFunction(() => window.__rwFluid?.state === "ready" || window.__rwFluid?.state === "error", null, { timeout: 60_000 });
   const gpu = await page.evaluate(() => ({ state: window.__rwFluid?.state, error: window.__rwFluid?.error, gpu: window.__rwFluid?.gpu }));
   // I11: WebGPU on a hardware adapter, asserted (a fallback must fail this spec, not skip it).

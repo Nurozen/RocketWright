@@ -4,6 +4,8 @@ import { statusOf, type StatusView } from "../status.ts";
 import type { AppState, RunsSlice, SliceCtx } from "../types.ts";
 import { SERIES_COLORS } from "../types.ts";
 
+const errorText = (e: unknown) => (e instanceof Error ? e.message : String(e));
+
 type RunListEntry = RunListOut["runs"][number];
 
 export interface RunRow {
@@ -31,14 +33,33 @@ export function createRunsSlice(ctx: SliceCtx): RunsSlice {
         ctx.patch("runs", (r) => ({ started: { ...r.started, [sim]: out }, error: null }));
         return out;
       } catch (e) {
-        ctx.patch("runs", { error: e instanceof Error ? e.message : String(e) });
+        ctx.patch("runs", { error: errorText(e) });
         throw e;
       }
     },
 
     async cancel(jobId) {
       const { client, projectId } = ctx.conn();
-      return client.call("job.cancel", { projectId, jobId });
+      try {
+        const job = await client.call("job.cancel", { projectId, jobId });
+        ctx.patch("runs", { error: null });
+        return job;
+      } catch (e) {
+        ctx.patch("runs", { error: errorText(e) });
+        throw e;
+      }
+    },
+
+    async deleteRun({ key, sim, runId }) {
+      const { client, projectId } = ctx.conn();
+      await client.call("run.delete", { projectId, run: `${sim}/${runId}` });
+      // A deleted latest run takes the row key with it, and the run it replaced becomes the latest under that key.
+      ctx.patch("runs", (r) => ({ overlay: r.overlay.filter((x) => x !== key && !(key === sim && x.startsWith(`${sim}@`))), error: null }));
+      const st = ctx.get();
+      const simGone = st.project.snapshot?.evaluated?.sims[sim] == null;
+      const dangling = new Set([`rw:run/${runId}`, ...(simGone ? [`rw:sim/${sim}`] : [])]);
+      const refs = st.selection.refs.filter((r) => !dangling.has(r));
+      if (refs.length !== st.selection.refs.length) st.selection.select(refs, "table");
     },
 
     toggleOverlay(key) {
@@ -88,11 +109,14 @@ export function runRows(s: AppState): RunRow[] {
   return (snap.runs.runs as readonly RunListEntry[]).map((entry) => {
     const key = rowKey(entry);
     const latest = entry.superseded_by == null;
-    const job = latest
+    const found = latest
       ? (jobs.find((j) => entry.job_id != null && j.job_id === entry.job_id) ??
         jobs.find((j) => j.sim === entry.sim && (j.state === "queued" || j.state === "running")) ??
         null)
       : null;
+    // `sim.run` answers from the cache without a new job, so the cancelled job stays the sim's last one.
+    const asked = s.runs.started[entry.sim];
+    const job = found?.state === "cancelled" && asked?.cached === true && asked.run_id === entry.run_id ? null : found;
     const i = s.runs.overlay.indexOf(key);
     return {
       key,

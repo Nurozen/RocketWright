@@ -20,7 +20,7 @@ import { SideSheet } from "../../ui/SideSheet.tsx";
 import { TextField } from "../../ui/TextField.tsx";
 import { ResultsIcon } from "./ResultsIcon.tsx";
 import { resultsUiStore, useResultsUi } from "./resultsUi.ts";
-import { appliesToModel, conditionsOps, fieldProblems, fieldUnit, formFromSim, isFormDirty, nextSimName, SIM_FIELDS, SIM_GROUPS, validateForm, type SimField, type SimForm } from "./simFields.ts";
+import { appliesToModel, conditionsOps, copySimName, fieldProblems, fieldUnit, formFromSim, isFormDirty, nextSimName, SIM_FIELDS, SIM_GROUPS, validateForm, type SimField, type SimForm } from "./simFields.ts";
 
 type EvalSim = DeepReadonly<schema.EvalSim>;
 
@@ -44,6 +44,21 @@ export async function newSimulation(app: AppStore): Promise<void> {
   } catch (e) {
     ui.set({ notice: message(e) });
   }
+}
+
+/**
+ * Copies a sim's definition as a new, not-yet-run sim and opens its sheet (its
+ * runs stay with the source). Rejects with the sidecar's refusal.
+ */
+export async function duplicateSimulation(app: AppStore, simId: string): Promise<void> {
+  const st = app.getState();
+  const sims = st.project.snapshot?.evaluated?.sims ?? {};
+  const source = sims[simId];
+  if (source == null) throw new Error(`Simulation ${simId} is no longer in the model.`);
+  const name = copySimName(source.name, Object.values(sims).flatMap((s) => (s == null ? [] : [s])));
+  const { id, ops } = duplicateSimOps(simId, name, Object.keys(sims));
+  await st.draft.mutate(ops, `Duplicate ${source.name}`);
+  resultsUiStore(app).getState().set({ conditions: id, notice: null });
 }
 
 export function SimConditionsSheet({ app }: { app: AppStore }) {
@@ -152,13 +167,7 @@ function Sheet({ app, sim }: { app: AppStore; sim: EvalSim }) {
   const revert = () => edit({ ...formRef.current, values: { ...formRef.current.baseline }, config: formRef.current.baseConfig });
 
   const duplicate = () => {
-    const st = app.getState();
-    const name = `${sim.name} copy`;
-    const { id, ops } = duplicateSimOps(sim.id, name, Object.keys(st.project.snapshot?.evaluated?.sims ?? {}));
-    st.draft.mutate(ops, `Duplicate ${sim.name}`).then(
-      () => ui.getState().set({ conditions: id }),
-      (e: unknown) => setFailure(message(e)),
-    );
+    duplicateSimulation(app, sim.id).catch((e: unknown) => setFailure(message(e)));
   };
 
   const known = fieldProblems(sim.id, diagnostics ?? []);
@@ -370,7 +379,7 @@ function DeleteDialog({ app, sim, onClose }: { app: AppStore; sim: EvalSim; onCl
       {replayedBy.length > 0 ? (
         <p>{`${replayedBy.join(", ")} replays this flight. Change that study before deleting ${sim.name}.`}</p>
       ) : (
-        <p>{`Delete ${sim.name}? Runs it has flown stay listed as Outdated.`}</p>
+        <p>{`Delete ${sim.name}? Runs it has flown stay listed as Outdated until you delete them from the run table.`}</p>
       )}
       {error !== null && <p className="rw-simcond__error" role="alert">{error}</p>}
     </Modal>

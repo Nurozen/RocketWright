@@ -7,9 +7,11 @@
  * MLS-MPM liquid, white illustrative streamlines, leader labels, the
  * transport, and the "Relative flow" / "Relative fill" traces. The label
  * "Visual model · Not an engineering result" is bound to the record's
- * `provenance` (I13), never assumed.
+ * `provenance` (I13), never assumed. Nothing runs on open: Run starts the
+ * selected study and Cancel abandons its result here (D16); only the agent's
+ * deep link to a study (`rw:sim/<study>`) runs it unasked.
  */
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useStore } from "zustand";
 import { createStore, type StoreApi } from "zustand/vanilla";
 import { parseRef, VISUAL_RUN_PATH } from "@rw/contracts";
@@ -21,6 +23,7 @@ import { parseVisualRun, traces, type VisualRun } from "../../fluid/timeline.ts"
 import type { RpcLike } from "../../state/rpc.ts";
 import { useAppState, type AppStore } from "../../state/index.ts";
 import type { FetchText } from "./engineering.tsx";
+import { ResultsIcon } from "../results/ResultsIcon.tsx";
 import { LayersPanel, orderStudies, StudyList, type StudyRow } from "./layers.tsx";
 import { provenanceLabel } from "./model.ts";
 import { Traces } from "./traces.tsx";
@@ -30,7 +33,7 @@ export type SubTab = "inputs" | "traces" | "assumptions";
 
 export interface VisualUi {
   study: string | null;
-  run: { key: string; state: "running" | "ready" | "error"; record: VisualRun | null; error?: string } | null;
+  run: { key: string; state: "running" | "ready" | "error" | "cancelled"; record: VisualRun | null; error?: string } | null;
   layers: StageLayers;
   sub: SubTab;
 }
@@ -87,35 +90,45 @@ export function VisualFlowTab({ store, client, ui, httpBase, fetchText = (u) => 
   // A selected study (`rw:sim/<study>`, e.g. the agent's Section view card) opens here with the section on.
   const pick = refs.map((r) => parseRef(r)).find((p) => "ok" in p && p.ok.kind === "sim" && studies.some((x) => x.id === p.ok.id));
   const picked = pick !== undefined && "ok" in pick ? pick.ok.id : null;
+
+  const start = useCallback(
+    (id: string) => {
+      if (client === null || projectId === null) return;
+      const started: NonNullable<VisualUi["run"]> = { key: `${id}@${hash}`, state: "running", record: ui.getState().run?.record ?? null };
+      ui.setState({ run: started });
+      // Only the newest run lands: Cancel or a new Run replaces this object.
+      const mine = () => ui.getState().run === started;
+      void (async () => {
+        try {
+          const out = await client.call("sim.run", { projectId, sim: id });
+          const res = await fetchRef.current(visualRunUrl(httpBase, projectId, out.sim, out.run_id));
+          if (!res.ok) throw new Error(`visual run ${out.sim}/${out.run_id}: HTTP ${res.status}`);
+          const record = parseVisualRun(await res.text());
+          if (mine()) ui.setState({ run: { key: started.key, state: "ready", record } });
+        } catch (e) {
+          if (mine()) ui.setState({ run: { key: started.key, state: "error", record: null, error: message(e) } });
+        }
+      })();
+    },
+    [client, projectId, hash, httpBase, ui],
+  );
+
   useEffect(() => {
-    // Once per selection (a remount after a tier switch keeps the user's own study choice).
-    if (followed.get(ui) === picked) return;
+    // Once per selection (a remount after a tier switch keeps the user's own study choice). Waits for the
+    // connection, because following the link runs the study.
+    if (followed.get(ui) === picked || client === null || projectId === null) return;
     followed.set(ui, picked);
     if (picked === null) return;
     const cur = ui.getState();
     ui.setState({ study: picked, layers: { ...cur.layers, shell: true, section: true } });
-  }, [picked, ui]);
+    const live = cur.run?.key === `${picked}@${hash}` && (cur.run.state === "running" || cur.run.state === "ready");
+    if (!live) start(picked);
+  }, [picked, ui, client, projectId, hash, start]);
 
-  useEffect(() => {
-    const cur = ui.getState().run;
-    if (client === null || projectId === null || study === null || (cur?.key === key && cur.state !== "error")) return;
-    ui.setState({ run: { key, state: "running", record: cur?.record ?? null } });
-    const mine = () => ui.getState().run?.key === key;
-    void (async () => {
-      try {
-        const out = await client.call("sim.run", { projectId, sim: study });
-        const res = await fetchRef.current(visualRunUrl(httpBase, projectId, out.sim, out.run_id));
-        if (!res.ok) throw new Error(`visual run ${out.sim}/${out.run_id}: HTTP ${res.status}`);
-        const record = parseVisualRun(await res.text());
-        if (mine()) ui.setState({ run: { key, state: "ready", record } });
-      } catch (e) {
-        if (mine()) ui.setState({ run: { key, state: "error", record: null, error: message(e) } });
-      }
-    })();
-  }, [client, projectId, study, key, httpBase, ui]);
+  const cancel = () => ui.setState({ run: { key, state: "cancelled", record: null } });
 
   const mine = run?.key === key ? run : null;
-  const rec = mine?.record ?? run?.record ?? null;
+  const rec = mine?.record ?? null;
   // The study tank's picture for `@` chips of that tank (once per model and tank).
   const tankKey = rec ? engineNodeThumbKey(rec.engine, rec.tank.node) : null;
   return (
@@ -123,9 +136,11 @@ export function VisualFlowTab({ store, client, ui, httpBase, fetchText = (u) => 
       studies={studies}
       selected={study}
       onSelect={(id) => ui.setState({ study: id })}
-      record={mine?.record ?? run?.record ?? null}
-      state={mine?.state ?? (study === null ? "empty" : "running")}
+      record={rec}
+      state={mine?.state ?? (study === null ? "empty" : "idle")}
       error={mine?.error ?? null}
+      {...(study !== null && client !== null && projectId !== null ? { onRun: () => start(study) } : {})}
+      onCancel={cancel}
       ui={ui}
       onOpenEngineering={() => store.getState().ui.navigate("propulsion-sim", "engineering")}
       onImportCfd={() => store.getState().ui.navigate("propulsion-sim", "cfd")}
@@ -145,9 +160,12 @@ export interface VisualFlowViewProps {
   selected: string | null;
   onSelect: (id: string) => void;
   record: VisualRun | null;
-  state: "empty" | "running" | "ready" | "error";
+  state: "empty" | "idle" | "running" | "ready" | "error" | "cancelled";
   error: string | null;
   ui: VisualStore;
+  /** Starts the selected study; absent until it can run. */
+  onRun?: () => void;
+  onCancel?: () => void;
   onOpenEngineering?: () => void;
   onImportCfd?: () => void;
   /** An externally owned transport (tests, the RL1d spike); one per view otherwise. */
@@ -167,7 +185,7 @@ const SUB_TABS: { id: SubTab; label: string }[] = [
 ];
 
 /** The tier's layout: side column, viewport, transport, sub-tabs with the traces. */
-export function VisualFlowView({ studies, selected, onSelect, record, state, error, ui, onOpenEngineering, onImportCfd, transport: external, stageOptions, onThumb, onTankThumb }: VisualFlowViewProps) {
+export function VisualFlowView({ studies, selected, onSelect, record, state, error, ui, onRun, onCancel, onOpenEngineering, onImportCfd, transport: external, stageOptions, onThumb, onTankThumb }: VisualFlowViewProps) {
   const own = useMemo(() => createTransport(record?.duration ?? 10), []); // eslint-disable-line react-hooks/exhaustive-deps
   const transport = external ?? own;
   useTransportLoop(transport);
@@ -184,10 +202,24 @@ export function VisualFlowView({ studies, selected, onSelect, record, state, err
   const tr = useMemo(() => (record ? traces(record) : { flow: [], fill: [] }), [record]);
   const provenance = record?.provenance ?? "";
   const setLayers = (l: StageLayers) => ui.setState({ layers: l });
+  const playable = state !== "empty" && state !== "idle" && state !== "cancelled";
   return (
     <div className="rw-vis" data-testid="propsim.visual" data-state={state} data-study={selected ?? ""} data-run={runId ?? ""} data-provenance={provenance}>
       <aside className="rw-vis-side" data-rw-region="study-column" data-testid="study-column">
         <StudyList studies={studies} selected={selected} onSelect={onSelect} />
+        {state !== "empty" && (
+          <div className="rw-vis-side__run">
+            <button type="button" className="rw-button rw-button--primary" data-testid="visual.run" disabled={state === "running" || onRun === undefined} onClick={onRun}>
+              <ResultsIcon name="run" size={16} />
+              Run
+            </button>
+            {state === "running" && (
+              <button type="button" className="rw-button" data-testid="visual.cancel" onClick={onCancel}>
+                Cancel
+              </button>
+            )}
+          </div>
+        )}
         <LayersPanel layers={layers} onChange={setLayers} />
       </aside>
       <div className="rw-vis-stage" data-rw-region="viewport">
@@ -195,15 +227,23 @@ export function VisualFlowView({ studies, selected, onSelect, record, state, err
           <FluidViewport record={record} transport={transport} layers={layers} options={stageOptions ?? {}} {...(onThumb ? { onThumb } : {})} {...(onTankThumb ? { onTankThumb } : {})} />
         ) : (
           <div className="rw-vis-viewport rw-vis-viewport--empty" data-testid="visual.viewport" data-state={state}>
-            <p className="rw-eng__empty" data-testid={state === "error" ? "visual.error" : "visual.loading"}>
-              {state === "error" ? `The study could not run: ${error ?? ""}` : state === "empty" ? "No visual flow study in this project. Add one under sims/<id>.rw.toml with kind = \"visual_flow\"." : "Preparing the study…"}
+            <p className="rw-eng__empty" data-testid={state === "error" ? "visual.error" : state === "idle" ? "visual.idle" : state === "cancelled" ? "visual.cancelled" : "visual.loading"}>
+              {state === "error"
+                ? `The study could not run: ${error ?? ""}`
+                : state === "empty"
+                  ? "No visual flow study in this project. Add one under sims/<id>.rw.toml with kind = \"visual_flow\"."
+                  : state === "idle"
+                    ? "No run yet for this study. Press Run to simulate it."
+                    : state === "cancelled"
+                      ? "Run cancelled. Its result will not be shown."
+                      : "Preparing the study…"}
             </p>
           </div>
         )}
       </div>
-      {/* With no study there is nothing to play and no traces to read: a 10 s clock and empty axes would imply one (R0.3a). */}
-      {state !== "empty" && <TransportBar store={transport} section={layers.section} onSection={(on) => setLayers({ ...layers, section: on })} />}
-      {state !== "empty" && (
+      {/* With no run there is nothing to play and no traces to read: a 10 s clock and empty axes would imply one (R0.3a). */}
+      {playable && <TransportBar store={transport} section={layers.section} onSection={(on) => setLayers({ ...layers, section: on })} />}
+      {playable && (
         <div className="rw-vis-lower" data-rw-region="traces" data-testid="traces">
           <div className="rw-vis-lower__bar">
             <nav className="rw-vis-subtabs" role="tablist" aria-label="Study detail">
