@@ -181,6 +181,18 @@ describe("GLB source", () => {
     expect((await loadAssemblyGlb(null, { loadWasm: async () => ({}), fetchFixture: async () => fixture })).bytes).toBe(fixture);
   });
 
+  it("gives a model with no parts an empty scene, touching neither wasm nor the fixture (R0.3a)", async () => {
+    const fail = async (): Promise<never> => {
+      throw new Error("must not be called");
+    };
+    const out = await loadAssemblyGlb({ ...evaluated, components: [] }, { loadWasm: fail, fetchFixture: fail });
+    expect(out.source).toBe("empty");
+    expect(glbModelHash(out.bytes)).toBe(evaluated.model_hash);
+    expect(out.bytes.byteLength % 4).toBe(0);
+    const gltf = await new GLTFLoader().parseAsync(out.bytes.buffer.slice(out.bytes.byteOffset, out.bytes.byteOffset + out.bytes.byteLength) as ArrayBuffer, "");
+    expect(gltf.scene.children).toHaveLength(0);
+  });
+
   it("reads the model hash of the committed fixture", () => {
     expect(glbModelHash(glbBytes)).toBe(evaluated.model_hash);
   });

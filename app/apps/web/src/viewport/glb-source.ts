@@ -6,11 +6,13 @@
  * contract-fixture GLB (`public/fixtures/contract-vehicle.glb`, written by
  * rw-geom from `fixtures/contracts/evaluated-model.json`; regenerate with
  * `scripts/fixture-glb`). The source is surfaced in the DOM so a capture can
- * never pass a fixture off as the live model.
+ * never pass a fixture off as the live model. A model with no parts is an
+ * empty scene, built here so neither wasm nor the fixture can put a rocket in
+ * an empty project (R0.3a).
  */
 import type { EvaluatedModel } from "@rw/contracts";
 
-export type GlbSource = "rw-wasm" | "contract-fixture";
+export type GlbSource = "rw-wasm" | "contract-fixture" | "empty";
 
 /** rw-geom `MeshOptions`. */
 export interface MeshOptions {
@@ -45,8 +47,25 @@ function isMesher(v: unknown): v is ModelMesher {
   return v !== null && typeof v === "object" && typeof (v as Partial<ModelMesher>).meshModelGlb === "function";
 }
 
+/** A valid binary glTF with one scene and no nodes, carrying `model_hash` as rw-geom's GLBs do. */
+export function emptySceneGlb(modelHash: string): Uint8Array {
+  const json = new TextEncoder().encode(JSON.stringify({ asset: { version: "2.0", extras: { model_hash: modelHash } }, scene: 0, scenes: [{}] }));
+  // The JSON chunk is padded with spaces to a 4-byte boundary (glTF 2.0, GLB layout).
+  const padded = json.length + ((4 - (json.length % 4)) % 4);
+  const bytes = new Uint8Array(20 + padded).fill(0x20, 20);
+  const view = new DataView(bytes.buffer);
+  view.setUint32(0, 0x46546c67, true); // "glTF"
+  view.setUint32(4, 2, true);
+  view.setUint32(8, bytes.length, true);
+  view.setUint32(12, padded, true);
+  view.setUint32(16, 0x4e4f534a, true); // "JSON"
+  bytes.set(json, 20);
+  return bytes;
+}
+
 /** Meshes `evaluated` with rw-wasm when it can, else loads the contract fixture. Never throws for a missing wasm. */
 export async function loadAssemblyGlb(evaluated: EvaluatedModel | null, deps: GlbDeps): Promise<LoadedGlb> {
+  if (evaluated !== null && evaluated.components.length === 0) return { bytes: emptySceneGlb(evaluated.model_hash), source: "empty" };
   if (evaluated !== null) {
     try {
       const rw = await deps.loadWasm();

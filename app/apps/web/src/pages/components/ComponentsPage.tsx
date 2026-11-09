@@ -231,6 +231,7 @@ function ComponentsWorkspace({ store, client, glbDeps, ui }: { store: AppStore; 
         onPick={(id) => store.getState().selection.select(id === null ? [] : [componentRef(id)], "viewport")}
       />
       <ComponentEditor
+        noParts={shown?.components.length === 0}
         comps={comps}
         files={files}
         units={units}

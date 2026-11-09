@@ -208,6 +208,12 @@ h2 {
   stroke: var(--rw-accent-fill);
 }
 
+.rw-check-empty {
+  color: var(--rw-text-secondary);
+  font-size: var(--rw-font-size-secondary);
+  white-space: nowrap;
+}
+
 .rw-check__dot {
   width: 8px;
   height: 8px;
@@ -784,6 +790,32 @@ button:disabled {
 
 .rw-thread__busy {
   color: var(--rw-accent);
+}
+
+/* R0.3a: the Design views' prompt on a project with no parts. Sits over the view; never takes its clicks. */
+.rw-first-part {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  pointer-events: none;
+  text-align: center;
+}
+
+.rw-first-part__title {
+  margin: 0;
+  color: var(--rw-text-primary);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.rw-first-part__hint {
+  margin: 0;
+  color: var(--rw-text-secondary);
+  font-size: var(--rw-font-size-secondary);
 }
 
 .rw-rail__empty {

@@ -357,6 +357,11 @@
   color: var(--rw-text-secondary);
 }
 
+.rw-motor__add-mount {
+  color: var(--rw-text-primary);
+  white-space: nowrap;
+}
+
 .rw-motor__head {
   display: flex;
   align-items: center;

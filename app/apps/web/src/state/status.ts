@@ -25,7 +25,8 @@ export type StatusKind =
   | "warnings"
   | "checked"
   | "unchecked"
-  | "saved";
+  | "saved"
+  | "no_parts";
 
 export type StatusIcon = "check" | "warning" | "dot" | "circle" | "spinner" | "error" | "cloud";
 /** Deliberately no `green`/`success` tone (C §2 forbidden list). */
@@ -57,7 +58,7 @@ export type StatusSubject =
   | { kind: "run"; run: RunListEntry | null | undefined; modelHash: string | null | undefined; job?: JobInfo | null }
   | { kind: "job"; job: JobInfo }
   /** The header `Check model` state. */
-  | { kind: "check"; report: CheckReport | null | undefined; modelHash: string | null | undefined }
+  | { kind: "check"; report: CheckReport | null | undefined; modelHash: string | null | undefined; partCount?: number | undefined }
   /** Missing-inputs badge over a diagnostic list (liquid W200-249). */
   | { kind: "inputs"; diagnostics: readonly Diagnostic[] }
   /** Unsaved UI edits. */
@@ -78,6 +79,8 @@ const S = {
   unchecked: { kind: "unchecked", label: "Not checked", icon: "circle", tone: "muted" },
   /** Saved is not validated: muted, never a check. */
   saved: { kind: "saved", label: "Saved", icon: "cloud", tone: "muted" },
+  /** R0.3a: a project with no parts is a starting point, not an error, whatever `rw check` reports (RW-E100). */
+  no_parts: { kind: "no_parts", label: "Add parts to begin", icon: "circle", tone: "muted" },
 } as const satisfies Record<string, StatusView>;
 
 const view = (base: StatusView, extra: Partial<StatusView> = {}): StatusView => ({ ...base, ...extra });
@@ -136,7 +139,8 @@ function ofInputs(diagnostics: readonly Diagnostic[]): StatusView | null {
   return n === 0 ? null : { kind: "missing_inputs", label: `Missing inputs · ${n}`, icon: "warning", tone: "amber", count: n };
 }
 
-function ofCheck(report: CheckReport | null | undefined, modelHash: string | null | undefined): StatusView {
+function ofCheck(report: CheckReport | null | undefined, modelHash: string | null | undefined, partCount: number | undefined): StatusView {
+  if (partCount === 0) return view(S.no_parts);
   if (report === null || report === undefined) return view(S.unchecked);
   if (modelHash == null || report.model_hash !== modelHash) return view(S.outdated, { reason: "The check ran on an older model revision." });
   const errors = report.diagnostics.filter((d) => d.severity === "error").length;
@@ -156,7 +160,7 @@ export function statusOf(subject: StatusSubject): StatusView {
     case "job":
       return ofJob(subject.job) ?? view(S.complete);
     case "check":
-      return ofCheck(subject.report, subject.modelHash);
+      return ofCheck(subject.report, subject.modelHash, subject.partCount);
     case "inputs":
       return ofInputs(subject.diagnostics) ?? view(S.checked);
     case "draft":

@@ -290,6 +290,8 @@ export function AssemblyViewport({
           setLoadError(null);
           return;
         }
+        // Every page here is live: wait for the first evaluation rather than show the fixture rocket (R0.3a).
+        if (live.current.evaluated === null) return;
         const glb = await loadAssemblyGlb(live.current.evaluated, glbDeps);
         const ab = glb.bytes.buffer.slice(glb.bytes.byteOffset, glb.bytes.byteOffset + glb.bytes.byteLength) as ArrayBuffer;
         const gltf = await new GLTFLoader().parseAsync(ab, "");

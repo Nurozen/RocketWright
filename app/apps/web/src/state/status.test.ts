@@ -65,6 +65,12 @@ describe("statusOf: check, inputs, drafts", () => {
     expect(statusOf({ kind: "check", report: report([diag("RW-I900", "info")]), modelHash: H })).toMatchObject({ kind: "checked", icon: "check", tone: "teal" });
     expect(statusOf({ kind: "check", report: report([], OLD), modelHash: H })).toMatchObject({ kind: "outdated", tone: "amber" });
     expect(statusOf({ kind: "check", report: null, modelHash: H })).toMatchObject({ kind: "unchecked", tone: "muted" });
+    // R0.3a: no parts is neutral whatever the check says; an unknown part count falls through to the report.
+    const noParts = { kind: "no_parts", label: "Add parts to begin", tone: "muted" };
+    expect(statusOf({ kind: "check", report: report([diag("RW-E100", "error")]), modelHash: H, partCount: 0 })).toMatchObject(noParts);
+    expect(statusOf({ kind: "check", report: null, modelHash: H, partCount: 0 })).toMatchObject(noParts);
+    expect(statusOf({ kind: "check", report: report([diag("RW-E100", "error")]), modelHash: H, partCount: 1 }).kind).toBe("errors");
+    expect(statusOf({ kind: "check", report: report([diag("RW-E100", "error")]), modelHash: H }).kind).toBe("errors");
   });
 
   it("Modified (amber dot) for drafts and touched components; Saved is muted, not a check", () => {

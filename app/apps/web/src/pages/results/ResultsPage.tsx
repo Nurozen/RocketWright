@@ -7,6 +7,7 @@
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { SERIES_COLORS } from "../../state/types.ts";
+import { hasNoParts } from "../../state/selectors.ts";
 import { useAppState, type AppStore } from "../../state/store.ts";
 import { plotEventMarkers, type EventMarker, type RunSummary } from "../../plots/events.ts";
 import type { DrawnEvent } from "../../plots/eventLines.ts";
@@ -37,6 +38,7 @@ const seeded = new WeakSet<AppStore>();
 export function ResultsPage({ app, source }: ResultsPageProps) {
   const rows = useResultsRows(app);
   const projectId = useAppState(app, (s) => s.project.projectId);
+  const noParts = useAppState(app, hasNoParts);
   const runError = useAppState(app, (s) => s.runs.error);
   const tabId = useResultsUi(app, (u) => u.plotTab);
   const showEvents = useResultsUi(app, (u) => u.showEvents);
@@ -229,7 +231,11 @@ export function ResultsPage({ app, source }: ResultsPageProps) {
               <p className="rw-results__empty" data-testid="plot.empty">
                 {loadError?.status === "error"
                   ? `Could not load the run series: ${loadError.error}`
-                  : overlayRows.length === 0
+                  : rows.length === 0
+                    ? noParts
+                      ? "Nothing to fly yet. Add your first part on Design, then add a simulation."
+                      : "Nothing to fly yet. Add a simulation to see flight results here."
+                    : overlayRows.length === 0
                     ? "Tick up to two runs to plot them."
                     : "Loading run series…"}
               </p>

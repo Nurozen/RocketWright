@@ -13,7 +13,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { PatchOp, schema } from "@rw/contracts";
 import { Icon } from "../../shell/Icon.tsx";
-import type { DeepReadonly, Units } from "../../state/index.ts";
+import { ADD_FIRST_PART, FIRST_PART_HINT, type DeepReadonly, type Units } from "../../state/index.ts";
 import { displayUnit, fromDisplay, limitsOf, rangeError, sharedFields, tabsFor, toDisplay, toSource, type EditorTab, type FieldSpec } from "./fields.ts";
 import { FinOutlineEditor } from "./FinOutlineEditor.tsx";
 import { PartProfile } from "./PartProfile.tsx";
@@ -34,6 +34,8 @@ export interface EditorStatus {
 
 export interface ComponentEditorProps {
   comps: readonly Comp[];
+  /** The project has no parts: there is nothing to select yet (R0.3a). */
+  noParts?: boolean;
   files: SourceFilesLike;
   units: Units;
   materials: readonly string[];
@@ -125,7 +127,7 @@ export function ComponentEditor(props: ComponentEditorProps) {
   if (first === undefined) {
     return (
       <section className="rw-editor" data-rw-region="editor" data-testid="editor" data-empty="true">
-        <p className="rw-editor__empty">Select a part in the tree or the view to edit it.</p>
+        <p className="rw-editor__empty">{props.noParts ? `${ADD_FIRST_PART}. ${FIRST_PART_HINT}` : "Select a part in the tree or the view to edit it."}</p>
       </section>
     );
   }

@@ -363,6 +363,9 @@ function Select({ label, value, options, onChange, testid }: { label: string; va
   );
 }
 
+/** R0.3a: why Assign is off when no part can hold a motor. */
+const ADD_MOUNT_FIRST = "Add a motor mount first";
+
 function MotorPanel({
   store,
   ui,
@@ -391,6 +394,11 @@ function MotorPanel({
   const [tcOpen, setTcOpen] = useState(false);
   const cfg = model.configs[config.id];
   const mounts = motorMounts(model);
+  const addMountHint = (
+    <span className="rw-motor__add-mount" data-testid="motor.add-mount" title="Motors go in an inner tube marked as a motor mount. Ask the agent to add one, then assign a motor here.">
+      {ADD_MOUNT_FIRST}
+    </span>
+  );
   // The mount being edited: the one picked for this configuration, else the first (top-down) with a motor, else the first.
   const mount = mounts.find((m) => m.id === mountPick) ?? mounts.find((m) => cfg?.motors.some((a) => a.mount === m.id)) ?? mounts[0];
   const assignment = mount !== undefined ? cfg?.motors.find((a) => a.mount === mount.id) : undefined;
@@ -528,6 +536,7 @@ function MotorPanel({
             <span className="rw-pill" data-testid="motor.mount-pill">
               {mount ? `${formatLength(mount.nominal, units)} mount` : "No mount"}
             </span>
+            {mounts.length === 0 && addMountHint}
             {mounts.length > 1 && mount !== undefined && (
               <span className="rw-select rw-select--native rw-motor__mount">
                 <select
@@ -565,7 +574,7 @@ function MotorPanel({
                 data-testid="motor.assign"
                 data-state="assign"
                 disabled={mount === undefined || !fitsMount(current, mount)}
-                title={mount !== undefined && !fitsMount(current, mount) ? "This motor does not fit the mount" : `Assign ${current.designation} to ${config.name}${mounts.length > 1 && mount ? ` (${mountLabel(mount, model)})` : ""}`}
+                title={mount === undefined ? ADD_MOUNT_FIRST : !fitsMount(current, mount) ? "This motor does not fit the mount" : `Assign ${current.designation} to ${config.name}${mounts.length > 1 && mount ? ` (${mountLabel(mount, model)})` : ""}`}
                 onClick={() => {
                   if (mount === undefined) return;
                   const keep = delay !== null && current.delays.some((d) => Math.abs(d - delay) < 1e-6) ? delay : (current.delays[0] ?? delay);
@@ -578,7 +587,7 @@ function MotorPanel({
           </div>
           <div className="rw-motor__top">
             <ThrustPlot curve={current} width={showRocket ? 420 : 540} height={236} grid={showGrid} />
-            {showRocket && <MountSilhouette model={model} mount={mount} units={units} height={262} />}
+            {showRocket && model.components.length > 0 && <MountSilhouette model={model} mount={mount} units={units} height={262} />}
           </div>
           <div className="rw-motor__bottom">
             <CasingView curve={current} width={296} height={154} style={rendering} view={view} />
@@ -689,7 +698,10 @@ function MotorPanel({
           </div>
         </div>
       ) : (
-        <div className="rw-motor rw-motor--empty">{lib.state === "ready" ? "Choose a motor from the list." : ""}</div>
+        <div className="rw-motor rw-motor--empty">
+          {mounts.length === 0 && addMountHint}
+          {lib.state === "ready" ? "Choose a motor from the list." : ""}
+        </div>
       )}
     </div>
   );
