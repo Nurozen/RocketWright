@@ -8,7 +8,8 @@
  * D11 snapshot-and-hide with its lifecycle contract, captures across a
  * project switch, a live switch (D25), a crash and a window close, the
  * single debugger rule (D15), composites, the protocol's openThread, and
- * Lecturn pin4's composer placeholder and ref labels (B7d).
+ * Lecturn pin4's composer placeholder and ref labels (B7d), and the guest's
+ * focus reaching main (typed text in the page is saved).
  */
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -219,7 +220,7 @@ afterEach(() => {
   fx.views.splice(0);
 });
 
-function setup(opts: { overlayMode?: "snapshot" | "hide"; maxReloads?: number; labelTimeoutMs?: number } = {}) {
+function setup(opts: { overlayMode?: "snapshot" | "hide"; maxReloads?: number; labelTimeoutMs?: number; onGuestFocus?: () => void } = {}) {
   const win = new fx.FakeWindow();
   const targets: [string, string | undefined][] = [];
   let env = 1;
@@ -258,6 +259,7 @@ function setup(opts: { overlayMode?: "snapshot" | "hide"; maxReloads?: number; l
     ...(opts.overlayMode !== undefined ? { overlayMode: opts.overlayMode } : {}),
     ...(opts.maxReloads !== undefined ? { maxReloads: opts.maxReloads } : {}),
     ...(opts.labelTimeoutMs !== undefined ? { labelTimeoutMs: opts.labelTimeoutMs } : {}),
+    ...(opts.onGuestFocus !== undefined ? { onGuestFocus: opts.onGuestFocus } : {}),
   });
   panes.push(pane);
   const host = (m: unknown, sender: unknown = win.webContents): void => fx.ipcMain.emit(PANE_HOST_CHANNEL, { sender }, m);
@@ -408,6 +410,31 @@ describe("composer placeholder and ref labels (Lecturn pin4, B7d)", () => {
     await until(() => v2.webContents.loads.length > 0);
     const init2 = await guestRequest(v2, 1, "ui/initialize", INIT_PARAMS);
     expect((init2.result as { hostContext: Record<string, unknown> }).hostContext).toMatchObject({ composerPlaceholder: "Ask about this configuration…" });
+  });
+
+  it("tells main when the mounted guest takes focus, and stops hearing a guest it no longer shows", async () => {
+    let focused = 0;
+    const t = setup({
+      onGuestFocus: () => {
+        focused += 1;
+        if (focused === 2) throw new Error("page gone");
+      },
+    });
+    const v = await t.mounted();
+    v.webContents.emit("focus");
+    expect(focused).toBe(1);
+    // A handler that throws is logged, never thrown into Electron's event.
+    v.webContents.emit("focus");
+    expect(focused).toBe(2);
+    expect(t.logs.some((l) => l.includes("guest focus handler failed: page gone"))).toBe(true);
+    t.host({ type: "mount", projectId: "p2" });
+    const v2 = t.view();
+    expect(v2).not.toBe(v);
+    v.webContents.emit("focus");
+    expect(focused).toBe(2);
+    expect(v.webContents.count("focus")).toBe(0);
+    v2.webContents.emit("focus");
+    expect(focused).toBe(3);
   });
 
   it("forwards the guest's appRefs.describe to the page and returns the page's labels for the refs asked", async () => {
