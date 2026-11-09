@@ -22,6 +22,10 @@ describe("embed pane channel", () => {
     expect(parsePaneMainMessage({ type: "event", event: "lecturn/ready", payload: { threadId: null } })).toEqual({ type: "event", event: "lecturn/ready", payload: { threadId: null } });
     expect(parsePaneMainMessage({ type: "open-project", projectId: "p", threadId: "t" })).toEqual({ type: "open-project", projectId: "p", threadId: "t" });
     expect(parsePaneMainMessage({ type: "snapshot", token: "t", dataUrl: "http://x/y.png", rect: R })).toBeNull();
+    expect(parsePaneMainMessage({ type: "file.drop", path: "/a/b.eng" })).toEqual({ type: "file.drop", path: "/a/b.eng" });
+    expect(parsePaneMainMessage({ type: "file.drop.many" })).toEqual({ type: "file.drop.many" });
+    expect(parsePaneMainMessage({ type: "file.drop", path: "" })).toBeNull();
+    expect(parsePaneMainMessage({ type: "file.drop", path: 7 })).toBeNull();
     expect(parsePaneMainMessage({ type: "event", event: "lecturn/evil", payload: {} })).toBeNull();
     expect(parsePaneMainMessage({ type: "state", projectId: "p", state: "weird" })).toBeNull();
   });
