@@ -36,7 +36,7 @@ async function editor() {
         comps={[fins]}
         files={{ "rocket.rw.toml": "[c.fins]\n" }}
         units="mm"
-        materials={["balsa"]}
+        materials={{ balsa: { density: 120 } }}
         diagnostics={[]}
         status={{ kind: "clean", detail: "" }}
         tab="Geometry"

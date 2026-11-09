@@ -23,7 +23,7 @@ function props(over: Partial<ComponentEditorProps> = {}): ComponentEditorProps {
     comps: [fins],
     files: FILES,
     units: "mm",
-    materials: ["balsa", "plywood"],
+    materials: { balsa: { density: 120 }, plywood: { density: 630 } },
     diagnostics: [],
     status: { kind: "modified", detail: "Simulation needs rerun" },
     tab: "Geometry",
@@ -58,6 +58,38 @@ describe("component editor markup", () => {
     expect(html).toContain("Revert change");
     expect(html).toContain("Fin profile (side view)");
     expect(html).toContain('data-rw-region="editor"');
+  });
+
+  it("offers a project with no parts the Materials tab, and otherwise the first-part hint", () => {
+    const empty = renderToStaticMarkup(<ComponentEditor {...props({ comps: [], noParts: true })} />);
+    expect(empty).toContain(">Materials</button>");
+    expect(empty).toContain("Add your first part");
+    const open = renderToStaticMarkup(<ComponentEditor {...props({ comps: [], noParts: true, tab: "Materials", materialsPanel: <div>the panel</div> })} />);
+    expect(open).toContain("the panel");
+    expect(open).not.toContain("Add your first part");
+  });
+
+  it("offers no Materials tab while nothing can be edited", () => {
+    expect(renderToStaticMarkup(<ComponentEditor {...props({ comps: [] })} />)).not.toContain(">Materials</button>");
+  });
+
+  it("puts Materials after the part's own tabs, and shows only the panel there", () => {
+    const html = renderToStaticMarkup(<ComponentEditor {...props({ tab: "Materials", materialsPanel: <div>the panel</div> })} />);
+    expect(html.indexOf(">Mass override</button>")).toBeLessThan(html.indexOf(">Materials</button>"));
+    expect(html).toContain("the panel");
+    expect(html).not.toContain('data-field="span"');
+  });
+
+  it("lists only the materials the part's density kind can use", () => {
+    const parachute = evaluated.components.find((c) => c.shape.type === "parachute");
+    const materials = { balsa: { density: 120 }, ripstop_nylon: { surface_density: 0.067 } };
+    expect(renderToStaticMarkup(<ComponentEditor {...props({ tab: "Material", materials })} />)).toContain("balsa");
+    expect(renderToStaticMarkup(<ComponentEditor {...props({ tab: "Material", materials })} />)).not.toContain("ripstop nylon");
+    if (parachute !== undefined) {
+      const html = renderToStaticMarkup(<ComponentEditor {...props({ comps: [parachute], tab: "Material", materials })} />);
+      expect(html).toContain("ripstop nylon");
+      expect(html).not.toContain(">balsa<");
+    }
   });
 
   it("links the unit shown beside a number to its input, and leaves a unitless field undescribed", () => {

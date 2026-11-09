@@ -36,7 +36,7 @@ export const STAGE_NEEDS: Readonly<Record<StageId, readonly StageId[]>> = {
 };
 
 /** The enabled stages: the steps that make a stage reachable add it. */
-export const B1_STAGES: ReadonlySet<StageId> = new Set<StageId>(["launch", "welcome", "choose", "new", "nose", "body", "quit", "reopen", "compare"]);
+export const B1_STAGES: ReadonlySet<StageId> = new Set<StageId>(["launch", "welcome", "choose", "new", "materials", "nose", "body", "quit", "reopen", "compare"]);
 
 /** One message per stage enabled without a stage it needs. */
 export function validateStages(enabled: ReadonlySet<StageId>): string[] {

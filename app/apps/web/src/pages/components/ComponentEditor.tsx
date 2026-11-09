@@ -10,7 +10,7 @@
  * model (a draft previewed by rw-wasm, I4); Enter or leaving the field commits
  * it through `model.patch` (I1, I2); Escape discards it.
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import type { PatchOp, schema } from "@rw/contracts";
 import { Icon } from "../../shell/Icon.tsx";
 import { ADD_FIRST_PART, FIRST_PART_HINT, type DeepReadonly, type Units } from "../../state/index.ts";
@@ -19,11 +19,17 @@ import { BoolField, displayUnit, FieldGroupFrame, fromDisplay, groupsOf, limitsO
 import { evaluatedValue, fieldWriteOps, groupAddOps, tablePresent } from "./fieldOps.ts";
 import { FinOutlineEditor } from "./FinOutlineEditor.tsx";
 import { PartProfile } from "./PartProfile.tsx";
+import { densityKeyFor, materialChoices } from "./materialFields.ts";
 import { fieldTarget, type SourceFilesLike } from "./source.ts";
 
 type Comp = DeepReadonly<schema.EvalComponent>;
 type LibItem = DeepReadonly<schema.LibItem>;
 type Diagnostic = schema.Diagnostic;
+type EvalMaterials = Readonly<Record<string, DeepReadonly<schema.EvalMaterial> | undefined>>;
+
+/** The project's materials: a tab beside the part's own, because a project with no parts needs them too (R2.4). */
+export const MATERIALS_TAB = "Materials";
+export type PanelTab = EditorTab | typeof MATERIALS_TAB;
 
 export interface EditorStatus {
   /** `modified`: the part differs from its previous revision; `unsaved`: an open draft. */
@@ -40,11 +46,13 @@ export interface ComponentEditorProps {
   noParts?: boolean;
   files: SourceFilesLike;
   units: Units;
-  materials: readonly string[];
+  materials: EvalMaterials;
+  /** The Materials tab's content. */
+  materialsPanel?: ReactNode;
   diagnostics: readonly DeepReadonly<Diagnostic>[];
   status: EditorStatus;
-  tab: EditorTab;
-  onTab: (t: EditorTab) => void;
+  tab: PanelTab;
+  onTab: (t: PanelTab) => void;
   collapsed: boolean;
   onCollapse: (c: boolean) => void;
   canRevert: boolean;
@@ -90,8 +98,10 @@ export function partDiagnostics(diags: readonly DeepReadonly<Diagnostic>[], ids:
 export function ComponentEditor(props: ComponentEditorProps) {
   const { comps, files, units, status, tab, onTab, collapsed, onCollapse } = props;
   const types = comps.map((c) => c.shape.type);
-  const tabs = tabsFor(types);
-  const active: EditorTab = tabs.includes(tab) ? tab : (tabs[0] ?? "Geometry");
+  const partTabs = tabsFor(types);
+  // Not on a mixed selection, which edits only Appearance; and not while the model has not been evaluated.
+  const tabs: PanelTab[] = (comps.length > 0 && new Set(types).size === 1) || props.noParts === true ? [...partTabs, MATERIALS_TAB] : partTabs;
+  const active: PanelTab | null = tabs.includes(tab) ? tab : (partTabs[0] ?? null);
   const all = useMemo(() => sharedFields(types).filter((f) => f.tab === active), [types.join(","), active]);
   const first = comps[0];
   const [libOpen, setLibOpen] = useState(false);
@@ -100,7 +110,8 @@ export function ComponentEditor(props: ComponentEditorProps) {
   if (first === undefined) {
     return (
       <section className="rw-editor" data-rw-region="editor" data-testid="editor" data-empty="true">
-        <p className="rw-editor__empty">{props.noParts ? `${ADD_FIRST_PART}. ${FIRST_PART_HINT}` : "Select a part in the tree or the view to edit it."}</p>
+        {tabs.length > 0 && <EditorTabs tabs={tabs} active={active} onTab={onTab} />}
+        {active === MATERIALS_TAB ? <div className="rw-editor__body">{props.materialsPanel}</div> : <p className="rw-editor__empty">{props.noParts ? `${ADD_FIRST_PART}. ${FIRST_PART_HINT}` : "Select a part in the tree or the view to edit it."}</p>}
       </section>
     );
   }
@@ -153,13 +164,10 @@ export function ComponentEditor(props: ComponentEditorProps) {
       </header>
       {!collapsed && (
         <>
-          <nav className="rw-editor__tabs" role="tablist" aria-label="Editor">
-            {tabs.map((t) => (
-              <button key={t} type="button" role="tab" className="rw-tab rw-tab--editor" data-testid="editor.tab" aria-selected={t === active} onClick={() => onTab(t)}>
-                {t}
-              </button>
-            ))}
-          </nav>
+          <EditorTabs tabs={tabs} active={active} onTab={onTab} />
+          {active === MATERIALS_TAB ? (
+            <div className="rw-editor__body">{props.materialsPanel}</div>
+          ) : (
           <div className="rw-editor__body">
             <div className="rw-editor__main">
               <div className="rw-editor__fields" data-tab={active} style={active === "Geometry" ? { gridTemplateRows: `repeat(${Math.max(1, Math.ceil(primary.length / 2))}, auto)` } : undefined}>
@@ -244,9 +252,22 @@ export function ComponentEditor(props: ComponentEditorProps) {
             </div>
             {comps.length === 1 && <PartProfile comp={first} units={units} />}
           </div>
+          )}
         </>
       )}
     </section>
+  );
+}
+
+function EditorTabs({ tabs, active, onTab }: { tabs: readonly PanelTab[]; active: PanelTab | null; onTab: (t: PanelTab) => void }) {
+  return (
+    <nav className="rw-editor__tabs" role="tablist" aria-label="Editor">
+      {tabs.map((t) => (
+        <button key={t} type="button" role="tab" className="rw-tab rw-tab--editor" data-testid="editor.tab" aria-selected={t === active} onClick={() => onTab(t)}>
+          {t}
+        </button>
+      ))}
+    </nav>
   );
 }
 
@@ -268,7 +289,7 @@ function FieldRow({
   comps: readonly Comp[];
   files: SourceFilesLike;
   units: Units;
-  materials: readonly string[];
+  materials: EvalMaterials;
   error: string | null;
   setError: (e: string | null) => void;
   onEdit: (ops: PatchOp[], label: string) => void;
@@ -302,7 +323,7 @@ function FieldRow({
     );
   }
   if (f.kind === "enum") {
-    const options = f.key === "material" ? materials : (f.options ?? []);
+    const options = f.key === "material" ? materialChoices(materials, densityKeyFor(first.shape.type), mixed || typeof value !== "string" ? null : value) : (f.options ?? []);
     return (
       <SelectField
         testid={testid}
