@@ -204,6 +204,14 @@ export function fieldProblems(sim: string, diagnostics: readonly Diagnostic[]): 
 }
 
 /** `Simulation 1`, the first number no sim has taken. */
+/** `<name> copy`, then `<name> copy 2`, and so on: the first name no sim has. */
+export function copySimName(name: string, sims: readonly { name: string }[]): string {
+  const taken = new Set(sims.map((s) => s.name.toLowerCase()));
+  const base = `${name} copy`;
+  if (!taken.has(base.toLowerCase())) return base;
+  for (let i = 2; ; i++) if (!taken.has(`${base} ${i}`.toLowerCase())) return `${base} ${i}`;
+}
+
 export function nextSimName(sims: readonly { name: string }[]): string {
   const taken = new Set(sims.map((s) => s.name.toLowerCase()));
   for (let i = sims.length + 1; ; i++) if (!taken.has(`simulation ${i}`)) return `Simulation ${i}`;

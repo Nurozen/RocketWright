@@ -142,6 +142,18 @@ export default async function drive(ctx: DriveContext): Promise<Record<string, u
     // B13: the embed's threads are the 06 bundle, its live state the visual-06 scenario (checked in the guest).
     const staged = await stageEmbedPane(ctx, hooks, { page: "06", scenario: "visual-06" });
     const threads = staged["threads"];
+    // Study 01 runs from its own Run button: the tier does not run on open.
+    await waitFor(
+      page,
+      "the Run button, enabled",
+      (id) => {
+        const run = document.querySelector<HTMLButtonElement>(`[data-testid="${id}"]`);
+        return run !== null && !run.disabled;
+      },
+      "visual.run",
+      { timeoutMs: 90_000, diag: readState },
+    );
+    await page.evaluate((id) => document.querySelector<HTMLButtonElement>(`[data-testid="${id}"]`)!.click(), "visual.run");
     await waitFor(
       page,
       "page 06 Visual flow state (Study 01 run as a visual run, WebGPU cutaway with every layer on, Traces, Tank motion)",

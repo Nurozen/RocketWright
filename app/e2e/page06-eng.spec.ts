@@ -1,8 +1,8 @@
 /**
  * M4.8 page 06 Engineering tier (Simulate > Propulsion simulation), live: the
  * web bundle on the app server and sidecar over the seeded research vehicle
- * (global setup). The page flies the complete demo engine's tank blowdown
- * through `engine.simulate` and plots its run record (`engine.json` over
+ * (global setup). Run flies the complete demo engine's tank blowdown
+ * through `engine.simulate` and the page plots its run record (`engine.json` over
  * HTTP): tank pressure, mass flow, and thrust over time, with the record's
  * provenance (engineering) and the design's assumptions (single-phase N2O).
  * Every number is checked against the run's own `engine.json`.
@@ -42,6 +42,9 @@ test.beforeEach(async ({ page }) => {
   await page.goto(`${WEB}?rpc=${encodeURIComponent(RPC)}&http=${encodeURIComponent(HTTP)}&page=06`);
   await page.waitForFunction(() => (window as { __rwShell?: { status: string } }).__rwShell?.status === "ready");
   await expect(page.getByTestId("propsim-page")).toBeVisible();
+  // Nothing flies on open (R2.7).
+  await expect(page.getByTestId("propsim.engineering")).toHaveAttribute("data-state", "idle");
+  await page.getByTestId("engineering.run").click();
   await expect(page.getByTestId("propsim.engineering")).toHaveAttribute("data-state", "ready", { timeout: 60_000 });
   expect(errors).toEqual([]);
 });
@@ -92,6 +95,7 @@ test("Engineering plots the demo engine's blowdown: tank pressure, mass flow, th
 test("the other tiers keep their own provenance and show no engineering numbers", async ({ page }) => {
   await tier(page, "visual").click();
   await expect(page.getByTestId("propsim-page")).toHaveAttribute("data-tier", "visual");
+  await page.getByTestId("visual.run").click();
   // The visual tier's own record and label (page06-visual.spec.ts covers it in full).
   await expect(page.getByTestId("propsim.visual")).toHaveAttribute("data-provenance", "visual", { timeout: 60_000 });
   await expect(page.getByTestId("traces.provenance")).toHaveText("Visual model · Not an engineering result");

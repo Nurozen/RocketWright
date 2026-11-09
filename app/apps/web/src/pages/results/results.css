@@ -343,6 +343,10 @@
   color: var(--rw-text-secondary);
 }
 
+.rw-results__cta {
+  margin-left: 24px;
+}
+
 .rw-timeplot {
   display: grid;
   grid-template-columns: 20px minmax(0, 1fr);

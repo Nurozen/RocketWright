@@ -23,6 +23,7 @@ import {
   modelRevision,
   nextSort,
   outdatedBanner,
+  plotPrompt,
   primaryRow,
   resultsRows,
   runDetails,
@@ -89,6 +90,28 @@ function withRuns(s: AppState, opts: { overlay?: string[]; refs?: string[]; snap
 }
 
 const state = (opts?: Parameters<typeof withRuns>[1]) => staticStore((s) => withRuns(s, opts)).getState();
+
+describe("the plot's next step (R2.7)", () => {
+  const prompt = (edit: (runs: Entry[]) => Entry[], noParts = false) => {
+    const snap = snapshot();
+    snap.runs.runs = edit(snap.runs.runs);
+    return plotPrompt(resultsRows(state({ snap, overlay: [] })), noParts);
+  };
+  const neverRun = (runs: Entry[]) => runs.map((r) => ({ ...r, status: "not_run", run_id: null, model_hash: null, summary: null })) as Entry[];
+
+  it("sends a rocket with no parts to Design", () => {
+    expect(prompt(() => [], true)).toMatchObject({ action: "open-design", text: expect.stringContaining("Nothing to fly yet") });
+  });
+  it("offers to add a simulation when there is none", () => {
+    expect(prompt(() => [])).toMatchObject({ action: "add-simulation", text: expect.stringContaining("Nothing to fly yet") });
+  });
+  it("offers to fly the first simulation when none has flown", () => {
+    expect(prompt(neverRun)).toMatchObject({ action: "run", sim: "baseline", name: "Baseline" });
+  });
+  it("asks to tick runs once something has flown", () => {
+    expect(prompt((r) => r)).toEqual({ action: null, text: "Tick up to two runs to plot them." });
+  });
+});
 
 describe("results view model", () => {
   it("computes status per run and shows metrics only for Complete runs", () => {

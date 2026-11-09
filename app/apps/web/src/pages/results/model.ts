@@ -125,6 +125,24 @@ export function outdatedBanner(rows: readonly ResultsRow[]): OutdatedBanner | nu
   };
 }
 
+export type PlotPrompt =
+  | { text: string; action: "open-design" | "add-simulation" | null }
+  /** Offers to run the sim that has never flown. */
+  | { text: string; action: "run"; sim: string; name: string };
+
+/** What the plot says when no run is plotted: the next step from "I have a rocket" to "it flew" (R2.7). */
+export function plotPrompt(rows: readonly ResultsRow[], noParts: boolean): PlotPrompt {
+  if (rows.length === 0) {
+    return noParts
+      ? { text: "Nothing to fly yet. Add your first part on Design, then add a simulation.", action: "open-design" }
+      : { text: "Nothing to fly yet. Add a simulation to see flight results here.", action: "add-simulation" };
+  }
+  const flown = rows.some((r) => r.entry.run_id != null || r.status.kind === "running" || r.status.kind === "queued");
+  const first = rows.find((r) => r.status.kind === "not_run" || r.status.kind === "cancelled");
+  if (!flown && first !== undefined) return { text: "Nothing has flown yet. Run a simulation to see its flight here.", action: "run", sim: first.sim, name: first.name };
+  return { text: "Tick up to two runs to plot them.", action: null };
+}
+
 /** Runs worth plotting first: the first two Complete runs (row keys). */
 export function defaultOverlay(rows: readonly ResultsRow[]): string[] {
   return rows.filter((r) => r.status.kind === "complete").slice(0, 2).map((r) => r.key);

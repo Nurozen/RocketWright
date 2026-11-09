@@ -15,13 +15,13 @@ import { legendFigure, PLOT_TABS, plotTab, type PlotTabId } from "../../plots/qu
 import { seriesColumn } from "../../plots/series.ts";
 import { TimePlot, type PlotLine } from "../../plots/TimePlot.tsx";
 import { downloadText, exportFileName, exportRunsCsv, type ExportRun } from "./csv.ts";
-import { defaultOverlay, outdatedBanner, primaryRow, rowRef, runDetails, type ResultsRow } from "./model.ts";
+import { defaultOverlay, outdatedBanner, plotPrompt, primaryRow, rowRef, runDetails, type ResultsRow } from "./model.ts";
 import { MenuButton } from "../../ui/Menu.tsx";
 import { useResultsRows } from "./parts.tsx";
 import { ResultsIcon } from "./ResultsIcon.tsx";
 import { resultsUiStore, useResultsUi } from "./resultsUi.ts";
 import { RunTable } from "./RunTable.tsx";
-import { SimConditionsSheet } from "./SimConditionsSheet.tsx";
+import { newSimulation, SimConditionsSheet } from "./SimConditionsSheet.tsx";
 import { runKey, useRunData, type RunData, type RunDataSource } from "./source.ts";
 import { launchRailOf, padModelOf, trajectoryPoints } from "./trajectory.ts";
 import { TrajectoryView, type TrajectoryPad, type TrajectoryPath } from "./TrajectoryView.tsx";
@@ -127,6 +127,7 @@ export function ResultsPage({ app, source }: ResultsPageProps) {
   };
   const loading = keys.some((k) => loaded[runKey(k)]?.status !== "ready");
   const loadError = keys.map((k) => loaded[runKey(k)]).find((s) => s?.status === "error");
+  const prompt = plotPrompt(rows, noParts);
 
   return (
     <section className="rw-results" data-testid="results-page">
@@ -230,17 +231,27 @@ export function ResultsPage({ app, source }: ResultsPageProps) {
             {lines.length > 0 ? (
               <TimePlot lines={lines} events={events} yLabel={tab.axis} onDrawn={onDrawn} topInset={14 + 22 * (lines.length + (eventRun ? 1 : 0))} avoid={legendRef} />
             ) : (
-              <p className="rw-results__empty" data-testid="plot.empty">
-                {loadError?.status === "error"
-                  ? `Could not load the run series: ${loadError.error}`
-                  : rows.length === 0
-                    ? noParts
-                      ? "Nothing to fly yet. Add your first part on Design, then add a simulation."
-                      : "Nothing to fly yet. Add a simulation to see flight results here."
-                    : overlayRows.length === 0
-                    ? "Tick up to two runs to plot them."
-                    : "Loading run series…"}
-              </p>
+              <>
+                <p className="rw-results__empty" data-testid="plot.empty">
+                  {loadError?.status === "error" ? `Could not load the run series: ${loadError.error}` : overlayRows.length === 0 ? prompt.text : "Loading run series…"}
+                </p>
+                {loadError === undefined && overlayRows.length === 0 && prompt.action === "open-design" && (
+                  <button type="button" className="rw-button rw-button--primary rw-results__cta" onClick={() => app.getState().ui.navigate("assembly")}>
+                    Open Design
+                  </button>
+                )}
+                {loadError === undefined && overlayRows.length === 0 && prompt.action === "add-simulation" && (
+                  <button type="button" className="rw-button rw-button--primary rw-results__cta" onClick={() => void newSimulation(app)}>
+                    Add simulation
+                  </button>
+                )}
+                {loadError === undefined && overlayRows.length === 0 && prompt.action === "run" && (
+                  <button type="button" className="rw-button rw-button--primary rw-results__cta" onClick={() => void app.getState().runs.run(prompt.sim).catch(() => undefined)}>
+                    <ResultsIcon name="run" size={18} />
+                    {`Run ${prompt.name}`}
+                  </button>
+                )}
+              </>
             )}
             {lines.length > 0 && (
               <ul className="rw-legend rw-list" data-testid="plot.legend" ref={legendRef}>

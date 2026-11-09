@@ -114,7 +114,7 @@ function ofJob(job: JobInfo): StatusView | null {
 }
 
 function ofRun(run: RunListEntry | null | undefined, modelHash: string | null | undefined, job: JobInfo | null | undefined): StatusView {
-  if (job !== null && job !== undefined && (job.state === "queued" || job.state === "running")) return ofJob(job)!;
+  if (job !== null && job !== undefined && (job.state === "queued" || job.state === "running" || job.state === "cancelled")) return ofJob(job)!;
   if (run === null || run === undefined) return view(S.not_run);
   switch (run.status) {
     case "not_run":

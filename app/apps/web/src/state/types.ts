@@ -183,6 +183,8 @@ export interface RunsSlice {
   error: string | null;
   run(sim: string, opts?: { force?: boolean }): Promise<SimulateOut>;
   cancel(jobId: string): Promise<JobInfo>;
+  /** Removes one stored run (`run.delete`) and drops it from the plot overlay and the selection. */
+  deleteRun(target: { key: string; sim: string; runId: string }): Promise<void>;
   /** Overlay a run row by its key (`rowKey`: the sim id, or `<sim>@<run id>` for a superseded run). */
   toggleOverlay(key: string): void;
 }

@@ -35,16 +35,18 @@ function makeStore(edit: (snap: ProjectSnapshot) => void = () => undefined) {
   const dryRun = vi.fn<AppState["draft"]["dryRun"]>(async () => OK);
   const mutate = vi.fn<AppState["draft"]["mutate"]>(async () => OK);
   const run = vi.fn<AppState["runs"]["run"]>(async () => ({}) as never);
+  const cancel = vi.fn<AppState["runs"]["cancel"]>(async () => ({}) as never);
+  const deleteRun = vi.fn<AppState["runs"]["deleteRun"]>(async () => undefined);
   const select = vi.fn<AppState["selection"]["select"]>();
   const state: AppState = {
     ...base,
     project: { ...base.project, projectId: "p", snapshot: snap as never },
     draft: { ...base.draft, dryRun, mutate },
-    runs: { ...base.runs, run },
+    runs: { ...base.runs, run, cancel, deleteRun },
     selection: { ...base.selection, select },
   };
   const app = createStore<AppState>()(() => state) as unknown as AppStore;
-  return { app, snap, dryRun, mutate, run, select };
+  return { app, snap, dryRun, mutate, run, cancel, deleteRun, select };
 }
 
 async function mount(app: AppStore, sim: string | null) {
@@ -281,5 +283,119 @@ describe("the Not run row (R2.7)", () => {
     await click(row("baseline").querySelector<HTMLElement>(".rw-runtable__name")!);
     expect(sheet()).toBeNull();
     expect(button(row("baseline"), "Run")).toBeUndefined();
+  });
+});
+
+describe("run row actions (R2.7)", () => {
+  const row = (sim: string) => document.querySelector<HTMLElement>(`[data-testid="runs.table-row"][data-sim="${sim}"]`)!;
+  const openMenu = (sim: string) => click(row(sim).querySelector<HTMLElement>('[data-testid="runs.row-menu"]')!);
+  const menuItems = () => [...document.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')];
+  const menuItem = (name: string) => menuItems().find((i) => i.textContent?.trim() === name)!;
+  const dialog = () => document.querySelector<HTMLElement>('[data-testid="delete-run"]')!;
+
+  const runningJob = { job_id: "j-1", kind: "simulate", sim: "baseline", state: "running", progress: 0.4 };
+
+  it("offers Cancel on a flying row and cancels its job", async () => {
+    const { app, cancel, run } = makeStore((snap) => {
+      snap.jobs = [runningJob] as never;
+    });
+    await mount(app, null);
+    expect(row("baseline").dataset["status"]).toBe("running");
+    await click(button(row("baseline"), "Cancel"));
+    expect(cancel).toHaveBeenCalledWith("j-1");
+    expect(run).not.toHaveBeenCalled();
+    expect(sheet()).toBeNull();
+  });
+
+  it("reads Cancelled after the job stops and offers Run again", async () => {
+    const { app, run } = makeStore((snap) => {
+      snap.jobs = [{ ...runningJob, state: "cancelled" }] as never;
+      snap.runs.runs.find((r) => r.sim === "baseline")!.job_id = "j-1";
+    });
+    await mount(app, null);
+    expect(row("baseline").dataset["status"]).toBe("cancelled");
+    expect(row("baseline").querySelector('[data-testid="runs.status"]')!.textContent).toBe("Cancelled");
+    await click(button(row("baseline"), "Run"));
+    expect(run).toHaveBeenCalledWith("baseline");
+  });
+
+  it("has no Landing dispersion entry", async () => {
+    const { app } = makeStore();
+    await mount(app, null);
+    await openMenu("baseline");
+    expect(menuItems().map((i) => i.textContent?.trim())).toEqual(["Simulation conditions", "Edit configuration", "Duplicate", "Delete"]);
+  });
+
+  it("duplicates the sim as a new, not-yet-run sim and opens its conditions", async () => {
+    const { app, mutate } = makeStore();
+    await mount(app, null);
+    await openMenu("baseline");
+    await click(menuItem("Duplicate"));
+    expect(mutate.mock.calls[0]?.[0]).toEqual([
+      { op: "copy", from: "/sims/baseline", path: "/sims/baseline_copy" },
+      { op: "add", path: "/sims/baseline_copy/name", value: "Baseline copy" },
+    ]);
+    expect(resultsUiStore(app).getState().conditions).toBe("baseline_copy");
+  });
+
+  it("names a second copy so it can be told apart", async () => {
+    const { app, mutate, snap } = makeStore((s) => {
+      const sims = s.evaluated!.sims as Record<string, unknown>;
+      sims["baseline_copy"] = { ...(sims["baseline"] as object), id: "baseline_copy", name: "Baseline copy" };
+    });
+    expect(snap.evaluated!.sims["baseline_copy"]).toBeDefined();
+    await mount(app, null);
+    await openMenu("baseline");
+    await click(menuItem("Duplicate"));
+    expect(mutate.mock.calls[0]?.[0]).toContainEqual({ op: "add", path: "/sims/baseline_copy_2/name", value: "Baseline copy 2" });
+  });
+
+  it("deletes a stored run after a confirmation", async () => {
+    const { app, deleteRun, snap } = makeStore();
+    await mount(app, null);
+    const runId = snap.runs.runs.find((r) => r.sim === "baseline")!.run_id!;
+    await openMenu("baseline");
+    await click(menuItem("Delete"));
+    expect(dialog().textContent).toContain("The simulation stays");
+    expect(deleteRun).not.toHaveBeenCalled();
+    await click(button(dialog(), "Delete"));
+    expect(deleteRun).toHaveBeenCalledWith({ key: "baseline", sim: "baseline", runId });
+    expect(document.querySelector('[data-testid="delete-run"]')).toBeNull();
+  });
+
+  it("shows the sidecar's refusal and keeps the dialog", async () => {
+    const { app, deleteRun } = makeStore();
+    deleteRun.mockRejectedValueOnce(new Error("simulation `baseline` has a job in progress"));
+    await mount(app, null);
+    await openMenu("baseline");
+    await click(menuItem("Delete"));
+    await click(button(dialog(), "Delete"));
+    expect(dialog().querySelector('[role="alert"]')!.textContent).toContain("job in progress");
+  });
+
+  it("cannot delete a run that does not exist or is still flying", async () => {
+    const { app } = makeStore((snap) => {
+      snap.jobs = [runningJob] as never;
+    });
+    await mount(app, null);
+    await openMenu("recovery_test");
+    expect(menuItem("Delete").disabled).toBe(true);
+    await act(async () => document.body.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })));
+    await openMenu("baseline");
+    expect(menuItem("Delete").disabled).toBe(true);
+  });
+
+  it("lets a run whose sim was deleted be removed, but not duplicated", async () => {
+    const { app, deleteRun, snap } = makeStore((s) => {
+      delete (s.evaluated!.sims as Record<string, unknown>)["baseline"];
+    });
+    await mount(app, null);
+    const runId = snap.runs.runs.find((r) => r.sim === "baseline")!.run_id!;
+    await openMenu("baseline");
+    expect(menuItem("Duplicate").disabled).toBe(true);
+    await click(menuItem("Delete"));
+    expect(dialog().textContent).toContain("cannot be run again");
+    await click(button(dialog(), "Delete"));
+    expect(deleteRun).toHaveBeenCalledWith({ key: "baseline", sim: "baseline", runId });
   });
 });

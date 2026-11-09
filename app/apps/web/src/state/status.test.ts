@@ -46,6 +46,11 @@ describe("statusOf: runs (computed against the current model hash, I7)", () => {
     expect(statusOf({ kind: "job", job: job({ state: "queued", progress: 0 }) }).kind).toBe("queued");
     expect(statusOf({ kind: "job", job: job({ state: "cancelled" }) }).kind).toBe("cancelled");
   });
+
+  it("a cancelled job leaves its row Cancelled, even with no stored run", () => {
+    expect(statusOf({ kind: "run", run: run({}), modelHash: H, job: job({ state: "cancelled" }) }).kind).toBe("cancelled");
+    expect(statusOf({ kind: "run", run: null, modelHash: H, job: job({ state: "cancelled" }) }).kind).toBe("cancelled");
+  });
 });
 
 describe("statusOf: check, inputs, drafts", () => {
