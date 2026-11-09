@@ -449,6 +449,21 @@ describe("closing and commands", () => {
     expect(setDirty.mock.lastCall).toEqual([false]);
   });
 
+  it("counts a save on its way as unsaved, so quitting during it still flushes", async () => {
+    const t = fakeClient(["a"]);
+    const setDirty = vi.fn<HostApi["setDirty"]>(() => Promise.resolve());
+    await mount(t, fakeHost({ setDirty }));
+    let land = (): void => undefined;
+    trackWrite(new Promise<void>((ok) => (land = ok)));
+    // The field read clean the moment its blur sent the save.
+    await act(async () => void document.dispatchEvent(new Event("focusout")));
+    await settled();
+    expect(setDirty.mock.calls).toEqual([[true]]);
+    await act(async () => land());
+    await settled();
+    expect(setDirty.mock.calls).toEqual([[true], [false]]);
+  });
+
   it("Save and quit runs the same flush as Close, reports what failed, and stops listening with the window", async () => {
     const t = fakeClient(["a"]);
     let flush: (() => Promise<string[]>) | undefined;

@@ -97,21 +97,27 @@ function mirrorHash(store: Pick<AppStore, "getState">): string | null {
   return snap?.evaluated?.model_hash ?? snap?.files.model_hash ?? null;
 }
 
-/** Resolves when `ready` says so, or after the wait: the push of a landed write comes a moment after its answer. */
-function untilMirror(store: AppStore, ready: () => boolean): Promise<void> {
-  if (ready()) return Promise.resolve();
+/** Resolves to whether `ready` said so within the wait: the push of a landed write comes a moment after its answer. */
+function untilMirror(store: AppStore, ready: () => boolean): Promise<boolean> {
+  if (ready()) return Promise.resolve(true);
   return new Promise((resolve) => {
-    const finish = () => {
+    const finish = (caughtUp: boolean) => {
       clearTimeout(timer);
       off();
-      resolve();
+      resolve(caughtUp);
     };
-    const timer = setTimeout(finish, MIRROR_WAIT_MS);
+    const timer = setTimeout(() => finish(false), MIRROR_WAIT_MS);
     const off = store.subscribe(() => {
-      if (ready()) finish();
+      if (ready()) finish(true);
     });
   });
 }
+
+const BEHIND_WORDS: Record<HistoryMove, { done: string; press: string }> = {
+  undo: { done: "undone", press: "Undo" },
+  redo: { done: "redone", press: "Redo" },
+  revert: { done: "reverted", press: "Revert" },
+};
 
 /**
  * Settles the draft before the history moves. Writes already on their way (a
@@ -123,15 +129,22 @@ function untilMirror(store: AppStore, ready: () => boolean): Promise<void> {
  * across a restore it goes stale and blocks every direct edit, so it is
  * dropped. For Undo, dropping it is the whole move: it was the latest change.
  *
- * Resolves to whether the history should still move.
+ * Resolves to whether the history should still move. Rejects, with words for
+ * the person, if the mirror has not caught up within the wait: the target
+ * would come from the history before that write, and Undo would take back two
+ * edits. Nothing has moved, so pressing again is safe.
  */
 export async function settleForHistory(store: AppStore, kind: HistoryMove): Promise<boolean> {
   const before = mirrorHash(store);
   const writing = writesPending();
-  await settleWrites();
+  const problems = await settleWrites();
   const hash = await store.getState().draft.settled();
-  if (hash !== null) await untilMirror(store, () => mirrorHash(store) === hash);
-  else if (writing) await untilMirror(store, () => mirrorHash(store) !== before);
+  // A write that failed changed nothing, so no push is coming for it.
+  const caughtUp = hash !== null ? await untilMirror(store, () => mirrorHash(store) === hash) : writing && problems.length === 0 ? await untilMirror(store, () => mirrorHash(store) !== before) : true;
+  if (!caughtUp) {
+    const { done, press } = BEHIND_WORDS[kind];
+    throw new Error(`The last change has not finished saving, so nothing was ${done}. Press ${press} again in a moment.`);
+  }
   const draft = store.getState().draft;
   if (draft.ops.length === 0) return true;
   draft.discard();

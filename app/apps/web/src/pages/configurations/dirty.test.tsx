@@ -47,9 +47,10 @@ async function recovery(call: RpcLike["call"]) {
   const el = document.createElement("div");
   document.body.append(el);
   root = createRoot(el);
-  const { content } = configurationsSlots(appStore(snap), client, ui);
+  const store = appStore(snap);
+  const { content } = configurationsSlots(store, client, ui);
   await act(async () => root!.render(<>{content}</>));
-  return { input: el.querySelector<HTMLInputElement>('[data-testid="recovery.altitude"]')!, ui };
+  return { input: el.querySelector<HTMLInputElement>('[data-testid="recovery.altitude"]')!, ui, store };
 }
 
 const type = async (input: HTMLInputElement, value: string) =>
@@ -74,6 +75,14 @@ describe("a Configurations field still focused when the project is left", () => 
     expect(flushed).toBeNull();
     await act(async () => answer());
     expect(flushed).toEqual([]);
+  });
+
+  it("records the answered hash, so Undo waits for the push that shows this write", async () => {
+    const call = vi.fn<() => Promise<unknown>>(() => Promise.resolve({ model_hash: "h-after" })) as unknown as RpcLike["call"];
+    const { input, store } = await recovery(call);
+    await type(input, "250");
+    await act(async () => void (await flushDirtyFields()));
+    await expect(store.getState().draft.settled()).resolves.toBe("h-after");
   });
 
   it("does not write it twice when the blur follows", async () => {
