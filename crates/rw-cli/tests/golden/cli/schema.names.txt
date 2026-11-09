@@ -36,6 +36,8 @@ tools/project_create.input
 tools/project_create.output
 tools/project_validate.input
 tools/project_validate.output
+tools/project_rename.input
+tools/project_rename.output
 tools/model_get.input
 tools/model_get.output
 tools/model_patch.input
@@ -52,6 +54,8 @@ tools/library_search.input
 tools/library_search.output
 tools/motor_search.input
 tools/motor_search.output
+tools/motor_show.input
+tools/motor_show.output
 tools/simulate.input
 tools/simulate.output
 tools/job_status.input

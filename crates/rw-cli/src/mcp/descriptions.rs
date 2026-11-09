@@ -22,7 +22,13 @@ fn when(name: &str) -> &'static str {
     match name {
         "project_create" => {
             "Create a new project from a template (empty, minimum, sample, simple-rocket) in an empty project directory. \
-             Use once, before any edit; an existing project answers conflict."
+             Use once, before any edit; an existing project answers conflict. display_units sets the new \
+             project's [display_units] (length = \"cm\"), so no follow-up edit is needed."
+        }
+        "project_rename" => {
+            "Change the project's display name, in rocketwright.toml and rocket.rw.toml as one step. \
+             The folder and every id stay the same. The name is part of the model hash, so existing \
+             runs read as outdated afterwards."
         }
         "project_validate" => {
             "Schema-only validation of the project files (parse, units, unknown keys), without evaluating \
@@ -73,6 +79,11 @@ fn when(name: &str) -> &'static str {
             "Search motors (generic curves and lib/motors) by text, impulse class, diameter (\"18 mm\"), \
              and impulse range. Use to pick a motor ref (generic:RW_C6G, lib:<path>#<designation>) for a \
              configuration's mount."
+        }
+        "motor_show" => {
+            "One motor by ref (generic:RW_C6G, lib:<path>#<designation>, or a designation): its \
+             specs and the full thrust curve. Use after the motor_search tool, before mounting a motor \
+             whose curve or propellant mass matters."
         }
         "simulate" => {
             "Fly a simulation (sims/<id>.rw.toml). Returns at once: a cache hit (status complete, summary) \

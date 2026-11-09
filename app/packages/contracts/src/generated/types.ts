@@ -519,6 +519,10 @@ export type Command =
       input: ProjectValidateIn;
     }
   | {
+      command: "project_rename";
+      input: ProjectRenameIn;
+    }
+  | {
       command: "fmt";
       input: FmtIn;
     }
@@ -3399,6 +3403,13 @@ export interface ProjectCreateIn {
    * Template id from `templates/` (default `minimal`).
    */
   template?: string | null;
+  /**
+   * `[display_units]` of the new project, e.g. `length = "cm"`; entries
+   * overlay the template's own.
+   */
+  display_units?: {
+    [k: string]: string | undefined;
+  };
   dry_run?: boolean;
 }
 
@@ -3437,6 +3448,14 @@ export interface ProjectManifest {
     [k: string]: string | undefined;
   };
   lib?: LibManifest | null;
+}
+
+export interface ProjectRenameIn {
+  /**
+   * The new name: at most 255 bytes once trimmed.
+   */
+  name: string;
+  dry_run?: boolean;
 }
 
 export interface ProjectValidateIn {
@@ -3625,6 +3644,10 @@ export type Response =
   | {
       command: "project_validate";
       output: ValidateOut;
+    }
+  | {
+      command: "project_rename";
+      output: MutationOut;
     }
   | {
       command: "fmt";
@@ -4732,6 +4755,7 @@ export type RwContract =
   | MutationOut
   | ProjectValidateIn
   | ValidateOut
+  | ProjectRenameIn
   | ModelGetIn
   | ModelGetOut
   | ModelPatchIn
@@ -4743,6 +4767,8 @@ export type RwContract =
   | LibrarySearchOut
   | MotorSearchIn
   | MotorSearchOut
+  | MotorShowIn
+  | MotorShowOut
   | SimulateIn
   | SimulateOut
   | JobRef

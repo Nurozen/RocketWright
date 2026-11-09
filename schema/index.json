@@ -270,6 +270,20 @@
       "ts_name": "ValidateOut"
     },
     {
+      "name": "tools/project_rename.input",
+      "file": "tools/project_rename.input.json",
+      "iface": "IF8",
+      "rust_type": "ProjectRenameIn",
+      "ts_name": "ProjectRenameIn"
+    },
+    {
+      "name": "tools/project_rename.output",
+      "file": "tools/project_rename.output.json",
+      "iface": "IF8",
+      "rust_type": "MutationOut",
+      "ts_name": "MutationOut"
+    },
+    {
       "name": "tools/model_get.input",
       "file": "tools/model_get.input.json",
       "iface": "IF8",
@@ -380,6 +394,20 @@
       "iface": "IF8",
       "rust_type": "MotorSearchOut",
       "ts_name": "MotorSearchOut"
+    },
+    {
+      "name": "tools/motor_show.input",
+      "file": "tools/motor_show.input.json",
+      "iface": "IF8",
+      "rust_type": "MotorShowIn",
+      "ts_name": "MotorShowIn"
+    },
+    {
+      "name": "tools/motor_show.output",
+      "file": "tools/motor_show.output.json",
+      "iface": "IF8",
+      "rust_type": "MotorShowOut",
+      "ts_name": "MotorShowOut"
     },
     {
       "name": "tools/simulate.input",
@@ -676,6 +704,19 @@
       }
     },
     {
+      "name": "project_rename",
+      "input": "tools/project_rename.input",
+      "output": "tools/project_rename.output",
+      "approval": "never",
+      "hints": {
+        "read_only": false,
+        "destructive": false,
+        "idempotent": false,
+        "open_world": false,
+        "mutating": true
+      }
+    },
+    {
       "name": "model_get",
       "input": "tools/model_get.input",
       "output": "tools/model_get.output",
@@ -770,6 +811,19 @@
       "name": "motor_search",
       "input": "tools/motor_search.input",
       "output": "tools/motor_search.output",
+      "approval": "never",
+      "hints": {
+        "read_only": true,
+        "destructive": false,
+        "idempotent": true,
+        "open_world": false,
+        "mutating": false
+      }
+    },
+    {
+      "name": "motor_show",
+      "input": "tools/motor_show.input",
+      "output": "tools/motor_show.output",
       "approval": "never",
       "hints": {
         "read_only": true,

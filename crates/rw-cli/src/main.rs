@@ -50,6 +50,9 @@ enum Cmd {
         template: Option<String>,
         #[arg(long)]
         name: Option<String>,
+        /// `[display_units]` of the new project, e.g. `length=cm,mass=kg`.
+        #[arg(long, value_name = "KEY=UNIT", value_delimiter = ',')]
+        display_units: Vec<String>,
         #[arg(long)]
         dry_run: bool,
     },
@@ -490,8 +493,9 @@ fn main() -> ExitCode {
             dir,
             template,
             name,
+            display_units,
             dry_run,
-        } => cmd::project::init(&opts, dir, template, name, dry_run),
+        } => cmd::project::init(&opts, dir, template, name, display_units, dry_run),
         Cmd::Fmt { check, files } => cmd::project::fmt(&opts, check, files),
         Cmd::Validate { files } => cmd::project::validate(&opts, files),
         Cmd::Eval {

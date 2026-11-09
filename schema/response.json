@@ -37,6 +37,22 @@
       "properties": {
         "command": {
           "type": "string",
+          "const": "project_rename"
+        },
+        "output": {
+          "$ref": "#/$defs/MutationOut"
+        }
+      },
+      "required": [
+        "command",
+        "output"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "command": {
+          "type": "string",
           "const": "fmt"
         },
         "output": {

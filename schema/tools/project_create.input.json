@@ -14,6 +14,13 @@
       ],
       "description": "Template id from `templates/` (default `minimal`)."
     },
+    "display_units": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "description": "`[display_units]` of the new project, e.g. `length = \"cm\"`; entries\noverlay the template's own."
+    },
     "dry_run": {
       "type": "boolean",
       "default": false
