@@ -8,9 +8,12 @@
  * A deliberately small reader over the mirror's `files` (I1: the UI never
  * writes them): tables, dotted keys, and inline tables, read token by token
  * so an expression's commas stay inside its string. Arrays and multi-line
- * values are skipped (the editor reads none here). Every write still goes
- * through `model.patch` on the id-keyed model (I2).
+ * values are skipped (the editor reads none here). JSON sources merge in the
+ * same shape. Every write still goes through `model.patch` on the id-keyed
+ * model (I2).
  */
+
+import { parse as parseToml } from "smol-toml";
 
 export type SourceScalar = string | number | boolean;
 export type SourceFilesLike = Readonly<Record<string, string | undefined>>;
@@ -22,6 +25,9 @@ interface SourceTable {
 }
 
 const isTable = (v: SourceValue | undefined): v is SourceTable => typeof v === "object" && v !== null;
+
+/** A source is TOML or its JSON twin (`.rw.json`, `rocketwright.json`), which parses to the same types. */
+const isJsonSource = (name: string): boolean => name.endsWith(".rw.json") || name === "rocketwright.json" || name.endsWith("/rocketwright.json");
 
 /** A cursor over one TOML value: strings are read whole, so an expression's commas and braces are just text. */
 class Cursor {
@@ -222,15 +228,39 @@ function bracketDelta(line: string): number {
   return depth;
 }
 
+/** A JSON value as the TOML reader leaves it: an array of tables is keyed by position, any other array reads as `null`. */
+function jsonValue(v: unknown): SourceValue {
+  if (typeof v === "string" || typeof v === "number" || typeof v === "boolean") return v;
+  if (Array.isArray(v)) {
+    if (v.length === 0 || !v.every((e) => typeof e === "object" && e !== null && !Array.isArray(e))) return null;
+    return Object.fromEntries(v.map((e, i) => [String(i), jsonValue(e)]));
+  }
+  if (typeof v === "object" && v !== null) return Object.fromEntries(Object.entries(v).map(([k, e]) => [k, jsonValue(e)]));
+  return null;
+}
+
+/** A JSON source's keys merged into `into`; one that does not parse adds nothing (the model reports it). */
+function parseJsonFile(text: string, into: SourceTable): void {
+  let root: unknown;
+  try {
+    root = JSON.parse(text);
+  } catch {
+    return;
+  }
+  const value = jsonValue(root);
+  if (isTable(value)) merge(into, value);
+}
+
 const parsed = new WeakMap<object, SourceTable>();
 
-/** Every `.toml` source merged into one tree, in file-name order (later files win). */
+/** Every source merged into one tree, in file-name order (later files win). */
 function sourceTree(files: SourceFilesLike): SourceTable {
   const cached = parsed.get(files);
   if (cached !== undefined) return cached;
   const tree: SourceTable = {};
   for (const name of Object.keys(files).sort()) {
     if (name.endsWith(".toml")) parseFile(files[name] ?? "", tree);
+    else if (isJsonSource(name)) parseJsonFile(files[name] ?? "", tree);
   }
   parsed.set(files, tree);
   return tree;
@@ -288,33 +318,107 @@ export interface MaterialUse {
   label: string;
 }
 
+type Doc = Record<string, unknown>;
+
+const isDoc = (v: unknown): v is Doc => typeof v === "object" && v !== null && !Array.isArray(v);
+
+/** One source, parsed whole; null when it does not parse (the model reports that and leaves it out). */
+function readDoc(name: string, text: string | undefined): Doc | null {
+  if (text === undefined) return null;
+  try {
+    const value: unknown = name.endsWith(".json") ? JSON.parse(text) : parseToml(text);
+    return isDoc(value) ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+/** The parent directory of a source: `doc_kind` in `rw-model` decides what it holds by this alone. */
+const parentDir = (name: string): string => name.split("/").at(-2) ?? "";
+
+const isRocketFile = (name: string): boolean => /\.rw\.(toml|json)$/.test(name) && !["configs", "sims", "engines"].includes(parentDir(name));
+
+interface ModelFiles {
+  /** The main model file and everything it includes, in the order `merge` in `rw-model` reads them. */
+  rockets: { name: string; doc: Doc }[];
+  /** Each engine file under its id (`engines/<id>.rw.toml` or `.rw.json`). */
+  engines: { id: string; doc: Doc }[];
+}
+
+const modelCache = new WeakMap<object, ModelFiles>();
+
+/** The files `merge` in `rw-model` builds the model from: what a patch can reach and what evaluation reads. */
+function modelFiles(files: SourceFilesLike): ModelFiles {
+  const cached = modelCache.get(files);
+  if (cached !== undefined) return cached;
+  const names = Object.keys(files).sort();
+  const docs = new Map<string, Doc>();
+  for (const name of names) {
+    if (!/\.rw\.(toml|json)$/.test(name) && !/(^|\/)rocketwright\.(toml|json)$/.test(name)) continue;
+    const doc = readDoc(name, files[name]);
+    if (doc !== null) docs.set(name, doc);
+  }
+  const isRocket = (name: string) => isRocketFile(name) && docs.has(name);
+  const manifestModel = ["rocketwright.json", "rocketwright.toml"].map((m) => docs.get(m)?.["model"]).find((m) => typeof m === "string") as string | undefined;
+  const main = manifestModel !== undefined && isRocket(manifestModel) ? manifestModel : isRocket("rocket.rw.toml") ? "rocket.rw.toml" : names.find((n) => isRocket(n) && !n.startsWith("parts/"));
+
+  const rockets: ModelFiles["rockets"] = [];
+  const seen = new Set<string>();
+  const includesOf = (doc: Doc): string[] => (Array.isArray(doc["include"]) ? doc["include"].filter((i): i is string => typeof i === "string") : []);
+  const queue = main === undefined ? [] : [main];
+  while (queue.length > 0) {
+    const name = queue.shift()!;
+    if (seen.has(name)) continue;
+    seen.add(name);
+    const doc = docs.get(name);
+    if (doc === undefined || !isRocketFile(name)) continue;
+    rockets.push({ name, doc });
+    queue.unshift(...includesOf(doc));
+  }
+
+  const engines: ModelFiles["engines"] = [];
+  for (const name of names) {
+    const id = /([^/]+)\.rw\.(toml|json)$/.exec(name)?.[1];
+    const doc = docs.get(name);
+    if (id !== undefined && doc !== undefined && parentDir(name) === "engines") engines.push({ id, doc });
+  }
+  const out = { rockets, engines };
+  modelCache.set(files, out);
+  return out;
+}
+
 /**
- * Everywhere the sources name this material: a part's `material` and
+ * Everywhere the model names this material: a part's `material` and
  * `line_material`, and a feed-graph tank's wall `material` in an engine's own
  * file. These are the only references the model has (`check_ref` and the
  * engine's tank check), so a material with none can go, and a rename rewrites
- * exactly these.
+ * exactly these. Reads the same files, in the same forms, as the model does:
+ * a reference in an included JSON part counts, one in a file nothing includes
+ * does not (the model has no such part to patch).
  */
 export function materialUses(files: SourceFilesLike, material: string): MaterialUse[] {
   const out: MaterialUse[] = [];
-  for (const [id, part] of Object.entries(tableAt(files, ["c"]) ?? {})) {
-    if (!isTable(part)) continue;
-    const label = typeof part["name"] === "string" ? part["name"] : id;
-    for (const key of ["material", "line_material"]) {
-      if (part[key] === material) out.push({ path: `/c/${id}/${key}`, label });
+  const model = modelFiles(files);
+  const seen = new Set<string>();
+  for (const { doc } of model.rockets) {
+    if (!isDoc(doc["c"])) continue;
+    for (const [id, part] of Object.entries(doc["c"])) {
+      // Ids are unique across included files; a duplicate is reported and the first one is the model's.
+      if (seen.has(id) || !isDoc(part)) continue;
+      seen.add(id);
+      const label = typeof part["name"] === "string" ? part["name"] : id;
+      for (const key of ["material", "line_material"]) {
+        if (part[key] === material) out.push({ path: `/c/${id}/${key}`, label });
+      }
     }
   }
-  for (const [file, text] of Object.entries(files)) {
-    const engine = /^engines\/([^/]+)\.rw\.toml$/.exec(file)?.[1];
-    if (engine === undefined || text === undefined) continue;
-    const tree: SourceTable = {};
-    parseFile(text, tree);
-    const feed = tree["feed"];
-    const nodes = isTable(feed) ? feed["node"] : undefined;
-    if (!isTable(nodes)) continue;
-    const engineName = typeof tree["name"] === "string" ? tree["name"] : engine;
+  for (const { id: engine, doc } of model.engines) {
+    const feed = doc["feed"];
+    const nodes = isDoc(feed) ? feed["node"] : undefined;
+    if (!isDoc(nodes)) continue;
+    const engineName = typeof doc["name"] === "string" ? doc["name"] : engine;
     for (const [node, value] of Object.entries(nodes)) {
-      if (isTable(value) && value["material"] === material) out.push({ path: `/engines/${engine}/feed/node/${node}/material`, label: `${engineName} ${node}` });
+      if (isDoc(value) && value["material"] === material) out.push({ path: `/engines/${engine}/feed/node/${node}/material`, label: `${engineName} ${node}` });
     }
   }
   return out;

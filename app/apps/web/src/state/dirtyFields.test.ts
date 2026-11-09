@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { anyDirtyField, flushDirtyFields, flushProject, onDirtyFieldsChanged, registerDirtyField, resetDirtyFields, trackWrite, watchDirty } from "./dirtyFields.ts";
+import { anyDirtyField, flushDirtyFields, flushProject, onDirtyFieldsChanged, registerDirtyField, resetDirtyFields, settleWrites, trackWrite, watchDirty, writesPending } from "./dirtyFields.ts";
 import type { AppStore } from "./store.ts";
 
 afterEach(resetDirtyFields);
@@ -66,6 +66,20 @@ describe("the dirty field registry", () => {
     await trackWrite(Promise.resolve());
     await new Promise((r) => setTimeout(r, 0));
     await expect(flushDirtyFields()).resolves.toEqual([]);
+  });
+});
+
+describe("settleWrites", () => {
+  it("still lists a write while something waits for it, and tells every waiter how it went", async () => {
+    let fail: (e: Error) => void = () => undefined;
+    void trackWrite(new Promise<void>((_, reject) => (fail = reject))).catch(() => undefined);
+    const first = settleWrites();
+    const second = settleWrites();
+    expect(writesPending()).toBe(true);
+    fail(new Error("disk full"));
+    await expect(first).resolves.toEqual(["disk full"]);
+    await expect(second).resolves.toEqual(["disk full"]);
+    expect(writesPending()).toBe(false);
   });
 });
 

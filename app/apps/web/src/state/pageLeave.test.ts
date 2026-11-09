@@ -32,6 +32,57 @@ describe("a page change", () => {
     expect(store.getState().ui).toMatchObject({ page: "results", tab: "x" });
   });
 
+  it("waits for a save already on its way, though the field now reads clean", async () => {
+    const store = await setup();
+    let release: () => void = () => undefined;
+    void trackWrite(new Promise<void>((r) => (release = r)));
+    const done = store.getState().ui.goToPage("results");
+    await new Promise((r) => setTimeout(r, 5));
+    expect(store.getState().ui.page).toBe("assembly");
+    release();
+    await done;
+    expect(store.getState().ui.page).toBe("results");
+  });
+
+  it("asks when a save already on its way fails, and stays until answered", async () => {
+    const store = await setup();
+    let fail: (e: Error) => void = () => undefined;
+    void trackWrite(new Promise<void>((_, rej) => (fail = rej))).catch(() => undefined);
+    const done = store.getState().ui.goToPage("results");
+    await new Promise((r) => setTimeout(r, 5));
+    fail(new Error("disk full"));
+    await vi.waitFor(() => expect(store.getState().ui.leaving).toEqual({ problems: ["disk full"] }));
+    expect(store.getState().ui.page).toBe("assembly");
+    store.getState().ui.answerLeave(false);
+    await done;
+    expect(store.getState().ui.page).toBe("assembly");
+    expect(store.getState().ui.leaving).toBeNull();
+  });
+
+  it("Don't save tells each field to drop its text", async () => {
+    const store = await setup();
+    const discard = vi.fn<() => void>();
+    registerDirtyField({ dirty: () => true, commit: () => "Span needs a number.", discard });
+    const done = store.getState().ui.goToPage("results");
+    await vi.waitFor(() => expect(store.getState().ui.leaving).not.toBeNull());
+    expect(discard).not.toHaveBeenCalled();
+    store.getState().ui.answerLeave(true);
+    await done;
+    expect(discard).toHaveBeenCalledOnce();
+    expect(store.getState().ui.page).toBe("results");
+  });
+
+  it("Keep editing leaves each field's text alone", async () => {
+    const store = await setup();
+    const discard = vi.fn<() => void>();
+    registerDirtyField({ dirty: () => true, commit: () => "Span needs a number.", discard });
+    const done = store.getState().ui.goToPage("results");
+    await vi.waitFor(() => expect(store.getState().ui.leaving).not.toBeNull());
+    store.getState().ui.answerLeave(false);
+    await done;
+    expect(discard).not.toHaveBeenCalled();
+  });
+
   it("commits a field's typed text and waits for the write before changing page", async () => {
     const store = await setup();
     let release: () => void = () => undefined;

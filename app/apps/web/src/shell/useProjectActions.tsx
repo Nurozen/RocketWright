@@ -11,6 +11,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import type { ExportFileRequest, ProjectInfo, RecentProject, schema } from "@rw/contracts";
 import type { HostApi } from "../host/HostApi.ts";
+import { discardDirtyFields } from "../state/dirtyFields.ts";
 import type { RpcLike } from "../state/rpc.ts";
 import type { ExportChoices, ExportRunChoice } from "../state/selectors.ts";
 import { Banner } from "../ui/Banner.tsx";
@@ -172,6 +173,7 @@ export function useProjectActions({ client, host, lifecycle, surface, info, show
         problems,
         answer: (leave) => {
           setQuestion(null);
+          if (leave) discardDirtyFields();
           resolve(leave);
         },
       });

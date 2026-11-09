@@ -17,6 +17,8 @@ export interface DirtyField {
   dirty(): boolean;
   /** Writes the text. A string says why it cannot be saved as typed; null means it was sent (or there was nothing to send). */
   commit(): string | null;
+  /** The person chose not to save this: forget the typed text, so nothing later writes it. */
+  discard?(): void;
 }
 
 const fields = new Set<DirtyField>();
@@ -47,7 +49,7 @@ export function registerDirtyField(field: DirtyField): () => void {
 export function useDirtyField(field: DirtyField): void {
   const latest = useRef(field);
   latest.current = field;
-  useEffect(() => registerDirtyField({ dirty: () => latest.current.dirty(), commit: () => latest.current.commit() }), []);
+  useEffect(() => registerDirtyField({ dirty: () => latest.current.dirty(), commit: () => latest.current.commit(), discard: () => latest.current.discard?.() }), []);
 }
 
 /** Lets a flush wait for `write`. `failure` turns its result into the reason it did not save. */
@@ -72,10 +74,11 @@ export function writesPending(): boolean {
 /** Waits for every tracked write; resolves to why any failed. */
 export async function settleWrites(): Promise<string[]> {
   const problems: string[] = [];
-  // A write that lands can start another (a field's commit settling an open draft).
-  while (writes.size > 0) {
-    const batch = [...writes];
-    for (const p of batch) writes.delete(p);
+  // A write that lands can start another (a field's commit settling an open draft). A write stays
+  // listed until it answers (`trackWrite` removes it), so a page change during this wait still sees it.
+  const seen = new Set<Promise<string | null>>();
+  for (let batch = [...writes]; batch.length > 0; batch = [...writes].filter((p) => !seen.has(p))) {
+    for (const p of batch) seen.add(p);
     for (const problem of await Promise.all(batch)) if (problem !== null) problems.push(problem);
   }
   return problems;
@@ -111,9 +114,18 @@ export async function flushProject(store: Pick<AppStore, "getState">): Promise<s
   return problems;
 }
 
-/** Typed text or an open draft that a page change would lose. */
+/** Each field forgets its typed text: the person chose not to save it. */
+export function discardDirtyFields(): void {
+  for (const field of [...fields]) field.discard?.();
+}
+
+/**
+ * Typed text, an open draft, or a write still on its way, which a page change
+ * would lose: a field reads clean from the moment its blur sends the save, and
+ * a failure that comes back after the page is gone has nobody to tell.
+ */
 export function hasUnsavedWork(state: { draft: { ops: readonly unknown[] } }): boolean {
-  return state.draft.ops.length > 0 || anyDirtyField();
+  return state.draft.ops.length > 0 || anyDirtyField() || writesPending();
 }
 
 /** Test seam: forgets everything registered. */

@@ -205,6 +205,10 @@ function Sheet({ app, sim }: { app: AppStore; sim: EvalSim }) {
       save(false);
       return null;
     },
+    // "Don't save": the form goes back to the model, so the unmount above has nothing to save.
+    discard: () => {
+      if (isFormDirty(formRef.current)) revert();
+    },
   });
 
   const revert = () => edit({ ...formRef.current, values: { ...formRef.current.baseline }, config: formRef.current.baseConfig });

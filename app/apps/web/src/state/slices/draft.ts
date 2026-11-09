@@ -4,7 +4,7 @@
  * with the CheckDelta. Only `commit()` writes, through `model.patch` (I1, I2).
  */
 import type { CheckReport, EvaluatedModel, MutationOut, PatchOp } from "@rw/contracts";
-import { createMutate, createRemoveComponent } from "../mutate.ts";
+import { createMutate, createRemoveComponent, mirrorHash, noteLanded } from "../mutate.ts";
 import type { DeepReadonly, DraftSlice, SliceCtx } from "../types.ts";
 
 /**
@@ -54,7 +54,7 @@ export function createDraftSlice(ctx: SliceCtx): DraftSlice {
   /** Takes the written ops out of the draft; what was typed since stays open, based on the model it will now apply to. */
   const landed = (sent: readonly PatchOp[], hash: string): void => {
     const now = ctx.get().draft;
-    ctx.landed = { from: mirrorHash(ctx), to: hash };
+    noteLanded(ctx, hash);
     if (now.ops === sent) ctx.patch("draft", { ...EMPTY_DRAFT, ops: [] });
     else if (now.ops.length > 0) ctx.patch("draft", { ops: now.ops.filter((op) => !sent.includes(op)), baseHash: hash });
   };
@@ -97,7 +97,7 @@ export function createDraftSlice(ctx: SliceCtx): DraftSlice {
       const s = ctx.get();
       const hash = mirrorHash(ctx);
       // The last commit has landed but its push has not: this draft starts on the commit's model, and the push must not read as another writer.
-      const base = ctx.landed !== null && ctx.landed.from === hash ? ctx.landed.to : hash;
+      const base = ctx.landed !== null && (ctx.landed.from === hash || ctx.landed.through.includes(hash ?? "")) ? ctx.landed.to : hash;
       const next = coalesce([...s.draft.ops, ...ops]);
       const my = ++gen;
       ctx.patch("draft", {
@@ -144,7 +144,8 @@ export function createDraftSlice(ctx: SliceCtx): DraftSlice {
         const out = await next.catch(() => null);
         if (out !== null) last = out.model_hash;
       }
-      return last;
+      // Answered before anyone asked, push still on its way: that write is in history, and the mirror is about to say so.
+      return ctx.landed?.to ?? last;
     },
 
     dryRun(ops: readonly PatchOp[]): Promise<MutationOut> {
@@ -155,11 +156,6 @@ export function createDraftSlice(ctx: SliceCtx): DraftSlice {
     mutate: createMutate(ctx),
     removeComponent: createRemoveComponent(ctx),
   };
-}
-
-function mirrorHash(ctx: SliceCtx): string | null {
-  const snap = ctx.get().project.snapshot;
-  return snap?.evaluated?.model_hash ?? snap?.files.model_hash ?? null;
 }
 
 /**
