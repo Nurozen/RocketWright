@@ -164,7 +164,11 @@ ops -> `TomlStore::preview` -> eval (+library) -> `Checker` -> dry run returns
   `renders/<config>.<view>.png` plus the manifest. WebGL2 or a fallback
   adapter → exit 2 unless `RW_RENDER_ALLOW_SOFTWARE=1`. See `spikes.md` RL3.
 - `rw init` writes an embedded template (`templates/`, via `build.rs`) and a
-  `.gitignore` with `.rw/`, then records the initial step.
+  `.gitignore` with `.rw/`, then records the initial step. It and a
+  project-creating `rw import ork` refuse, naming the files, when a new file
+  would land on something already in the folder; a dry run refuses the same
+  way. `rw init`'s exit code reports creation only: the strict check's status
+  is in its output, because a new project can fail it by design.
 - MCP: every tool runs on the real session, including `import_file`/`export_file`
   (M2.5/M2.6), `engine_design`/`engine_simulate` (M4.6), and `cfd_import`
   (M5.4, R6.15: `crates/rw-project/src/cfd.rs`, the record in

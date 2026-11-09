@@ -16,6 +16,8 @@ const PROJECTS: &[&str] = &[
     "fixtures/research-vehicle",
     "templates/simple-rocket",
     "templates/minimum",
+    "templates/sample",
+    "templates/empty",
 ];
 
 fn walk(dir: &Path, out: &mut Vec<PathBuf>) {

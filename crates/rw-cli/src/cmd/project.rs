@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use rw_api::ProjectCreateIn;
 use serde_json::{Value, json};
 
-use super::{CmdResult, Opts, Outcome, diag_lines, mutation_outcome, usage};
+use super::{CmdResult, Opts, Outcome, creation_outcome, diag_lines, usage};
 use crate::display::{Class, display_tree, field_class};
 
 /// `rw init [dir] [--template <name>] [--name <name>] [--dry-run]`.
@@ -50,7 +50,7 @@ pub fn init(
         project: Some(dir.clone()),
         ..opts.clone()
     };
-    Ok(mutation_outcome(&created, v, &head, ""))
+    Ok(creation_outcome(&created, v, &head))
 }
 
 /// `rw fmt [--check] [files...]`: exit 1 with `--check` when a file would change.

@@ -21,7 +21,7 @@ Read delta.status and new_diagnostics before claiming success. dry_run: true pre
 fn when(name: &str) -> &'static str {
     match name {
         "project_create" => {
-            "Create a new project from a template (minimum, simple-rocket) in an empty project directory. \
+            "Create a new project from a template (empty, minimum, sample, simple-rocket) in an empty project directory. \
              Use once, before any edit; an existing project answers conflict."
         }
         "project_validate" => {
