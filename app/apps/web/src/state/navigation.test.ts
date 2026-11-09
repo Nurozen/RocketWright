@@ -51,7 +51,6 @@ function fakeBridge() {
     insertMention: () => void sent.push("insertMention"),
     setDraft: () => void sent.push("setDraft"),
     openThread: () => void sent.push("openThread"),
-    newThread: () => void sent.push("newThread"),
     openProviders: () => void sent.push("openProviders"),
     on: (event, l) => {
       let set = listeners.get(event);

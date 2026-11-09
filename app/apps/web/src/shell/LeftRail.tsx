@@ -6,7 +6,7 @@
  */
 import type { ReactNode } from "react";
 import { Icon } from "./Icon.tsx";
-import type { ShellNavRow, ShellNavSection, ShellThread } from "./model.ts";
+import type { ShellNavRow, ShellNavSection, ShellThread, ThreadStart } from "./model.ts";
 import { StatusBadge } from "./StatusIcon.tsx";
 
 export interface LeftRailProps {
@@ -16,6 +16,8 @@ export interface LeftRailProps {
   selectedNavId: string | null;
   onSelectThread?: (id: string) => void;
   onNewThread?: () => void;
+  /** A new thread on its way: the button shows it, and says why one did not arrive. */
+  threadStart?: ThreadStart;
   onSelectNav?: (row: ShellNavRow) => void;
   onToggleNav?: (row: ShellNavRow) => void;
   /** Opens (or creates) the thread bound to the row's artifact. */
@@ -30,7 +32,7 @@ export interface LeftRailProps {
   footer?: ReactNode;
 }
 
-export function LeftRail({ threads, selectedThreadId, nav, selectedNavId, onSelectThread, onNewThread, onSelectNav, onToggleNav, onOpenNavThread, navAdd, navBody, navSlot, footer }: LeftRailProps) {
+export function LeftRail({ threads, selectedThreadId, nav, selectedNavId, onSelectThread, onNewThread, threadStart, onSelectNav, onToggleNav, onOpenNavThread, navAdd, navBody, navSlot, footer }: LeftRailProps) {
   const plot = nav?.eye === "plot";
   return (
     <aside className="rw-rail" data-rw-region="left-rail" data-testid="left-rail">
@@ -59,10 +61,15 @@ export function LeftRail({ threads, selectedThreadId, nav, selectedNavId, onSele
             </li>
           ))}
         </ul>
-        <button type="button" className="rw-thread rw-thread--new" data-testid="rail.new-thread" onClick={onNewThread}>
-          <Icon name="plus" size={18} />
-          <span className="rw-thread__title">New thread</span>
+        <button type="button" className="rw-thread rw-thread--new" data-testid="rail.new-thread" onClick={onNewThread} disabled={threadStart?.state === "starting"} aria-busy={threadStart?.state === "starting"}>
+          <Icon name={threadStart?.state === "starting" ? "spinner" : "plus"} size={18} {...(threadStart?.state === "starting" ? { className: "rw-spin" } : {})} />
+          <span className="rw-thread__title">{threadStart?.state === "starting" ? "Starting…" : "New thread"}</span>
         </button>
+        {threadStart?.state === "error" && (
+          <p className="rw-rail__empty" role="alert" data-testid="rail.new-thread-error">
+            {threadStart.message}
+          </p>
+        )}
       </section>
       {navSlot}
       {!navSlot && nav && (

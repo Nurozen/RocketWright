@@ -729,6 +729,14 @@ export class AppServer {
       return {};
     },
 
+    "embed.createThread": async (_c, params) => {
+      const p = this.hostOf(params);
+      const title = str(params, "title");
+      const { appData } = params;
+      if (typeof appData !== "string" || Buffer.byteLength(appData) > 1024) throw new RpcFail("invalid_params", "appData: expected a string of at most 1024 bytes");
+      return { threadId: await this.viaLecturn("embed.createThread", (l) => l.createThread(p.info.projectId, title, appData)) };
+    },
+
     "embed.setHostContext": async (_c, params) => {
       const p = this.hostOf(params);
       const { text } = params;

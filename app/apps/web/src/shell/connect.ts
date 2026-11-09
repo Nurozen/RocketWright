@@ -183,6 +183,7 @@ export function shellModelFrom(s: AppState, now: number, extras: ShellExtras = {
       ...(t.binding !== null && "artifact" in t.binding ? { artifact: t.binding.artifact } : {}),
     })),
     selectedThreadId: selectedRailId(s),
+    threadStart: s.chat.lecturn.threadStart,
     nav,
     selectedNavId,
     history,

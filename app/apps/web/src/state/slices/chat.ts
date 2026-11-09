@@ -1,10 +1,10 @@
 /** `chat`: the agent pane's app-side state, the project's Lecturn threads and the one the embed shows (B12). */
 import { mappedThread, type EmbedThread, type LecturnStatus } from "@rw/contracts";
 import { activeRailKey } from "../../embed/threads.ts";
-import type { ChatSlice, LecturnThreads, SliceCtx } from "../types.ts";
+import type { ChatSlice, LecturnThreads, SliceCtx, ThreadStart } from "../types.ts";
 
 /** No Lecturn list yet, nothing shown. */
-export const EMPTY_LECTURN: LecturnThreads = { embedded: false, threads: null, activeThreadId: null, activeKey: null };
+export const EMPTY_LECTURN: LecturnThreads = { embedded: false, threads: null, activeThreadId: null, activeKey: null, threadStart: { state: "idle" } };
 
 export function createChatSlice(ctx: SliceCtx): ChatSlice {
   return {
@@ -20,6 +20,24 @@ export function createChatSlice(ctx: SliceCtx): ChatSlice {
         if (l.activeThreadId === threadId && (threadId === null || l.activeKey !== null)) return {};
         return { lecturn: { ...l, activeThreadId: threadId, activeKey: activeRailKey(l.threads, threadId, l.activeThreadId === threadId ? l.activeKey : null) } };
       });
+    },
+
+    async createThread(input): Promise<string | null> {
+      if (ctx.get().chat.lecturn.threadStart.state === "starting") return null;
+      const setStart = (threadStart: ThreadStart): void => ctx.patch("chat", (c) => ({ lecturn: { ...c.lecturn, threadStart } }));
+      const { client, projectId } = ctx.conn();
+      setStart({ state: "starting" });
+      // A project switched away from meanwhile has already reset this state (the new project's is not this one's).
+      const current = (): boolean => ctx.projectId === projectId;
+      try {
+        const { threadId } = await client.call("embed.createThread", { projectId, ...input });
+        if (!current()) return null;
+        setStart({ state: "idle" });
+        return threadId;
+      } catch (e) {
+        if (current()) setStart({ state: "error", message: `Could not start a thread: ${e instanceof Error ? e.message : String(e)}` });
+        return null;
+      }
     },
   };
 }

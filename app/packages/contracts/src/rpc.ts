@@ -305,6 +305,13 @@ export interface RpcMethods {
    */
   "embed.setThreadAppData": { params: P & { threadId: string; appData: string | null; subtitle?: string | null }; result: Record<string, never> };
   /**
+   * A new Lecturn thread in the project, made by the app server rather than
+   * the guest (`appData` ≤ 1 KB): the guest's own `lecturn/thread.new` fails
+   * while its socket is still connecting. The pane then opens the thread.
+   * `internal` when Lecturn is unavailable.
+   */
+  "embed.createThread": { params: P & { title: string; appData: string }; result: { threadId: string } };
+  /**
    * The window's host context for the project's Lecturn agent (B12; Lecturn
    * `apps.updateHostContext`, project target): plain text (≤ 4 KB UTF-8, ""
    * clears) with the facts the old chat put in `<rw-context>` (current page,
@@ -370,6 +377,7 @@ export const RPC_METHODS = [
   "embed.target",
   "embed.refreshToken",
   "embed.setThreadAppData",
+  "embed.createThread",
   "embed.setHostContext",
   "host.register",
   "host.respond",

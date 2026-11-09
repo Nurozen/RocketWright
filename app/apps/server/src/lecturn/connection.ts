@@ -394,6 +394,24 @@ export class LecturnLink {
   }
 
   /**
+   * A new thread a person asked for in the window (New thread, Start a chat).
+   * Made here because the pane's own `lecturn/thread.new` fails while its
+   * socket is still connecting, with only a passing toast to show for it;
+   * this waits for the connection instead, and the pane then only has to
+   * open the thread.
+   */
+  async createThread(rwProjectId: string, title: string, appData: string): Promise<string> {
+    const deadline = AbortSignal.timeout(this.threadStartMs);
+    const conn = await untilAborted(this.connection(), deadline, "the Lecturn connection");
+    const projectId = await untilAborted(this.lecturnProjectId(rwProjectId), deadline, "the Lecturn workspace");
+    const target = await untilAborted(conn.embedTarget(projectId), this.stepSignal(deadline), "the embed token");
+    const created = await this.embedCall(target, deadline)("apps.createEmbedThread", { projectId, title, appData });
+    const threadId = isRecord(created) && typeof created["threadId"] === "string" ? created["threadId"] : null;
+    if (threadId === null) throw new LecturnUnavailable(`apps.createEmbedThread answered ${JSON.stringify(created)}`);
+    return threadId;
+  }
+
+  /**
    * Starts a thread in an open project, copying the calling thread's model,
    * runtime and interaction mode (R1.3, D12). When those cannot be read it
    * uses the project's defaults with the runtime capped; the caller's own
