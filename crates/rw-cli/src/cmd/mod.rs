@@ -311,18 +311,21 @@ impl StrictCheck {
         Some(rw_check::metrics::metric_map(&report))
     }
 
-    /// The `check --strict: <status>` section.
-    pub fn human(&self, units: &Units) -> String {
+    /// The `check --strict: <status>` section, without the exit-code note.
+    pub fn report_human(&self, units: &Units) -> String {
         match &self.report {
-            Ok(r) => {
-                let mut s = check::report_titled(r, units, "check --strict");
-                if !self.ok() {
-                    s.push_str("\n  exit 1: the strict check fails (the edit is written; fix it or undo with history_restore)");
-                }
-                s
-            }
+            Ok(r) => check::report_titled(r, units, "check --strict"),
             Err(e) => format!("check --strict: not run ({})", e.message),
         }
+    }
+
+    /// The `check --strict: <status>` section of a gated edit.
+    pub fn human(&self, units: &Units) -> String {
+        let mut s = self.report_human(units);
+        if self.report.is_ok() && !self.ok() {
+            s.push_str("\n  exit 1: the strict check fails (the edit is written; fix it or undo with history_restore)");
+        }
+        s
     }
 }
 
@@ -330,7 +333,20 @@ impl StrictCheck {
 /// (not `--dry-run`, not rejected), its own strict check. `--json` output
 /// adds `check_strict` (the report) and `check_strict_status`. Exit 1 when
 /// the delta has errors or the strict check is not clean.
-pub fn mutation_outcome(opts: &Opts, mut v: Value, prefix: &str, suffix: &str) -> Outcome {
+pub fn mutation_outcome(opts: &Opts, v: Value, prefix: &str, suffix: &str) -> Outcome {
+    edit_outcome(opts, v, prefix, suffix, true)
+}
+
+/// The outcome of `rw init`: the same output as [`mutation_outcome`], but the
+/// exit code says only that the project was created. A new project may fail
+/// the strict check by design (the `empty` template has no parts), and a
+/// caller that treats exit 1 as "not created" would retry into `conflict`.
+/// The check's status stays in the text and in `--json`.
+pub fn creation_outcome(opts: &Opts, v: Value, prefix: &str) -> Outcome {
+    edit_outcome(opts, v, prefix, "", false)
+}
+
+fn edit_outcome(opts: &Opts, mut v: Value, prefix: &str, suffix: &str, gated: bool) -> Outcome {
     let units = opts.units();
     let dry = v["dry_run"].as_bool().unwrap_or(false);
     let strict = (!dry).then(|| StrictCheck::run(opts));
@@ -339,11 +355,15 @@ pub fn mutation_outcome(opts: &Opts, mut v: Value, prefix: &str, suffix: &str) -
         "{prefix}{}{suffix}",
         mutation_human(&v, &units, metrics.as_ref())
     );
-    let mut ok = mutation_ok(&v);
+    let mut ok = !gated || mutation_ok(&v);
     if let Some(sc) = &strict {
-        human.push_str(&sc.human(&units));
+        human.push_str(&if gated {
+            sc.human(&units)
+        } else {
+            sc.report_human(&units)
+        });
         human.push('\n');
-        ok &= sc.ok();
+        ok &= !gated || sc.ok();
         if let Value::Object(m) = &mut v {
             m.insert(
                 "check_strict_status".into(),

@@ -34,7 +34,8 @@ code here is wrong. The tables marked "generated" come from the code
    (`rw set`, `rw add`, `rw rm`, `rw mv`, `rw import`, `rw motor import`,
    `rw init`) runs `rw check --strict` itself after it writes and prints the
    result as a `check --strict: <status>` section, with every diagnostic. It
-   exits 1 when that check is not clean (the edit is still written). Read that
+   exits 1 when that check is not clean (the edit is still written); `rw init`
+   exits 0 once the project is created, so read its section too. Read that
    section after every edit command, before the next edit, sim, or answer.
    After any other edit (your own file editor, `rw call model_patch`), run
    `rw check --strict`. A design is done only when the last strict check of
