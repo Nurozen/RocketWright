@@ -103,7 +103,7 @@ describe("app server RPC (M1.45)", () => {
     const sent = patches(c, from);
     expect(sent.length).toBeLessThanOrEqual(2);
     const keys = sent.flatMap((p) => Object.keys(p).filter((k) => k !== "projectId"));
-    expect(keys.sort()).toEqual(["check", "evaluated", "files", "history"]);
+    expect(keys.sort()).toEqual(["check", "evaluated", "files", "history", "runs"]);
     for (const p of sent) expect(p.projectId).toBe(pid);
 
     // dry_run writes nothing, so the sidecar sends no resources/updated and the mirror stays put.
