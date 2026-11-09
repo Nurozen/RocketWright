@@ -241,6 +241,13 @@ export function tableScalars(files: SourceFilesLike, path: readonly string[]): R
   return out;
 }
 
+/** Ids of the materials the project's own sources write (materials merged from its library are not among them). */
+export function sourceMaterialIds(files: SourceFilesLike): string[] {
+  return Object.entries(tableAt(files, ["materials"]) ?? {})
+    .filter(([, v]) => isTable(v))
+    .map(([k]) => k);
+}
+
 /** The component has this nested table in its sources. */
 export function sourceHasTable(files: SourceFilesLike, id: string, sub: readonly string[]): boolean {
   return tableAt(files, ["c", id, ...sub]) !== undefined;

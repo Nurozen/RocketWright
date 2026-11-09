@@ -22,8 +22,9 @@ import { COMPARE_EVENT, type CompareEventDetail } from "../../shell/ConnectedShe
 import { AddPartButton } from "../assembly/AddPartPopover.tsx";
 import { ComponentTreeSlot } from "../assembly/AssemblyPage.tsx";
 import { ChangedFieldsCard, ThreadHistory, useOpenThreadHistory } from "./AgentExtras.tsx";
-import { ComponentEditor, type EditorStatus } from "./ComponentEditor.tsx";
-import { editorFields, type EditorTab } from "../../ui/fields/index.ts";
+import { ComponentEditor, type EditorStatus, type PanelTab } from "./ComponentEditor.tsx";
+import { MaterialsPanel, type MaterialsLibrary } from "./MaterialsPanel.tsx";
+import { editorFields } from "../../ui/fields/index.ts";
 import { PROFILE_VIEW_LABEL, PROFILE_VIEWS, type ProfileView as ViewId } from "./profile-geometry.ts";
 import { ProfileView } from "./ProfileView.tsx";
 import { draftProposal, findStepProposal, type Proposal } from "./proposal.ts";
@@ -37,9 +38,10 @@ export interface ComponentsUi {
   view: ViewId;
   collapsed: boolean;
   /** Editor tab per part (restored when the part is reselected). */
-  tabs: Record<string, EditorTab>;
+  tabs: Record<string, PanelTab>;
   proposal: { key: string; state: "idle" | "loading" | "ready"; value: Proposal | null };
   library: { state: "idle" | "loading" | "ready" | "error"; items: LibItem[]; error?: string };
+  materialLibrary: MaterialsLibrary;
   error: string | null;
 }
 
@@ -52,6 +54,7 @@ export function createComponentsUi(): ComponentsStore {
     tabs: {},
     proposal: { key: "", state: "idle", value: null },
     library: { state: "idle", items: [] },
+    materialLibrary: { state: "idle", items: [] },
     error: null,
   }));
 }
@@ -118,6 +121,7 @@ function ComponentsWorkspace({ store, client, glbDeps, ui }: { store: AppStore; 
   const tabs = useStore(ui, (s) => s.tabs);
   const proposalState = useStore(ui, (s) => s.proposal);
   const library = useStore(ui, (s) => s.library);
+  const materialLibrary = useStore(ui, (s) => s.materialLibrary);
   const pageError = useStore(ui, (s) => s.error);
   const ids = useEditedIds(store);
   const committed = snap?.evaluated ?? null;
@@ -217,7 +221,7 @@ function ComponentsWorkspace({ store, client, glbDeps, ui }: { store: AppStore; 
     if (client === null || projectId === null || ops.length === 0) return;
     run(client.call("model.patch", { projectId, ops, label }));
   };
-  const materials = Object.keys(shown?.materials ?? {}).sort();
+  const materials = shown?.materials ?? {};
 
   return (
     <div className="rw-comp" data-testid="components-page" data-collapsed={collapsed ? "true" : "false"}>
@@ -239,6 +243,24 @@ function ComponentsWorkspace({ store, client, glbDeps, ui }: { store: AppStore; 
         files={files}
         units={units}
         materials={materials}
+        materialsPanel={
+          <MaterialsPanel
+            materials={materials}
+            files={files}
+            units={units}
+            diagnostics={diagnostics}
+            library={materialLibrary}
+            onOpenLibrary={() => {
+              if (client === null || projectId === null) return;
+              ui.setState({ materialLibrary: { state: "loading", items: [] } });
+              client.call("library.search", { projectId, kind: "material", limit: 500 }).then(
+                (r) => ui.setState({ materialLibrary: { state: "ready", items: r.items } }),
+                (e: unknown) => ui.setState({ materialLibrary: { state: "error", items: [], error: message(e) } }),
+              );
+            }}
+            onMutate={(ops, label) => store.getState().draft.mutate(ops, label)}
+          />
+        }
         diagnostics={diagnostics}
         status={status}
         tab={tab}
