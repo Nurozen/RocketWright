@@ -297,6 +297,18 @@ describe("the dialogs and the Delete key, in the shell", () => {
     expect(store.getState().selection.refs).toEqual([]);
   });
 
+  it("leaves a key a control already handled alone (the fin outline's Delete)", () => {
+    const { store } = shell();
+    select(store, "fins");
+    const el = document.createElement("div");
+    el.tabIndex = 0;
+    document.body.append(el);
+    el.addEventListener("keydown", (e) => e.preventDefault());
+    press("Delete", el);
+    expect(dialog()).toBeNull();
+    el.remove();
+  });
+
   it("Backspace works too, and a part with nothing attached lists nothing", () => {
     const { store } = shell();
     select(store, "fins");

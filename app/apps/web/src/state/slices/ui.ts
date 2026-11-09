@@ -2,6 +2,7 @@
 import type { DesktopPrefs, PageId, ViewId } from "@rw/contracts";
 import { VIEW_IDS } from "../../viewport/views.ts";
 import { displayLengthOps, MANIFEST } from "../displayUnits.ts";
+import { flushProject, hasUnsavedWork } from "../dirtyFields.ts";
 import { createMutate } from "../mutate.ts";
 import type { SliceCtx, UiSlice } from "../types.ts";
 
@@ -27,6 +28,52 @@ export function createUiSlice(ctx: SliceCtx): UiSlice {
   const mutate = createMutate(ctx);
   // One write at a time: each reads the manifest after the last one landed, so a quick in-then-cm cannot interleave.
   let unitWrites: Promise<void> = Promise.resolve();
+  /** The page change waiting on a flush or on the person; a newer one takes its place. */
+  let leave: { go: () => void; done: Promise<void> } | null = null;
+  let answer: ((leave: boolean) => void) | null = null;
+
+  const mayLeavePage = async (): Promise<boolean> => {
+    const problems = await flushProject({ getState: ctx.get });
+    if (problems.length === 0) return true;
+    const dropped = await new Promise<boolean>((resolve) => {
+      answer = resolve;
+      ctx.patch("ui", { leaving: { problems } });
+    });
+    answer = null;
+    ctx.patch("ui", { leaving: null });
+    // What could not be saved must not stay open, or it would block every direct edit on the next page.
+    if (dropped) ctx.get().draft.discard();
+    return dropped;
+  };
+
+  /**
+   * Runs `go` once the page's typed work is saved. A page's fields unmount with
+   * it and React runs no blur for that, so nothing else would ever send the
+   * text. With nothing unsaved this stays synchronous.
+   */
+  const leaving = (go: () => void): Promise<void> => {
+    if (leave !== null) {
+      leave.go = go;
+      return leave.done;
+    }
+    if (!hasUnsavedWork(ctx.get())) {
+      go();
+      return Promise.resolve();
+    }
+    const pending = { go, done: Promise.resolve() };
+    pending.done = mayLeavePage()
+      .then((ok) => {
+        if (ok) pending.go();
+      })
+      .finally(() => {
+        leave = null;
+      });
+    leave = pending;
+    return pending.done;
+  };
+
+  const goTo = (page: PageId, tab?: string): Promise<void> => leaving(() => ctx.patch("ui", { page, tab: tab ?? null }));
+
   return {
     page: "assembly",
     tab: null,
@@ -41,9 +88,14 @@ export function createUiSlice(ctx: SliceCtx): UiSlice {
     compare: null,
     focusStep: null,
     partDialog: null,
-    navigate(page: PageId, tab?: string): void {
-      ctx.patch("ui", { page, tab: tab ?? null });
+    leaving: null,
+    answerLeave(leave: boolean): void {
+      answer?.(leave);
     },
+    navigate(page: PageId, tab?: string): void {
+      void goTo(page, tab);
+    },
+    goToPage: goTo,
     setView(v): void {
       const out: Partial<UiSlice> = {};
       if (v.view !== undefined) out.view = v.view satisfies ViewId;
@@ -76,7 +128,7 @@ export function createUiSlice(ctx: SliceCtx): UiSlice {
       return unitWrites;
     },
     setCompare(sel): void {
-      ctx.patch("ui", { compare: sel === null ? null : { old: sel.old, new: sel.new } });
+      void leaving(() => ctx.patch("ui", { compare: sel === null ? null : { old: sel.old, new: sel.new } }));
     },
     setFocusStep(seq: number | null): void {
       ctx.patch("ui", (u) => (u.focusStep === seq ? {} : { focusStep: seq }));

@@ -122,6 +122,6 @@ export async function ensurePageThread(store: AppStore): Promise<void> {
 
 /** Switches page and rebinds the agent pane to that page's threads. */
 export async function navigatePage(store: AppStore, page: PageId, tab?: string): Promise<void> {
-  store.getState().ui.navigate(page, tab);
+  await store.getState().ui.goToPage(page, tab);
   await ensurePageThread(store);
 }

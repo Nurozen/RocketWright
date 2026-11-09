@@ -12,6 +12,9 @@ export type UnitSystem = "metric" | "imperial";
 /** The toolbar's length units. */
 export const LENGTH_UNITS: readonly Units[] = ["mm", "cm", "m", "in"];
 
+/** What a project with no `[display_units]` table shows. */
+export const DEFAULT_LENGTH_UNIT: Units = "mm";
+
 export function isLengthUnit(unit: string | undefined): unit is Units {
   return (LENGTH_UNITS as readonly string[]).includes(unit ?? "");
 }

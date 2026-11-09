@@ -53,9 +53,10 @@ type, and adds one as a new part.
 
 Select a part to edit its fields, including position, optional and nested
 fields. Values carry units (`54 mm`), and an expression starting with `=` works
-wherever a number does. Changes save as you go, and each one is a step you can
-undo. The status in the header tells you when everything is saved. If you quit
-while a field still holds typed text, RocketWright asks first.
+in any field that takes a quantity. Changes save as you go, and each one is a
+step you can undo. The status in the header tells you when everything is saved.
+If you change page or quit while a field still holds typed text, RocketWright
+saves it, or asks first when it cannot.
 
 Right-click a part, use its menu in the inspector, or press Delete for the part
 operations: **Rename**, **Duplicate**, **Move to** and **Delete**. Deleting a part

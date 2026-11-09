@@ -6,7 +6,8 @@
  */
 import { type MockServer, SEED_PROJECT_ID, startMockServer } from "@rw/contracts/mock";
 import type { BrokerRequest } from "@rw/contracts";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { registerDirtyField, resetDirtyFields } from "../state/dirtyFields.ts";
 import { createAppStore, RpcClient, type AppStore } from "../state/index.ts";
 import type { RpcLike } from "../state/rpc.ts";
 import type { ViewportController } from "../viewport/registry.ts";
@@ -30,6 +31,37 @@ function fakeViewport() {
 
 const req = <O extends BrokerRequest["op"]>(op: O, args: BrokerRequest<O>["args"]): BrokerRequest =>
   ({ requestId: `r-${op}`, projectId: "p", threadId: "t", op, args }) as BrokerRequest;
+
+describe("an agent's viewport render while the person has typed work on another page", () => {
+  function store(page: "components" | "assembly"): AppStore {
+    const s = createAppStore({ loadWasm: async () => ({ coreVersion: () => "0.0.0-mock" }), now: () => 1000 });
+    s.getState().ui.navigate(page);
+    return s;
+  }
+
+  afterEach(() => resetDirtyFields());
+
+  it("is refused and leaves the page alone, so nothing typed is lost or half-saved", async () => {
+    const s = store("components");
+    const commit = vi.fn<() => string | null>(() => null);
+    registerDirtyField({ dirty: () => true, commit });
+    const { deps, calls } = fakeViewport();
+    const r = await answer(req("viewport_render", {}), s, deps);
+    expect(r.ok).toBe(false);
+    expect(commit).not.toHaveBeenCalled();
+    expect(calls).toEqual([]);
+    expect(s.getState().ui.page).toBe("components");
+  });
+
+  it("goes ahead when nothing is typed", async () => {
+    const s = store("components");
+    const { deps, calls } = fakeViewport();
+    const r = await answer(req("viewport_render", {}), s, deps);
+    expect(r.ok).toBe(true);
+    expect(calls).not.toEqual([]);
+    expect(s.getState().ui.page).toBe("assembly");
+  });
+});
 
 describe("startBrokerHost and project ids", () => {
   function fakeClient() {

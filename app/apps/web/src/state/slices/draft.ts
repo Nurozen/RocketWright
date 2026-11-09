@@ -3,9 +3,9 @@
  * function of the mirror plus the ops, I4) and the sidecar answers a dry run
  * with the CheckDelta. Only `commit()` writes, through `model.patch` (I1, I2).
  */
-import type { MutationOut, PatchOp } from "@rw/contracts";
+import type { CheckReport, EvaluatedModel, MutationOut, PatchOp } from "@rw/contracts";
 import { createMutate, createRemoveComponent } from "../mutate.ts";
-import type { DraftSlice, SliceCtx } from "../types.ts";
+import type { DeepReadonly, DraftSlice, SliceCtx } from "../types.ts";
 
 /**
  * A later `replace` supersedes an earlier `replace` or `add` on the same path
@@ -36,6 +36,7 @@ export const EMPTY_DRAFT = {
   stale: false,
   preview: null,
   previewCheck: null,
+  previewDeferred: false,
   previewError: null,
   delta: null,
   pending: false,
@@ -46,7 +47,44 @@ export function createDraftSlice(ctx: SliceCtx): DraftSlice {
   /** Bumps on every edit/discard so late dry-run answers are dropped. */
   let gen = 0;
   /** The commit in flight: `mutate` can settle a draft while Save is still answering, and ops must not apply twice. */
-  let committing: Promise<MutationOut> | null = null;
+  let inFlight: { ops: readonly PatchOp[]; done: Promise<MutationOut> } | null = null;
+  /** Writes what was edited while `inFlight` was on its way, after it lands. */
+  let queued: Promise<MutationOut> | null = null;
+
+  /** Takes the written ops out of the draft; what was typed since stays open, based on the model it will now apply to. */
+  const landed = (sent: readonly PatchOp[], hash: string): void => {
+    const now = ctx.get().draft;
+    ctx.landed = { from: mirrorHash(ctx), to: hash };
+    if (now.ops === sent) ctx.patch("draft", { ...EMPTY_DRAFT, ops: [] });
+    else if (now.ops.length > 0) ctx.patch("draft", { ops: now.ops.filter((op) => !sent.includes(op)), baseHash: hash });
+  };
+
+  const send = async (): Promise<MutationOut> => {
+    const { client, projectId } = ctx.conn();
+    const d = ctx.get().draft;
+    if (d.ops.length === 0) throw new Error("nothing to commit");
+    const my = ++gen;
+    ctx.patch("draft", { pending: true, error: null });
+    ctx.draftWriting = true;
+    const write = async (): Promise<MutationOut> => {
+      try {
+        const params = d.label === null ? { projectId, ops: d.ops } : { projectId, ops: d.ops, label: d.label };
+        const out = await client.call("model.patch", params);
+        landed(d.ops, out.model_hash);
+        return out;
+      } catch (e) {
+        if (my === gen) ctx.patch("draft", { pending: false, error: e instanceof Error ? e.message : String(e) });
+        throw e;
+      } finally {
+        ctx.draftWriting = false;
+      }
+    };
+    const done = write().finally(() => {
+      inFlight = null;
+    });
+    inFlight = { ops: d.ops, done };
+    return done;
+  };
 
   return {
     ...EMPTY_DRAFT,
@@ -57,14 +95,15 @@ export function createDraftSlice(ctx: SliceCtx): DraftSlice {
       if (ops.length === 0) return;
       const { client, projectId } = ctx.conn();
       const s = ctx.get();
-      const snap = s.project.snapshot;
-      const hash = snap?.evaluated?.model_hash ?? snap?.files.model_hash ?? null;
+      const hash = mirrorHash(ctx);
+      // The last commit has landed but its push has not: this draft starts on the commit's model, and the push must not read as another writer.
+      const base = ctx.landed !== null && ctx.landed.from === hash ? ctx.landed.to : hash;
       const next = coalesce([...s.draft.ops, ...ops]);
       const my = ++gen;
       ctx.patch("draft", {
         ops: next,
         label: label ?? s.draft.label,
-        baseHash: s.draft.ops.length === 0 ? hash : s.draft.baseHash,
+        baseHash: s.draft.ops.length === 0 ? base : s.draft.baseHash,
         pending: true,
         error: null,
         ...preview(ctx, next),
@@ -83,27 +122,29 @@ export function createDraftSlice(ctx: SliceCtx): DraftSlice {
     },
 
     commit(): Promise<MutationOut> {
-      if (committing !== null) return committing;
-      const send = async (): Promise<MutationOut> => {
-        const { client, projectId } = ctx.conn();
-        const d = ctx.get().draft;
-        if (d.ops.length === 0) throw new Error("nothing to commit");
-        const my = ++gen;
-        ctx.patch("draft", { pending: true, error: null });
-        try {
-          const params = d.label === null ? { projectId, ops: d.ops } : { projectId, ops: d.ops, label: d.label };
-          const out = await client.call("model.patch", params);
-          if (my === gen) ctx.patch("draft", { ...EMPTY_DRAFT, ops: [] });
-          return out;
-        } catch (e) {
-          if (my === gen) ctx.patch("draft", { pending: false, error: e instanceof Error ? e.message : String(e) });
-          throw e;
-        }
-      };
-      committing = send().finally(() => {
-        committing = null;
-      });
-      return committing;
+      if (inFlight === null) return send();
+      const sending = inFlight;
+      // Nothing was edited since this write began: that write is the answer.
+      if (ctx.get().draft.ops === sending.ops) return sending.done;
+      // Edited since: the newer value needs a write of its own, after this one lands.
+      if (queued === null) {
+        const next = () => {
+          queued = null;
+          return ctx.get().draft.ops.length === 0 ? sending.done : send();
+        };
+        queued = sending.done.then(next, next);
+      }
+      return queued;
+    },
+
+    async settled(): Promise<string | null> {
+      let last: string | null = null;
+      // Each wait can start the queued write, so the loop re-reads both.
+      for (let next = queued ?? inFlight?.done; next !== undefined; next = queued ?? inFlight?.done) {
+        const out = await next.catch(() => null);
+        if (out !== null) last = out.model_hash;
+      }
+      return last;
     },
 
     dryRun(ops: readonly PatchOp[]): Promise<MutationOut> {
@@ -116,22 +157,42 @@ export function createDraftSlice(ctx: SliceCtx): DraftSlice {
   };
 }
 
+function mirrorHash(ctx: SliceCtx): string | null {
+  const snap = ctx.get().project.snapshot;
+  return snap?.evaluated?.model_hash ?? snap?.files.model_hash ?? null;
+}
+
+/**
+ * The preview core's check cannot be trusted for this rocket: it has no motor
+ * files, so a `lib:` motor reads as "was not resolved", and a bare designation a
+ * `lib/motors` file answers does too, though the sidecar resolved it. Only the
+ * sidecar's dry run can check these (plan: `lib:` drafts defer to it).
+ */
+function motorNeedsSidecar(evaluated: EvaluatedModel, check: CheckReport, committed: DeepReadonly<CheckReport> | null | undefined): boolean {
+  const config = evaluated.config == null ? undefined : evaluated.configs[evaluated.config];
+  if (config?.motors.some((m) => m.motor?.startsWith("lib:") === true) === true) return true;
+  if (committed == null) return false;
+  const known = new Set(committed.diagnostics.filter((d) => d.code === "RW-W101").map((d) => d.path ?? ""));
+  return check.diagnostics.some((d) => d.code === "RW-W101" && !known.has(d.path ?? ""));
+}
+
 /** Runs the WASM preview when a version-matched core with `applyAndEval` is loaded. */
-function preview(ctx: SliceCtx, ops: PatchOp[]): Pick<DraftSlice, "preview" | "previewCheck" | "previewError"> {
+function preview(ctx: SliceCtx, ops: PatchOp[]): Pick<DraftSlice, "preview" | "previewCheck" | "previewDeferred" | "previewError"> {
   const s = ctx.get();
   const core = ctx.core;
   const files = s.project.snapshot?.files.files;
   if (s.draft.engine.state !== "ready" || core === null || core.applyAndEval === undefined || files === undefined) {
-    return { preview: null, previewCheck: null, previewError: null };
+    return { preview: null, previewCheck: null, previewDeferred: false, previewError: null };
   }
   try {
     const req = { files: files as Record<string, string>, ops };
     if (core.applyAndCheck !== undefined) {
       const d = core.applyAndCheck(req);
-      return { preview: d.evaluated, previewCheck: d.check, previewError: null };
+      const deferred = motorNeedsSidecar(d.evaluated, d.check, s.project.snapshot?.check);
+      return { preview: d.evaluated, previewCheck: deferred ? null : d.check, previewDeferred: deferred, previewError: null };
     }
-    return { preview: core.applyAndEval(req), previewCheck: null, previewError: null };
+    return { preview: core.applyAndEval(req), previewCheck: null, previewDeferred: false, previewError: null };
   } catch (e) {
-    return { preview: null, previewCheck: null, previewError: e instanceof Error ? e.message : String(e) };
+    return { preview: null, previewCheck: null, previewDeferred: false, previewError: e instanceof Error ? e.message : String(e) };
   }
 }

@@ -45,12 +45,15 @@ export function createAppStore(opts: AppStoreOptions = {}): AppStore {
       loadCore: opts.loadWasm ?? loadDefaultCore,
       now: opts.now ?? Date.now,
       cleanup: [],
+      draftWriting: false,
+      landed: null,
     };
     const project = createProjectSlice(ctx);
     const disconnect = project.disconnect;
     project.disconnect = () => {
       disconnect();
       // Project-scoped data goes with the connection; ui and wasm core stay.
+      ctx.landed = null;
       ctx.patch("draft", { ...EMPTY_DRAFT, ops: [] });
       ctx.patch("chat", (c) => ({ lecturn: { ...EMPTY_LECTURN, embedded: c.lecturn.embedded } }));
       ctx.patch("runs", { overlay: [], started: {}, error: null });

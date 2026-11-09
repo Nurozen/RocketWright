@@ -22,6 +22,11 @@ export function evaluatedValue(c: Comp, key: string): number | string | boolean 
   return typeof v === "number" || typeof v === "string" || typeof v === "boolean" ? v : null;
 }
 
+/** A typed `= expression`, kept as the model will read it. */
+export function isFormula(v: SourceScalar | null): v is string {
+  return typeof v === "string" && v.trimStart().startsWith("=");
+}
+
 /** Tube kinds whose bore is given by `id` or `thickness`; `id` wins when both are written (`crates/rw-model/src/shape.rs`). */
 const BORED_KINDS: ReadonlySet<string> = new Set(["body_tube", "inner_tube", "coupler", "launch_lug", "tube_fin_set"]);
 
@@ -71,6 +76,14 @@ export function fieldWriteOps(comps: readonly Comp[], files: SourceFilesLike, f:
       if (t.written !== undefined) ops.push({ op: "remove", path: t.path });
       continue;
     }
+    if (t.param !== null && isFormula(v)) {
+      // A formula belongs to this field and replaces its link; written into the shared value it would refer to itself.
+      const own = `/c/${c.id}/${parts.join("/")}`;
+      seen.delete(t.path);
+      seen.add(own);
+      ops.push({ op: "replace", path: own, value: v as never });
+      continue;
+    }
     const absent = t.param === null ? firstAbsent(files, c, parts) : -1;
     if (absent >= 0) {
       // Reached only by tables whose members are all optional (`override`, `appearance`):
@@ -81,11 +94,12 @@ export function fieldWriteOps(comps: readonly Comp[], files: SourceFilesLike, f:
       ops.push({ op: t.written === undefined && t.param === null ? "add" : "replace", path: t.path, value: v as never });
     }
     const other = supersededBy(c, f.key);
-    if (other !== null) {
-      const stale = fieldTarget(files, c.id, other);
-      if (stale.written !== undefined && !seen.has(stale.path)) {
-        seen.add(stale.path);
-        ops.push({ op: "remove", path: stale.path });
+    if (other !== null && fieldTarget(files, c.id, other).written !== undefined) {
+      // The part's own field, not what a `= params.x` there resolves to: the parameter is still in use, and removing its value is refused.
+      const stale = `/c/${c.id}/${other}`;
+      if (!seen.has(stale)) {
+        seen.add(stale);
+        ops.push({ op: "remove", path: stale });
       }
     }
   }

@@ -69,7 +69,7 @@ interface UnsavedQuestion {
 const RECENT_BUSY = "Could not open the recent project: another project action is still running. Try again when it finishes.";
 const RECENT_NOT_CONNECTED = "Could not open the recent project: the window is still connecting. Try again in a moment.";
 
-function UnsavedPrompt({ question }: { question: UnsavedQuestion }) {
+export function UnsavedPrompt({ question }: { question: UnsavedQuestion }) {
   const keep = () => question.answer(false);
   return (
     <Modal
