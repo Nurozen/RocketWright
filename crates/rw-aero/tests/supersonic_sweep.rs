@@ -68,7 +68,11 @@ fn translate(id: &str, parent: Option<&str>, c: &Value) -> Option<Value> {
             }),
         ),
         "elliptical_fin_set" => {
-            let cross = if f(fl, "cross_section_square") > 0.5 { "square" } else { "rounded" };
+            let cross = if f(fl, "cross_section_square") > 0.5 {
+                "square"
+            } else {
+                "rounded"
+            };
             (
                 "surface",
                 json!({
@@ -109,7 +113,11 @@ fn translate(id: &str, parent: Option<&str>, c: &Value) -> Option<Value> {
                     [f(fl, kx.as_str()), f(fl, ky.as_str())]
                 })
                 .collect();
-            let cross = if f(fl, "cross_section_rounded") > 0.5 { "rounded" } else { "square" };
+            let cross = if f(fl, "cross_section_rounded") > 0.5 {
+                "rounded"
+            } else {
+                "square"
+            };
             (
                 "surface",
                 json!({
@@ -202,8 +210,7 @@ fn geometry_str(n: usize) -> &'static str {
 }
 
 fn load_case(n: usize) -> EvaluatedModel {
-    let g: Value =
-        serde_json::from_str(geometry_str(n)).expect("geometry json");
+    let g: Value = serde_json::from_str(geometry_str(n)).expect("geometry json");
     let fixture: Value = serde_json::from_str(include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/../../fixtures/contracts/evaluated-model.json"

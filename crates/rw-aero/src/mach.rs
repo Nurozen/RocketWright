@@ -151,7 +151,10 @@ mod tests {
             let alpha = 1e-10_f64;
             let net = 2.0 * busemann_cp(m, alpha) / alpha;
             let ackeret = 4.0 / beta(m);
-            assert!((net - ackeret).abs() < 1e-7, "M={m}: net={net} ackeret={ackeret}");
+            assert!(
+                (net - ackeret).abs() < 1e-7,
+                "M={m}: net={net} ackeret={ackeret}"
+            );
         }
     }
 

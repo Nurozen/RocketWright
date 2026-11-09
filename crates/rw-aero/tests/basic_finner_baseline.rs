@@ -13,12 +13,18 @@ use rw_aero::drag::pressure::{fin_le_cd, fin_te_cd};
 use rw_aero::fins::{kb_t, kt_b};
 use rw_aero::{AeroModel, AeroOptions, AeroState, DragKind};
 use rw_model::{EvaluatedModel, FinCrossSection};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 struct DragDiag {
     mach: f64,
-    ns_fric: f64, ns_pres: f64, bd_fric: f64, bd_base: f64,
-    fn_fric: f64, fn_le: f64, fn_te: f64, total: f64,
+    ns_fric: f64,
+    ns_pres: f64,
+    bd_fric: f64,
+    bd_base: f64,
+    fn_fric: f64,
+    fn_le: f64,
+    fn_te: f64,
+    total: f64,
 }
 
 const D: f64 = 0.030; // reference diameter in m (1 caliber)
@@ -181,11 +187,21 @@ fn basic_finner_baseline_vs_drev() {
     );
     println!(
         "{:>6} | {:>7} {:>7} {:>7} | {:>7} {:>7} {:>7} | {:>7} {:>7} {:>7} | {:>7} {:>7} {:>5} | {:>7} {:>7}",
-        "", "ref", "rw", "err%",
-        "ref", "rw", "err%",
-        "ref", "rw", "err%",
-        "ref", "rw", "d_cal",
-        "ref", "rw"
+        "",
+        "ref",
+        "rw",
+        "err%",
+        "ref",
+        "rw",
+        "err%",
+        "ref",
+        "rw",
+        "err%",
+        "ref",
+        "rw",
+        "d_cal",
+        "ref",
+        "rw"
     );
     println!("{}", "-".repeat(130));
 
@@ -231,10 +247,30 @@ fn basic_finner_baseline_vs_drev() {
         // so Clp < 0 (damping opposes roll, matching DREV sign convention).
         let p1 = 1.0_f64;
         let p05 = 0.5_f64;
-        let c_p1 = am.eval_with_cg(&AeroState { roll_rate: p1, ..state_base }, X_CG);
-        let c_p05 = am.eval_with_cg(&AeroState { roll_rate: p05, ..state_base }, X_CG);
-        assert!(c_p1.cl_damping.is_finite(), "cl_damping(roll) NaN at M={}", row.mach);
-        assert!(c_p05.cl_damping.is_finite(), "cl_damping(roll,p05) NaN at M={}", row.mach);
+        let c_p1 = am.eval_with_cg(
+            &AeroState {
+                roll_rate: p1,
+                ..state_base
+            },
+            X_CG,
+        );
+        let c_p05 = am.eval_with_cg(
+            &AeroState {
+                roll_rate: p05,
+                ..state_base
+            },
+            X_CG,
+        );
+        assert!(
+            c_p1.cl_damping.is_finite(),
+            "cl_damping(roll) NaN at M={}",
+            row.mach
+        );
+        assert!(
+            c_p05.cl_damping.is_finite(),
+            "cl_damping(roll,p05) NaN at M={}",
+            row.mach
+        );
         let clp_p1 = -c_p1.cl_damping * 2.0 * speed / (p1 * D);
         let clp_p05 = -c_p05.cl_damping * 2.0 * speed / (p05 * D);
         let clp_rw = clp_p1;
@@ -243,8 +279,18 @@ fn basic_finner_baseline_vs_drev() {
         // rw-aero cm_damping is quadratic in pitch rate (Niskanen eq 3.59); apparent
         // Cmq printed here is therefore not a linear coefficient.
         let q_ref = 1.0_f64;
-        let c_pitch = am.eval_with_cg(&AeroState { pitch_rate: q_ref, ..state_base }, X_CG);
-        assert!(c_pitch.cm_damping.is_finite(), "cm_damping(pitch) NaN at M={}", row.mach);
+        let c_pitch = am.eval_with_cg(
+            &AeroState {
+                pitch_rate: q_ref,
+                ..state_base
+            },
+            X_CG,
+        );
+        assert!(
+            c_pitch.cm_damping.is_finite(),
+            "cm_damping(pitch) NaN at M={}",
+            row.mach
+        );
         let cmq_apparent = -c_pitch.cm_damping * speed / (q_ref * D);
 
         // CP sign: d_cal = model_CP − DREV_CP, in calibers from nose, positive = aft.
@@ -255,11 +301,20 @@ fn basic_finner_baseline_vs_drev() {
         println!(
             "{:>6.3} | {:>7.3} {:>7.3} {:>+7.1} | {:>7.2} {:>7.2} {:>+7.1} | {:>7.2} {:>7.2} {:>+7.1} | {:>7.3} {:>7.3} {:>+5.3} | {:>7.2} {:>7.2}",
             row.mach,
-            row.cx0, cx0_rw, pct(cx0_rw, row.cx0),
-            row.cna, cna_rw, pct(cna_rw, row.cna),
-            row.cma, cma_rw, pct(cma_rw, row.cma),
-            cp_cal_ref, cp_cal_rw, cp_cal_rw - cp_cal_ref,
-            row.clp, clp_rw,
+            row.cx0,
+            cx0_rw,
+            pct(cx0_rw, row.cx0),
+            row.cna,
+            cna_rw,
+            pct(cna_rw, row.cna),
+            row.cma,
+            cma_rw,
+            pct(cma_rw, row.cma),
+            cp_cal_ref,
+            cp_cal_rw,
+            cp_cal_rw - cp_cal_ref,
+            row.clp,
+            clp_rw,
         );
 
         sq_cx += (cx0_rw / row.cx0 - 1.0).powi(2);
@@ -276,7 +331,11 @@ fn basic_finner_baseline_vs_drev() {
         // Drag breakdown: sum drag_terms by component id and kind.
         let terms = am.drag_terms(&state_base);
         let cd_sum = |id: &str, kind: DragKind| -> f64 {
-            terms.iter().filter(|t| t.id == id && t.kind == kind).map(|t| t.cd).sum()
+            terms
+                .iter()
+                .filter(|t| t.id == id && t.kind == kind)
+                .map(|t| t.cd)
+                .sum()
         };
         let nose_fric = cd_sum("nose", DragKind::Friction);
         let nose_press = cd_sum("nose", DragKind::Pressure);
@@ -288,13 +347,27 @@ fn basic_finner_baseline_vs_drev() {
         let fin_te = fin_area_ratio * fin_te_cd(FinCrossSection::Airfoil, row.mach);
         drag_rows.push(DragDiag {
             mach: row.mach,
-            ns_fric: nose_fric, ns_pres: nose_press, bd_fric: body_fric, bd_base: body_base,
-            fn_fric: fin_fric, fn_le: fin_le, fn_te: fin_te, total: c.cd,
+            ns_fric: nose_fric,
+            ns_pres: nose_press,
+            bd_fric: body_fric,
+            bd_base: body_base,
+            fn_fric: fin_fric,
+            fn_le: fin_le,
+            fn_te: fin_te,
+            total: c.cd,
         });
 
         // CNα breakdown from c.components.
-        let cna_nose = c.components.iter().find(|k| k.id == "nose").map_or(0.0, |k| k.cn_alpha);
-        let cna_fins_int = c.components.iter().find(|k| k.id == "fins").map_or(0.0, |k| k.cn_alpha);
+        let cna_nose = c
+            .components
+            .iter()
+            .find(|k| k.id == "nose")
+            .map_or(0.0, |k| k.cn_alpha);
+        let cna_fins_int = c
+            .components
+            .iter()
+            .find(|k| k.id == "fins")
+            .map_or(0.0, |k| k.cn_alpha);
         let kb_t_val = kb_t(row.mach, r_t, D);
         cna_rows.push((row.mach, cna_nose, cna_fins_int, kb_t_val, cna_rw, row.cna));
 
@@ -330,15 +403,21 @@ fn basic_finner_baseline_vs_drev() {
     );
     println!(
         "{:>6} | {:>8} {:>8} {:>8} {:>8} | {:>8} {:>8} {:>8} | {:>8}",
-        "Mach", "ns_fric", "ns_pres", "bd_fric", "bd_base",
-        "fn_fric", "fn_LE", "fn_TE", "total"
+        "Mach", "ns_fric", "ns_pres", "bd_fric", "bd_base", "fn_fric", "fn_LE", "fn_TE", "total"
     );
     println!("{}", "-".repeat(85));
     for d in &drag_rows {
         println!(
             "{:>6.3} | {:>8.4} {:>8.4} {:>8.4} {:>8.4} | {:>8.4} {:>8.4} {:>8.4} | {:>8.4}",
-            d.mach, d.ns_fric, d.ns_pres, d.bd_fric, d.bd_base,
-            d.fn_fric, d.fn_le, d.fn_te, d.total
+            d.mach,
+            d.ns_fric,
+            d.ns_pres,
+            d.bd_fric,
+            d.bd_base,
+            d.fn_fric,
+            d.fn_le,
+            d.fn_te,
+            d.total
         );
     }
 
@@ -352,7 +431,7 @@ fn basic_finner_baseline_vs_drev() {
     println!(
         "K_B(T) fades from ~{:.4} (subsonic) to 0 at M≥1.5 (Gap 13: supersonic fig 3-9 \
          not digitised).",
-        kt_b_val * kt_b_val - kt_b_val  // K_B(T) subsonic = K_T(B)² − K_T(B)
+        kt_b_val * kt_b_val - kt_b_val // K_B(T) subsonic = K_T(B)² − K_T(B)
     );
     println!(
         "fins_bare = fins_int / (K_T(B) + K_B(T)): single-fin CNα × fin_count_factor(4) = 2.\n\
@@ -362,17 +441,19 @@ fn basic_finner_baseline_vs_drev() {
     );
     println!(
         "{:>6} | {:>8} {:>8} {:>8} {:>7} {:>7} {:>7} | {:>8}",
-        "Mach", "tot_CNα", "ns_CNα", "fn_bare", "K_T(B)", "K_B(T)", "int",
-        "DREV_CNα"
+        "Mach", "tot_CNα", "ns_CNα", "fn_bare", "K_T(B)", "K_B(T)", "int", "DREV_CNα"
     );
     println!("{}", "-".repeat(80));
     for (mach, cna_nose, cna_fins_int, kb_t_v, tot, drev_cna) in &cna_rows {
         let interference = kt_b_val + kb_t_v;
-        let fins_bare = if interference.abs() > 1e-15 { cna_fins_int / interference } else { 0.0 };
+        let fins_bare = if interference.abs() > 1e-15 {
+            cna_fins_int / interference
+        } else {
+            0.0
+        };
         println!(
             "{:>6.3} | {:>8.3} {:>8.3} {:>8.3} {:>7.4} {:>7.4} {:>7.4} | {:>8.3}",
-            mach, tot, cna_nose, fins_bare,
-            kt_b_val, kb_t_v, interference, drev_cna
+            mach, tot, cna_nose, fins_bare, kt_b_val, kb_t_v, interference, drev_cna
         );
     }
 
@@ -392,7 +473,11 @@ fn basic_finner_baseline_vs_drev() {
     );
     println!("{}", "-".repeat(55));
     for (mach, clp05, clp10, drev_clp) in &clp_rows {
-        let ratio = if clp10.abs() > 1e-15 { clp05 / clp10 } else { 0.0 };
+        let ratio = if clp10.abs() > 1e-15 {
+            clp05 / clp10
+        } else {
+            0.0
+        };
         println!(
             "{:>6.3} | {:>10.3} {:>10.3} {:>7.4} | {:>10.3}",
             mach, clp05, clp10, ratio, drev_clp
