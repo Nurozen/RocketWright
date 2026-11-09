@@ -34,7 +34,7 @@ import {
   sortRows,
 } from "./model.ts";
 import { followRerun, rowKey } from "../../state/selectors.ts";
-import { revealTab } from "./model.ts";
+import { overflowTabs } from "./model.ts";
 import { ResultsPage } from "./ResultsPage.tsx";
 import { RunSnapshots } from "./RunSnapshots.tsx";
 import { RunTable } from "./RunTable.tsx";
@@ -96,15 +96,26 @@ function withRuns(s: AppState, opts: { overlay?: string[]; refs?: string[]; snap
 
 const state = (opts?: Parameters<typeof withRuns>[1]) => staticStore((s) => withRuns(s, opts)).getState();
 
-describe("plot tab strip (one row, scrolls)", () => {
-  it("scrolls the least needed to show the active tab", () => {
-    const strip = { scrollLeft: 0, clientWidth: 300 };
-    revealTab(strip, { offsetLeft: 400, offsetWidth: 80 });
-    expect(strip.scrollLeft).toBe(180);
-    revealTab(strip, { offsetLeft: 200, offsetWidth: 80 });
-    expect(strip.scrollLeft).toBe(180);
-    revealTab(strip, { offsetLeft: 50, offsetWidth: 80 });
-    expect(strip.scrollLeft).toBe(50);
+describe("plot tab strip (one row, the rest under More)", () => {
+  const widths = [100, 100, 100, 100];
+
+  it("leaves every tab on the row while they all fit, More not counted", () => {
+    expect(overflowTabs(widths, 400, 60, 0)).toEqual([]);
+  });
+
+  it("moves the tabs that do not fit beside More, from the end", () => {
+    expect(overflowTabs(widths, 399, 60, 0)).toEqual([3]);
+    expect(overflowTabs(widths, 260, 60, 0)).toEqual([2, 3]);
+  });
+
+  it("keeps the active tab on the row and the others in order", () => {
+    expect(overflowTabs(widths, 260, 60, 3)).toEqual([1, 2]);
+    expect(overflowTabs(widths, 100, 60, 2)).toEqual([0, 1, 3]);
+  });
+
+  it("does not hide tabs before the row has a width", () => {
+    expect(overflowTabs([0, 0], 0, 0, 0)).toEqual([]);
+    expect(overflowTabs(widths, 0, 60, 0)).toEqual([]);
   });
 });
 

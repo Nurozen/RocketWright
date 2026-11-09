@@ -309,12 +309,20 @@ export function runSnapshots(s: AppState, rows: readonly ResultsRow[], timeZone?
   });
 }
 
-/** Scrolls a tab strip the least it takes to show `tab` whole. */
-export function revealTab(
-  strip: Pick<HTMLElement, "scrollLeft" | "clientWidth">,
-  tab: Pick<HTMLElement, "offsetLeft" | "offsetWidth">,
-): void {
-  const end = tab.offsetLeft + tab.offsetWidth;
-  if (tab.offsetLeft < strip.scrollLeft) strip.scrollLeft = tab.offsetLeft;
-  else if (end > strip.scrollLeft + strip.clientWidth) strip.scrollLeft = end - strip.clientWidth;
+/**
+ * The tabs that go behind the More control, by index: none while every tab fits, else
+ * whichever cannot share the row with the active tab and that control. Tabs keep their
+ * order and leave from the end; the active tab is never one of them.
+ */
+export function overflowTabs(widths: readonly number[], available: number, moreWidth: number, active: number): number[] {
+  if (available <= 0 || widths.reduce((sum, w) => sum + w, 0) <= available) return [];
+  const room = available - moreWidth - (widths[active] ?? 0);
+  let used = 0;
+  const hidden: number[] = [];
+  widths.forEach((w, i) => {
+    if (i === active) return;
+    if (hidden.length === 0 && used + w <= room) used += w;
+    else hidden.push(i);
+  });
+  return hidden;
 }
