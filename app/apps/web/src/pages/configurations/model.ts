@@ -36,7 +36,8 @@ export interface ConfigRow {
   status: ConfigStatus;
 }
 
-const motorName = (ref: string | null | undefined): string => (ref == null || ref === "" ? "No motor" : ref.replace(/^generic:/, "").replace(/^lib:.*\//, ""));
+/** A motor ref for display: `generic:RW_B4G` → `RW_B4G`, `lib:motors/Acme_C6.eng#C6` → `C6`, a whole-file `lib:motors/a.eng` → `a.eng`. */
+export const motorName = (ref: string | null | undefined): string => (ref == null || ref === "" ? "No motor" : ref.replace(/^generic:/, "").replace(/^lib:[^#]*#/, "").replace(/^lib:.*\//, ""));
 
 /** Date of the history step whose model a run flew (runs carry the model hash, not a time). */
 function runDate(run: Run, steps: readonly DeepReadonly<HistoryStep>[]): string | null {
@@ -184,6 +185,32 @@ export function motorRef(m: Curve): string {
 }
 
 /**
+ * The curve a config's motor ref names, as the session resolves it
+ * (`Library::motor`): `motorRef`'s own form first, then a case-insensitive
+ * `generic:<id>`, `lib:<path>[#<designation>]` (no designation: the file's
+ * first curve), or a bare designation (project files before the built-ins).
+ */
+export function findMotor(motors: readonly Curve[], ref: string | null): Curve | undefined {
+  if (ref === null) return undefined;
+  const exact = motors.find((m) => motorRef(m) === ref);
+  if (exact !== undefined) return exact;
+  const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
+  const source = (m: Curve) => m.source as DeepReadonly<schema.MotorSource>;
+  const generics = motors.filter((m) => source(m).kind === "generic");
+  const files = motors.filter((m) => source(m).kind === "library");
+  if (ref.startsWith("generic:")) {
+    const id = ref.slice("generic:".length);
+    return generics.find((m) => same((source(m) as { id: string }).id, id));
+  }
+  if (ref.startsWith("lib:")) {
+    const [path, name] = ref.slice("lib:".length).split("#") as [string, string | undefined];
+    const inFile = files.filter((m) => [path, `lib/${path}`].includes((source(m) as { path: string }).path));
+    return name === undefined ? inFile[0] : inFile.find((m) => same(m.designation, name));
+  }
+  return [...files, ...generics].find((m) => same(m.designation, ref)) ?? generics.find((m) => same((source(m) as { id: string }).id, ref));
+}
+
+/**
  * A candidate motor picked in the Motors list for comparison: valid only for
  * the configuration/mount it was picked on (`key` = `<config>/<mount>`) and
  * while that mount still flies the motor it flew then (`base`).
@@ -255,7 +282,8 @@ export function newConfigOps(m: Model, motors: readonly Curve[], name = "New con
   const id = uniqueId(name, takenIds(m));
   const mountsVal: Record<string, { motor: string; delay: string }> = {};
   for (const mt of motorMounts(m)) {
-    const fit = motors.find((c) => fitsMount(c, mt)) ?? motors[0];
+    // A mount no motor fits stays empty: the first motor of the list would not fly in it.
+    const fit = motors.find((c) => fitsMount(c, mt));
     if (fit !== undefined) mountsVal[mt.id] = { motor: motorRef(fit), delay: seconds(fit.delays[0] ?? 3) };
   }
   const deploy: Record<string, { event: string }> = {};
@@ -293,20 +321,31 @@ export function deleteOps(id: string, sims: readonly string[]): PatchOp[] {
   return [{ op: "remove", path: `/configs/${id}` }, ...sims.map((s): PatchOp => ({ op: "remove", path: `/sims/${s}` }))];
 }
 
-export function assignOps(cfg: string, mount: string, m: Curve, delay: number | null, existing: boolean): PatchOp[] {
+/**
+ * Assigns `m` to `mount`. `mounted` lists the mounts the evaluated
+ * configuration has a motor on. The patch must name a parent the source
+ * holds: a config with no motor yet (or whose last one was removed) may have
+ * no `[motors]` table, so the table is added with the entry (`configFieldOps`'
+ * levels). Another mounted motor proves the table exists, whatever TOML form
+ * spells it.
+ */
+export function assignOps(files: ConfigFiles, cfg: string, mount: string, m: Curve, delay: number | null, mounted: readonly string[]): PatchOp[] {
   const value: Record<string, string> = { motor: motorRef(m) };
   if (delay !== null) value["delay"] = seconds(delay);
-  return existing
-    ? [
-        { op: "replace", path: `/configs/${cfg}/motors/${mount}/motor`, value: value["motor"]! },
-        ...(delay !== null ? [{ op: "add", path: `/configs/${cfg}/motors/${mount}/delay`, value: value["delay"]! } as PatchOp] : []),
-      ]
-    : [{ op: "add", path: `/configs/${cfg}/motors/${mount}`, value: value as never }];
+  const fields = (motorOp: "add" | "replace"): PatchOp[] => [
+    { op: motorOp, path: `/configs/${cfg}/motors/${mount}/motor`, value: value["motor"]! },
+    ...(delay !== null ? [{ op: "add", path: `/configs/${cfg}/motors/${mount}/delay`, value: value["delay"]! } as PatchOp] : []),
+  ];
+  if (mounted.includes(mount)) return fields("replace");
+  const level = mounted.length > 0 ? "table" : configSourceLevel(files, cfg, "motors", mount);
+  if (level === "entry") return fields("add");
+  if (level === "table") return [{ op: "add", path: `/configs/${cfg}/motors/${mount}`, value: value as never }];
+  return [{ op: "add", path: `/configs/${cfg}/motors`, value: { [mount]: value } as never }];
 }
 
 export const DEPLOY_EVENTS = ["ejection", "apogee", "altitude", "timer", "never"] as const;
 export const DEPLOY_LABEL: Record<(typeof DEPLOY_EVENTS)[number], string> = {
-  ejection: "At ejection charge",
+  ejection: "Ejection",
   apogee: "At apogee",
   altitude: "At altitude (descent)",
   timer: "Timer after launch",
@@ -339,8 +378,13 @@ export function configSourceLevel(files: ConfigFiles, cfg: string, table: string
   // `[deploy]` followed (before the next header) by `chute = { … }`.
   const inline = new RegExp(`^\\s*\\[\\s*${seg(table)}\\s*\\]\\s*$(?:\\n(?!\\s*\\[).*)*?\\n\\s*${seg(key)}\\s*=`, "m");
   if (entry.test(text) || inline.test(text)) return "entry";
-  const any = new RegExp(`^\\s*(?:\\[\\s*${seg(table)}\\s*[.\\]]|${seg(table)}\\s*=)`, "m");
-  return any.test(text) ? "table" : "none";
+  // A table with nothing in it is absent from the model tree (an `[motors]` left
+  // behind by removing the last mount), so a patch cannot add a member to it.
+  const sub = new RegExp(`^\\s*\\[\\s*${seg(table)}\\s*\\.`, "m");
+  const inlined = new RegExp(`^\\s*${seg(table)}\\s*=\\s*\\{\\s*[^}\\s]`, "m");
+  const header = new RegExp(`^\\s*\\[\\s*${seg(table)}\\s*\\]\\s*$((?:\\n(?!\\s*\\[).*)*)`, "m").exec(text);
+  const hasKey = header !== null && /^\s*[^\s#]/m.test(header[1] ?? "");
+  return sub.test(text) || inlined.test(text) || hasKey ? "table" : "none";
 }
 
 /**

@@ -647,9 +647,9 @@ export class AppServer {
 
     "motor.search": (_c, params) => this.hostOf(params).tool<schema.MotorSearchOut>("motor_search", { ...motorSearchArgs(params) }),
 
-    // U25 lists `motor_show` over MCP; U43 adds `run_delete`.
-    "motor.show": () => notYet("motor.show"),
+    "motor.show": (_c, params) => this.hostOf(params).tool<schema.MotorShowOut>("motor_show", { id: str(params, "id") }),
 
+    // U43 adds `run_delete`.
     "run.delete": () => notYet("run.delete"),
 
     "broker.hostRegister": (conn, params) => {
