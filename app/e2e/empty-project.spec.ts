@@ -119,3 +119,7 @@ test("an Empty project opens cleanly on every page", async ({ page }) => {
   expect(check.status).not.toBe(0);
   expect(check.stdout).toContain("RW-E100");
 });
+
+test("deliberate failure to prove Check goes red", () => {
+  expect(1).toBe(2);
+});
