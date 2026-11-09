@@ -247,10 +247,18 @@ pub fn refuse_symlink_target(dir: &Path) -> Result<(), ApiError> {
 fn make_project_dir(dir: &Path) -> Result<(), ApiError> {
     let dir = dir.components().as_path();
     let io = |e: std::io::Error| err(ApiErrorCode::Io, format!("{}: {e}", dir.display()), None);
-    if let Some(parent) = dir.parent() {
-        std::fs::create_dir_all(parent).map_err(io)?;
-    }
-    match std::fs::create_dir(dir) {
+    // Parents only on NotFound: making them first would turn a file in the
+    // path from ENOTDIR into EEXIST, which callers read as a different error.
+    let made = match std::fs::create_dir(dir) {
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+            if let Some(parent) = dir.parent() {
+                std::fs::create_dir_all(parent).map_err(io)?;
+            }
+            std::fs::create_dir(dir)
+        }
+        first => first,
+    };
+    match made {
         Err(e) if e.kind() != std::io::ErrorKind::AlreadyExists => Err(io(e)),
         Err(e) => {
             refuse_symlink_target(dir)?;
@@ -937,6 +945,22 @@ mod tests {
             .unwrap_err();
         assert_eq!(e.code, ApiErrorCode::Conflict, "{e:?}");
         assert!(!real.join(".rw").exists(), "no lock through the link");
+    }
+
+    /// The app maps ENOTDIR to a bad location, so a file in the path must
+    /// report that and not the EEXIST of making its parent.
+    #[cfg(unix)]
+    #[test]
+    fn a_file_in_the_path_reports_not_a_directory() {
+        let d = TempDir::new("create-file-in-path");
+        let file = d.path().join("plain-file");
+        std::fs::write(&file, "x").unwrap();
+        for dir in [file.join("Under"), file.join("deeper").join("Under")] {
+            let e = create_project(&dir, &ProjectCreateIn::default(), &ctx()).unwrap_err();
+            assert_eq!(e.code, ApiErrorCode::Io, "{e:?}");
+            assert!(e.message.contains("os error 20"), "{}", e.message);
+        }
+        assert_eq!(std::fs::read_to_string(&file).unwrap(), "x");
     }
 
     #[cfg(unix)]
