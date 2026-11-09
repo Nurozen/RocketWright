@@ -1,8 +1,8 @@
 //! `project_create` / `rw init [--template <name>] [dir]` (R3.1): writes one
-//! of the embedded `templates/` projects plus `.rw/` in `.gitignore` (appended
-//! to an existing one), with `.rw/lock` taken before anything is written,
-//! then opens the project's writer `Session`, which records the initial
-//! history step. The output is a normal `MutationOut` whose delta runs from
+//! of the embedded `templates/` projects plus `.rw/` and `artifacts/` in
+//! `.gitignore` (appended to an existing one), with `.rw/lock` taken before
+//! anything is written, then opens the project's writer `Session`, which
+//! records the initial history step. The output is a normal `MutationOut` whose delta runs from
 //! the empty model to the new one. A folder may hold other files; creating
 //! a project refuses rather than replace any of them (D3).
 
@@ -25,8 +25,9 @@ include!(concat!(env!("OUT_DIR"), "/templates_gen.rs"));
 /// The template used when none is named.
 pub const DEFAULT_TEMPLATE: &str = "minimum";
 
-/// The `.gitignore` written into new projects.
-pub const GITIGNORE: &str = ".rw/\n";
+/// The `.gitignore` written into new projects: session state, and the folder
+/// agents keep planning files in (R1.4).
+pub const GITIGNORE: &str = ".rw/\nartifacts/\n";
 
 /// A template's main model file, which `--name` renames with the manifest.
 const ROCKET_FILE: &str = "rocket.rw.toml";
@@ -86,31 +87,47 @@ fn err(code: ApiErrorCode, message: impl Into<String>, hint: Option<String>) -> 
     }
 }
 
-/// The `.gitignore` text with `.rw/` ignored: `None` when `existing`
-/// already ignores it (`.rw`, `.rw/`, `/.rw`, `/.rw/`), else `existing` with
-/// `.rw/` appended (or [`GITIGNORE`] when there is none).
+/// True when a `.gitignore` line names the directory `dir`, in any of the
+/// forms `dir`, `dir/`, `/dir`, `/dir/`.
+fn line_ignores(line: &str, dir: &str) -> bool {
+    let line = line.trim();
+    let line = line.strip_prefix('/').unwrap_or(line);
+    line.strip_suffix('/').unwrap_or(line) == dir
+}
+
+/// The `.gitignore` text for a project being created: `None` when `existing`
+/// already ignores every [`GITIGNORE`] directory, else `existing` with the
+/// missing entries appended (or [`GITIGNORE`] when there is none). Only
+/// creation calls this, so an existing project's `.gitignore` is never
+/// rewritten (R1.4).
 pub fn gitignore_with_rw(existing: Option<&str>) -> Option<String> {
     let Some(text) = existing else {
         return Some(GITIGNORE.to_string());
     };
-    let ignored = text
+    let missing: Vec<&str> = GITIGNORE
         .lines()
-        .map(str::trim)
-        .any(|l| matches!(l, ".rw" | ".rw/" | "/.rw" | "/.rw/"));
-    if ignored {
+        .filter(|entry| {
+            let dir = entry.trim_end_matches('/');
+            !text.lines().any(|l| line_ignores(l, dir))
+        })
+        .collect();
+    if missing.is_empty() {
         return None;
     }
     let mut out = text.to_string();
     if !out.is_empty() && !out.ends_with('\n') {
         out.push('\n');
     }
-    out.push_str(GITIGNORE);
+    for entry in missing {
+        out.push_str(entry);
+        out.push('\n');
+    }
     Some(out)
 }
 
 /// What creating a project in `dir` writes: each file with its status. The
 /// `.gitignore` merges with one already in `dir` (dropped when that one
-/// already ignores `.rw/`).
+/// already ignores every [`GITIGNORE`] directory).
 pub fn planned_writes(
     dir: &Path,
     files: Vec<(String, Vec<u8>)>,
@@ -531,7 +548,7 @@ mod tests {
         );
         assert_eq!(
             std::fs::read_to_string(dir.join(".gitignore")).unwrap(),
-            ".rw/\n"
+            ".rw/\nartifacts/\n"
         );
         assert!(out.delta.changed.contains_key("mass.liftoff"));
         let again = create_project(&dir, &i, &ctx()).unwrap_err();
@@ -653,7 +670,8 @@ mod tests {
         assert_eq!(steps[0].origin, Origin::Cli);
     }
 
-    /// Item 4: an existing `.gitignore` gains `.rw/` (once), keeping its lines.
+    /// Item 4: an existing `.gitignore` gains the entries it lacks (once),
+    /// keeping its lines.
     #[test]
     fn existing_gitignore_gains_rw() {
         let d = TempDir::new("create-gitignore");
@@ -663,21 +681,67 @@ mod tests {
         let out = create_project(&dir, &ProjectCreateIn::default(), &ctx()).unwrap();
         assert_eq!(
             std::fs::read_to_string(dir.join(".gitignore")).unwrap(),
-            "node_modules/\n*.log\n.rw/\n"
+            "node_modules/\n*.log\n.rw/\nartifacts/\n"
         );
         let g = out.files.iter().find(|f| f.path == ".gitignore").unwrap();
         assert_eq!(g.status, FileStatus::M);
-        // Already ignored: left alone.
+        // Everything already ignored: left alone.
         let d2 = TempDir::new("create-gitignore2");
         let dir2 = d2.path().join("p");
         std::fs::create_dir_all(&dir2).unwrap();
-        std::fs::write(dir2.join(".gitignore"), "/.rw\nx\n").unwrap();
+        std::fs::write(dir2.join(".gitignore"), "/.rw\nx\nartifacts\n").unwrap();
         let out = create_project(&dir2, &ProjectCreateIn::default(), &ctx()).unwrap();
         assert_eq!(
             std::fs::read_to_string(dir2.join(".gitignore")).unwrap(),
-            "/.rw\nx\n"
+            "/.rw\nx\nartifacts\n"
         );
         assert!(out.files.iter().all(|f| f.path != ".gitignore"));
+    }
+
+    /// R1.4: `artifacts/` is added even when `.rw` is already ignored, and
+    /// each spelling of an entry counts as present.
+    #[test]
+    fn gitignore_merge_adds_only_missing_entries() {
+        assert_eq!(
+            gitignore_with_rw(None).as_deref(),
+            Some(".rw/\nartifacts/\n")
+        );
+        for (existing, merged) in [
+            (".rw/\n", Some(".rw/\nartifacts/\n")),
+            ("/.rw", Some("/.rw\nartifacts/\n")),
+            ("artifacts/\n", Some("artifacts/\n.rw/\n")),
+            ("", Some(".rw/\nartifacts/\n")),
+            // A nested or longer name is a different directory.
+            (
+                ".rw/\nsub/artifacts/\nartifacts2\n",
+                Some(".rw/\nsub/artifacts/\nartifacts2\nartifacts/\n"),
+            ),
+            (".rw\n/artifacts/\n", None),
+            ("  .rw/  \r\n/artifacts\r\n", None),
+        ] {
+            assert_eq!(
+                gitignore_with_rw(Some(existing)).as_deref(),
+                merged,
+                "{existing:?}"
+            );
+        }
+    }
+
+    /// R1.4: only creation merges. An existing project keeps its `.gitignore`
+    /// when it is opened and when a create is refused.
+    #[test]
+    fn an_existing_projects_gitignore_is_left_alone() {
+        let d = TempDir::new("create-gitignore-existing");
+        let dir = d.path().join("p");
+        create_project(&dir, &ProjectCreateIn::default(), &ctx()).unwrap();
+        std::fs::write(dir.join(".gitignore"), ".rw/\n").unwrap();
+        drop(Session::open(&dir, SessionOptions::writer()).unwrap());
+        let e = create_project(&dir, &ProjectCreateIn::default(), &ctx()).unwrap_err();
+        assert_eq!(e.code, ApiErrorCode::Conflict, "{e:?}");
+        assert_eq!(
+            std::fs::read_to_string(dir.join(".gitignore")).unwrap(),
+            ".rw/\n"
+        );
     }
 
     /// Item 3: with a live owner holding `.rw/lock`, init writes nothing.

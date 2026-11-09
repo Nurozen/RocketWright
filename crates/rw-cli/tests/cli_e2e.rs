@@ -509,7 +509,7 @@ fn init_then_edit_check_and_history() {
     assert_eq!(json_out(&o)["step"], "step:1");
     assert_eq!(
         std::fs::read_to_string(proj.join(".gitignore")).unwrap(),
-        ".rw/\n"
+        ".rw/\nartifacts/\n"
     );
     run(&proj, &["check", "--strict"], 0);
     // init on an existing project: conflict (exit 1).
@@ -610,7 +610,7 @@ fn init_refuses_files_it_would_replace() {
     assert!(o.status.success(), "{}", stdout(&o));
     assert_eq!(
         std::fs::read_to_string(dir.join(".gitignore")).unwrap(),
-        "*.log\n.rw/\n"
+        "*.log\n.rw/\nartifacts/\n"
     );
     assert_eq!(std::fs::read(dir.join("notes.txt")).unwrap(), b"keep\n");
 }
