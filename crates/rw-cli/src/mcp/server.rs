@@ -52,6 +52,9 @@ pub struct Hub {
     /// Relays (`clientInfo.name` [`RELAY_CLIENT`]) attached over the socket;
     /// the owner drains while any remain (D4).
     relays: AtomicUsize,
+    /// Clients of this owner by connection: its stdio client and its relays,
+    /// by real name (`client_name`). Published in `.rw/lock` as `agent_only`.
+    clients: Mutex<BTreeMap<u64, String>>,
     /// The session's job queue (read without the session lock).
     jobs: OnceLock<rw_project::JobQueue>,
 }
@@ -59,6 +62,19 @@ pub struct Hub {
 /// `clientInfo.name` a relay sends upstream; the owner treats such socket
 /// connections as [`Origin::Mcp`] (D4).
 pub const RELAY_CLIENT: &str = "rocketwright-relay";
+
+/// `clientInfo.name` of a Lecturn agent's tool process, the one client that
+/// does not put a project "in use" in another app (see `Hub::publish_clients`).
+pub const AGENT_CLIENT: &str = "lecturn";
+
+/// The client behind a connection: a relay carries its real name in
+/// `clientInfo.title` (see `relay::State::from_client`).
+pub fn client_name(info: &rmcp::model::Implementation) -> String {
+    match (&*info.name, &info.title) {
+        (RELAY_CLIENT, Some(title)) => title.clone(),
+        _ => info.name.clone(),
+    }
+}
 
 impl Hub {
     pub fn new(project: PathBuf, app: bool) -> Self {
@@ -72,7 +88,35 @@ impl Hub {
             watcher: Mutex::new(None),
             lock: Mutex::new(None),
             relays: AtomicUsize::new(0),
+            clients: Mutex::new(BTreeMap::new()),
             jobs: OnceLock::new(),
+        }
+    }
+
+    /// A client finished its handshake: the owner's own stdio client or a
+    /// relay. Republishes `agent_only` in `.rw/lock`.
+    pub fn client_attached(&self, conn: u64, name: String) {
+        self.clients_lock().insert(conn, name);
+        self.publish_clients();
+    }
+
+    /// That client closed.
+    pub fn client_detached(&self, conn: u64) {
+        if self.clients_lock().remove(&conn).is_some() {
+            self.publish_clients();
+        }
+    }
+
+    fn clients_lock(&self) -> std::sync::MutexGuard<'_, BTreeMap<u64, String>> {
+        self.clients.lock().unwrap_or_else(|e| e.into_inner())
+    }
+
+    /// Only ever called once a client has attached, so an empty set means
+    /// every client left (a drain), never a start-up that does not yet know.
+    fn publish_clients(&self) {
+        let agent_only = self.clients_lock().values().all(|n| n == AGENT_CLIENT);
+        if let Err(e) = rw_project::lock::publish_agent_only(&self.project, agent_only) {
+            eprintln!("rocketwright mcp: .rw/lock: {e}");
         }
     }
 

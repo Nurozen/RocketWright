@@ -399,7 +399,7 @@ as `name`, `material`, `finish`, `appearance`, `instances`, `override`, and
 | `rw motor thrustcurve search [<query>] [--manufacturer M] [--diameter "18 mm"] [--impulse-class C]` | search thrustcurve.org for real motors (network: only when the user asks); lists motor id, manufacturer, designation, class, diameter, total impulse, burn time; needs no project and writes nothing |
 | `rw motor thrustcurve fetch <motor id\|designation> [--format eng\|rse] [--dry-run]` | download that motor's data file into `lib/motors/` as `rw motor import` does (sha256, strict check), recording its source under `[lib.source]`; refs `lib:motors/<Maker>_<designation>.eng#<designation>` |
 | `rw lib search [--kind material]` | search the project library and the built-in parts presets (`preset:<catalog>/<part>`, openrocket-database, Apache-2.0) |
-| `rw import ork <file.ork> [<dir>]` | import an OpenRocket design: a new project in `<dir>`, or (inside a project) replace its model as one step |
+| `rw import ork <file.ork> [<dir>] [--display-units key=unit,...]` | import an OpenRocket design: a new project in `<dir>` (with those display units, in the same step), or (inside a project) replace its model as one step |
 | `rw export <format> <path> [--config <id>] [--run <ref>] [--allow-outside]` | write `ork`, `rasp` (the configuration's motors), `glb`, `stl` (mm), or `csv` (a run's series, needs `--run`); the path must be inside the project unless you pass `--allow-outside` from your own terminal. The `export_file` tool always stays inside the project; to save anywhere else, use File > Export in the app |
 | `rw history log`, `rw history show <version>` | list steps, show one |
 | `rw history compare <a> <b> [--visual] [--breakdown]` | metric deltas with units, components removed/changed/added, and the edits between versions; `--breakdown` adds each component's mass and CG and each aero term's CNa and CP (before -> after, absolute change, percent) |
@@ -533,7 +533,7 @@ name your host lists.
 | `model_get` | `rw eval` | read-only |
 | `model_patch` | `rw set` | `{"ops":[{"op":"replace","path":"/c/fins/span","value":"30 mm"}]}` (RFC 6902) |
 | `component_add` | `rw add` | `{"id":"lug2","component":{...}}` |
-| `component_remove` | `rw rm` | destructive; also removes the part's `motors` and `deploy` entries in every configuration |
+| `component_remove` | `rw rm` | destructive; also removes the part's `motors` and `deploy` entries in every configuration; `also` lists more parts for the same step |
 | `design_check` | `rw check` | `{"strict":true}`, the gate after every edit |
 | `render` | `rw render` | `{"view":"profile"}` |
 | `simulate` | `rw sim` | returns `job_id` unless the run is cached |

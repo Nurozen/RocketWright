@@ -53,4 +53,24 @@ describe("deleting a part (U48)", () => {
     expect(model()).toBe(before.model);
     expect(config()).toBe(before.config);
   }, 120_000);
+
+  it("removes several selected parts, listed with a descendant, in one step that one undo restores", async () => {
+    const rename = await c.call("model.patch", { projectId, ops: [{ op: "add", path: "/c/nose/name", value: "Renamed again" }], label: "Rename again" });
+    const before = { model: model(), config: config() };
+
+    // `flight_computer` hangs under `ebay`; listing it too is not a failure.
+    const out = await c.call("component.remove", { projectId, id: "ebay", also: ["flight_computer", "streamer"], recursive: true, label: "Delete 3 parts" });
+    const seq = (step: string | null | undefined) => Number(String(step).replace("step:", ""));
+    expect(seq(out.step)).toBe(seq(rename.step) + 1);
+    expect(model()).not.toContain("[c.ebay]");
+    expect(model()).not.toContain("[c.flight_computer]");
+    expect(model()).not.toContain("[c.streamer]");
+    expect(model()).toContain("[c.nose]");
+
+    expect(await c.request("component.remove", { projectId, id: "nose", also: "fins" })).toMatchObject({ ok: false, error: { code: "invalid_params" } });
+
+    await c.call("history.restore", { projectId, version: rename.step! });
+    expect(model()).toBe(before.model);
+    expect(config()).toBe(before.config);
+  }, 120_000);
 });

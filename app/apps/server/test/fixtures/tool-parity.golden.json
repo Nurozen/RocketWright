@@ -16,7 +16,7 @@
     {
       "name": "component_remove",
       "title": "Remove component",
-      "input": "sha256:33801d667a8a0864f66b4adc3db8d3e9cc3d0347a25c3338c80bd35dfdfe7ff4",
+      "input": "sha256:f8a650bd9a5b80b93458a879d29114060408001dfa6884a77a3412e2fef6e185",
       "output": "sha256:0e60070b31fa85f98ddd5c9587dd075bd79d49f86ac664d6863dc65fe2a0d063"
     },
     {

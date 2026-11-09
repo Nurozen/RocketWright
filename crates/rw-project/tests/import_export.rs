@@ -15,6 +15,10 @@ use rw_project::{Session, SessionOptions};
 
 const SIMPLE: &[u8] = include_bytes!("../../rw-ork/tests/data/simple.ork.xml");
 
+fn no_units() -> BTreeMap<String, String> {
+    BTreeMap::new()
+}
+
 fn ctx() -> CallCtx {
     CallCtx {
         origin: Origin::Cli,
@@ -43,9 +47,9 @@ fn import_into_a_new_directory_creates_a_clean_project() {
     // The zip form, as OpenRocket writes it.
     std::fs::write(&src, write_container(SIMPLE, &BTreeMap::new())).unwrap();
     let dir = d.path().join("proj");
-    let dry = import_project(&dir, src.to_str().unwrap(), true, &ctx()).unwrap();
+    let dry = import_project(&dir, src.to_str().unwrap(), &no_units(), true, &ctx()).unwrap();
     assert!(dry.mutation.dry_run && !dir.exists());
-    let out = import_project(&dir, src.to_str().unwrap(), false, &ctx()).unwrap();
+    let out = import_project(&dir, src.to_str().unwrap(), &no_units(), false, &ctx()).unwrap();
     assert_eq!(out.mutation.model_hash, dry.mutation.model_hash);
     assert!(out.imported.contains(&"fins".to_string()));
     assert!(out.diagnostics.iter().any(|d| d.code == "RW-W103"));
@@ -66,7 +70,7 @@ fn import_into_a_new_directory_creates_a_clean_project() {
     );
     assert!(dir.join("configs/cfg-a.rw.toml").is_file());
     assert!(dir.join("sims/calm_day.rw.toml").is_file());
-    assert!(import_project(&dir, src.to_str().unwrap(), false, &ctx()).is_err());
+    assert!(import_project(&dir, src.to_str().unwrap(), &no_units(), false, &ctx()).is_err());
 }
 
 #[test]
@@ -105,7 +109,7 @@ fn embedded_curves_land_in_lib_with_recorded_hashes() {
     let src = d.path().join("bird.ork");
     std::fs::write(&src, write_container(SIMPLE, &files)).unwrap();
     let dir = d.path().join("p");
-    import_project(&dir, src.to_str().unwrap(), false, &ctx()).unwrap();
+    import_project(&dir, src.to_str().unwrap(), &no_units(), false, &ctx()).unwrap();
     let s = Session::open(&dir, SessionOptions::read_only()).unwrap();
     assert!(
         !s.report()
@@ -239,4 +243,59 @@ fn export_outside_the_project_needs_allow_outside() {
     )
     .unwrap();
     assert!(abs.is_file());
+}
+
+#[test]
+fn import_into_a_new_directory_applies_display_units_in_its_one_step() {
+    let d = TempDir::new("ork-units");
+    let src = d.path().join("bird.ork");
+    std::fs::write(&src, write_container(SIMPLE, &BTreeMap::new())).unwrap();
+    let dir = d.path().join("proj");
+    let units = BTreeMap::from([("length".to_string(), "in".to_string())]);
+
+    let out = import_project(&dir, src.to_str().unwrap(), &units, false, &ctx()).unwrap();
+
+    assert_eq!(out.mutation.step.as_deref(), Some("step:1"));
+    let manifest = std::fs::read_to_string(dir.join("rocketwright.toml")).unwrap();
+    assert!(manifest.contains("length = \"in\""), "{manifest}");
+    assert!(
+        manifest.contains("mass = \"g\""),
+        "the import's own unit stays: {manifest}"
+    );
+    let s = Session::open(&dir, SessionOptions::read_only()).unwrap();
+    assert_eq!(s.steps().unwrap().len(), 1);
+}
+
+#[test]
+fn import_refuses_a_bad_display_unit_before_writing() {
+    let d = TempDir::new("ork-bad-unit");
+    let src = d.path().join("bird.ork");
+    std::fs::write(&src, write_container(SIMPLE, &BTreeMap::new())).unwrap();
+    let dir = d.path().join("proj");
+    let units = BTreeMap::from([("length".to_string(), "furlong".to_string())]);
+
+    let e = import_project(&dir, src.to_str().unwrap(), &units, false, &ctx()).unwrap_err();
+
+    assert!(e.message.contains("furlong"), "{}", e.message);
+    assert!(!dir.join("rocketwright.toml").exists());
+}
+
+#[test]
+fn import_with_no_units_keeps_the_imported_manifest_byte_for_byte() {
+    let d = TempDir::new("ork-same");
+    let src = d.path().join("bird.ork");
+    std::fs::write(&src, write_container(SIMPLE, &BTreeMap::new())).unwrap();
+    let a = d.path().join("a");
+    let b = d.path().join("b");
+    import_project(&a, src.to_str().unwrap(), &no_units(), false, &ctx()).unwrap();
+    import_project(&b, src.to_str().unwrap(), &no_units(), false, &ctx()).unwrap();
+    let manifest = std::fs::read_to_string(a.join("rocketwright.toml")).unwrap();
+    assert_eq!(
+        manifest,
+        std::fs::read_to_string(b.join("rocketwright.toml")).unwrap()
+    );
+    assert!(
+        manifest.contains("length = \"mm\"") && manifest.contains("mass = \"g\""),
+        "{manifest}"
+    );
 }

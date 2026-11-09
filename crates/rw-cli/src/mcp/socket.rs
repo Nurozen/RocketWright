@@ -16,7 +16,7 @@ use rmcp::ServiceExt;
 use rw_api::Origin;
 use tokio::net::UnixListener;
 
-use super::server::RELAY_CLIENT;
+use super::server::{RELAY_CLIENT, client_name};
 use super::{Hub, RwServer};
 
 /// Socket path relative to the project.
@@ -101,13 +101,17 @@ pub async fn accept_loop(listener: UnixListener, hub: Arc<Hub>) {
                 let relay = service
                     .peer()
                     .peer_info()
-                    .is_some_and(|i| i.client_info.name == RELAY_CLIENT);
-                if relay {
+                    .filter(|i| i.client_info.name == RELAY_CLIENT)
+                    .map(|i| client_name(&i.client_info));
+                let is_relay = relay.is_some();
+                if let Some(name) = relay {
                     hub.relay_attached();
+                    hub.client_attached(conn, name);
                 }
                 let _ = service.waiting().await;
-                if relay {
+                if is_relay {
                     hub.relay_detached();
+                    hub.client_detached(conn);
                 }
             }
             hub.drop_conn(conn);

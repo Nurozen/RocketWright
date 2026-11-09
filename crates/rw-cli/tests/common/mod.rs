@@ -179,9 +179,14 @@ impl Rpc {
     }
 
     pub fn initialize(&mut self, version: &str) -> Value {
+        self.initialize_as(version, "mcp_contract")
+    }
+
+    /// `initialize` as a client named `client`.
+    pub fn initialize_as(&mut self, version: &str, client: &str) -> Value {
         let r = self.result(
             "initialize",
-            json!({"protocolVersion": version, "capabilities": {}, "clientInfo": {"name": "mcp_contract", "version": "0"}}),
+            json!({"protocolVersion": version, "capabilities": {}, "clientInfo": {"name": client, "version": "0"}}),
         );
         self.notify("notifications/initialized");
         r

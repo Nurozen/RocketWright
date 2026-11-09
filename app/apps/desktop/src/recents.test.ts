@@ -311,6 +311,12 @@ describe("status", () => {
     expect(await store(file, { pidAlive: () => true, openDirs: () => [a] }).list()).toMatchObject([{ dir: a, status: "ok", open: true }]);
     writeFileSync(join(a, ".rw/lock"), "garbage");
     expect(await status({ pidAlive: () => true })).toBe("ok");
+    // Held only for an agent's tool process: not open in another app or terminal, even with a live owner.
+    writeFileSync(join(a, ".rw/lock"), `${JSON.stringify({ pid: 4242, started: "", agent_only: true })}\n`);
+    expect(await status({ pidAlive: () => true })).toBe("ok");
+    // Anything else about the record still reads as held.
+    writeFileSync(join(a, ".rw/lock"), `${JSON.stringify({ pid: 4242, started: "", agent_only: false })}\n`);
+    expect(await status({ pidAlive: () => true })).toBe("locked");
   });
 
   it("does not read a dead owner's record as locked just because its pid was reused", async () => {

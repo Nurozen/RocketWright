@@ -465,14 +465,17 @@ pub fn create_project(
 /// project from the `.ork` (sources, motor files, `.gitignore`), then opens
 /// its writer `Session`, whose initial history step is titled
 /// `Import <file>`. Refuses a file it would replace, as [`create_project`]
-/// does. `dry_run` writes nothing.
+/// does. `display_units` overlays the import's default units, in that same
+/// step. `dry_run` writes nothing.
 pub fn import_project(
     dir: &Path,
     path: &str,
+    display_units: &BTreeMap<String, String>,
     dry_run: bool,
     ctx: &CallCtx,
 ) -> Result<ImportOut, ApiError> {
     const HINT: &str = "run the import from inside it to replace its model (one history step)";
+    check_display_units(display_units)?;
     refuse_symlink_target(dir)?;
     if layout::is_project(dir) {
         return Err(conflict(dir, HINT));
@@ -495,7 +498,15 @@ pub fn import_project(
         .map_err(|e| err(ApiErrorCode::Internal, e.message, None))?;
     let mut files: Vec<(String, Vec<u8>)> = changes
         .into_iter()
-        .filter_map(|c| Some((c.path, c.text?.into_bytes())))
+        .filter_map(|c| {
+            let text = c.text?;
+            let text = if c.path == layout::MANIFEST && !display_units.is_empty() {
+                with_display_units(&text, display_units)
+            } else {
+                text
+            };
+            Some((c.path, text.into_bytes()))
+        })
         .collect();
     files.extend(plan.lib_files.iter().map(|(p, b)| (p.clone(), b.clone())));
     files.push((".gitignore".into(), GITIGNORE.as_bytes().to_vec()));
@@ -974,7 +985,14 @@ mod tests {
         let link = d.path().join("link");
         std::os::unix::fs::symlink(&real, &link).unwrap();
         for dry_run in [true, false] {
-            let e = import_project(&link, src.to_str().unwrap(), dry_run, &ctx()).unwrap_err();
+            let e = import_project(
+                &link,
+                src.to_str().unwrap(),
+                &BTreeMap::new(),
+                dry_run,
+                &ctx(),
+            )
+            .unwrap_err();
             assert_eq!(e.code, ApiErrorCode::Conflict, "{e:?}");
             assert!(e.message.contains("symbolic link"), "{}", e.message);
         }
@@ -1013,7 +1031,14 @@ mod tests {
         std::fs::write(dir.join("rocket.rw.toml"), "# mine\n").unwrap();
         let before = snapshot(&dir);
         for dry_run in [true, false] {
-            let e = import_project(&dir, src.to_str().unwrap(), dry_run, &ctx()).unwrap_err();
+            let e = import_project(
+                &dir,
+                src.to_str().unwrap(),
+                &BTreeMap::new(),
+                dry_run,
+                &ctx(),
+            )
+            .unwrap_err();
             assert_eq!(e.code, ApiErrorCode::Conflict, "{e:?}");
             assert!(e.message.contains("rocket.rw.toml"), "{}", e.message);
             assert_eq!(snapshot(&dir), before, "dry_run {dry_run}");

@@ -670,3 +670,80 @@ fn owner_dies_mid_read_and_the_read_is_retried() {
     let r = b.rpc.tool("model_get", json!({}));
     assert!(r.get("isError").is_none_or(|v| v == false), "{r}");
 }
+
+/// `.rw/lock`'s `agent_only`, while something holds the lock.
+fn agent_only(p: &Path) -> Option<bool> {
+    match probe(p).ok()? {
+        LockState::Held(i) => Some(i.agent_only),
+        LockState::Free { .. } => None,
+    }
+}
+
+fn wait_agent_only(p: &Path, want: bool) {
+    let end = Instant::now() + TIMEOUT;
+    while agent_only(p) != Some(want) {
+        assert!(
+            Instant::now() < end,
+            "agent_only stayed {:?}, wanted {want}",
+            agent_only(p)
+        );
+        std::thread::sleep(Duration::from_millis(20));
+    }
+}
+
+fn client(p: &Path, name: &str) -> Inst {
+    let mut i = Inst::spawn(p, &[]);
+    i.rpc.initialize_as("2025-11-25", name);
+    i
+}
+
+/// What the app's close does to a project an agent is attached to: the
+/// owner's stdin ends, it drains for the relay, and the SDK's close sends
+/// SIGTERM two seconds later. A person sees the project free; a project with
+/// any other client attached stays held, and nothing ever writes around the
+/// one owner.
+#[test]
+fn closing_the_app_leaves_a_project_held_only_by_its_agent_openable() {
+    let p = TempProject::fixture("fixtures/simple");
+    let mut app = client(&p.0, "rocketwright-app");
+    wait_owner(&p.0, app.pid());
+    wait_agent_only(&p.0, false);
+    let mut agent = client(&p.0, "lecturn");
+    assert_eq!(agent.role(), "relay");
+    wait_agent_only(&p.0, false);
+
+    // The app closes: the owner drains for the agent's relay.
+    app.close_stdin();
+    app.wait_stderr("draining");
+    assert_eq!(owner_pid(&p.0), Some(app.pid()));
+    wait_agent_only(&p.0, true);
+
+    // The SDK's SIGTERM ends the draining owner; the agent's relay takes over.
+    let term = Command::new("kill")
+        .args(["-TERM", &app.pid().to_string()])
+        .status()
+        .unwrap();
+    assert!(term.success());
+    let _ = app.wait_exit();
+    wait_owner(&p.0, agent.pid());
+    wait_agent_only(&p.0, true);
+    // A write still goes through the one owner.
+    agent.rpc.ok("history_list", json!({}));
+
+    // Reopening in the app relays to it at once, and it reads held again.
+    let mut reopened = client(&p.0, "rocketwright-app");
+    assert_eq!(reopened.role(), "relay");
+    reopened.rpc.ok("history_list", json!({}));
+    wait_agent_only(&p.0, false);
+    reopened.close_stdin();
+    assert!(reopened.wait_exit().success());
+    wait_agent_only(&p.0, true);
+
+    // A client in a terminal holds the project as much as an app does.
+    let mut terminal = client(&p.0, "claude-code");
+    assert_eq!(terminal.role(), "relay");
+    wait_agent_only(&p.0, false);
+    terminal.close_stdin();
+    assert!(terminal.wait_exit().success());
+    wait_agent_only(&p.0, true);
+}
