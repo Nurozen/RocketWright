@@ -9,6 +9,8 @@ export * from "./patch.ts";
 export * from "./embedPane.ts";
 export * from "./desktop.ts";
 export * from "./projectTools.ts";
+export * from "./containment.ts";
 /** Every generated schema type (`schema.RocketDoc`, `schema.Command`, ...). */
 export type * as schema from "./generated/types.ts";
 export * from "./generated/schema-meta.ts";
+export * from "./generated/containment.ts";

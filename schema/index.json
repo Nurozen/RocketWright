@@ -1149,5 +1149,115 @@
       "type": "json-schema",
       "subscribable": false
     }
-  ]
+  ],
+  "containment": {
+    "kinds": [
+      "nose_cone",
+      "body_tube",
+      "transition",
+      "trapezoidal_fin_set",
+      "elliptical_fin_set",
+      "freeform_fin_set",
+      "tube_fin_set",
+      "inner_tube",
+      "coupler",
+      "centering_ring",
+      "bulkhead",
+      "engine_block",
+      "launch_lug",
+      "rail_button",
+      "parachute",
+      "streamer",
+      "shock_cord",
+      "mass_component",
+      "tank"
+    ],
+    "roots": [
+      "nose_cone",
+      "body_tube",
+      "transition"
+    ],
+    "natural_kind": {
+      "nose_cone": "axial",
+      "body_tube": "axial",
+      "transition": "axial",
+      "trapezoidal_fin_set": "surface",
+      "elliptical_fin_set": "surface",
+      "freeform_fin_set": "surface",
+      "tube_fin_set": "surface",
+      "inner_tube": "inner",
+      "coupler": "inner",
+      "centering_ring": "inner",
+      "bulkhead": "inner",
+      "engine_block": "inner",
+      "launch_lug": "surface",
+      "rail_button": "surface",
+      "parachute": "inner",
+      "streamer": "inner",
+      "shock_cord": "inner",
+      "mass_component": "inner",
+      "tank": "inner"
+    },
+    "rules": [
+      {
+        "kind": "axial",
+        "parents": [
+          "nose_cone",
+          "body_tube",
+          "transition"
+        ],
+        "children": [
+          "body_tube",
+          "transition"
+        ]
+      },
+      {
+        "kind": "surface",
+        "parents": [
+          "nose_cone",
+          "body_tube",
+          "transition"
+        ],
+        "children": [
+          "trapezoidal_fin_set",
+          "elliptical_fin_set",
+          "freeform_fin_set",
+          "tube_fin_set",
+          "launch_lug",
+          "rail_button"
+        ]
+      },
+      {
+        "kind": "inner",
+        "parents": [
+          "nose_cone",
+          "body_tube",
+          "transition",
+          "coupler",
+          "inner_tube"
+        ],
+        "children": [
+          "inner_tube",
+          "coupler",
+          "centering_ring",
+          "bulkhead",
+          "engine_block",
+          "parachute",
+          "streamer",
+          "shock_cord",
+          "mass_component"
+        ]
+      },
+      {
+        "kind": "inner",
+        "parents": [
+          "body_tube",
+          "coupler"
+        ],
+        "children": [
+          "tank"
+        ]
+      }
+    ]
+  }
 }

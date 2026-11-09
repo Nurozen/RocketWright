@@ -9,7 +9,9 @@
  * - `schema-meta.ts`: the `x-unit-dimension` / `x-expr` / `x-anchors` /
  *   `x-ui-group` metadata per type and field, plus the registry, tool, and
  *   resource lists;
- * - `index.ts`: re-exports both.
+ * - `containment.ts`: the `CONTAINMENT` table from `index.json` (which parts may
+ *   hold which, `crates/rw-model/src/containment.rs`);
+ * - `index.ts`: re-exports all three.
  *
  * Usage: `node scripts/gen.ts` writes; `node scripts/gen.ts --check` writes
  * nothing and exits 1 on drift (missing, changed, or stale generated files).
@@ -36,6 +38,7 @@ export interface SchemaIndex {
   entries: IndexEntry[];
   tools: { name: string; input: string; output: string; approval: string; hints: JsonObj }[];
   resources: { uri: string; type: string; subscribable: boolean }[];
+  containment: JsonObj;
 }
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -332,9 +335,36 @@ export const MCP_RESOURCE_CATALOG = ${j(index.resources)} as const;
 `;
 }
 
+function containmentTs(index: SchemaIndex): string {
+  return `${BANNER}
+import type { AnchorKind, ComponentType } from "./types.ts";
+
+/** One rule: any of \`parents\` may hold any of \`children\` with containment \`kind\`. */
+export interface ContainmentRule {
+  readonly kind: AnchorKind;
+  readonly parents: readonly ComponentType[];
+  readonly children: readonly ComponentType[];
+}
+
+/** The placement rules (\`crates/rw-model/src/containment.rs\`). A pair no rule lists is RW-E030. */
+export interface ContainmentTable {
+  /** Every component type, in declaration order. */
+  readonly kinds: readonly ComponentType[];
+  /** The types that may be the first component. */
+  readonly roots: readonly ComponentType[];
+  /** The containment each type takes against an axial anchor. */
+  readonly natural_kind: Readonly<Record<ComponentType, AnchorKind>>;
+  readonly rules: readonly ContainmentRule[];
+}
+
+export const CONTAINMENT: ContainmentTable = ${JSON.stringify(index.containment, null, 2)};
+`;
+}
+
 const INDEX_TS = `${BANNER}
 export type * from "./types.ts";
 export * from "./schema-meta.ts";
+export * from "./containment.ts";
 `;
 
 /** Every generated file, keyed by path relative to `src/generated/`. */
@@ -343,6 +373,7 @@ export async function generate(schemaDir = SCHEMA_DIR): Promise<Map<string, stri
   const out = new Map<string, string>();
   out.set("types.ts", await typesTs(index, schemaDir));
   out.set("schema-meta.ts", schemaMetaTs(index, schemaDir));
+  out.set("containment.ts", containmentTs(index));
   out.set("index.ts", INDEX_TS);
   return out;
 }
