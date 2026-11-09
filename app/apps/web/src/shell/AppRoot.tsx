@@ -4,15 +4,18 @@
  * survives a switch and keeps the socket.
  */
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
-import type { PageId, ProjectInfo } from "@rw/contracts";
+import type { PageId, ProjectInfo, SidecarState } from "@rw/contracts";
 import { desktopPaneGlobals, onOpenProject } from "../embed/bridge.ts";
 import { trackLecturnStatus } from "../embed/status.ts";
 import { createPathPrompts } from "../host/browserHost.ts";
 import { hostFor, type HostApi } from "../host/HostApi.ts";
 import type { RunDataSource } from "../pages/results/source.ts";
 import { RpcClient, type RpcLike } from "../state/rpc.ts";
+import { Banner } from "../ui/Banner.tsx";
 import { BRAND } from "./brand.ts";
 import { dispatchCommand, type CommandHandlers } from "./commands.ts";
+import { RECONNECT_DELAYS_MS, type LinkStatus } from "./connection.ts";
+import { ErrorBoundary } from "./ErrorBoundary.tsx";
 import { INITIAL_LIFECYCLE, lifecycle, shellOutcome, type LifecycleState } from "./lifecycle.ts";
 import { PathPromptModal } from "./PathPromptModal.tsx";
 import { errorText, nextOpen } from "./projectActions.ts";
@@ -41,11 +44,16 @@ export interface AppRootProps {
 const connectRpc = (url: string): Promise<RpcLike> => RpcClient.connect(url);
 
 /** The startup failure itself, in the window (a blank one tells nobody anything). */
-export function FatalScreen({ error }: { error: string }) {
+export function FatalScreen({ error, relaunchLabel = "Relaunch", onRelaunch }: { error: string; relaunchLabel?: string; onRelaunch?: (() => void) | undefined }) {
   return (
     <main className="rw-lifecycle" role="alert" data-testid="fatal">
       <h1>RocketWright could not start</h1>
-      <p>{error}</p>
+      <p className="rw-lifecycle__detail">{error}</p>
+      {onRelaunch !== undefined && (
+        <button type="button" className="rw-button rw-button--primary" onClick={onRelaunch}>
+          {relaunchLabel}
+        </button>
+      )}
     </main>
   );
 }
@@ -55,6 +63,8 @@ export function AppRoot({ url, requestedProjectId, initialPage, runSource, httpB
   const [host] = useState<HostApi>(() => hostProp ?? hostFor(window, prompts.prompt));
   const [state, dispatch] = useReducer(lifecycle, INITIAL_LIFECYCLE);
   const [client, setClient] = useState<RpcLike | null>(null);
+  const [link, setLink] = useState<LinkStatus>({ kind: "online" });
+  const [sidecar, setSidecar] = useState<SidecarState | null>(null);
   const stateRef = useRef<LifecycleState>(state);
   stateRef.current = state;
   // A switch keeps the page the person is on; only the first surface starts on `?page=`.
@@ -67,14 +77,40 @@ export function AppRoot({ url, requestedProjectId, initialPage, runSource, httpB
     let live = true;
     let conn: RpcLike | null = null;
     let offClose: (() => void) | null = null;
-    void (async () => {
-      const c = await connect(url);
+    let retry: ReturnType<typeof setTimeout> | null = null;
+    const reconnect = (reason: string, attempt: number): void => {
+      // The fatal screen's Relaunch already covers it, and there is nothing to come back to.
+      if (stateRef.current.phase === "fatal") return;
+      const delay = RECONNECT_DELAYS_MS[attempt];
+      if (delay === undefined) return setLink({ kind: "lost", reason });
+      retry = setTimeout(() => {
+        connect(url).then(
+          (c) => {
+            if (!live) return c.close();
+            adopt(c);
+            setLink({ kind: "online" });
+          },
+          () => {
+            if (live) reconnect(reason, attempt + 1);
+          },
+        );
+      }, delay);
+    };
+    const adopt = (c: RpcLike): void => {
       conn = c;
-      if (!live) return c.close();
       // The first `lecturn.status` follows `hello` at once: keep it before React renders (B10).
       trackLecturnStatus(c);
-      offClose = c.onClose((reason) => dispatch({ type: "connectionLost", reason }));
+      offClose = c.onClose((reason) => {
+        if (!live) return;
+        setLink({ kind: "reconnecting" });
+        reconnect(reason, 0);
+      });
       setClient(c);
+    };
+    void (async () => {
+      const c = await connect(url);
+      if (!live) return c.close();
+      adopt(c);
       dispatch({ type: "connected" });
       const [boot, list] = await Promise.all([host.boot(), c.call("project.list", {})]);
       if (!live) return;
@@ -87,6 +123,7 @@ export function AppRoot({ url, requestedProjectId, initialPage, runSource, httpB
     return () => {
       live = false;
       offClose?.();
+      if (retry !== null) clearTimeout(retry);
       conn?.close();
     };
   }, [url, requestedProjectId, host, connect]);
@@ -168,9 +205,16 @@ export function AppRoot({ url, requestedProjectId, initialPage, runSource, httpB
     return host.onCommand((command) => void dispatchCommand(command, { ...latest.current.commands, ...surfaceCommands.current, ...windowCommands }));
   }, [host, openHelp]);
 
+  const relaunchLabel = host.kind === "desktop" ? "Relaunch" : "Reload";
+  const relaunch = () => void host.relaunch().catch((e: unknown) => report(`Could not relaunch: ${errorText(e)}`));
+  const shownProject = state.phase === "project" ? state.projectId : null;
+  const restartSidecar = () => {
+    if (client !== null && shownProject !== null) client.call("project.restartSidecar", { projectId: shownProject }).catch((e: unknown) => report(`Could not restart the engine: ${errorText(e)}`));
+  };
+
   let screen = null;
   if (state.phase === "fatal") {
-    screen = <FatalScreen error={state.error} />;
+    screen = <FatalScreen error={state.error} relaunchLabel={relaunchLabel} onRelaunch={relaunch} />;
   } else if (client !== null && state.phase === "welcome") {
     screen = <Welcome client={client} host={host} notice={state.notice} onOpened={show} onImport={() => void dispatchCommand({ id: "file.import" }, actions.commands)} />;
   } else if (client !== null && state.phase === "project") {
@@ -186,6 +230,8 @@ export function AppRoot({ url, requestedProjectId, initialPage, runSource, httpB
         onOpenFailed={onOpenFailed}
         onSwitchProject={actions.switchProject}
         onProjectInfo={onProjectInfo}
+        onSidecarState={setSidecar}
+        onError={report}
         projectMenu={actions.menu}
         surfaceRef={surfaceRef}
         commandsRef={surfaceCommands}
@@ -195,7 +241,43 @@ export function AppRoot({ url, requestedProjectId, initialPage, runSource, httpB
   }
   return (
     <>
-      {screen}
+      <ErrorBoundary key={shownProject ?? state.phase}>{screen}</ErrorBoundary>
+      <div className="rw-ui-banner-stack">
+        {state.phase !== "fatal" && link.kind === "reconnecting" && (
+          <Banner floating tone="warning" testId="connection.reconnecting">
+            Lost the connection to the app server. Reconnecting…
+          </Banner>
+        )}
+        {state.phase !== "fatal" && link.kind === "lost" && (
+          <Banner
+            floating
+            tone="danger"
+            testId="connection.lost"
+            action={
+              <button type="button" className="rw-button rw-button--primary" onClick={relaunch}>
+                {relaunchLabel}
+              </button>
+            }
+          >
+            The app server has stopped. {relaunchLabel} to keep working.
+          </Banner>
+        )}
+        {sidecar === "failed" && shownProject !== null && (
+          <Banner
+            floating
+            tone="danger"
+            testId="sidecar.failed"
+            action={
+              <button type="button" className="rw-button" onClick={restartSidecar}>
+                Restart engine
+              </button>
+            }
+          >
+            This project's design engine stopped and could not restart.
+          </Banner>
+        )}
+        {actions.banners}
+      </div>
       {actions.overlays}
       {helpOpen && <QuickStart onClose={() => setHelpOpen(false)} />}
       <PathPromptModal prompts={prompts} />

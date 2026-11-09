@@ -6,7 +6,7 @@
  * new project gets a broker host of its own.
  */
 import { useEffect, useMemo, useState, type RefObject } from "react";
-import type { BrokerRequest, PageId, ProjectInfo } from "@rw/contracts";
+import type { BrokerRequest, PageId, ProjectInfo, SidecarState } from "@rw/contracts";
 import { answer, startBrokerHost, windowHostDeps } from "../broker/host.ts";
 import { openArtifactThread } from "../embed/rail.ts";
 import { assemblySlots } from "../pages/assembly/AssemblyPage.tsx";
@@ -46,6 +46,10 @@ export interface ProjectSurfaceProps {
   onSwitchProject: (projectId: string) => void;
   /** This project's name and folder, once known and whenever they change. */
   onProjectInfo: (project: ProjectInfo) => void;
+  /** This project's engine, once known; null when the surface goes. */
+  onSidecarState?: ((state: SidecarState | null) => void) | undefined;
+  /** A shell action failed: `AppRoot` shows it on the dismissible banner. */
+  onError?: ((message: string) => void) | undefined;
   projectMenu?: ProjectMenuModel | undefined;
   /** Filled while this surface is mounted: what `AppRoot` needs before it can leave the project. */
   surfaceRef?: RefObject<SurfaceHandle | null> | undefined;
@@ -55,7 +59,7 @@ export interface ProjectSurfaceProps {
 
 const message = (e: unknown): string => (e instanceof Error ? e.message : String(e));
 
-export function ProjectSurface({ client, projectId, initialPage, runSource, httpBase, onPageChange, onOpenFailed, onSwitchProject, onProjectInfo, projectMenu, surfaceRef, commandsRef, onOpenHelp }: ProjectSurfaceProps) {
+export function ProjectSurface({ client, projectId, initialPage, runSource, httpBase, onPageChange, onOpenFailed, onSwitchProject, onProjectInfo, onSidecarState, onError, projectMenu, surfaceRef, commandsRef, onOpenHelp }: ProjectSurfaceProps) {
   const [store] = useState(() => {
     const st = createAppStore();
     st.getState().ui.navigate(initialPage);
@@ -82,10 +86,11 @@ export function ProjectSurface({ client, projectId, initialPage, runSource, http
     return () => {
       live = false;
       stop.abort();
-      store.getState().project.disconnect();
       if (window.__rwBroker === probe) delete window.__rwBroker;
     };
   }, [client, projectId, store, runSource, onOpenFailed]);
+  // Only leaving the project ends the connection: on a reconnect `project.connect` keeps the mirror and the draft (D19).
+  useEffect(() => () => store.getState().project.disconnect(), [store]);
 
   useEffect(() => {
     if (surfaceRef === undefined) return;
@@ -112,6 +117,11 @@ export function ProjectSurface({ client, projectId, initialPage, runSource, http
   useEffect(() => {
     if (info !== null) onProjectInfo(info);
   }, [info, onProjectInfo]);
+  const sidecar = useAppState(store, (s) => s.project.snapshot?.sidecar.state ?? null);
+  useEffect(() => {
+    onSidecarState?.(sidecar);
+  }, [sidecar, onSidecarState]);
+  useEffect(() => () => onSidecarState?.(null), [onSidecarState]);
 
   const glbDeps = useMemo(() => browserGlbDeps(import.meta.env.BASE_URL), []);
   const assembly = useMemo(() => assemblySlots(store, glbDeps, client, httpBase), [store, glbDeps, client, httpBase]);
@@ -163,7 +173,7 @@ export function ProjectSurface({ client, projectId, initialPage, runSource, http
   const renderCompare = () => <ComparePage store={store} client={client} glbDeps={glbDeps} />;
   return (
     <>
-      <ConnectedShell store={store} client={client} renderPage={renderPage} renderCompare={renderCompare} pageSlots={pageSlots} onSwitchProject={onSwitchProject} projectMenu={projectMenu} commandsRef={commandsRef} onOpenHelp={onOpenHelp} />
+      <ConnectedShell store={store} client={client} renderPage={renderPage} renderCompare={renderCompare} pageSlots={pageSlots} onSwitchProject={onSwitchProject} onError={onError} projectMenu={projectMenu} commandsRef={commandsRef} onOpenHelp={onOpenHelp} />
       <ThumbnailBaker store={store} glbDeps={glbDeps} />
     </>
   );

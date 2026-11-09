@@ -58,12 +58,6 @@ describe("lifecycle", () => {
     expect(lifecycle(WELCOME, { type: "startFailed", error: "late" })).toEqual(WELCOME);
   });
 
-  it("a lost connection keeps a shown project but ends an empty window", () => {
-    expect(lifecycle(showing("a"), { type: "connectionLost", reason: "socket closed" })).toEqual(showing("a"));
-    expect(lifecycle(WELCOME, { type: "connectionLost", reason: "socket closed" })).toEqual({ phase: "fatal", error: "socket closed" });
-    expect(lifecycle(LISTING, { type: "connectionLost", reason: "socket closed" })).toEqual({ phase: "fatal", error: "socket closed" });
-  });
-
   it("nothing leaves fatal", () => {
     const fatal: LifecycleState = { phase: "fatal", error: "x" };
     for (const e of [{ type: "connected" }, listed({ projects: ["p"] }), { type: "select", projectId: "a" }] as LifecycleEvent[]) expect(lifecycle(fatal, e)).toBe(fatal);

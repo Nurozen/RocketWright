@@ -480,6 +480,29 @@
   box-shadow: var(--rw-elevation-overlay);
 }
 
+/* Floating banners stack rather than cover each other. */
+.rw-ui-banner-stack {
+  position: fixed;
+  top: calc(var(--rw-header-h) + 12px);
+  left: 50%;
+  z-index: var(--rw-ui-z);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: max-content;
+  max-width: calc(100% - 32px);
+  translate: -50% 0;
+}
+
+.rw-ui-banner-stack > .rw-ui-banner[data-floating="true"] {
+  position: static;
+  z-index: auto;
+  width: auto;
+  max-width: 100%;
+  translate: none;
+}
+
 .rw-ui-banner__icon {
   display: inline-grid;
   place-items: center;

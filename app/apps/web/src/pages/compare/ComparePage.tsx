@@ -20,6 +20,7 @@ import type { EngineState } from "../../viewport/engine.ts";
 import type { GlbDeps } from "../../viewport/glb-source.ts";
 import { compareKey, MARK_COLORS, MARK_ORDER, markCounts, markMap, mergeForCompare, type MarkStatus } from "../../viewport/marks.ts";
 import { Icon } from "../../shell/Icon.tsx";
+import { Banner } from "../../ui/Banner.tsx";
 import { canRevertTo, changeRows, editRows, isRunVersion, metricRows, versionLabel, versionOptions, type VersionGroup } from "./model.ts";
 import { RunComparePanel } from "./RunComparePanel.tsx";
 import "../assembly/assembly.css";
@@ -51,6 +52,8 @@ export function ComparePage({ store, client, glbDeps }: ComparePageProps) {
   const modelHash = snap?.evaluated?.model_hash ?? null;
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Dismissed separately: a load that failed is still "error" for the page, even once the message is out of the way.
+  const [dismissedError, setDismissedError] = useState<string | null>(null);
   const [reverting, setReverting] = useState(false);
 
   const key = sel === null ? null : `${sel.old}|${sel.new}`;
@@ -165,10 +168,10 @@ export function ComparePage({ store, client, glbDeps }: ComparePageProps) {
               ))}
             </p>
           </header>
-          {error !== null && (
-            <p className="rw-cmp__error" role="alert" data-testid="compare.error">
+          {error !== null && error !== dismissedError && (
+            <Banner tone="danger" className="rw-cmp__error" testId="compare.error" onDismiss={() => setDismissedError(error)}>
               {error}
-            </p>
+            </Banner>
           )}
           {runs && <RunComparePanel view={runs} />}
           {!nothingToCompare && (

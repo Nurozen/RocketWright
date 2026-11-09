@@ -344,3 +344,15 @@ describe("in the connected shell", () => {
     expect(panel()!.querySelector('[role="alert"]')).toBeNull();
   });
 });
+
+describe("a page that throws", () => {
+  it("is held to the page: the shell stays up and says what broke", () => {
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const Broken = (): ReactNode => {
+      throw new Error("no such part");
+    };
+    render(<ConnectedShell store={createAppStore()} renderPage={() => <Broken />} />);
+    expect(host.querySelector('[data-testid="page.error"]')?.textContent).toContain("no such part");
+    expect(host.querySelector('[data-testid="app-shell"]')).not.toBeNull();
+  });
+});

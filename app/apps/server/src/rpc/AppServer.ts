@@ -160,10 +160,6 @@ export function allowedOrigin(origin: string | undefined): boolean {
   }
 }
 
-/** A contract method whose implementation lands in a later step. */
-function notYet(method: RpcMethod): never {
-  throw new RpcFail("internal", `${method} is not implemented yet`);
-}
 
 const RUN_FILE_RE = /^\/api\/projects\/([^/]+)\/runs\/([^/]+)\/([^/]+)\/(series\.csv|events\.json|engine\.json|visual\.json|cfd\.json)$/;
 const RUN_FILE_TYPE: Record<string, string> = { "series.csv": "text/csv; charset=utf-8", "events.json": "application/json", "engine.json": "application/json", "visual.json": "application/json", "cfd.json": "application/json" };
@@ -638,8 +634,12 @@ export class AppServer {
 
     "project.rename": async (_c, params) => ({ project: await this.hostOf(params).setName(str(params, "name")) }),
 
-    // U58: project.restartSidecar.
-    "project.restartSidecar": () => notYet("project.restartSidecar"),
+    // Only a sidecar that has given up: a live one may be mid-write, and one already restarting must not start twice.
+    "project.restartSidecar": (_c, params) => {
+      const p = this.hostOf(params);
+      if (p.sidecar.state === "failed") p.sidecar.restart();
+      return {};
+    },
 
     "project.subscribe": (conn, params, after) => {
       const p = this.hostOf(params);

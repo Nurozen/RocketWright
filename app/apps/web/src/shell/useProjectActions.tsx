@@ -53,6 +53,8 @@ export interface ProjectActions {
   report: (message: string) => void;
   /** Imports a file named by path, whether picked, dropped or typed (D18). */
   importPath: (path: string) => void;
+  /** Floating banners, for the window's banner stack. */
+  banners: ReactNode;
   overlays: ReactNode;
 }
 
@@ -288,7 +290,7 @@ export function useProjectActions({ client, host, lifecycle, surface, info, show
 
   const switchProject = (projectId: string) => leaveThen(async () => show(projectId));
 
-  const overlays = (
+  const banners = (
     <>
       {status !== null && (
         <Banner floating testId="project-actions.status">
@@ -305,6 +307,11 @@ export function useProjectActions({ client, host, lifecycle, surface, info, show
           {notice.text}
         </Banner>
       )}
+    </>
+  );
+
+  const overlays = (
+    <>
       {question !== null && <UnsavedPrompt question={question} />}
       {client !== null && dialog !== null && (
         <NewProjectDialog
@@ -325,5 +332,5 @@ export function useProjectActions({ client, host, lifecycle, surface, info, show
     </>
   );
 
-  return { commands, menu, switchProject, report, importPath, overlays };
+  return { commands, menu, switchProject, report, importPath, banners, overlays };
 }

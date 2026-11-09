@@ -31,6 +31,8 @@ export interface HostApi {
   onCommand(listener: (command: DesktopCommand) => void): () => void;
   /** A dropped file's path; null when it has none (always, in a browser: D18). */
   pathForFile(file: File): string | null;
+  /** A new instance of the app, after this one's server has gone (D19); a browser reloads the page, which is all it can do. */
+  relaunch(): Promise<void>;
 }
 
 /** `window.rwDesktop` as the preload exposes it (`apps/desktop/src/preload.ts`). */
@@ -39,6 +41,8 @@ export interface RwDesktopGlobal extends DesktopBridge {
   platform: string;
   rpcUrl: string | null;
   serverUrl: string | null;
+  /** Why the app server did not start, when it did not (R3.3). */
+  startupError: string | null;
   /** Main's embedded-pane messages (`lecturn-embed:rw-to-host`, `embed/bridge.ts`). */
   lecturn?: { onMessage(cb: (message: unknown) => void): () => void };
 }

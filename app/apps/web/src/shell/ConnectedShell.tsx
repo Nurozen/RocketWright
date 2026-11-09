@@ -27,12 +27,13 @@ import { StartChatPrompt } from "../embed/StartChatPrompt.tsx";
 import { defaultCompare, versionLabel } from "../pages/compare/model.ts";
 import { deleteKeyTarget, isPartDeleteKey, overlayOpen } from "../pages/assembly/partOps.ts";
 import { PartDialogs } from "../pages/assembly/PartActions.tsx";
-import type { RpcLike } from "../state/rpc.ts";
+import { RpcCallError, type RpcLike } from "../state/rpc.ts";
 import { openRef } from "../state/navigation.ts";
 import { type AppStore, useAppState } from "../state/store.ts";
 import type { ViewId } from "@rw/contracts";
 import { AppShell, type ShellHandlers } from "./AppShell.tsx";
 import { checkIssuesOf, type CheckPanelModel } from "./CheckIssuesPanel.tsx";
+import { ErrorBoundary } from "./ErrorBoundary.tsx";
 import type { CommandHandlers } from "./commands.ts";
 import { shellModelFrom } from "./connect.ts";
 import { TagVersionDialog } from "./TagVersionDialog.tsx";
@@ -64,6 +65,8 @@ export interface ConnectedShellProps {
   onPaneBridge?: (bridge: PaneBridge | null) => void;
   /** Show another open project; `AppRoot` owns which one is on screen. */
   onSwitchProject?: (projectId: string) => void;
+  /** A shell action failed; given the window's banner rather than the pane's error line. */
+  onError?: ((message: string) => void) | undefined;
   /** Recents and the project commands; `AppRoot` owns both. */
   projectMenu?: ProjectMenuModel | undefined;
   /** Filled while mounted: the native menu commands that act on this project's shell. */
@@ -116,7 +119,7 @@ const chipOf = (v: ViewId): ViewChip => (v[0]!.toUpperCase() + v.slice(1)) as Vi
 
 const message = (e: unknown): string => (e instanceof Error ? e.message : String(e));
 
-export function ConnectedShell({ store, client = null, renderPage, renderCompare, toolbarControls, pageSlots, now = Date.now, onPaneBridge, onSwitchProject, projectMenu, commandsRef, onOpenHelp }: ConnectedShellProps) {
+export function ConnectedShell({ store, client = null, renderPage, renderCompare, toolbarControls, pageSlots, now = Date.now, onPaneBridge, onSwitchProject, onError, projectMenu, commandsRef, onOpenHelp }: ConnectedShellProps) {
   const s = useAppState(store, (x) => x);
   const [clock, setClock] = useState(now());
   const [checking, setChecking] = useState(false);
@@ -129,6 +132,14 @@ export function ConnectedShell({ store, client = null, renderPage, renderCompare
   const [error, setError] = useState<string | null>(null);
   const [lastDesign, setLastDesign] = useState<DesignTab>("assembly");
 
+  // The embed covers the agent pane's error line, so with a window to tell, failures go on its banner. A dropped socket has its own banner there.
+  const fail = useCallback(
+    (e: unknown) => {
+      if (e instanceof RpcCallError && e.code === "closed") return;
+      (onError ?? setError)(message(e));
+    },
+    [onError],
+  );
   useEffect(() => {
     const t = setInterval(() => setClock(now()), 30_000);
     return () => clearInterval(t);
@@ -141,8 +152,8 @@ export function ConnectedShell({ store, client = null, renderPage, renderCompare
   const lecturnListed = s.chat.lecturn.threads !== null;
   const [bridge, setBridge] = useState<PaneBridge | null>(null);
   useEffect(() => {
-    if (connected) ensurePageThread(store).catch((e: unknown) => setError(message(e)));
-  }, [store, connected, page, lecturnListed, bridge]);
+    if (connected) ensurePageThread(store).catch(fail);
+  }, [store, connected, page, lecturnListed, bridge, fail]);
   useEffect(() => {
     const local = PAGE_TABS[page].local;
     if (local !== null) setLastDesign(local);
@@ -186,9 +197,9 @@ export function ConnectedShell({ store, client = null, renderPage, renderCompare
   );
   useEffect(() => {
     if (bridge === null || client === null || projectId === null) return;
-    return wirePane(store, client, projectId, bridge, { onError: (e) => setError(message(e)) });
-  }, [store, client, projectId, bridge]);
-  const run = (p: Promise<unknown>) => void p.catch((e: unknown) => setError(message(e)));
+    return wirePane(store, client, projectId, bridge, { onError: fail });
+  }, [store, client, projectId, bridge, fail]);
+  const run = (p: Promise<unknown>) => void p.catch(fail);
   // Revert, undo, and redo are all `history_restore` (never a separate undo stack).
   const restore = (version: string) => {
     if (client === null || projectId === null || reverting) return;
@@ -375,7 +386,7 @@ export function ConnectedShell({ store, client = null, renderPage, renderCompare
       {...(slots?.railFooter !== undefined ? { railFooter: slots.railFooter } : {})}
       page={page}
     >
-      {compareOpen ? renderCompare() : renderPage?.(page)}
+      <ErrorBoundary key={compareOpen ? "compare" : page}>{compareOpen ? renderCompare() : renderPage?.(page)}</ErrorBoundary>
       <PartDialogs store={store} />
       {tagging !== null && client !== null && projectId !== null && (
         <TagVersionDialog versionLabel={versionLabel(tagging, snap)} onTag={(name) => client.call("history.tag", { projectId, name, version: tagging })} onClose={() => setTagging(null)} />

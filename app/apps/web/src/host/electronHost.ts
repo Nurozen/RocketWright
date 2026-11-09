@@ -13,6 +13,7 @@ export function createElectronHost(bridge: DesktopBridge): HostApi {
     recents: () => bridge.recents(),
     removeRecent: (dir) => bridge.removeRecent(dir),
     setActiveProject: (project) => bridge.setActiveProject(project),
+    relaunch: () => bridge.relaunch(),
     onCommand: (listener) => bridge.onCommand(listener),
     pathForFile: (file) => {
       // `webUtils.getPathForFile` returns "" for a File that is not on disk (e.g. built by script).

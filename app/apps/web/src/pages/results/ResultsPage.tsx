@@ -18,6 +18,7 @@ import { seriesColumn } from "../../plots/series.ts";
 import { TimePlot, type PlotLine } from "../../plots/TimePlot.tsx";
 import { downloadText, exportFileName, exportRunsCsv, type ExportRun } from "./csv.ts";
 import { defaultOverlay, legendRows, outdatedBanner, plotPrompt, primaryRow, rowRef, runDetails, type ResultsRow } from "./model.ts";
+import { Banner } from "../../ui/Banner.tsx";
 import { MenuButton } from "../../ui/Menu.tsx";
 import { useResultsRows } from "./parts.tsx";
 import { ResultsIcon } from "./ResultsIcon.tsx";
@@ -195,9 +196,17 @@ export function ResultsPage({ app, source }: ResultsPageProps) {
 
       <RunTable app={app} />
       {(runError ?? notice) && (
-        <p className="rw-results__error" role="alert">
+        <Banner
+          tone="danger"
+          className="rw-results__error"
+          testId="results.error"
+          onDismiss={() => {
+            app.getState().runs.dismissError();
+            ui.getState().set({ notice: null });
+          }}
+        >
           {runError ?? notice}
-        </p>
+        </Banner>
       )}
 
       {banner && (
