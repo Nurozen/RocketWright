@@ -4,11 +4,10 @@ import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:f
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { CheckReport, EvalComponent, EvaluatedModel, ModelGetOut } from "../../packages/contracts/src/generated/index.ts";
-import { allRowKeys, compareCase1, compareEvaluatedConditions, comparePersisted, judgeRebuild, matchParts, type Case1Actual, type PostQuitReader } from "../case1-compare.ts";
+import { compareCase1, compareEvaluatedConditions, comparePersisted, flightReport, matchParts, type Case1Actual } from "../case1-compare.ts";
 import { loadCase1Plan, readEnv, type Case1Plan } from "../case1-plan.ts";
-import { FIXTURE_DIR } from "../case1-script.ts";
+import { FIXTURE_DIR, sourceFields } from "../case1-script.ts";
 import { SCRATCH, sidecarBinary } from "../live.ts";
-import { enabledRowKeys } from "../case1-stages.ts";
 
 let bin = "";
 let plan: Case1Plan;
@@ -150,20 +149,10 @@ describe("compareCase1", () => {
     expect(compareCase1(plan, stability)).toContainEqual(expect.objectContaining({ field: "stability.liftoff" }));
   });
 
-  it("covers only the fields whose script rows are enabled", () => {
-    const enabled = new Set(["c.nose.type", "c.nose.length", "c.nose.od", "c.body.type", "c.body.length", "c.body.od"]);
-    const built = mutated(({ model, check }) => {
-      model.components = model.components.filter((c) => c.id === "nose" || c.id === "body");
-      (part(model, "nose").shape as { thickness: number }).thickness = 0.009; // not an enabled row
-      part(model, "body").x_fore = 0.5; // position needs the whole part driven
-      check.mass.dry = 1; // nor is mass scored on a subset
-    });
-    expect(compareCase1(plan, built, enabled)).toEqual([]);
-    const wrong = mutated(({ model }) => {
-      model.components = model.components.filter((c) => c.id === "nose" || c.id === "body");
-      (part(model, "body").shape as { od: number }).od = 0.03;
-    });
-    expect(compareCase1(plan, wrong, enabled)).toContainEqual(expect.objectContaining({ part: "body", field: "od" }));
+  it("scores every part, position, dry mass and the static numbers, always", () => {
+    expect(compareCase1(plan, mutated(({ model }) => void (part(model, "body").x_fore += 0.5)))).toContainEqual(expect.objectContaining({ part: "body", field: "x_fore" }));
+    expect(compareCase1(plan, mutated(({ check }) => void (check.mass.dry += 1)))).toContainEqual(expect.objectContaining({ field: "dry mass" }));
+    expect(compareCase1(plan, mutated(({ model }) => void (model.components = model.components.filter((c) => c.id !== "fins"))))).toContainEqual(expect.objectContaining({ part: "fins", field: "part", actual: "missing" }));
   });
 
   it("has a comparison rule for every part field the script drives", () => {
@@ -171,76 +160,49 @@ describe("compareCase1", () => {
   });
 });
 
-describe("the skeleton's subset (B1-c)", () => {
-  const enabled = () => enabledRowKeys(new Set(["launch", "welcome", "new", "nose", "body"]));
-  /** What the app builds: only these parts, under the ids it derives from their names. */
-  const built = (): EvaluatedModel => {
-    const model = structuredClone(identity.model);
-    model.components = model.components.filter((c) => c.id === "nose" || c.id === "body");
-    part(model, "nose").id = "nose_cone";
-    const body = part(model, "body");
-    body.id = "body_tube";
-    body.parent = "nose_cone";
-    return model;
-  };
-  const verdict = (model: EvaluatedModel) => {
-    const reader: PostQuitReader = {
-      calls: [],
-      model: () => model,
-      check: () => {
-        throw new Error("rw check exits 1 on a partial model: the subset must not read it");
-      },
-      runSummary: () => {
-        throw new Error("nothing was flown");
-      },
-    };
-    return judgeRebuild({ plan, project: join(tmp, "p"), reader, enabled: enabled() });
-  };
+describe("matchParts", () => {
+  it("fails a part the plan does not have, and a body left off the nose", () => {
+    const extra = structuredClone(identity.model);
+    extra.components.push({ ...structuredClone(part(identity.model, "fins")), id: "extra_fins" });
+    expect(matchParts(plan, extra).diffs).toContainEqual(expect.objectContaining({ field: "part", expected: "no such part" }));
+    const loose = structuredClone(identity.model);
+    delete (part(loose, "body") as { parent?: unknown }).parent;
+    expect(matchParts(plan, loose).diffs).toEqual(expect.arrayContaining([expect.objectContaining({ part: "body", field: "part", actual: "missing" })]));
+  });
+});
 
-  it("pairs the app's nose_cone and body_tube with the script's nose and body", () => {
-    expect(verdict(built())).toMatchObject({ diffs: [], problems: [] });
+describe("flightReport", () => {
+  it("prints the three numbers and how they were scored", () => {
+    const oracle = [
+      { key: "apogee_m", value: 348.1, golden: 345.78, tolerance: "3%", pass: true },
+      { key: "max_velocity_ms", value: 105.2, golden: 103.77, tolerance: "3%", pass: true },
+      { key: "time_to_apogee_s", value: 9, golden: 7.74, tolerance: "0.3s", pass: false },
+    ];
+    const lines = flightReport({ flight: { run: "simulation_1/abc", thread: "ui", oracle }, problems: [] });
+    expect(lines[0]).toBe("B1 flight: run simulation_1/abc, thread ui");
+    expect(lines.slice(1)).toEqual([
+      "B1 flight: apogee_m 348.1 (oracle 345.78 within 3%): pass",
+      "B1 flight: max_velocity_ms 105.2 (oracle 103.77 within 3%): pass",
+      "B1 flight: time_to_apogee_s 9 (oracle 7.74 within 0.3s): FAIL",
+    ]);
   });
 
-  it("still scores the built fields: a 0.02 mm shift in a driven length fails", () => {
-    const model = built();
-    (part(model, "body_tube").shape as { length: number }).length += 2e-5;
-    expect(verdict(model).diffs).toEqual([expect.objectContaining({ part: "body", field: "length" })]);
+  it("prints the thread the record names, not the one it should be", () => {
+    expect(flightReport({ flight: { run: "s/a", thread: null, oracle: [] }, problems: [] })[0]).toBe("B1 flight: run s/a, thread none");
   });
 
-  it("reads the check once the whole model is scored", () => {
-    let reads = 0;
-    const reader: PostQuitReader = {
-      calls: [],
-      model: () => identity.model,
-      check: () => {
-        reads += 1;
-        return identity.check;
-      },
-      runSummary: () => {
-        throw new Error("nothing was flown");
-      },
-    };
-    expect(judgeRebuild({ plan, project: join(tmp, "p"), reader, enabled: allRowKeys() })).toMatchObject({ diffs: [], problems: [] });
-    expect(reads).toBe(1);
-  });
-
-  it("fails a part the drive never added, and a body left off the nose", () => {
-    const extra = built();
-    extra.components.push({ ...structuredClone(part(identity.model, "fins")), parent: "body_tube" });
-    expect(verdict(extra).diffs).toEqual([expect.objectContaining({ part: "fins", field: "part", expected: "no such part" })]);
-    const loose = built();
-    delete (part(loose, "body_tube") as { parent?: unknown }).parent;
-    expect(verdict(loose).diffs).toEqual(expect.arrayContaining([expect.objectContaining({ part: "body", field: "part", actual: "missing" })]));
+  it("says why there are no numbers", () => {
+    expect(flightReport({ problems: ["expected exactly one flight run in runs/, found 0"] })).toEqual(["B1 flight: no run of the app's to score: expected exactly one flight run in runs/, found 0"]);
   });
 });
 
 describe("conditions", () => {
-  const mappingOf = (model: EvaluatedModel) => matchParts(plan, model, allRowKeys()).mapping;
+  const mappingOf = (model: EvaluatedModel) => matchParts(plan, model).mapping;
 
   it("passes on the fixture's own files and evaluated conditions", () => {
     const mapping = mappingOf(identity.model);
-    expect(comparePersisted(FIXTURE_DIR, allRowKeys(), mapping)).toEqual([]);
-    expect(compareEvaluatedConditions(plan, identity.model, allRowKeys(), mapping)).toEqual([]);
+    expect(comparePersisted(FIXTURE_DIR, mapping)).toEqual([]);
+    expect(compareEvaluatedConditions(plan, identity.model, mapping)).toEqual([]);
   });
 
   it("fails a default the sim file never wrote, though the engine evaluates it the same", () => {
@@ -251,7 +213,7 @@ describe("conditions", () => {
       const file = join(project, "sims/simulation_5.rw.toml");
       writeFileSync(file, readFileSync(file, "utf8").replace(/^rail_length = .*\n/m, ""));
       const mapping = mappingOf(identity.model);
-      expect(comparePersisted(project, allRowKeys(), mapping)).toContainEqual(expect.objectContaining({ field: "sim.launch.rail_length", actual: "not written" }));
+      expect(comparePersisted(project, mapping)).toContainEqual(expect.objectContaining({ field: "sim.launch.rail_length", actual: "not written" }));
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
@@ -264,7 +226,7 @@ describe("conditions", () => {
       cpSync(FIXTURE_DIR, project, { recursive: true });
       const file = join(project, "configs/5d9a2765-395d-4d9c-9678-38eed0988c72.rw.toml");
       writeFileSync(file, readFileSync(file, "utf8").replace('delay = "7 s"', 'delay = "5 s"').replace('altitude = "200 m"', 'altitude = "300 m"').replace('event = "ejection"', 'event = "apogee"'));
-      const diffs = comparePersisted(project, allRowKeys(), mappingOf(identity.model));
+      const diffs = comparePersisted(project, mappingOf(identity.model));
       for (const field of ["config.motors.mmt.delay", "config.deploy.chute.altitude", "config.deploy.chute.event"]) {
         expect(diffs).toContainEqual(expect.objectContaining({ field }));
       }
@@ -276,14 +238,19 @@ describe("conditions", () => {
   it("maps the persisted part ids through the part mapping", () => {
     const mapping = new Map(mappingOf(identity.model));
     mapping.set("mmt", { ...mapping.get("mmt")!, id: "not_the_mount" });
-    expect(comparePersisted(FIXTURE_DIR, allRowKeys(), mapping)).toContainEqual(expect.objectContaining({ field: "config.motors.mmt.motor", actual: "not written" }));
+    expect(comparePersisted(FIXTURE_DIR, mapping)).toContainEqual(expect.objectContaining({ field: "config.motors.mmt.motor", actual: "not written" }));
   });
 
-  it("fails evaluated conditions that differ, and only for enabled rows", () => {
+  it("gates only what the drive types: a fixture field with no row may differ", () => {
+    const undriven = sourceFields().find((f) => f.key === "sim.launch.latitude");
+    expect(undriven).toBeDefined();
+    expect(comparePersisted(FIXTURE_DIR, mappingOf(identity.model), [{ ...undriven!, value: "12 deg" }])).toEqual([]);
+  });
+
+  it("fails evaluated conditions that differ", () => {
     const windy = structuredClone(identity.model);
     windy.sims["simulation_5"]!.conditions.rail_length_m = 2;
     const mapping = mappingOf(windy);
-    expect(compareEvaluatedConditions(plan, windy, allRowKeys(), mapping)).toContainEqual(expect.objectContaining({ field: "sim.launch.rail_length" }));
-    expect(compareEvaluatedConditions(plan, windy, new Set(["sim.wind.speed"]), mapping)).toEqual([]);
+    expect(compareEvaluatedConditions(plan, windy, mapping)).toContainEqual(expect.objectContaining({ field: "sim.launch.rail_length" }));
   });
 });

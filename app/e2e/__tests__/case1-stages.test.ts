@@ -1,11 +1,11 @@
-/** The ratchet and the row driver, on a fake page that answers by accessible name. */
+/** The stage order and the row driver, on a fake page that answers by accessible name. */
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import type { Expect, Locator, Page } from "@playwright/test";
 import { describe, expect, it } from "vitest";
 import { buildProgress, writeProgress } from "../case1-progress.ts";
 import { boundRows, type BoundRow } from "../case1-script.ts";
-import { B1_STAGES, STAGE_IDS, STAGE_NEEDS, driveRow, enabledRowKeys, runStages, validateStages, type DriveContext, type RowStatus, type StageId } from "../case1-stages.ts";
+import { STAGE_IDS, driveRow, runStages, type DriveContext, type RowStatus } from "../case1-stages.ts";
 import { SCRATCH } from "../live.ts";
 
 interface Fake {
@@ -13,6 +13,8 @@ interface Fake {
   log: string[];
   missing: Set<string>;
   units: Map<string, string>;
+  /** Whole-run tests: every unit-bearing field shows the unit its row asks for. */
+  anyUnit: boolean;
 }
 
 function fakeLocator(fake: Fake, key: string): Locator {
@@ -38,12 +40,12 @@ function fakeLocator(fake: Fake, key: string): Locator {
     selectOption: async (o: { label: string }) => {
       await act(`select(${o.label})`)();
     },
-    allInnerTexts: async () => [],
+    allInnerTexts: async () => (key === "columnheader:" ? ["Apogee (m)", "Max speed (m/s)", "Flight time (s)"] : key === "cell:" ? ["348", "105", "91"] : []),
   } as unknown as Locator;
 }
 
 function fakePage(): Fake {
-  const fake: Fake = { page: null as unknown as Page, log: [], missing: new Set(), units: new Map() };
+  const fake: Fake = { page: null as unknown as Page, log: [], missing: new Set(), units: new Map(), anyUnit: false };
   fake.page = fakeLocator(fake, "page") as unknown as Page;
   return fake;
 }
@@ -55,7 +57,11 @@ function fakeExpect(fake: Fake): Expect {
       toBeVisible: async () => {
         if (fake.missing.has(key)) throw new Error(`not visible: ${key}`);
       },
+      toBeHidden: async () => undefined,
+      toBeChecked: async () => undefined,
+      toHaveValue: async () => undefined,
       toHaveAccessibleDescription: async (re: RegExp) => {
+        if (fake.anyUnit) return;
         const unit = fake.units.get(key) ?? "mm";
         if (!re.test(unit)) throw new Error(`description ${unit}`);
       },
@@ -71,51 +77,42 @@ function context(fake: Fake): DriveContext {
 const rows = boundRows();
 const row = (key: string): BoundRow => rows.find((r) => r.key === key)!;
 
-describe("the ratchet", () => {
-  it("B1_STAGES is consistent: a stage cannot run ahead of what it needs", () => {
-    expect(validateStages(B1_STAGES)).toEqual([]);
-  });
-
-  it("fails a stage enabled without one it needs", () => {
-    expect(validateStages(new Set<StageId>(["launch", "welcome", "new", "fields"]))).toEqual(expect.arrayContaining([expect.stringContaining("stage fields is enabled but others")]));
-    expect(validateStages(new Set<StageId>(["run"]))).toHaveLength(STAGE_NEEDS.run.length);
-    expect(validateStages(new Set<StageId>(STAGE_IDS))).toEqual([]);
-  });
-
-  it("declares needs only on stages that run earlier", () => {
-    for (const id of STAGE_IDS) {
-      for (const need of STAGE_NEEDS[id]) expect(STAGE_IDS.indexOf(need), `${id} needs ${need}`).toBeLessThan(STAGE_IDS.indexOf(id));
-    }
-  });
-
+describe("the stages", () => {
   it("keeps the plan's stage order", () => {
     expect(STAGE_IDS.slice(STAGE_IDS.indexOf("materials"))).toEqual(["materials", "nose", "body", "others", "block", "fields", "motor", "deploy", "sim", "run", "quit", "reopen", "compare"]);
   });
 
-  it("refuses to run an inconsistent set, and runs enabled stages in the fixed order", async () => {
+  it("requires every stage, in order, and every row", async () => {
     const fake = fakePage();
+    fake.anyUnit = true;
+    const finished: string[] = [];
     const ctx = context(fake);
-    await expect(runStages(ctx, new Set<StageId>(["fields"]))).rejects.toThrow(/fields is enabled but/);
-    await runStages(ctx, new Set<StageId>(["launch", "welcome", "new", "nose", "body", "quit", "reopen", "compare"]));
-    expect(ctx.statuses.get("c.nose.length")).toBe("reached");
-    expect(ctx.statuses.get("c.body.od")).toBe("reached");
-    expect(ctx.statuses.get("c.fins.span")).toBe("pending");
-    const clicks = fake.log.filter((l) => l.startsWith("click tab:Design") || l.includes("Nose cone") || l.includes("Create project"));
-    expect(clicks[0]).toMatch(/Create project/);
+    ctx.lifecycle.finish = async () => void finished.push("finish");
+    await runStages(ctx);
+    expect(finished).toEqual(["finish"]);
+    expect([...ctx.statuses.values()].every((s) => s === "reached")).toBe(true);
+    expect(ctx.statuses.size).toBe(rows.length);
+    expect(ctx.timing.runClickedAt).toBeDefined();
+    expect(ctx.timing.quitAt).toBeDefined();
+    expect(ctx.tableReads).toHaveLength(2);
     const addNose = fake.log.findIndex((l) => l.includes("button:Nose cone"));
     const addBody = fake.log.findIndex((l) => l.includes("button:Body tube"));
-    expect(addNose).toBeGreaterThanOrEqual(0);
+    expect(fake.log.findIndex((l) => l.includes("Create project"))).toBeLessThan(addNose);
     expect(addNose).toBeLessThan(addBody);
   });
 
   it("marks the failing row, names part and label, and stops at the failing stage", async () => {
     const fake = fakePage();
+    fake.anyUnit = true;
     fake.missing.add("label:Length");
     const ctx = context(fake);
-    await expect(runStages(ctx, new Set<StageId>(["launch", "welcome", "new", "nose", "body"]))).rejects.toThrow(/not-found: part "Nose cone", label "Length"/);
+    const finished: string[] = [];
+    ctx.lifecycle.finish = async () => void finished.push("finish");
+    await expect(runStages(ctx)).rejects.toThrow(/not-found: part "Nose cone", label "Length"/);
     expect(ctx.statuses.get("c.nose.length")).toBe("not-found");
     expect(ctx.statuses.get("c.nose.od")).toBe("reached");
     expect(ctx.statuses.get("c.body.type")).toBe("pending");
+    expect(finished).toEqual([]);
   });
 });
 
@@ -215,19 +212,12 @@ describe("progress.json", () => {
         ["c.body.length", "not-found"],
       ]);
       const path = join(dir, "b1/progress.json");
-      writeProgress(buildProgress(rows, statuses, new Set<StageId>(["launch"])), path);
+      writeProgress(buildProgress(rows, statuses), path);
       const out = JSON.parse(readFileSync(path, "utf8")) as ReturnType<typeof buildProgress>;
       expect(out.counts).toEqual({ reached: 1, "wrong-unit": 1, "not-found": 1, pending: rows.length - 3 });
-      expect(out.enabled).toEqual(["launch"]);
       expect(out.rows.find((r) => r.key === "c.nose.od")).toMatchObject({ status: "wrong-unit", part: "Nose cone", label: "Outer diameter" });
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
-  });
-
-  it("enabledRowKeys covers only the enabled stages", () => {
-    const keys = enabledRowKeys(new Set<StageId>(["nose"]));
-    expect(keys.has("c.nose.length")).toBe(true);
-    expect(keys.has("c.body.length")).toBe(false);
   });
 });
