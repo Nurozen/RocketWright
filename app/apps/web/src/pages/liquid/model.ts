@@ -269,7 +269,7 @@ export interface InputRow {
   diagnostic?: Diagnostic;
 }
 
-const FLUID_MODELS: Record<string, string> = { single_phase_liquid: "Single-phase liquid", two_phase_equilibrium: "Two-phase equilibrium" };
+export const FLUID_MODELS: Record<string, string> = { single_phase_liquid: "Single-phase liquid", two_phase_equilibrium: "Two-phase equilibrium" };
 const BC_LABELS: Record<string, string> = { open: "Open", closed: "Closed", check_valve: "Check valve", orifice: "Orifice" };
 export const bcLabel = (bc: string | null | undefined): string => (bc == null ? "Required" : (BC_LABELS[bc] ?? bc));
 
@@ -497,6 +497,16 @@ export function propertyGroups(out: EngineDesignOut | null): PropertyGroup[] {
     });
   }
   return groups;
+}
+
+/** The result strip beside Compute: the numbers the Properties tables already show. */
+export function resultStats(out: EngineDesignOut | null): { id: string; label: string; value: string | null; unit: string }[] {
+  const rows = new Map(propertyGroups(out).flatMap((g) => g.rows.map((r) => [r.key, r] as const)));
+  const stat = (key: string, id: string, label: string, unit: string) => {
+    const v = rows.get(key)?.value;
+    return { id, label, value: v === undefined || v === "—" ? null : v, unit };
+  };
+  return [stat("isp_sl", "isp", "Isp", "s"), stat("chamber_diameter", "chamber", "Chamber diameter", "mm"), stat("throat_diameter", "throat", "Throat diameter", "mm")];
 }
 
 // ---- source references -----------------------------------------------------------------

@@ -1,5 +1,6 @@
 /** Patch ops for liquid engines (`/engines/<id>`, one `engines/<id>.rw.toml` file each). */
 import type { EvaluatedModel, PatchOp, schema } from "@rw/contracts";
+import type { DeepReadonly } from "../types.ts";
 import { uniqueId } from "./ids.ts";
 
 /** The schema's required inputs, on a shipped propellant pair; the rest report as missing inputs. */
@@ -36,7 +37,7 @@ export function renameEngineOps(id: string, name: string): PatchOp[] {
  * studies of it (`visual_flow.engine` is required, so a study cannot outlive
  * its engine).
  */
-export function deleteEngineOps(evaluated: Pick<EvaluatedModel, "configs" | "sims">, id: string): PatchOp[] {
+export function deleteEngineOps(evaluated: DeepReadonly<Pick<EvaluatedModel, "configs" | "sims">>, id: string): PatchOp[] {
   const ops: PatchOp[] = [{ op: "remove", path: `/engines/${id}` }];
   for (const cfg of Object.values(evaluated.configs)) {
     for (const m of cfg?.motors ?? []) if (m.engine === id) ops.push({ op: "remove", path: `/configs/${cfg!.id}/motors/${m.mount}` });
