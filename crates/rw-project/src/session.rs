@@ -556,6 +556,7 @@ impl Session {
             Command::EngineDesign(i) => Response::EngineDesign(self.engine_design(&i.engine)?),
             Command::EngineSimulate(i) => Response::EngineSimulate(self.engine_simulate(i)?),
             Command::ImportFile(i) => Response::ImportFile(self.import_file(i, ctx)?),
+            Command::RunDelete(i) => Response::RunDelete(self.run_delete(i, ctx)?),
             Command::CfdImport(i) => Response::CfdImport(self.cfd_import(i, ctx)?),
             Command::ExportFile(i) => Response::ExportFile(self.export_file(i)?),
             Command::ProjectCreate(_) => {

@@ -159,6 +159,12 @@
       "appOnly": true
     },
     {
+      "name": "run_delete",
+      "title": "Delete run",
+      "input": "sha256:e0e3f0f099486b28834756df3bc31ac3456dbef339c83f4e81662ddd1718bc70",
+      "output": "sha256:e7f301f258735f4a240f209ed01d3d35691c28da775d01e2e4a18d5f33e9b56d"
+    },
+    {
       "name": "run_diff",
       "title": "Compare runs",
       "input": "sha256:1f0b2928a552581adb2aa5a930e92ef9c76b97be3eba7604108706a25e8bccb1",

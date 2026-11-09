@@ -480,6 +480,20 @@
       "ts_name": "RunDiffOut"
     },
     {
+      "name": "tools/run_delete.input",
+      "file": "tools/run_delete.input.json",
+      "iface": "IF8",
+      "rust_type": "RunDeleteIn",
+      "ts_name": "RunDeleteIn"
+    },
+    {
+      "name": "tools/run_delete.output",
+      "file": "tools/run_delete.output.json",
+      "iface": "IF8",
+      "rust_type": "MutationOut",
+      "ts_name": "MutationOut"
+    },
+    {
       "name": "tools/model_diff.input",
       "file": "tools/model_diff.input.json",
       "iface": "IF8",
@@ -896,6 +910,19 @@
         "idempotent": true,
         "open_world": false,
         "mutating": false
+      }
+    },
+    {
+      "name": "run_delete",
+      "input": "tools/run_delete.input",
+      "output": "tools/run_delete.output",
+      "approval": "always",
+      "hints": {
+        "read_only": false,
+        "destructive": true,
+        "idempotent": false,
+        "open_world": false,
+        "mutating": true
       }
     },
     {

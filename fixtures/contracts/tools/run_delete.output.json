@@ -1,0 +1,33 @@
+{
+  "provenance": "contract-fixture",
+  "type": "tools/run_delete.output",
+  "payload": {
+    "model_hash": "1ceb288e422bb33c662e66c9265157be29a006761136f05776dd3891e9ea8822",
+    "dry_run": false,
+    "files": [
+      {
+        "path": "runs/baseline/f8eb21388e28/events.json",
+        "status": "D"
+      },
+      {
+        "path": "runs/baseline/f8eb21388e28/manifest.json",
+        "status": "D"
+      },
+      {
+        "path": "runs/baseline/f8eb21388e28/series.csv",
+        "status": "D"
+      },
+      {
+        "path": "runs/baseline/f8eb21388e28/summary.json",
+        "status": "D"
+      }
+    ],
+    "delta": {
+      "status": "clean",
+      "model_hash": "1ceb288e422bb33c662e66c9265157be29a006761136f05776dd3891e9ea8822",
+      "changed": {},
+      "new_diagnostics": [],
+      "resolved_diagnostics": []
+    }
+  }
+}

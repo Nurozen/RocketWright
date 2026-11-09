@@ -535,6 +535,7 @@ name your host lists.
 | `job_status` | | poll a job until `complete` or `failed` |
 | `job_cancel` | | |
 | `run_list`, `run_diff` | `rw diff run` | |
+| `run_delete` | | `{"run":"baseline/f8eb21388e28"}`; the exact run, flight or visual; refused while the sim has a job; needs the user's approval |
 | `motor_search`, `library_search` | `rw motor search`, `rw lib search` | read-only |
 | `motor_show` | `rw motor show` | `{"id":"generic:RW_C6G"}`; read-only, the specs and thrust curve |
 | `import_file` | `rw motor import` | `{"path":"/abs/K828FJ.eng","kind":"motor"}`; needs the user's approval |

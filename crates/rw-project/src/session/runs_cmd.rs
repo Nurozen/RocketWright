@@ -1,6 +1,6 @@
 //! Session commands over runs, jobs, motors, schemas, and formatting
 //! (M1.28, M1.30, M1.31): `simulate`, `job_status`, `job_cancel`,
-//! `run_list`, `run_diff`, `motor_search`, `motor_show`, `schema_get`,
+//! `run_list`, `run_diff`, `run_delete`, `motor_search`, `motor_show`, `schema_get`,
 //! `fmt`, and the quick-sim tier of `design_check`.
 //!
 //! `simulate` resolves everything a flight needs under the session lock
@@ -15,10 +15,11 @@ use std::time::{Duration, Instant};
 
 use rw_aero::{AeroModel, AeroOptions};
 use rw_api::{
-    ApiError, ApiErrorCode, CallCtx, CheckSimMode, DesignCheckIn, FmtIn, FmtOut, JobInfo, JobKind,
-    JobState, ManifestMotor, MetricDiffRow, MotorInfo, MotorSearchIn, MotorSearchOut, MotorShowOut,
-    OracleFile, OracleGolden, Provenance, RunDiffIn, RunDiffOut, RunListEntry, RunListOut,
-    RunManifest, RunStatus, SchemaGetOut, SimulateIn, SimulateOut,
+    ApiError, ApiErrorCode, CallCtx, CheckSimMode, DesignCheckIn, FileChange, FileStatus, FmtIn,
+    FmtOut, JobInfo, JobKind, JobState, ManifestMotor, MetricDiffRow, MotorInfo, MotorSearchIn,
+    MotorSearchOut, MotorShowOut, MutationOut, OracleFile, OracleGolden, Provenance, RunDeleteIn,
+    RunDiffIn, RunDiffOut, RunListEntry, RunListOut, RunManifest, RunStatus, SchemaGetOut,
+    SimulateIn, SimulateOut,
 };
 use rw_check::{CheckDelta, CheckReport};
 use rw_mass::MassModel;
@@ -27,7 +28,7 @@ use rw_motor::{MotorSource, MountedMotor, ThrustCurve};
 use rw_sim::{RunSummary, SimError, SimInput};
 
 use super::phases::{golden_phases, phase_rows, run_phases};
-use super::{Session, err, io_err, with_hint};
+use super::{Session, SessionEvent, URI_RUNS, err, io_err, with_hint};
 use crate::jobs::{JobFailure, JobOutcome, JobQueue, JobSpec};
 use crate::runs::{CORE_VERSION, RunKey, RunStore, status_of, stored_summary};
 use crate::{clock, fsutil};
@@ -862,6 +863,71 @@ impl Session {
                 err(ApiErrorCode::NotFound, format!("no run `{r}`")),
                 "run refs are <run-id>, <sim>/<run-id>, rw:run/<id>, or a sim id (its latest run); see run_list",
             )
+        })
+    }
+
+    /// Deletes one flight or visual run. The model is untouched, so there is
+    /// no history step and the check delta is empty; `dry_run` lists the
+    /// files. A job on the sim is refused, because it may be writing the
+    /// directory or about to report the run as its result.
+    pub(super) fn run_delete(
+        &mut self,
+        i: &RunDeleteIn,
+        ctx: &CallCtx,
+    ) -> Result<MutationOut, ApiError> {
+        if !i.dry_run {
+            self.require_writable()?;
+        }
+        let m = self.runs.find_exact(&i.run).ok_or_else(|| {
+            with_hint(
+                err(ApiErrorCode::NotFound, format!("no run `{}`", i.run)),
+                "deleting takes <sim>/<run-id>, rw:run/<run-id>, or a full run id; see run_list",
+            )
+        })?;
+        if let Some(j) = self.jobs.active_for_sim(&m.sim) {
+            return Err(with_hint(
+                err(
+                    ApiErrorCode::Conflict,
+                    format!(
+                        "simulation `{}` has a job in progress ({})",
+                        m.sim, j.job_id
+                    ),
+                ),
+                "wait for it to finish, or stop it with job_cancel, then delete the run",
+            ));
+        }
+        let refuse = |e: std::io::Error| {
+            if e.kind() == std::io::ErrorKind::InvalidInput {
+                err(ApiErrorCode::InvalidInput, e.to_string())
+            } else {
+                io_err("run directory", e)
+            }
+        };
+        let files = self
+            .runs
+            .run_files(&m.sim, &m.run_id)
+            .map_err(refuse)?
+            .into_iter()
+            .map(|path| FileChange {
+                path,
+                status: FileStatus::D,
+            })
+            .collect();
+        if !i.dry_run {
+            self.runs.remove(&m.sim, &m.run_id).map_err(refuse)?;
+            // `runs/` is not watched, so this is the only announcement.
+            self.emit(SessionEvent {
+                uris: vec![URI_RUNS],
+                origin: ctx.origin,
+                step: None,
+            });
+        }
+        Ok(MutationOut {
+            step: None,
+            model_hash: self.model.model_hash.clone(),
+            dry_run: i.dry_run,
+            files,
+            delta: CheckDelta::between(&self.report, &self.report, None),
         })
     }
 

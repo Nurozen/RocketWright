@@ -154,6 +154,12 @@ fn when(name: &str) -> &'static str {
              diameters), listing missing inputs."
         }
         "engine_simulate" => "Tank and feed blowdown simulation of a liquid engine; returns a job.",
+        "run_delete" => {
+            "Permanently delete one flight or visual run's files from runs/. Name the exact run \
+             (<sim>/<run-id> from the run_list tool); a sim id or a shortened id is refused, as is a \
+             sim with a job in progress. The model and its history do not change, and flying the same \
+             inputs again recreates the run. Needs approval."
+        }
         "cfd_import" => {
             "Import a CFD point dataset (CSV: header x,y,z in m, body frame; optional vx,vy,vz and \
              scalar columns; one file per step <prefix>_t<s>.csv, or a directory of them) into \

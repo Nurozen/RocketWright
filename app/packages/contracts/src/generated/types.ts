@@ -591,6 +591,10 @@ export type Command =
       input: RunDiffIn;
     }
   | {
+      command: "run_delete";
+      input: RunDeleteIn;
+    }
+  | {
       command: "model_diff";
       input: ModelDiffIn;
     }
@@ -3718,6 +3722,10 @@ export type Response =
       output: RunDiffOut;
     }
   | {
+      command: "run_delete";
+      output: MutationOut;
+    }
+  | {
       command: "model_diff";
       output: ModelDiff;
     }
@@ -3831,6 +3839,18 @@ export interface RocketDoc {
    */
   assert?: AssertRule[];
   report?: ReportSpec | null;
+}
+
+/**
+ * `run_delete`: one flight or visual run.
+ */
+export interface RunDeleteIn {
+  /**
+   * The run: <sim>/<run-id>, rw:run/<run-id>, or its full run id. A sim
+   * id or a shortened run id is refused: deleting takes an exact name.
+   */
+  run: string;
+  dry_run?: boolean;
 }
 
 export interface RunDiffIn {
@@ -4776,6 +4796,7 @@ export type RwContract =
   | RunListOut
   | RunDiffIn
   | RunDiffOut
+  | RunDeleteIn
   | ModelDiffIn
   | ModelDiff
   | HistoryListIn

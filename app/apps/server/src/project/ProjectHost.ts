@@ -243,6 +243,11 @@ export class ProjectHost {
     return this.tool<MutationOut>("history_restore", { version, dry_run: dryRun });
   }
 
+  /** `run_delete`: removes one flight or visual run. A user action: not gated. The sidecar announces `rw://runs/index`. */
+  deleteRun(run: string, dryRun: boolean): Promise<MutationOut> {
+    return this.tool<MutationOut>("run_delete", { run, dry_run: dryRun }, "Delete run");
+  }
+
   /** `library_search` (read only): presets, components, materials, and motors. */
   librarySearch(q: { query?: string; kind?: string; limit?: number }): Promise<schema.LibrarySearchOut> {
     return this.tool<schema.LibrarySearchOut>("library_search", q);

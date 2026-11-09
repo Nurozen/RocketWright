@@ -407,6 +407,16 @@ pub struct RunListIn {
     pub sim: Option<String>,
 }
 
+/// `run_delete`: one flight or visual run.
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize, JsonSchema)]
+pub struct RunDeleteIn {
+    /// The run: <sim>/<run-id>, rw:run/<run-id>, or its full run id. A sim
+    /// id or a shortened run id is refused: deleting takes an exact name.
+    pub run: String,
+    #[serde(default)]
+    pub dry_run: bool,
+}
+
 /// `run_list` and `rw://runs/index`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct RunListOut {
