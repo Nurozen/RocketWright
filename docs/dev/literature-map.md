@@ -22,7 +22,7 @@ Conventions:
 | PD | Pressure drag (body, nose, shoulder, boattail, fins) and drag totals | 39 |
 | BD | Base drag (body and fin trailing edge) | 16 |
 | PA | Parasitic drag (launch lugs, rail buttons) | 8 |
-| BW | Barrowman normal force and CP (nose, body, transitions, fins, fin-body interference, combination) | 130 |
+| BW | Barrowman normal force and CP (nose, body, transitions, fins, fin-body interference, combination) | 132 |
 | DM | Roll and pitch damping, roll forcing | 59 |
 | TF | Tube fins as annular (ring) wings, ringtails | 11 |
 | GE | Nose and transition geometry | 10 |
@@ -340,7 +340,7 @@ Conventions:
 | BW-23 | Barrowman fins | Busemann K_3 | niskanen-2009 | (3.44) | 40 | 30 | K_3 = ((γ + 1) M⁸ + (2γ² − 7γ − 5) M⁶ + 10(γ + 1) M⁴ + 8)/(6β⁷) |  |
 | BW-24 | Barrowman fins | supersonic strip force | niskanen-2009 | (3.45) | 41 | 31 | F_i = C_P,i q_dyn c_i Δξ |  |
 | BW-25 | Barrowman fins | supersonic fin C_N from strips | niskanen-2009 | (3.47) | 41 | 31 | C_N = (1/A_ref) Σ_i C_P,i c_i Δξ |  |
-| BW-26 | Barrowman fins | supersonic single-fin C_Nα | niskanen-2009 | (3.49) | 41 | 31 | (C_Nα)_1 = (A_fin/A_ref)(K_1 + K_2 α + K_3 α²) | uncanted, no roll |
+| BW-26 | Barrowman fins | supersonic single-fin C_Nα | niskanen-2009 | (3.49) | 41 | 31 | (C_Nα)_1 = (A_fin/A_ref)(K_1 + K_2 α + K_3 α²) | uncanted, no roll; one face only, half the two-face load at α → 0 (Errata). Implemented: (A_fin/A_ref) 2(K_1 + K_3 α²) from BW-B67-094/095 |
 | BW-27 | Barrowman fins | fin local angle of attack by dihedral | niskanen-2009 | (3.50) | 42 | 32 | α_i = α sin Λ_i |  |
 | BW-28 | Barrowman fins | fin-set sum over dihedral | niskanen-2009 | (3.52) | 42 | 32 | Σ_k (C_Nα)_Λk = (C_Nα)_1 Σ_k sin²Λ_k | per fin: (3.51) |
 | BW-29 | Barrowman fins | equal-spacing identity | niskanen-2009 | (3.53) | 42 | 32 | Σ_{k=1..N} sin²(2πk/N + θ) = N/2 | N ≥ 3 |
@@ -438,11 +438,13 @@ Conventions:
 | BW-B67-084 | fin (App. A) | strip region drag | barrowman-1967 | (5) | 94 | 84 | F_d,i = C_p,i n_i (1 − r_i/2) |  |
 | BW-B67-085 | fin (App. A) | strip region CP | barrowman-1967 | (6) | 94 | 84 | x̄_i = (1/2) d_i [1 − r_i + r_i/2 + (x_p,i/l_i)(2 − r_i)] / (1 − r_i/2) | faint print; verify |
 | BW-B67-086 | fin (App. A) | strip region pitching moment | barrowman-1967 | (7) | 94 | 84 | M_p,i = F_l,i x̄_i |  |
+| BW-B67-094 | fin (App. A) | strip totals over both faces | barrowman-1967 | (8)-(10) | 96 | 86 | F_l,j = Σ_{i=1..6} F_l,i (likewise F_d,j, M_p,j); regions 1-3 one face, 4-6 the other (Fig 3, pdf 99) | no face sign printed; lift takes the leeward regions with opposite sign (Errata). Flat plate (ζ = 0): ΔC_P = C_P(+η) − C_P(−η) = 2(K_1 η + K_3 η³), K_2 cancels |
 | BW-B67-087 | fin (App. A) | lift coefficient, fin pair | barrowman-1967 | (16) | 97 | 87 | C_L = 2 F_l Δy / A | 2 fins; A = program reference area |
 | BW-B67-088 | fin (App. A) | wave drag coefficient, fin pair | barrowman-1967 | (17) | 97 | 87 | C_D,wave = 2 F_d Δy / A | 2 fins |
 | BW-B67-089 | fin (App. A) | pitching moment coefficient, fin pair | barrowman-1967 | (18) | 97 | 87 | C_m = 2 M_p Δy / (A L) | 2 fins |
 | BW-B67-090 | fin (App. A) | supersonic fin CP coordinates | barrowman-1967 | (20)-(21) | 97 | 87 | X̄ = M_p / (F_l cos α) ; Ȳ = M_r / F_l |  |
 | BW-B67-091 | fin (App. A) | slopes from 1-degree values | barrowman-1967 | (22)-(24) | 97 | 87 | C_Lα = (180/π) C_L at α=1° ; C_mα = (180/π) C_m at α=1° ; C_lδ = (180/π) C_l at δ=1° | per radian |
+| BW-B67-095 | fin (App. A) | region surface inclinations | barrowman-1967 | (33a)-(33d) | 98 | 88 | η_1 = ζ_L − α ; η_2 = −α ; η_3 = −ζ_T − α ; η_4 = ζ_L + α ; (η_5 = α ; η_6 = −ζ_T + α, pdf 101) | η_5, η_6 printed as (38e), (38f) on pdf 101 (Errata) |
 | BW-B67-092 | fin (App. A) | Mach angle | barrowman-1967 | (36) | 101 | 91 | μ = tan⁻¹(1/β) = sin⁻¹(1/M) | M > 1 |
 | BW-B67-093 | fin (App. A) | tip Mach-cone intersection distance | barrowman-1967 | (38) | 101 | 91 | l_w = (s − y)(tan Γ_L + β) | (37): (s − y)[tan Γ_L + tan(90° − μ)] |
 
@@ -462,7 +464,7 @@ Conventions:
 | DM-10 | roll damping | subsonic roll-damping coefficient | niskanen-2009 | (3.69) | 49 | 39 | C_l,d = (N C_Nα0 ω_roll / (A_ref d_ref V)) Σ_i c_i ξ_i² Δξ_i |  |
 | DM-11 | roll damping | trapezoid strip-sum closed form | niskanen-2009 | (3.70) | 49 | 39 | Σ c ξ² Δξ = ((c_r + c_t)/2) r_t² s + ((c_r + 2c_t)/3) r_t s² + ((c_r + 3c_t)/12) s³ |  |
 | DM-12 | roll damping | elliptical strip-sum closed form | niskanen-2009 | (3.71) | 49 | 39 | Σ c ξ² Δξ = c_r ((π/4) r_t² s + (2/3) r_t s² + (π/16) s³) |  |
-| DM-13 | roll damping | supersonic roll-damping coefficient | niskanen-2009 | (3.72) | 49 | 39 | C_l,d = (N/(A_ref d_ref)) Σ_i C_P,i c_i ξ_i Δξ_i , η_i from DM-06 | C_P,i from BW-20 |
+| DM-13 | roll damping | supersonic roll-damping coefficient | niskanen-2009 | (3.72) | 49 | 39 | C_l,d = (N/(A_ref d_ref)) Σ_i C_P,i c_i ξ_i Δξ_i , η_i from DM-06 | C_P,i from BW-20, one face only (Errata). Implemented with the two-face ΔC_P,i = 2(K_1 η_i + K_3 η_i³) of BW-B67-094/095 |
 | DM-14 | roll damping | subsonic equilibrium roll frequency | niskanen-2009 | (3.73) | 50 | 40 | f_eq = ω_eq/(2π) = A_ref β V y_mac (C_Nα)_1 δ / (4π² Σ c ξ² Δξ) |  |
 | DM-15 | roll damping | supersonic equilibrium roll frequency (linear) | niskanen-2009 | (3.74) | 50 | 40 | f_eq = A_ref β V y_mac (C_Nα)_1 δ / (4π Σ c ξ² Δξ) | denominator 4π as printed (vs 4π² in 3.73) |
 | DM-B67-001 | roll | cant-induced rolling moment | barrowman-1967 | (3-31) | 21 | 11 | l_roll = N y_cp,f (C_Nα)_1 δ q_dyn A_ref | subsonic |
@@ -690,6 +692,8 @@ SI forms (SP-125 writes weight flow ẇ and g; here ṁ = ẇ/g). sp-125 printed
 | source | location | issue | use |
 |---|---|---|---|
 | niskanen-2009 | (3.44), pdf 40 | K_3 omits the −12 M² term that barrowman-1967 (3-7), pdf 14, prints. | Use Barrowman's K_3 (BW-B67-008). |
+| niskanen-2009 vs barrowman-1967 | (3.48)/(3.49), pdf 41; (3.72), pdf 49; barrowman-1967 App. A (8), (33a)-(33d), (16), pdf 96-98 | The supersonic fin load and roll damping apply one face's Busemann C_P as the whole strip load. App. A sums the regions of both faces, so for a flat plate the load is ΔC_P = 2(K_1 η + K_3 η³): twice the thesis at α → 0, with no K_2 term. The thesis's own subsonic (3.67)/(3.69) use the two-face 2π/β, and the two-face supersonic limit is Ackeret's 4/β. | Two-face ΔC_P (BW-B67-094/095) in BW-26 and DM-13; parity-log Phase 1b. |
+| barrowman-1967 | App. A (4), (8), pdf 94/96; (38e)/(38f), pdf 101 | (4) and (8) print no face sign: with d_i = l_i cos η_i > 0 for all six regions, a literal sum cancels the K_1 term. η_5 and η_6 are numbered (38e)/(38f), continuing (33a)-(33d) two pages earlier. | Lift = windward minus leeward face (BW-B67-094); read (38e)/(38f) as (33e)/(33f). |
 | niskanen-2009 | (3.73)/(3.74), pdf 50 | The equilibrium roll rate uses y_mac, but the forcing term (3.66) uses (y_mac + r_t). | Equate DM-08 and DM-10 directly; do not use the printed f_eq. |
 | niskanen-2009 vs barrowman-1967 | (3.82) vs (4-9)/(4-10), pdf 55/57 | Subsonic C_f correction: Niskanen uses 1 − 0.1 M² for both smooth and rough. Barrowman uses 1 − 0.09 M² (smooth) and 1 − 0.12 M² (rough). | Model choice: Niskanen. Flag in the parity log. |
 | niskanen-2009 vs barrowman-1967 | (3.89) vs (4-18)/(4-19), pdf 59/60 | LE drag: the transonic slope is 1.785 vs 1.5, and Niskanen drops the supersonic +0.0231/M⁶ term. | Model choice: Niskanen. Flag in the parity log. |
@@ -726,4 +730,5 @@ SI forms (SP-125 writes weight flow ẇ and g; here ṁ = ẇ/g). sp-125 printed
 ## Verification
 
 - 2026-10-16: a fresh reviewer took a stratified random sample of 5 rows (BW-31, BD-B67-007, AT-07, MM-03, PD-B67-012) and checked each against the rendered PDF page for equation number, printed page, equivalence in our notation, and validity range. All 5 passed. One clarification was applied: AT-07's T_M,0 = T_0 is marked as derived.
+- 2026-11-09 (Phase 1b): niskanen-2009 (3.45)-(3.49) pdf 41 and (3.67)-(3.72) pdf 49, and barrowman-1967 App. A (1)-(7) pdf 92-94, (8)-(15) pdf 96, (16)-(24) pdf 97, (33a)-(33d) pdf 98, Fig 3 pdf 99 and (38e)/(38f) pdf 101 were checked on rendered page images for the BW-26, DM-13, BW-B67-094/095 rows and the two-face Errata entries.
 - The row builders verified each row against the page text, using rendered images where the text was garbled. The Errata entries for niskanen-2009 (3.44) and barrowman-1967 (3-96) were re-confirmed on page images (pdf 14 and pdf 41).

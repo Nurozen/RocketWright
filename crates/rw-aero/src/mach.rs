@@ -58,13 +58,19 @@ pub fn busemann(mach: f64) -> [f64; 3] {
     [k1, k2, k3]
 }
 
-/// Busemann strip pressure coefficient C_P = K_1 η + K_2 η² + K_3 η³ for a
-/// surface inclination η (odd-extended: C_P(−η) = −C_P(η)).
-/// cite: niskanen-2009 eq 3.41 p 40
-pub fn busemann_cp(mach: f64, eta: f64) -> f64 {
-    let [k1, k2, k3] = busemann(mach);
-    let e = eta.abs();
-    eta.signum() * (k1 * e + k2 * e * e + k3 * e * e * e)
+/// Pressure difference across a flat-plate strip at incidence η, both faces
+/// summed: ΔC_P = C_P(+η) − C_P(−η) = 2(K_1 η + K_3 η³). Each face takes the
+/// Busemann series K_1 η + K_2 η² + K_3 η³ (K* = 0, no upstream shock) at its
+/// own signed inclination: the windward face at +η, the leeward at −η
+/// ((33a)-(33d) with ζ = 0), and the strip load is the sum over the regions of
+/// both faces (8). K_2 cancels. niskanen-2009 (3.48), (3.49), (3.72) apply one
+/// face's C_P as the whole load, half of this at small η (literature-map Errata).
+/// cite: barrowman-1967 eq 8 p 96
+/// cite: barrowman-1967 eq 33a-33d p 98
+/// cite: barrowman-1967 eq 1 p 92
+pub fn flat_plate_strip_dcp(mach: f64, eta: f64) -> f64 {
+    let [k1, _, k3] = busemann(mach);
+    2.0 * (k1 * eta + k3 * eta * eta * eta)
 }
 
 /// Cubic Hermite interpolant on `[x0, x1]` through `(x0, y0)` with slope `d0`
@@ -130,7 +136,27 @@ mod tests {
         // K3 at M = 2 with the −12M² term: (2.4·256 + (3.92 − 9.8 − 5)·64 + 24·16 − 48 + 8)/(6 b⁷).
         let num = 2.4 * 256.0 + (2.0 * 1.96 - 9.8 - 5.0) * 64.0 + 24.0 * 16.0 - 48.0 + 8.0;
         assert!((k3 - num / (6.0 * b.powi(7))).abs() < 1e-12);
-        assert!((busemann_cp(2.0, -0.1) + busemann_cp(2.0, 0.1)).abs() < 1e-15);
+    }
+
+    #[test]
+    fn strip_dcp_is_odd_with_no_eta_squared_term() {
+        for m in [1.6_f64, 2.0, 3.5] {
+            let [k1, k2, k3] = busemann(m);
+            for eta in [0.01_f64, 0.05, 0.2] {
+                let (p, n) = (flat_plate_strip_dcp(m, eta), flat_plate_strip_dcp(m, -eta));
+                assert_eq!(p, -n, "M={m} η={eta}: not odd");
+                // Face by face: windward C_P(+η) minus leeward C_P(−η) of the
+                // full series, K_2 included; the K_2 η² terms cancel.
+                let face = |e: f64| k1 * e + k2 * e * e + k3 * e * e * e;
+                let faces = face(eta) - face(-eta);
+                assert!((p - faces).abs() <= 1e-14 * faces.abs(), "M={m} η={eta}");
+                assert!((p - 2.0 * (k1 * eta + k3 * eta.powi(3))).abs() < 1e-15);
+            }
+            // Even part is zero, so no η² term survives.
+            let even = flat_plate_strip_dcp(m, 0.1) + flat_plate_strip_dcp(m, -0.1);
+            assert_eq!(even, 0.0);
+            assert_eq!(flat_plate_strip_dcp(m, 0.0), 0.0);
+        }
     }
 
     #[test]
@@ -144,12 +170,10 @@ mod tests {
 
     #[test]
     fn busemann_flat_plate_is_ackeret_lift() {
-        // For a flat plate: net ΔCp across upper/lower = 2 * busemann_cp(M, α).
-        // In the linear limit that equals the Ackeret lift slope 4/β.
-        // α = 1e-10 keeps the K₂·α² residual < 2e-10, well within 1e-7.
+        // The two-face ΔC_P of a flat plate tends to the Ackeret lift slope 4/β.
         for m in [2.0_f64, 3.0] {
             let alpha = 1e-10_f64;
-            let net = 2.0 * busemann_cp(m, alpha) / alpha;
+            let net = flat_plate_strip_dcp(m, alpha) / alpha;
             let ackeret = 4.0 / beta(m);
             assert!(
                 (net - ackeret).abs() < 1e-7,

@@ -159,19 +159,28 @@ pub fn single_fin_cna_subsonic(mach: f64, span: f64, a_fin: f64, a_ref: f64, gam
 }
 
 /// Supersonic single-fin secant slope at angle of attack α (flat plate,
-/// uncanted, no roll): (C_Nα)_1 = (A_fin/A_ref)(K_1 + K_2 α + K_3 α²).
-/// cite: niskanen-2009 eq 3.49 p 41
+/// uncanted, no roll), both faces loaded:
+/// (C_Nα)_1 = (A_fin/A_ref) ΔC_P(α)/α = (A_fin/A_ref) 2(K_1 + K_3 α²),
+/// ΔC_P from [`crate::mach::flat_plate_strip_dcp`]. At α → 0 this is the
+/// Ackeret slope (A_fin/A_ref) 4/β. niskanen-2009 (3.48)/(3.49) build the same
+/// strip sum from one face's C_P, (A_fin/A_ref)(K_1 + K_2 α + K_3 α²), which is
+/// half at α → 0 (literature-map Errata).
+/// cite: barrowman-1967 eq 8 p 96
+/// cite: barrowman-1967 eq 16 p 97
+/// cite: barrowman-1967 eq 33a-33d p 98
+/// cite: niskanen-2009 eq 3.47 p 41
 pub fn single_fin_cna_supersonic(mach: f64, alpha: f64, a_fin: f64, a_ref: f64) -> f64 {
     if a_ref <= 0.0 {
         return 0.0;
     }
-    let [k1, k2, k3] = busemann(mach);
+    // ΔC_P/α written out so α = 0 gives the limit, not 0/0.
+    let [k1, _, k3] = busemann(mach);
     let a = alpha.abs();
-    a_fin / a_ref * (k1 + k2 * a + k3 * a * a)
+    a_fin / a_ref * 2.0 * (k1 + k3 * a * a)
 }
 
 /// Single-fin secant slope over the whole Mach range: subsonic (3.40) up to
-/// M 0.9, supersonic (3.49) from M 1.5, C¹ cubic blend between.
+/// M 0.9, supersonic two-face strip load from M 1.5, C¹ cubic blend between.
 /// cite: niskanen-2009 eq 3.40 p 39
 pub fn single_fin_cna(
     mach: f64,
@@ -364,8 +373,26 @@ mod tests {
         assert!((lo - single_fin_cna_subsonic(0.9, s, a_fin, a_ref, gc)).abs() < 1e-12);
         let hi = single_fin_cna(1.5, 0.0, s, a_fin, a_ref, gc);
         assert!((hi - single_fin_cna_supersonic(1.5, 0.0, a_fin, a_ref)).abs() < 1e-12);
-        // Supersonic K_1 term alone: (A_fin/A_ref)(2/β).
+        // Both faces at α → 0: the Ackeret slope (A_fin/A_ref)(4/β).
         let k1 = single_fin_cna_supersonic(2.0, 0.0, a_fin, a_ref);
-        assert!((k1 - a_fin / a_ref * 2.0 / 3.0_f64.sqrt()).abs() < 1e-12);
+        assert!((k1 - a_fin / a_ref * 4.0 / 3.0_f64.sqrt()).abs() < 1e-12);
+    }
+
+    #[test]
+    fn supersonic_slope_is_two_face_ackeret_at_small_alpha() {
+        let (a_fin, a_ref) = (0.003, 0.002);
+        for m in [1.5_f64, 2.0, 2.5, 4.3] {
+            let ackeret = a_fin / a_ref * 4.0 / beta(m);
+            let at0 = single_fin_cna_supersonic(m, 0.0, a_fin, a_ref);
+            assert!((at0 - ackeret).abs() <= 1e-12 * ackeret, "M={m}");
+            // Secant slope at small α is the strip ΔC_P over α on the fin area.
+            let alpha = 1e-3;
+            let secant = a_fin / a_ref * crate::mach::flat_plate_strip_dcp(m, alpha) / alpha;
+            let s = single_fin_cna_supersonic(m, alpha, a_fin, a_ref);
+            assert!((s - secant).abs() <= 1e-12 * secant, "M={m}");
+            assert!(((s - ackeret) / ackeret).abs() < 1e-4, "M={m}");
+            // Even in α.
+            assert_eq!(s, single_fin_cna_supersonic(m, -alpha, a_fin, a_ref));
+        }
     }
 }

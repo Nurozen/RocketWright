@@ -389,8 +389,7 @@ fn basic_finner_baseline_vs_drev() {
     println!();
     println!(
         "CP sign: d_cal = model_CP − DREV_CP, cal from nose, positive = aft.\n\
-         Negative d_cal → model CP more forward → UNDERESTIMATES stability.\n\
-         Root cause at supersonic Mach: CNα ≈ half DREV (see CNα breakdown below)."
+         Negative d_cal → model CP more forward → UNDERESTIMATES stability."
     );
 
     // === Drag breakdown ===
@@ -435,9 +434,8 @@ fn basic_finner_baseline_vs_drev() {
     );
     println!(
         "fins_bare = fins_int / (K_T(B) + K_B(T)): single-fin CNα × fin_count_factor(4) = 2.\n\
-         Supersonic single-fin slope = (A_fin/A_ref)*K1 = (A_fin/A_ref)*2/β (half Ackeret 4/β).\n\
-         The busemann_flat_plate test (mach.rs) asserts 2*busemann_cp/α ≈ 4/β (BOTH surfaces);\n\
-         single_fin_cna_supersonic uses K1=2/β for ONE surface — this is by design."
+         Supersonic single-fin slope = (A_fin/A_ref)*2(K1 + K3 α²), both fin faces\n\
+         (barrowman-1967 App. A); at α → 0 this is Ackeret (A_fin/A_ref)*4/β."
     );
     println!(
         "{:>6} | {:>8} {:>8} {:>8} {:>7} {:>7} {:>7} | {:>8}",

@@ -7,7 +7,7 @@
 //! carries the sign of the cant angle.
 
 use crate::fins::Strip;
-use crate::mach::{beta, busemann_cp, transonic_blend};
+use crate::mach::{beta, flat_plate_strip_dcp, transonic_blend};
 
 /// Body pitch-damping coefficient of one portion (fore or aft of the CG) of
 /// length l and mean radius r_t: 0.55 (l⁴ r_t/(A_ref d)) (ω²/V²).
@@ -97,9 +97,14 @@ pub fn roll_damping_subsonic(
     count as f64 * cna0 * omega / (a_ref * d_ref * speed) * sum
 }
 
-/// Supersonic roll-damping coefficient, (N/(A_ref d)) Σ C_P,i c_i ξ_i Δξ_i with
-/// the Busemann C_P at the strip incidence η_i = ω ξ_i / V.
+/// Supersonic roll-damping coefficient, (N/(A_ref d)) Σ ΔC_P,i c_i ξ_i Δξ_i with
+/// the two-face flat-plate ΔC_P ([`flat_plate_strip_dcp`]) at the strip
+/// incidence η_i = atan(ω ξ_i / V). niskanen-2009 (3.72) sums one face's C_P,i,
+/// half of this (literature-map Errata); roll forcing takes the two-face
+/// single-fin slope, so both change together.
 /// cite: niskanen-2009 eq 3.72 p 49
+/// cite: barrowman-1967 eq 8 p 96
+/// cite: barrowman-1967 eq 33a-33d p 98
 pub fn roll_damping_supersonic(
     count: u32,
     mach: f64,
@@ -114,7 +119,9 @@ pub fn roll_damping_supersonic(
     }
     let sum: f64 = strips
         .iter()
-        .map(|s| busemann_cp(mach, (omega * s.xi / speed).atan()) * s.chord * s.xi * s.width)
+        .map(|s| {
+            flat_plate_strip_dcp(mach, (omega * s.xi / speed).atan()) * s.chord * s.xi * s.width
+        })
         .sum();
     count as f64 / (a_ref * d_ref) * sum
 }
@@ -217,10 +224,19 @@ mod tests {
             4.0 * (2.0 * PI / 0.8) * 5.0 / (a * 0.054 * 200.0) * sum,
             1e-12
         ));
-        // Supersonic, linear in small ω: K_1 = 2/β term dominates.
+        // Supersonic, linear in small ω: both faces, 2 K_1 = 4/β.
         let s2 = roll_damping(4, 2.0, 1e-3, a, 0.054, 600.0, &strips);
-        let lin = 4.0 / (a * 0.054) * (2.0 / 3.0_f64.sqrt()) * 1e-3 / 600.0 * sum;
+        let lin = 4.0 / (a * 0.054) * (4.0 / 3.0_f64.sqrt()) * 1e-3 / 600.0 * sum;
         assert!(close(s2, lin, 1e-4));
+        // Damping and forcing use the same two-face slope per unit fin area,
+        // so the supersonic equilibrium spin rate keeps its (3.73) form.
+        let per_area = crate::fins::single_fin_cna_supersonic(2.0, 0.0, 1.0, 1.0);
+        assert!(close(per_area, 4.0 / 3.0_f64.sqrt(), 1e-12));
+        assert!(close(
+            s2,
+            4.0 / (a * 0.054) * per_area * 1e-3 / 600.0 * sum,
+            1e-4
+        ));
         // Odd in ω.
         let neg = roll_damping(4, 2.0, -1e-3, a, 0.054, 600.0, &strips);
         assert!(close(-neg, s2, 1e-12));
