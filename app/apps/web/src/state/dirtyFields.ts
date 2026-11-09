@@ -21,10 +21,25 @@ export interface DirtyField {
 const fields = new Set<DirtyField>();
 /** Writes on their way; each resolves to why it failed, or null. */
 const writes = new Set<Promise<string | null>>();
+/** Told when a field comes or goes and when a write lands. */
+const listeners = new Set<() => void>();
+
+function changed(): void {
+  for (const listener of [...listeners]) listener();
+}
+
+export function onDirtyFieldsChanged(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => void listeners.delete(listener);
+}
 
 export function registerDirtyField(field: DirtyField): () => void {
   fields.add(field);
-  return () => void fields.delete(field);
+  changed();
+  return () => {
+    fields.delete(field);
+    changed();
+  };
 }
 
 /** Registers `field` for this component's life, always reading its latest render. */
@@ -41,7 +56,10 @@ export function trackWrite<T>(write: Promise<T>, failure?: (result: T) => string
     (e: unknown) => (e instanceof Error ? e.message : String(e)),
   );
   writes.add(settled);
-  void settled.finally(() => writes.delete(settled));
+  void settled.finally(() => {
+    writes.delete(settled);
+    changed();
+  });
   return write;
 }
 
@@ -90,4 +108,46 @@ export async function flushProject(store: AppStore): Promise<string[]> {
 export function resetDirtyFields(): void {
   fields.clear();
   writes.clear();
+  listeners.clear();
+}
+
+/** Where typed text comes and goes without the store hearing of it: typing, Escape, a blur that commits. */
+const FIELD_EVENTS = ["input", "change", "focusout", "keyup", "click"] as const;
+
+export interface DirtyWatch {
+  isDirty: () => boolean;
+  send: (dirty: boolean) => void;
+  target: Pick<EventTarget, "addEventListener" | "removeEventListener">;
+  /** Other sources of change, each returning its unsubscribe. */
+  sources: readonly ((listener: () => void) => () => void)[];
+}
+
+/**
+ * Pushes whether anything is unsaved, only when that changes (R3.7), and false
+ * when the watch ends: nothing is left to lose once a surface is gone. Checks
+ * run after a timer because a capture of the event comes before React has
+ * rendered the keystroke it carries.
+ */
+export function watchDirty({ isDirty, send, target, sources }: DirtyWatch): () => void {
+  let last = false;
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  const check = (): void => {
+    timer = null;
+    const now = isDirty();
+    if (now === last) return;
+    last = now;
+    send(now);
+  };
+  const schedule = (): void => {
+    timer ??= setTimeout(check, 0);
+  };
+  for (const event of FIELD_EVENTS) target.addEventListener(event, schedule, true);
+  const off = sources.map((source) => source(schedule));
+  schedule();
+  return () => {
+    for (const event of FIELD_EVENTS) target.removeEventListener(event, schedule, true);
+    for (const stop of off) stop();
+    if (timer !== null) clearTimeout(timer);
+    if (last) send(false);
+  };
 }

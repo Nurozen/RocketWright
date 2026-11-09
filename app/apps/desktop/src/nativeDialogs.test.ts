@@ -23,6 +23,7 @@ function setup(opts: { headless?: boolean; window?: FakeWindow | null; exportFil
     showSaveDialog: vi.fn<DialogLike<FakeWindow>["showSaveDialog"]>(() => Promise.resolve({ canceled: false, filePath: "/saved" })),
   };
   const relaunch = vi.fn<() => void>();
+  const setDirty = vi.fn<(dirty: boolean) => void>();
   const recents: Recents = {
     list: vi.fn<Recents["list"]>(() => Promise.resolve([{ dir: "/a", name: "A", lastOpened: "t", status: "ok" }])),
     see: vi.fn<Recents["see"]>(() => Promise.resolve()),
@@ -47,6 +48,7 @@ function setup(opts: { headless?: boolean; window?: FakeWindow | null; exportFil
     relaunch,
     prefs,
     openProviders,
+    setDirty,
     ...(opts.headless !== undefined ? { headless: opts.headless } : {}),
     ...(opts.exportFile !== undefined ? { exportFile: opts.exportFile } : {}),
   });
@@ -56,11 +58,11 @@ function setup(opts: { headless?: boolean; window?: FakeWindow | null; exportFil
     return Promise.resolve().then(() => handler({ sender: win.webContents }, ...args));
   };
   const callAs = (sender: unknown, channel: string, ...args: unknown[]): Promise<unknown> => Promise.resolve().then(() => handlers.get(channel)!({ sender }, ...args));
-  return { handlers, win, dialog, recents, boot, relaunch, prefs, openProviders, documentsCalls, setDocuments: (d: string) => (documents = d), call, callAs, dispose };
+  return { handlers, win, dialog, recents, boot, relaunch, prefs, openProviders, setDirty, documentsCalls, setDocuments: (d: string) => (documents = d), call, callAs, dispose };
 }
 
 const c = DESKTOP_INVOKE_CHANNELS;
-const OWNED = [c.boot, c.pickFolder, c.pickFile, c.saveAs, c.exportFile, c.recents, c.removeRecent, c.setActiveProject, c.relaunch, c.prefs, c.setPrefs, c.openProviders];
+const OWNED = [c.boot, c.pickFolder, c.pickFile, c.saveAs, c.exportFile, c.recents, c.removeRecent, c.setActiveProject, c.setDirty, c.relaunch, c.prefs, c.setPrefs, c.openProviders];
 
 describe("sender check", () => {
   it("registers the services it owns and removes them", () => {
@@ -112,6 +114,16 @@ describe("preferences and Agent providers (R3.4)", () => {
       throw new Error("the agent pane is not open");
     });
     await expect(t.call(c.openProviders)).rejects.toThrow("not open");
+  });
+});
+
+describe("setDirty", () => {
+  it("tells main what the page says, and refuses anything but a boolean", async () => {
+    const t = setup();
+    await t.call(c.setDirty, true);
+    await t.call(c.setDirty, false);
+    expect(t.setDirty.mock.calls).toEqual([[true], [false]]);
+    await expect(t.call(c.setDirty, "yes")).rejects.toThrow(/boolean/);
   });
 });
 

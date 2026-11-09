@@ -68,6 +68,8 @@ export interface DesktopServices<W extends WindowLike> {
   prefs: Pick<Preferences, "get" | "update">;
   /** Opens Lecturn's providers panel in the agent pane; throws without a mounted pane. */
   openProviders: () => void;
+  /** The page says whether it holds typed work the model does not have (R3.7). */
+  setDirty?: (dirty: boolean) => void;
 }
 
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null;
@@ -162,6 +164,10 @@ export function registerDesktopServices<W extends WindowLike>(deps: DesktopServi
     return recents.remove(dir);
   });
   handle(c.setActiveProject, (_win, project) => recents.see(activeProject(project)));
+  handle(c.setDirty, (_win, dirty) => {
+    if (typeof dirty !== "boolean") throw new TypeError("setDirty: expected a boolean");
+    deps.setDirty?.(dirty);
+  });
   handle(c.relaunch, () => deps.relaunch());
   handle(c.prefs, () => deps.prefs.get());
   handle(c.setPrefs, (_win, patch) => deps.prefs.update(prefsPatch(patch)));

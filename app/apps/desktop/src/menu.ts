@@ -19,7 +19,7 @@
  * - No `role: close`: Cmd-W means Close project and Cmd-Shift-W closes the
  *   window. Delete has no accelerator, because the Delete key removes parts.
  */
-import { commandLabel, TOP_TABS, type DesktopCommand, type RecentProject, type RecentStatus, type ZoomDirection } from "@rw/contracts";
+import { commandAccelerator, commandLabel, TOP_TABS, type DesktopCommand, type RecentProject, type RecentStatus, type ZoomDirection } from "@rw/contracts";
 import type { MenuItemConstructorOptions } from "electron";
 
 export const APP_NAME = "RocketWright";
@@ -68,6 +68,11 @@ function recentItems({ recents, recentsError }: MenuState, send: MenuActions["se
   });
 }
 
+function accelerator(id: DesktopCommand["id"]): Pick<MenuItemConstructorOptions, "accelerator"> {
+  const key = commandAccelerator(id);
+  return key === undefined ? {} : { accelerator: key };
+}
+
 function zoomItem(label: string, direction: ZoomDirection, accelerator: string, send: MenuActions["send"], visible = true): MenuItemConstructorOptions {
   return { ...(visible ? { id: `view.zoom:${direction}` } : {}), label, accelerator, visible, click: () => send({ id: "view.zoom", direction }) };
 }
@@ -80,15 +85,16 @@ export function buildMenuTemplate(state: MenuState, actions: MenuActions): MenuI
     id,
     label: commandLabel(id),
     click: () => send({ id }),
+    ...accelerator(id),
     ...extra,
   });
-  const settings = command("app.settings", { accelerator: "CmdOrCtrl+,", enabled: projectOpen });
+  const settings = command("app.settings", { enabled: projectOpen });
   // Electron's role gives Cmd/Ctrl-Q everywhere but Windows, whose convention is Alt-F4.
   const quitAccelerator: MenuItemConstructorOptions = platform === "win32" ? {} : { accelerator: "CmdOrCtrl+Q" };
 
   const file: MenuItemConstructorOptions[] = [
-    command("project.new", { accelerator: "CmdOrCtrl+N" }),
-    command("project.open", { accelerator: "CmdOrCtrl+O" }),
+    command("project.new"),
+    command("project.open"),
     command("project.openSample"),
     { id: "project.openRecent", label: commandLabel("project.openRecent"), submenu: recentItems(state, send) },
     SEPARATOR,
@@ -97,7 +103,7 @@ export function buildMenuTemplate(state: MenuState, actions: MenuActions): MenuI
     command("file.export", { enabled: projectOpen }),
     SEPARATOR,
     command("project.rename", { enabled: projectOpen }),
-    command("project.close", { accelerator: "CmdOrCtrl+W", enabled: projectOpen }),
+    command("project.close", { enabled: projectOpen }),
     { id: "window.close", label: "Close window", accelerator: "CmdOrCtrl+Shift+W", click: () => actions.closeWindow() },
     ...(mac ? [] : [SEPARATOR, settings]),
     SEPARATOR,
@@ -117,7 +123,7 @@ export function buildMenuTemplate(state: MenuState, actions: MenuActions): MenuI
   ];
 
   const view: MenuItemConstructorOptions[] = [
-    ...TOP_TABS.map((t): MenuItemConstructorOptions => ({ id: `view.tab:${t.id}`, label: t.label, enabled: projectOpen, click: () => send({ id: "view.tab", tab: t.id }) })),
+    ...TOP_TABS.map((t, i): MenuItemConstructorOptions => ({ id: `view.tab:${t.id}`, label: t.label, accelerator: `CmdOrCtrl+${i + 1}`, enabled: projectOpen, click: () => send({ id: "view.tab", tab: t.id }) })),
     SEPARATOR,
     zoomItem("Actual size", "reset", "CmdOrCtrl+0", send),
     zoomItem("Zoom in", "in", "CmdOrCtrl+=", send),

@@ -15,7 +15,7 @@ import { defineConfig } from "@playwright/test";
 import { join } from "node:path";
 import { e2eReportPath, REPO_ROOT } from "./bar/paths.ts";
 
-const ELECTRON_SPECS = /(b4a|rebuild-case1|native-menu|agent-project|import-export-electron|errors|preferences)\.spec\.ts$/;
+const ELECTRON_SPECS = /(b4a|rebuild-case1|native-menu|quit-dirty|agent-project|import-export-electron|errors|preferences)\.spec\.ts$/;
 /** Project-level `testIgnore` replaces the top-level one, so each project repeats it. */
 const IGNORE = ["**/node_modules/**", "**/__tests__/**", "**/page04.spec.ts"];
 
