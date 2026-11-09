@@ -69,11 +69,11 @@ endef
 
 .PHONY: help env-check check check-fast check-rust check-ts check-cea schema schema-check merge-gate audit docs-check test-gpu \
 	e2e wasm dev parity cea-tables cea-data seed-fixture \
-	bar bar-visual bar-parity bar-agent bar-live kit package bin-plain bin-doubles vendor-lecturn
+	bar bar-visual bar-parity bar-agent bar-live bar-b2-live kit package bin-plain bin-doubles vendor-lecturn
 
 help:
 	@echo "targets: env-check check check-fast check-cea schema schema-check merge-gate audit docs-check e2e wasm test-gpu dev parity"
-	@echo "         cea-tables cea-data seed-fixture bar bar-visual bar-parity bar-agent bar-live kit package vendor-lecturn"
+	@echo "         cea-tables cea-data seed-fixture bar bar-visual bar-parity bar-agent bar-live bar-b2-live kit package vendor-lecturn"
 
 env-check:
 	@scripts/env-check.sh
@@ -332,6 +332,21 @@ bar-live: vendor-lecturn
 	$(lecturn_env) RW_SIDECAR_BIN="$${RW_SIDECAR_BIN:-$(RW_PLAIN_BIN)}" node scripts/bar/live-smoke.ts \
 	  $(if $(OUT),--out-dir "$(OUT)",) $(if $(TIMEOUT_MIN),--timeout-min $(TIMEOUT_MIN),) \
 	  $(if $(PROVIDER),--provider $(PROVIDER),) $(if $(MODEL),--model "$(MODEL)",) $(if $(NO_FOLLOW_UP),--no-follow-up,) $(if $(NO_MENTION),--no-mention,) $(if $(ATTACH),--attach,)
+# B2-b live trials (U41, D24, D28): three per path (accept, cancel, remaining
+# work) in the real app against a real provider, each with its own temp Lecturn
+# home and Documents override. Non-gating: a no-op unless RW_LIVE=1 (network +
+# your provider login). Never in `make check`. Report at
+# target/bar/usability/b2-live.json, trial records in b2-live/ beside it.
+#   PROVIDER=claude|codex  MODEL=<instance>/<model>  TRIALS=<n>  PATHS=accept,cancel,remaining  TIMEOUT_MIN=<n>
+# (TRIALS and PATHS are for trying it out: fewer than all nine never meets the bar.)
+bar-b2-live:
+	@if [ "$$RW_LIVE" = "1" ]; then \
+	  $(MAKE) -s vendor-lecturn && $(MAKE) -s wasm && $(PNPM) --filter @rw/web build && \
+	  { [ -n "$$RW_SIDECAR_BIN" ] || $(MAKE) -s bin-plain; } || exit $$?; \
+	fi
+	RW_SIDECAR_BIN="$${RW_SIDECAR_BIN:-$(RW_PLAIN_BIN)}" node scripts/bar/agent-project-live.ts \
+	  $(if $(OUT),--out "$(OUT)",) $(if $(PROVIDER),--provider $(PROVIDER),) $(if $(MODEL),--model "$(MODEL)",) \
+	  $(if $(TRIALS),--trials $(TRIALS),) $(if $(PATHS),--paths $(PATHS),) $(if $(TIMEOUT_MIN),--timeout-min $(TIMEOUT_MIN),)
 # B3 kit (M2.11, D8, D20): dist/kit/ with the release CLI built with native
 # CEA (+ `rw` symlink) and its relocatable databases (share/rocketwright/cea/),
 # the unsigned electron-builder `rocketwright-render` app, the skill docs, and

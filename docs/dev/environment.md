@@ -210,6 +210,15 @@ never reads `~/.lecturn`.
   reply, and a trusted click on the reply's `rw:c/fins` chip that must
   select the fins; recorded under `mention` (`NO_MENTION=1` skips it;
   `--rehearse` replays `app/e2e/fixtures/scripted/b4b-mention.json`).
+- `RW_LIVE=1 make bar-b2-live [PROVIDER=claude|codex]`: three trials each of
+  the agent creating a project (accepted), of Cancel, and of creating one
+  with work left over, in the real app. Each trial gets a fresh pair, a temp
+  Electron profile, and `RW_DOCUMENTS_DIR` under `/tmp`, and it refuses to
+  launch otherwise. The report is `target/bar/usability/b2-live.json`, with
+  each trial's transcript and tree snapshots in `b2-live/` beside it. Without
+  `RW_LIVE=1` it skips and writes nothing. `node
+  scripts/bar/agent-project-live.ts --self-test` checks the scorer offline on
+  `tests/bar/b2-live/`.
 - `make bar-live ATTACH=1` (W-B2.4): one pair for the run, the scripted
   provider on the sidecar and on a `lecturn serve --base-dir $LECTURN_HOME`
   user server the harness starts and stops; no network. Writes
