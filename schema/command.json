@@ -3811,6 +3811,20 @@
             }
           ]
         },
+        "manufacturer": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Catalog manufacturer, as `facets.manufacturers` lists it (whole name,\nany case). Only built-in presets record one."
+        },
+        "component_type": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Component type, e.g. `body_tube`, as `facets.component_types` lists it.\nMatches parts only, never materials or motors."
+        },
         "limit": {
           "type": [
             "integer",
@@ -3818,6 +3832,15 @@
           ],
           "format": "uint32",
           "minimum": 0
+        },
+        "offset": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "minimum": 0,
+          "description": "Matching items to pass over before the first one returned. Page with\n`total`: the list is project items, then presets, in a stable order."
         }
       }
     },

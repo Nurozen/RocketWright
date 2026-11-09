@@ -249,8 +249,8 @@ export class ProjectHost {
   }
 
   /** `library_search` (read only): presets, components, materials, and motors. */
-  librarySearch(q: { query?: string; kind?: string; limit?: number }): Promise<schema.LibrarySearchOut> {
-    return this.tool<schema.LibrarySearchOut>("library_search", q);
+  librarySearch(q: schema.LibrarySearchIn): Promise<schema.LibrarySearchOut> {
+    return this.tool<schema.LibrarySearchOut>("library_search", { ...q });
   }
 
   /** `engine_design` (read only): the engine's sizing, feed budget, tanks, and missing inputs (page 05). */

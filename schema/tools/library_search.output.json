@@ -6,10 +6,21 @@
       "items": {
         "$ref": "#/$defs/LibItem"
       }
+    },
+    "total": {
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0,
+      "description": "Every item matching the search, before `offset` and `limit`."
+    },
+    "facets": {
+      "$ref": "#/$defs/LibraryFacets"
     }
   },
   "required": [
-    "items"
+    "items",
+    "total",
+    "facets"
   ],
   "title": "LibrarySearchOut",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -58,6 +69,46 @@
         "preset",
         "motor"
       ]
+    },
+    "LibraryFacets": {
+      "type": "object",
+      "properties": {
+        "manufacturers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/FacetCount"
+          }
+        },
+        "component_types": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/FacetCount"
+          }
+        }
+      },
+      "required": [
+        "manufacturers",
+        "component_types"
+      ],
+      "description": "The values a search can narrow by. Each facet ignores its own filter, so\nchoosing a manufacturer still lists the others."
+    },
+    "FacetCount": {
+      "type": "object",
+      "properties": {
+        "value": {
+          "type": "string"
+        },
+        "count": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "value",
+        "count"
+      ],
+      "description": "One facet value and how many matching items carry it."
     }
   }
 }

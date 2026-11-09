@@ -26,8 +26,8 @@ use std::time::Duration;
 use rw_api::{
     ApiError, ApiErrorCode, CallCtx, Command, CompareOut, ComponentAddIn, ComponentMoveIn,
     ComponentRemoveIn, DesignCheckIn, FileChange, FileStatus, HistoryListIn, HistoryListOut,
-    HistoryShowOut, LibrarySearchOut, ModelDiff, ModelGetIn, ModelGetOut, MutationOut, Origin,
-    ProjectFiles, ProjectRenameIn, ProjectValidateIn, Response, ValidateOut,
+    HistoryShowOut, ModelDiff, ModelGetIn, ModelGetOut, MutationOut, Origin, ProjectFiles,
+    ProjectRenameIn, ProjectValidateIn, Response, ValidateOut,
 };
 use rw_check::CheckReport;
 use rw_model::diag::{self, Diagnostic};
@@ -523,11 +523,9 @@ impl Session {
             Command::HistoryRestore(i) => {
                 Response::HistoryRestore(self.history_restore(&i.version, i.dry_run, ctx)?)
             }
-            Command::LibrarySearch(i) => Response::LibrarySearch(LibrarySearchOut {
-                items: self
-                    .library
-                    .search_with_presets(i.query.as_deref(), i.kind, i.limit),
-            }),
+            Command::LibrarySearch(i) => {
+                Response::LibrarySearch(self.library.search_with_presets(i))
+            }
             Command::LibraryShow(i) => {
                 let item = if i.id.starts_with("preset:") {
                     crate::presets::show(&i.id)

@@ -32,7 +32,7 @@ import type {
   ExportOut,
   ImportFileIn,
   ImportOut,
-  LibKind,
+  LibrarySearchIn,
   LibrarySearchOut,
   MotorSearchIn,
   MotorSearchOut,
@@ -242,7 +242,7 @@ export interface RpcMethods {
   "history.tag": { params: P & { name: string; version?: string }; result: Revision };
   "history.restore": { params: P & { version: string; dry_run?: boolean }; result: MutationOut };
   /** Project and built-in library (`rw lib search`: presets, components, materials, motors), read only. */
-  "library.search": { params: P & { query?: string; kind?: LibKind; limit?: number }; result: LibrarySearchOut };
+  "library.search": { params: P & LibrarySearchIn; result: LibrarySearchOut };
   /** M3.6: cached part thumbnails of one evaluated model (`.rw/cache/thumbs/<model_hash>/`): id -> PNG base64. */
   "thumb.get": { params: P & { model_hash: string }; result: { thumbs: Record<string, string> } };
   /** M3.6: stores one part thumbnail the window rendered (visual tier). */
