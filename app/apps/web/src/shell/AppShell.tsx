@@ -30,6 +30,8 @@ export interface ShellHandlers {
   onCompare?: () => void;
   /** The strip menu's `Revert to Step NN` (history_restore of the selected step). */
   onRevert?: () => void;
+  /** The strip menu's `Tag Step NN…`: asks for a revision name (history_tag). */
+  onTag?: () => void;
   /** Header undo/redo (history_restore of the step before/after the shown one). */
   onUndo?: () => void;
   onRedo?: () => void;
@@ -68,6 +70,8 @@ export interface AppShellProps {
   /** `Revert to Step 02` in the strip menu (null: nothing to revert to). */
   revertLabel?: string | null;
   reverting?: boolean;
+  /** `Tag Step 02…` in the strip menu (null: no step to tag). */
+  tagLabel?: string | null;
   headStepId?: string | null;
   /** Page-owned body of the rail's navigation section (the 01 Components tree). */
   navBody?: ReactNode;
@@ -100,6 +104,7 @@ export function AppShell({
   compareOpen = false,
   revertLabel = null,
   reverting = false,
+  tagLabel = null,
   headStepId = null,
   navBody,
   navAdd,
@@ -163,6 +168,8 @@ export function AppShell({
         compareOpen={compareOpen}
         revertLabel={revertLabel}
         reverting={reverting}
+        tagLabel={tagLabel}
+        {...(h.onTag ? { onTag: h.onTag } : {})}
         {...(h.onSelectStep ? { onSelectStep: h.onSelectStep } : {})}
         {...(h.onCompare ? { onCompare: h.onCompare } : {})}
         {...(h.onRevert ? { onRevert: h.onRevert } : {})}

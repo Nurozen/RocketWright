@@ -24,6 +24,9 @@ export interface HistoryStripProps {
   revertLabel?: string | null;
   onRevert?: () => void;
   reverting?: boolean;
+  /** `Tag Step 02…` (the selected step, else the shown one) in the `⋯` menu; null disables it. */
+  tagLabel?: string | null;
+  onTag?: () => void;
   /** Extra rows below the steps (compare result, Results run snapshot row). */
   children?: ReactNode;
 }
@@ -44,6 +47,8 @@ export function HistoryStrip({
   revertLabel = null,
   onRevert,
   reverting = false,
+  tagLabel = null,
+  onTag,
   children,
 }: HistoryStripProps) {
   const [menu, setMenu] = useState(false);
@@ -121,6 +126,19 @@ export function HistoryStrip({
                 }}
               >
                 {revertLabel ?? "Revert to a step (select one first)"}
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                className="rw-history__item"
+                data-testid="history.tag"
+                disabled={tagLabel === null || onTag === undefined}
+                onClick={() => {
+                  setMenu(false);
+                  onTag?.();
+                }}
+              >
+                {tagLabel ?? "Tag a step (no steps yet)"}
               </button>
             </div>
           )}

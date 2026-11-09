@@ -114,7 +114,7 @@ export function ProjectSurface({ client, projectId, initialPage, runSource, http
   }, [info, onProjectInfo]);
 
   const glbDeps = useMemo(() => browserGlbDeps(import.meta.env.BASE_URL), []);
-  const assembly = useMemo(() => assemblySlots(store, glbDeps), [store, glbDeps]);
+  const assembly = useMemo(() => assemblySlots(store, glbDeps, client, httpBase), [store, glbDeps, client, httpBase]);
   const [componentsUi] = useState(createComponentsUi);
   const components = useMemo(() => componentsSlots(store, client, glbDeps, componentsUi), [store, client, glbDeps, componentsUi]);
   const [configurationsUi] = useState(createConfigurationsUi);
