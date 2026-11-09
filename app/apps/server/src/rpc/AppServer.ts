@@ -68,11 +68,13 @@ import { BrokerArgsError, ViewportBroker } from "../broker/ViewportBroker.ts";
 import { LIVE_MCP_PATH, createLiveMcpRequestHandler } from "../mcp/http.ts";
 import { LiveToolsBearer } from "../mcp/session-registry.ts";
 import { ProjectHost } from "../project/ProjectHost.ts";
+import { ProjectCreator, defaultProjectLocation, expandHome } from "../project/create.ts";
+import { displayName, folderState, inspectFolder } from "../project/inspect.ts";
 import { ThumbCacheError } from "../project/ThumbCache.ts";
 import { sidecarBinary, sidecarEnv } from "../sidecar/SidecarClient.ts";
 import type { BackoffOptions, SidecarConnection } from "../sidecar/SidecarSupervisor.ts";
 import { RpcFail, toRpcError } from "./errors.ts";
-import { componentRemoveArgs, exportFileArgs, importFileArgs, isObject, libraryQuery, motorSearchArgs, optBool, optStr, patchOps, renderArgs, str, thrustcurveFetchQuery, thrustcurveSearchQuery } from "./params.ts";
+import { componentRemoveArgs, exportFileArgs, importFileArgs, isObject, libraryQuery, motorSearchArgs, optBool, optStr, patchOps, projectCreateArgs, renderArgs, str, thrustcurveFetchQuery, thrustcurveSearchQuery } from "./params.ts";
 
 /** Lecturn `apps.updateHostContext` caps the text at 4 KB. */
 const HOST_CONTEXT_MAX_BYTES = 4096;
@@ -181,6 +183,7 @@ export class AppServer {
   private readonly opts: AppServerOptions;
   private readonly http: Server;
   private readonly projects = new Map<string, ProjectHost>();
+  /** Opens in progress, by realpath: two spellings of one folder must share a sidecar. */
   private readonly opening = new Map<string, Promise<ProjectHost>>();
   /** Project ids of projects still starting. */
   private readonly reserved = new Set<string>();
@@ -191,10 +194,12 @@ export class AppServer {
   /** The Lecturn link (null without one). */
   readonly lecturn: LecturnLink | null;
   private readonly log: (line: string) => void;
+  private readonly creator: ProjectCreator;
   private readonly liveHandler: (req: IncomingMessage, res: ServerResponse) => void;
 
   private constructor(opts: AppServerOptions, coreVersion: string) {
     this.opts = opts;
+    this.creator = new ProjectCreator(opts.bin);
     this.log = opts.log ?? ((line) => process.stderr.write(`${line}\n`));
     this.lecturn =
       opts.lecturn?.({
@@ -260,17 +265,25 @@ export class AppServer {
   async openProject(dir: string): Promise<ProjectInfo> {
     const abs = resolve(dir);
     const real = realpathOr(abs);
-    for (const p of this.projects.values()) if (p.info.dir === abs || realpathOr(p.info.dir) === real) return { ...p.info };
-    let pending = this.opening.get(abs);
+    const open = this.openHost(abs);
+    if (open !== undefined) return { ...open.info };
+    let pending = this.opening.get(real);
     if (pending === undefined) {
       pending = this.spawnProject(abs);
-      this.opening.set(abs, pending);
+      this.opening.set(real, pending);
       pending.then(
-        () => this.opening.delete(abs),
-        () => this.opening.delete(abs),
+        () => this.opening.delete(real),
+        () => this.opening.delete(real),
       );
     }
     return { ...(await pending).info };
+  }
+
+  /** The open project at `abs`, under any spelling of it. */
+  private openHost(abs: string): ProjectHost | undefined {
+    const real = realpathOr(abs);
+    for (const p of this.projects.values()) if (p.info.dir === abs || realpathOr(p.info.dir) === real) return p;
+    return undefined;
   }
 
   async closeProject(projectId: string): Promise<void> {
@@ -279,7 +292,12 @@ export class AppServer {
     this.lecturn?.removeProject(projectId);
     for (const [id, s] of [...this.subs]) if (s.projectId === projectId) this.dropSub(id);
     this.broker.dropProject(projectId);
-    await p.close();
+    try {
+      await p.close();
+    } finally {
+      // After the sidecar is gone: a listener may reopen the folder at once.
+      this.broadcast("project.closed", { projectId });
+    }
   }
 
   /** Sends a broker op to the project's registered viewport host (IF11). */
@@ -312,7 +330,7 @@ export class AppServer {
     let projectId = base;
     for (let n = 2; this.projects.has(projectId) || this.reserved.has(projectId); n++) projectId = `${base}-${n}`;
     this.reserved.add(projectId);
-    const info: ProjectInfo = { projectId, dir, name: basename(dir) };
+    const info: ProjectInfo = { projectId, dir, name: displayName(dir) };
     const host = new ProjectHost(
       {
         info,
@@ -330,6 +348,7 @@ export class AppServer {
             if (s.kind === "project" && s.projectId === projectId) this.push(s.conn, "project.patch", { subscriptionId, patch });
           }
         },
+        updated: (project) => this.broadcast("project.updated", { project }),
       },
     );
     try {
@@ -517,7 +536,15 @@ export class AppServer {
   private readonly handlers: { [M in RpcMethod]: Handler<M> } = {
     "project.list": () => ({ projects: this.listProjects() }),
 
-    "project.open": async (_c, params) => ({ project: await this.openProject(str(params, "dir")) }),
+    // Only this handler refuses a folder with no project: `--project` and `make dev` call `openProject` and keep their path.
+    "project.open": async (_c, params) => {
+      const dir = resolve(expandHome(str(params, "dir")));
+      if (this.openHost(dir) === undefined) {
+        const state = folderState(dir);
+        if (state === "empty" || state === "folder") throw new RpcFail("not_a_project", `${dir} holds no RocketWright project`);
+      }
+      return { project: await this.openProject(dir) };
+    },
 
     "project.close": async (conn, params) => {
       const p = this.hostOf(params);
@@ -527,13 +554,13 @@ export class AppServer {
       return {};
     },
 
-    // U14: project.create, project.inspect, project.defaults. U25: project.rename. U58: project.restartSidecar.
-    "project.create": () => notYet("project.create"),
+    "project.create": async (_c, params) => ({ project: await this.openProject(await this.creator.create(projectCreateArgs(params))) }),
 
-    "project.inspect": () => notYet("project.inspect"),
+    "project.inspect": (_c, params) => inspectFolder(resolve(expandHome(str(params, "dir"))), (dir) => this.creator.collisions(dir)),
 
-    "project.defaults": () => notYet("project.defaults"),
+    "project.defaults": () => ({ location: defaultProjectLocation() }),
 
+    // U25: project.rename. U58: project.restartSidecar.
     "project.rename": () => notYet("project.rename"),
 
     "project.restartSidecar": () => notYet("project.restartSidecar"),

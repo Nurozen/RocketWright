@@ -80,9 +80,6 @@ describe("contract batch (U13)", () => {
 
   it("the unimplemented methods answer internal until their steps land", async () => {
     const stubs: [RpcMethod, Record<string, unknown>][] = [
-      ["project.create", { name: "x" }],
-      ["project.inspect", { dir }],
-      ["project.defaults", {}],
       ["project.rename", { projectId, name: "x" }],
       ["project.restartSidecar", { projectId }],
       ["motor.show", { projectId, id: "generic:RW_C6G" }],

@@ -62,7 +62,8 @@ describe("app server RPC (M1.45)", () => {
   });
 
   it("opens a project, spawning its sidecar, and serves the mirror", async () => {
-    project = (await c.call("project.open", { dir })).project;
+    // A bare folder has no project: only the server-side open (`--project`) takes one.
+    project = await server.openProject(dir);
     expect(project.dir).toBe(dir);
     // Re-opening the same directory returns the same project.
     expect((await c.call("project.open", { dir })).project).toEqual(project);
@@ -292,7 +293,7 @@ describe("app server RPC (M1.45)", () => {
     const second = await startServer();
     const c2 = await TestClient.connect(second.rpcUrl, validator);
     try {
-      const p = (await c2.call("project.open", { dir })).project;
+      const p = await second.openProject(dir);
       expect((await c2.call("project.subscribe", { projectId: p.projectId })).snapshot.project.dir).toBe(dir);
       expect(c2.violations).toEqual([]);
     } finally {
@@ -313,7 +314,7 @@ describe("test hooks (I12)", () => {
     const c = await TestClient.connect(server.rpcUrl, validator);
     try {
       expect((c.frames[0] as { testHooks: boolean }).testHooks).toBe(true);
-      const pid = (await c.call("project.open", { dir })).project.projectId;
+      const pid = (await server.openProject(dir)).projectId;
       expect(await c.request("test.call", { projectId: pid, op: "app_navigate", args: { page: "results" } })).toMatchObject({
         ok: false,
         error: { code: "not_found" },
