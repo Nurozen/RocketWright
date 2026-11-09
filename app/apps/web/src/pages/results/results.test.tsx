@@ -473,7 +473,7 @@ describe("static markup", () => {
     expect(page).toContain("Fin revision uses an outdated model. Rebuild to run this simulation.");
     expect(testIds(page, "results.open-design")).toHaveLength(1);
     expect(page).toMatch(/Model Rev 07/);
-    expect(page).toContain("Environment: calm, 15 °C");
+    expect(page).toContain("Environment: </span>calm, 15 °C");
     // The footer shows the compact form; the spelled-out text is its title.
     expect(page).toMatch(/data-field="environment" title="Environment: calm \(0 m\/s, 15 °C\)"/);
     expect(page).toMatch(/Warnings: (<!-- -->)?1/);

@@ -498,3 +498,9 @@
 .rw-ui-banner__text {
   flex: 1;
 }
+
+/* An identifier quoted in a diagnostic (DiagnosticText). */
+.rw-diag-code {
+  font-family: var(--rw-font-mono);
+  font-size: 0.95em;
+}

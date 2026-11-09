@@ -6,6 +6,7 @@ import { useState, type ReactNode } from "react";
 import { Icon, type IconName } from "../../shell/Icon.tsx";
 import { PartThumb } from "../../render/PartThumb.tsx";
 import { ADD_FIRST_PART } from "../../state/empty-text.ts";
+import { DiagnosticText, diagnosticPlainText } from "../../ui/DiagnosticText.tsx";
 import type { InspectorRow, InspectorView } from "./inspector-model.ts";
 
 export interface InspectorProps {
@@ -37,7 +38,9 @@ function Card({ title, testid, rows }: { title: string; testid: string; rows: In
             data-severity={r.severity}
           >
             <dt title={r.label}>{r.label}</dt>
-            <dd title={r.value}>{r.value}</dd>
+            <dd title={diagnosticPlainText(r.value)}>
+              <DiagnosticText text={r.value} />
+            </dd>
           </div>
         ))}
       </dl>

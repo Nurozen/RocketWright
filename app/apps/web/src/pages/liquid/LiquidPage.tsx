@@ -17,6 +17,7 @@ import type { RwRef } from "@rw/contracts";
 import { useStore } from "zustand";
 import { createStore, type StoreApi } from "zustand/vanilla";
 import { Icon } from "../../shell/Icon.tsx";
+import { diagnosticPlainText } from "../../ui/DiagnosticText.tsx";
 import type { RpcLike } from "../../state/rpc.ts";
 import { NO_LIQUID_ENGINE, useAppState, type AppStore } from "../../state/index.ts";
 import { AssemblyViewport } from "../../viewport/AssemblyViewport.tsx";
@@ -27,7 +28,7 @@ import type { AssemblyModel } from "../../viewport/scene.ts";
 import { cameraBasis, type ViewPose } from "../../viewport/views.ts";
 import { ThreadHistory, useOpenThreadHistory } from "../components/AgentExtras.tsx";
 import { ConnectivityDiagram } from "./Diagram.tsx";
-import { EngineEditor, NewEngineButton } from "./EngineEditor.tsx";
+import { EngineEditor, NewEngineButton, type EngineEditorProps } from "./EngineEditor.tsx";
 import { designKey, type DesignEntry } from "./engineOps.ts";
 import {
   CATEGORIES,
@@ -304,7 +305,7 @@ function LiquidWorkspace({ store, client, glbDeps, ui }: { store: AppStore; clie
           out={out}
           state={entry?.state ?? "loading"}
           error={entry?.error}
-          editor={<EngineEditor key={view.id} app={store} engineId={view.id} engine={view.engine} entry={entry} onCompute={() => requestDesign(store, client, ui, view.id)} canCompute={client !== null} onShow={showEngine} onDeleted={engineDeleted} />}
+          editor={{ app: store, engineId: view.id, engine: view.engine, entry, onCompute: () => requestDesign(store, client, ui, view.id), canCompute: client !== null, onShow: showEngine, onDeleted: engineDeleted }}
         />
       ) : (
         <div className={`rw-liq__body rw-liq__body--${tab}`}>
@@ -409,7 +410,7 @@ const NOT_RUN: AnalysisState = { kind: "not_run" };
 
 function InputStatus({ row, action = null }: { row: InputRow; action?: ReactNode }) {
   return (
-    <div className="rw-liq-input" data-testid="insp.input" data-key={row.key} data-tone={row.tone} title={row.diagnostic ? `${row.diagnostic.code}: ${row.diagnostic.message}${row.diagnostic.hint ? ` (${row.diagnostic.hint})` : ""}` : undefined}>
+    <div className="rw-liq-input" data-testid="insp.input" data-key={row.key} data-tone={row.tone} title={row.diagnostic ? diagnosticPlainText(`${row.diagnostic.code}: ${row.diagnostic.message}${row.diagnostic.hint ? ` (${row.diagnostic.hint})` : ""}`) : undefined}>
       <span className="rw-liq-input__label">{row.label}</span>
       <span className="rw-liq-input__value">
         {row.value}
@@ -659,11 +660,10 @@ function ParametersPanel({ view }: { view: EngineView }) {
   );
 }
 
-function PropertiesView({ view, out, state, error, editor }: { view: EngineView; out: EngineDesignOut | null; state: "loading" | "ready" | "error"; error?: string | undefined; editor: ReactNode }) {
+function PropertiesView({ view, out, state, error, editor }: { view: EngineView; out: EngineDesignOut | null; state: "loading" | "ready" | "error"; error?: string | undefined; editor: Omit<EngineEditorProps, "children"> }) {
   const groups = propertyGroups(out);
-  return (
-    <div className="rw-liq-props" data-testid="liquid.properties" data-state={state}>
-      {editor}
+  const details = (
+    <>
       {state === "error" && <p className="rw-liq__empty">engine_design failed: {error}</p>}
       {state === "loading" && groups.length === 0 && <p className="rw-liq__empty">Computing the design…</p>}
       {out !== null && groups.length === 0 && <p className="rw-liq__empty">The chamber cannot be sized yet: {out.missing_inputs.join(", ") || "inputs missing"}.</p>}
@@ -692,6 +692,13 @@ function PropertiesView({ view, out, state, error, editor }: { view: EngineView;
         <h2 className="rw-liq-panel__title">Source references</h2>
         <SourceList thermo={out?.design?.thermo ?? null} />
       </section>
+    </>
+  );
+  return (
+    <div className="rw-liq-props" data-testid="liquid.properties" data-state={state}>
+      <EngineEditor key={view.id} {...editor}>
+        {details}
+      </EngineEditor>
     </div>
   );
 }
@@ -767,7 +774,7 @@ export function LiquidAgentExtra({ store, ui }: { store: AppStore; ui: LiquidSto
   return (
     <>
       {missing.length > 0 && (
-        <div className="rw-liq-missing" data-testid="agent.missing-inputs" data-count={missing.length} title={missing.map((d) => `${d.code}: ${d.message}`).join("\n")}>
+        <div className="rw-liq-missing" data-testid="agent.missing-inputs" data-count={missing.length} title={missing.map((d) => diagnosticPlainText(`${d.code}: ${d.message}`)).join("\n")}>
           <Icon name="alert" size={22} className="rw-liq-missing__icon" />
           <span className="rw-liq-missing__text">Missing inputs · {missing.length}</span>
           <button type="button" className="rw-button rw-button--primary rw-liq-missing__review" data-testid="agent.review-inputs" onClick={review}>

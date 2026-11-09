@@ -33,6 +33,7 @@ import {
   type Frame,
   type ProfileOverlay,
   type ProfileView as ViewId,
+  markerLabels,
 } from "./profile-geometry.ts";
 
 type Model = DeepReadonly<EvaluatedModel>;
@@ -433,17 +434,7 @@ function Overlay({
 }) {
   const { frame } = o;
   const side = view === "side" || view === "top";
-  const cg = o.markers.find((m) => m.kind === "cg");
-  const cp = o.markers.find((m) => m.kind === "cp");
-  // Marker labels sit above the body; a CP label too close to the CG one moves right.
-  const labelY = Math.max(18, o.bodyTop - 70);
-  // Marker labels keep clear of the fins (drawn above the body) and of each other.
-  const finPts = [...o.fins, ...o.ghost].filter((f) => f.facing).flatMap((f) => f.points);
-  const finX0 = finPts.length > 0 ? Math.min(...finPts.map((p) => p[0])) : Infinity;
-  const finX1 = finPts.length > 0 ? Math.max(...finPts.map((p) => p[0])) : -Infinity;
-  const clear = (x: number) => (x > finX0 - 44 && x < finX1 + 44 ? finX0 - 48 : x);
-  const cpX = cp !== undefined ? clear(cp.x) : 0;
-  const cgX = cg !== undefined ? Math.min(clear(cg.x), cp !== undefined ? cpX - 84 : Infinity) : 0;
+  const { labelY, cgX, cpX } = markerLabels(o);
   const labelX = (m: { kind: string; x: number }) => (m.kind === "cp" ? cpX : cgX);
   const showGhost = proposal && o.ghost.length > 0;
   // Fin labels stack to the right of the fins, the higher tip's label on top (concept 02).

@@ -13,6 +13,8 @@ interface EditorState {
   results: string[];
   compute: boolean;
   stale: boolean;
+  /** The strip closes the content area under the scrolling cards, and the card column ends above it. */
+  stripPinned: boolean;
 }
 
 function readEditor(): EditorState {
@@ -24,6 +26,12 @@ function readEditor(): EditorState {
     results: [...document.querySelectorAll('[data-testid="liquid.results"] [data-stat]')].map((s) => s.querySelector("dt")?.textContent?.trim() ?? ""),
     compute: document.querySelector<HTMLButtonElement>('[data-testid="liquid.compute"]')?.disabled === false,
     stale: document.querySelector('[data-testid="liquid.results"]')?.getAttribute("data-stale") === "true",
+    stripPinned: (() => {
+      const strip = document.querySelector('[data-testid="liquid.results"]')?.getBoundingClientRect();
+      const props = document.querySelector('[data-testid="liquid.properties"]')?.getBoundingClientRect();
+      const grid = document.querySelector('[data-testid="liquid.editor"] .rw-liq-editor__grid')?.getBoundingClientRect();
+      return strip !== undefined && props !== undefined && grid !== undefined && Math.abs(strip.bottom - props.bottom) < 1 && strip.top > grid.top;
+    })(),
   };
 }
 
@@ -44,6 +52,7 @@ export default async function drive({ page, paneReady }: DriveContext): Promise<
   if (!state.actions.includes("New engine") || !state.actions.includes("Duplicate")) throw new Error(`capture: actions are ${state.actions.join()}`);
   if (state.modified !== "Modified, needs recompute" || !state.stale) throw new Error(`capture: the page reads ${String(state.modified)}, stale ${String(state.stale)}`);
   if (state.results.join() !== "Isp,Chamber diameter,Throat diameter" || !state.compute) throw new Error(`capture: the result strip is ${state.results.join()}, Compute ${String(state.compute)}`);
+  if (!state.stripPinned) throw new Error("capture: the result strip is not pinned under the cards");
   await settle(page);
   return { state };
 }

@@ -7,6 +7,7 @@ import { useId } from "react";
 import type { RwRef, schema } from "@rw/contracts";
 import { componentRef } from "../state/slices/selection.ts";
 import { Popover } from "../ui/Popover.tsx";
+import { DiagnosticText } from "../ui/DiagnosticText.tsx";
 import { Icon } from "./Icon.tsx";
 
 export interface CheckIssue {
@@ -91,12 +92,6 @@ export interface CheckIssuesPanelProps extends CheckPanelModel {
   onClose: () => void;
 }
 
-/** Diagnostics quote identifiers in backticks: show those as code. An unmatched backtick is left as written. */
-function IssueMessage({ text }: { text: string }) {
-  const parts = text.split("`");
-  return <span className="rw-check-issues__message">{parts.length % 2 === 0 ? text : parts.map((part, i) => (i % 2 === 1 ? <code key={i}>{part}</code> : part))}</span>;
-}
-
 /** One issue. The row is a group named by its code and part, because rows repeat the same Go to control (D27). */
 function IssueRow({ issue, severity, onGoTo }: { issue: CheckIssue; severity: "error" | "warning"; onGoTo: (target: RwRef) => void }) {
   const codeId = useId();
@@ -110,7 +105,9 @@ function IssueRow({ issue, severity, onGoTo }: { issue: CheckIssue; severity: "e
       <span id={codeId} className="rw-check-issues__code">
         {issue.code}
       </span>
-      <IssueMessage text={issue.message} />
+      <span className="rw-check-issues__message">
+        <DiagnosticText text={issue.message} />
+      </span>
       <span id={whereId} className="rw-check-issues__part">
         {issue.where ?? "Whole model"}
       </span>

@@ -1341,11 +1341,6 @@ button:disabled {
   color: var(--rw-text-primary);
 }
 
-.rw-check-issues__message code {
-  font-family: var(--rw-font-mono);
-  font-size: 0.95em;
-}
-
 /* Wraps rather than truncates: a long engine name stays readable in its column. */
 .rw-check-issues__part {
   min-width: 0;

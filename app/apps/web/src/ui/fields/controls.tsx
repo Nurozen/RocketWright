@@ -9,6 +9,7 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Icon } from "../../shell/Icon.tsx";
 import { useDirtyField } from "../../state/dirtyFields.ts";
+import { DiagnosticText, diagnosticPlainText } from "../DiagnosticText.tsx";
 import type { FieldSpec } from "./spec.ts";
 import "./fields.css";
 
@@ -26,8 +27,8 @@ export interface FieldDiagnostic {
 function FieldDiag({ diag }: { diag: FieldDiagnostic | undefined }) {
   if (diag === undefined) return null;
   return (
-    <span className="rw-field__diag" data-testid="editor.field-diagnostic" data-code={diag.code} data-severity={diag.severity} title={diag.hint ?? diag.code}>
-      {diag.message}
+    <span className="rw-field__diag" data-testid="editor.field-diagnostic" data-code={diag.code} data-severity={diag.severity} title={diagnosticPlainText(diag.hint ?? diag.code)}>
+      <DiagnosticText text={diag.message} />
     </span>
   );
 }

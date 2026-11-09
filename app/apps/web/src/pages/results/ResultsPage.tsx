@@ -311,7 +311,10 @@ export function ResultsPage({ app, source }: ResultsPageProps) {
             </span>
             <span className="rw-details__field" data-testid="details.field" data-field="environment" title={`Environment: ${details.environmentFull}`}>
               <ResultsIcon name="cloud" size={18} />
-              <span className="rw-details__text">Environment: {details.environment}</span>
+              <span className="rw-details__text">
+                <span className="rw-details__key">Environment: </span>
+                {details.environment}
+              </span>
             </span>
             <span className="rw-details__field" data-testid="details.field" data-field="warnings" data-tone={details.warnings > 0 ? "amber" : "muted"}>
               <span className="rw-status-glyph" data-tone={details.warnings > 0 ? "amber" : "muted"}>

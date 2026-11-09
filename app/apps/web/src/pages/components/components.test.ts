@@ -11,7 +11,7 @@ import { changeText } from "./AgentExtras.tsx";
 import { partDiagnostics } from "./ComponentEditor.tsx";
 import { editorFields, fromDisplay, limitsOf, parseLiteral, rangeError, sharedFields, tabsFor, toDisplay, toSource } from "../../ui/fields/index.ts";
 import { hasSideProfile, planformLayout, planformOf } from "./PartProfile.tsx";
-import { airframeJoints, finOutlines, fitFrame, hull, modelExtents, profileOverlay, projectBody, scaleLabel, toScreen } from "./profile-geometry.ts";
+import { airframeJoints, finOutlines, fitFrame, hull, markerLabels, modelExtents, profileOverlay, projectBody, scaleLabel, toScreen } from "./profile-geometry.ts";
 import { changedFields, componentDiffers, draftProposal, findStepProposal, reverseOps } from "./proposal.ts";
 import { componentSource, fieldTarget, paramRef, paramSource } from "./source.ts";
 import { agentSteps, embedThreadSteps, openThreadSteps } from "./thread-history.ts";
@@ -154,6 +154,24 @@ describe("hasSideProfile", () => {
     expect(hasSideProfile(comp({ type: "transition", fore_od: 0.054, aft_od: 0.041, length: 0.1 }))).toBe(true);
     expect(hasSideProfile(comp({ type: "trapezoidal_fin_set", root_chord: 0.14, tip_chord: 0.06, span: 0.1, sweep: 0.05 }))).toBe(true);
     expect(hasSideProfile(comp({ type: "freeform_fin_set", points: [[0, 0], [0.1, 0.05], [0.14, 0]] }))).toBe(true);
+  });
+});
+
+describe("marker labels", () => {
+  const marker = (kind: "cg" | "cp", x: number) => ({ kind, station: 0, x, y: 300 });
+  const fin = (top: number): [number, number][] => [[880, 280], [920, top], [980, top], [1010, 280]];
+
+  it("moves the CP label forward off a fin that reaches it, whether or not the fin is selected", () => {
+    const { labelY, cpX, cgX } = markerLabels({ markers: [marker("cg", 790), marker("cp", 886)], finBlocks: [fin(200)], bodyTop: 285 });
+    expect(labelY).toBe(215);
+    expect(cpX).toBe(832);
+    expect(cgX).toBe(748);
+  });
+
+  it("leaves the labels over a fin too short to reach them", () => {
+    const { cpX, cgX } = markerLabels({ markers: [marker("cg", 700), marker("cp", 886)], finBlocks: [fin(260)], bodyTop: 285 });
+    expect(cpX).toBe(886);
+    expect(cgX).toBe(700);
   });
 });
 

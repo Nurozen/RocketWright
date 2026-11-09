@@ -437,9 +437,13 @@
   padding: 0;
 }
 
+/* Filling the control keeps the right padding, so the value ends in an ellipsis before the chevron. */
 .rw-select--native select {
+  width: 100%;
+  min-width: 0;
   height: 100%;
   padding: 0 34px 0 14px;
+  text-overflow: ellipsis;
   border: 0;
   appearance: none;
   background: transparent;

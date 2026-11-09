@@ -464,8 +464,9 @@
 }
 
 /* The footer stays inside the plot column (the trajectory inset sits beside
-   it). The environment text is compact enough to fit at 1536 px; in a
-   narrower window it gives way first and ends in an ellipsis. */
+   it). The environment text is compact enough to fit at 1536 px; beside the
+   conditions sheet or in a narrower window it gives way first and ends in an
+   ellipsis (the full text is its tooltip), so the footer stays one line. */
 .rw-details__field[data-field="environment"] {
   flex: 0 1 auto;
   min-width: 0;
@@ -873,13 +874,9 @@
     width: 16%;
   }
 
-  /* The run details wrap to a second row rather than ellipsize the environment. */
-  .rw-details {
-    flex-wrap: wrap;
-    row-gap: 6px;
-    height: auto;
-    min-height: 56px;
-    padding-block: 8px;
+  /* The footer stays one line: the cloud icon and the tooltip still name the value. */
+  .rw-details__key {
+    display: none;
   }
 }
 

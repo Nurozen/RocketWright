@@ -7,7 +7,7 @@
  * first flushes whatever is still in a field and waits for the mirror: its
  * result is then filed under the engine it actually saw.
  */
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { MutationOut, PatchOp } from "@rw/contracts";
 import { Icon } from "../../shell/Icon.tsx";
 import { flushProject, trackWrite, useDirtyField } from "../../state/dirtyFields.ts";
@@ -342,9 +342,11 @@ export interface EngineEditorProps {
   onCompute: () => Promise<void>;
   onShow: (id: string) => void;
   onDeleted: (id: string) => void;
+  /** The computed tables: they scroll with the cards, above the pinned result strip. */
+  children?: ReactNode;
 }
 
-export function EngineEditor({ app, engineId, engine, entry, canCompute, onCompute, onShow, onDeleted }: EngineEditorProps) {
+export function EngineEditor({ app, engineId, engine, entry, canCompute, onCompute, onShow, onDeleted, children }: EngineEditorProps) {
   const text = useAppState(app, (s) => s.project.snapshot?.files.files[`engines/${engineId}.rw.toml`]);
   const units = useAppState(app, (s) => s.ui.units);
   const check = useAppState(app, (s) => s.project.snapshot?.check?.diagnostics ?? s.project.snapshot?.evaluated?.diagnostics ?? null);
@@ -411,33 +413,83 @@ export function EngineEditor({ app, engineId, engine, entry, canCompute, onCompu
   const busy = computing || entry?.state === "loading";
 
   return (
-    <div className="rw-liq-editor" data-testid="liquid.editor">
-      <div className="rw-liq-editor__toolbar">
-        {modified ? (
-          <p className="rw-liq-editor__modified" role="status" data-testid="liquid.modified">
-            <Icon name="alert" size={18} />
-            Modified, needs recompute
-          </p>
-        ) : (
-          <span />
-        )}
-        <div className="rw-liq-editor__actions">
-          <NewEngineButton app={app} onShow={onShow} />
-          <button type="button" className="rw-button" data-testid="liquid.duplicate-engine" disabled={duplicating} aria-busy={duplicating} onClick={duplicate}>
-            <Icon name="copy" size={18} />
-            Duplicate
-          </button>
-          <button type="button" className="rw-button" data-testid="liquid.delete-engine" onClick={() => setDeleting(true)}>
-            <Icon name="trash" size={18} />
-            Delete
-          </button>
+    <>
+      <div className="rw-liq-props__scroll">
+        <div className="rw-liq-editor" data-testid="liquid.editor">
+          <div className="rw-liq-editor__toolbar">
+            {modified ? (
+              <p className="rw-liq-editor__modified" role="status" data-testid="liquid.modified">
+                <Icon name="alert" size={18} />
+                Modified, needs recompute
+              </p>
+            ) : (
+              <span />
+            )}
+            <div className="rw-liq-editor__actions">
+              <NewEngineButton app={app} onShow={onShow} />
+              <button type="button" className="rw-button" data-testid="liquid.duplicate-engine" disabled={duplicating} aria-busy={duplicating} onClick={duplicate}>
+                <Icon name="copy" size={18} />
+                Duplicate
+              </button>
+              <button type="button" className="rw-button" data-testid="liquid.delete-engine" onClick={() => setDeleting(true)}>
+                <Icon name="trash" size={18} />
+                Delete
+              </button>
+            </div>
+          </div>
+          {problem !== null && (
+            <p className="rw-liq-editor__error" role="alert" data-testid="liquid.editor-problem">
+              {problem}
+            </p>
+          )}
+          <div className="rw-liq-editor__grid">
+            {ENGINE_CARDS.map((card) => (
+              <FieldGroupFrame key={card} heading={card} group={card}>
+                <div className="rw-liq-editor__fields">
+                  {card === "Propellants" && (
+                    <>
+                      <NameRow ctx={ctx} />
+                      <PropellantRows ctx={ctx} onProblem={setProblem} />
+                    </>
+                  )}
+                  {card === "Injector" && !source.hasTable("injector") ? (
+                    <button
+                      type="button"
+                      className="rw-button"
+                      data-testid="liquid.add-injector"
+                      onClick={() => {
+                        trackWrite(write(addInjectorOps(engineId), `Add injector to ${engine.name}`)).catch((e: unknown) => setProblem(message(e)));
+                      }}
+                    >
+                      Add injector
+                    </button>
+                  ) : (
+                    cardFields(card).map((f) => <FieldRow key={f.key} field={f} ctx={ctx} onProblem={setProblem} />)
+                  )}
+                </div>
+              </FieldGroupFrame>
+            ))}
+            <FieldGroupFrame heading="Tanks" group="Tanks">
+              {tanks.length === 0 ? (
+                <p className="rw-liq-editor__empty">No tanks in this engine's feed system yet.</p>
+              ) : (
+                <div className="rw-liq-editor__tanks">
+                  {tanks.map((t) => (
+                    <FieldGroupFrame key={t.id} heading={t.heading} group={`tank:${t.id}`}>
+                      <div className="rw-liq-editor__fields">
+                        {tankFields(t.id).map((f) => (
+                          <FieldRow key={f.key} field={f} ctx={ctx} onProblem={setProblem} />
+                        ))}
+                      </div>
+                    </FieldGroupFrame>
+                  ))}
+                </div>
+              )}
+            </FieldGroupFrame>
+          </div>
         </div>
+        {children}
       </div>
-      {problem !== null && (
-        <p className="rw-liq-editor__error" role="alert" data-testid="liquid.editor-problem">
-          {problem}
-        </p>
-      )}
       <div className="rw-liq-results" data-testid="liquid.results" data-stale={modified ? "true" : undefined}>
         <StatStrip
           label="Engine estimates"
@@ -449,52 +501,7 @@ export function EngineEditor({ app, engineId, engine, entry, canCompute, onCompu
           }
         />
       </div>
-      <div className="rw-liq-editor__grid">
-        {ENGINE_CARDS.map((card) => (
-          <FieldGroupFrame key={card} heading={card} group={card}>
-            <div className="rw-liq-editor__fields">
-              {card === "Propellants" && (
-                <>
-                  <NameRow ctx={ctx} />
-                  <PropellantRows ctx={ctx} onProblem={setProblem} />
-                </>
-              )}
-              {card === "Injector" && !source.hasTable("injector") ? (
-                <button
-                  type="button"
-                  className="rw-button"
-                  data-testid="liquid.add-injector"
-                  onClick={() => {
-                    trackWrite(write(addInjectorOps(engineId), `Add injector to ${engine.name}`)).catch((e: unknown) => setProblem(message(e)));
-                  }}
-                >
-                  Add injector
-                </button>
-              ) : (
-                cardFields(card).map((f) => <FieldRow key={f.key} field={f} ctx={ctx} onProblem={setProblem} />)
-              )}
-            </div>
-          </FieldGroupFrame>
-        ))}
-        <FieldGroupFrame heading="Tanks" group="Tanks">
-          {tanks.length === 0 ? (
-            <p className="rw-liq-editor__empty">No tanks in this engine's feed system yet.</p>
-          ) : (
-            <div className="rw-liq-editor__tanks">
-              {tanks.map((t) => (
-                <FieldGroupFrame key={t.id} heading={t.heading} group={`tank:${t.id}`}>
-                  <div className="rw-liq-editor__fields">
-                    {tankFields(t.id).map((f) => (
-                      <FieldRow key={f.key} field={f} ctx={ctx} onProblem={setProblem} />
-                    ))}
-                  </div>
-                </FieldGroupFrame>
-              ))}
-            </div>
-          )}
-        </FieldGroupFrame>
-      </div>
       {deleting && <DeleteEngineDialog app={app} engineId={engineId} engine={engine} onClose={() => setDeleting(false)} onDeleted={onDeleted} />}
-    </div>
+    </>
   );
 }
