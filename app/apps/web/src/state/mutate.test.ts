@@ -2,8 +2,10 @@
 import type { PatchOp } from "@rw/contracts";
 import { type MockServer, SEED_PROJECT_ID, startMockServer } from "@rw/contracts/mock";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { noteLanded } from "./mutate.ts";
 import { RpcClient } from "./rpc.ts";
 import { type AppStore, createAppStore } from "./store.ts";
+import type { SliceCtx } from "./types.ts";
 import type { PreviewCore } from "./wasm.ts";
 
 const P = SEED_PROJECT_ID;
@@ -120,5 +122,13 @@ describe("draft.mutate", () => {
   it("rejects when no project is connected", async () => {
     const store = createAppStore();
     await expect(store.getState().draft.mutate([drop])).rejects.toThrow(/not connected/);
+  });
+});
+
+describe("noteLanded", () => {
+  it("leaves nothing to wait for when the push beat the answer", () => {
+    const ctx = { landed: { from: "a", to: "b", through: [] }, get: () => ({ project: { snapshot: { evaluated: { model_hash: "h" } } } }) } as unknown as Pick<SliceCtx, "get" | "landed">;
+    noteLanded(ctx, "h");
+    expect(ctx.landed).toBeNull();
   });
 });

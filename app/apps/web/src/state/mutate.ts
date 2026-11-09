@@ -19,6 +19,11 @@ export function mirrorHash(ctx: Pick<SliceCtx, "get">): string | null {
  */
 export function noteLanded(ctx: Pick<SliceCtx, "get" | "landed">, hash: string): void {
   const from = mirrorHash(ctx);
+  // Its push beat the answer: the mirror already shows this write, and no later push would clear the wait.
+  if (from === hash) {
+    ctx.landed = null;
+    return;
+  }
   // A write before this one has not been pushed yet: its push is on the way here too.
   const earlier = ctx.landed !== null && (ctx.landed.from === from || ctx.landed.through.includes(from ?? "")) ? [...ctx.landed.through, ctx.landed.to] : [];
   ctx.landed = { from, to: hash, through: earlier };
