@@ -81,13 +81,13 @@ test("an Empty project opens cleanly on every page", async ({ page }) => {
 
   // Propulsion.
   await tab(page, "Propulsion").click();
-  await expect(page.getByTestId("liquid.empty")).toContainText("Ask the agent to add one");
+  await expect(page.getByTestId("liquid.empty")).toContainText("Press New engine to add one");
   await expect(page.getByTestId("propulsion.tree-empty")).toBeVisible();
 
   // Simulate: every tier and analysis view.
   await tab(page, "Simulate").click();
   await page.locator('[data-testid="propsim.tier-tab"][data-tier="engineering"]').click();
-  await expect(page.getByTestId("engineering.empty")).toContainText("Ask the agent to add one");
+  await expect(page.getByTestId("engineering.empty")).toContainText("Press New engine on the Propulsion page");
   await page.locator('[data-testid="propsim.tier-tab"][data-tier="visual"]').click();
   await expect(page.getByTestId("visual.loading")).toContainText("No visual flow study");
   await expect(page.getByTestId("traces")).toHaveCount(0);
