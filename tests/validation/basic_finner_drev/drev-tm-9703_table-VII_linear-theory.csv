@@ -1,6 +1,6 @@
 # DREV-TM-9703 Table VII "Linear theory aerodynamic coefficients", pdf p 43. Per-shot linear-theory reduction (less accurate than Table IX).
 # Transcribed by Claude from rendered page images; checked against the PDF by Luke Hanzon, 2026-11-08.
-# The report notes DA95030622 (Cmq +418.7) and DA95022702 (Cnpa 1139) as outliers of linear theory; transcribed as printed.
+# Report section 5.1: there is some dispersion in Cmq and Cnpa, mainly due to the low angles of attack on some shots. The linear analysis does not fit a roll moment due to fin cant, so the linear-theory Clp values (both Clp columns) are not usable. Transcribed as printed.
 shot,mach,dbsq_deg2,CD,CD0,CDSQ,CNa,Cma,Cmq,Cnpa,Clp_roll_fit,Clp_freq_fit
 DA95022010,1.056,0.4,0.871,0.868,23.141,16.391,-50.786,-319.4,63.737,13.746,0.000
 DA95022219,1.057,2.1,0.882,0.866,25.140,18.390,-52.022,-333.3,29.490,-9.058,0.000

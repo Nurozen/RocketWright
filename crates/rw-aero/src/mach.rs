@@ -144,9 +144,10 @@ mod tests {
 
     #[test]
     fn busemann_flat_plate_is_ackeret_lift() {
-        // For a flat plate: net ΔCp across upper/lower = 2 * busemann_cp(M, α).
-        // In the linear limit that equals the Ackeret lift slope 4/β.
-        // α = 1e-10 keeps the K₂·α² residual < 2e-10, well within 1e-7.
+        // Checks only that 2·K₁ = 4/β: busemann_cp is odd in the incidence, so
+        // a flat plate loaded on both surfaces has slope 2·busemann_cp(M, α)/α,
+        // which tends to 4/β. It does not exercise the fin CNα code.
+        // α = 1e-10 keeps the 2·K₂·α residual near 1e-10, below the 1e-7 tolerance.
         for m in [2.0_f64, 3.0] {
             let alpha = 1e-10_f64;
             let net = 2.0 * busemann_cp(m, alpha) / alpha;
@@ -155,20 +156,6 @@ mod tests {
                 (net - ackeret).abs() < 1e-7,
                 "M={m}: net={net} ackeret={ackeret}"
             );
-        }
-    }
-
-    #[test]
-    fn diamond_wave_drag_reference() {
-        // Ackeret wave drag for a symmetric diamond: 4*(t/c)²/β.
-        // This is a test-local reference function; the production model does
-        // not yet compute it directly.
-        fn diamond_cd_wave(tc: f64, mach: f64) -> f64 {
-            4.0 * tc * tc / beta(mach)
-        }
-        for (tc, m) in [(0.1, 2.0), (0.08, 3.0)] {
-            let expected = 4.0 * tc * tc / beta(m);
-            assert!((diamond_cd_wave(tc, m) - expected).abs() < 1e-15);
         }
     }
 

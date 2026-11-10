@@ -1,9 +1,9 @@
 # DREV-TM-9703 (Dupuis & Hathaway, 1997), Table IX "Six-degree-of-freedom aerodynamic coefficients - Multiple fits", pdf pp 48-49.
 # Transcribed by Claude from rendered page images; checked against the PDF by Luke Hanzon, 2026-11-08.
 # Moment reference = CG at 5.50 cal from nose (Table I, Fig 2). Reference area = body cross-section (d = 30 mm); reference length = d.
-# pe_* = probable error in % as printed; "*" = coefficient fixed or undetermined (PE > 100%); "" = not printed.
+# pe_* = probable error in % as printed; "*" = coefficient held constant in the fit (report section 5.2); "" = not printed. The report's "(-)" mark (solved for, probable error > 100%, undetermined) does not occur in Table IX.
 # CX = zero-yaw axial force coefficient (Cxo). CXM = dCxo/dM and CmaM = dCma/dM about the group Mach. CX2 / Cma3 = alpha^2 / alpha^3 terms.
-# Cmq normalisation (qd/V vs qd/2V) is NOT stated in the report: confirm before comparing with rw-aero cm_damping.
+# Cmq is normalised by qd/2V (report section 7, eqs [1]-[2], pdf pp 28-29). rw-aero cm_damping is quadratic in pitch rate, so Cmq is printed but not scored.
 group,shots,mach,dbsq_deg2,abarm,CX,pe_CX,CNa,pe_CNa,Cma,pe_Cma,Cmq,pe_Cmq,CXM,pe_CXM,CX2,pe_CX2,Cnpa,pe_Cnpa,Cma3,pe_Cma3,CmaM,pe_CmaM,Clp,pe_Clp,pe_x_m,pe_angle_deg,pe_yz_m,pe_roll_deg
 1,DA95022230 DA95022010 DA95022219,1.077,0.9,2.7,0.863,0,18.47,2,-52.648,0,-322.4,5,-0.24,3,6.500,*,0.00,*,0.000,*,-65.20,6,-18.16,0,0.0006,0.072,0.0003,1.307
 2,DA95022009 DA95030613,1.293,1.5,2.1,0.731,0,18.27,3,-50.968,0,-487.4,6,-0.75,1,6.500,*,-321.97,3,0.000,*,40.85,4,-23.57,0,0.0009,0.090,0.0004,1.506
