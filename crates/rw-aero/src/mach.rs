@@ -143,6 +143,23 @@ mod tests {
     }
 
     #[test]
+    fn busemann_flat_plate_is_ackeret_lift() {
+        // Checks only that 2·K₁ = 4/β: busemann_cp is odd in the incidence, so
+        // a flat plate loaded on both surfaces has slope 2·busemann_cp(M, α)/α,
+        // which tends to 4/β. It does not exercise the fin CNα code.
+        // α = 1e-10 keeps the 2·K₂·α residual near 1e-10, below the 1e-7 tolerance.
+        for m in [2.0_f64, 3.0] {
+            let alpha = 1e-10_f64;
+            let net = 2.0 * busemann_cp(m, alpha) / alpha;
+            let ackeret = 4.0 / beta(m);
+            assert!(
+                (net - ackeret).abs() < 1e-7,
+                "M={m}: net={net} ackeret={ackeret}"
+            );
+        }
+    }
+
+    #[test]
     fn blend_is_continuous() {
         let sub = |m: f64| 1.0 / beta(m);
         let sup = |m: f64| 2.0 / beta(m);
