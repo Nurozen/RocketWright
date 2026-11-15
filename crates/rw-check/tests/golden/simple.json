@@ -22,7 +22,7 @@
         "cna": 12.0337,
         "component": "fins",
         "cp": 0.506865,
-        "model": "niskanen-2009:fins eq 3.40 3.49 3.56 3.36; niskanen-2013 eq 3.54; barrowman-1967 eq 3-7 (K_3) 3-98 (K_B(T)); naca-tr-1307 eq 14 D5 chart 16 (body-load CP)"
+        "model": "niskanen-2009:fins eq 3.40 3.56 3.36; niskanen-2013 eq 3.54; barrowman-1967 eq 3-98 (K_B(T)), App. A eq 8 33 (supersonic two-face strip load, K_1 K_3) 38-44 (tip Mach cone); naca-tr-1307 chart 8 (low aspect ratio), eq 14 D5 chart 16 (body-load CP)"
       }
     ]
   },

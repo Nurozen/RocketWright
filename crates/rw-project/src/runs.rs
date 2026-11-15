@@ -3,15 +3,18 @@
 //!
 //! - `run_id` is the first 12 hex of blake3 over the JCS-canonical
 //!   [`RunKey`] (model hash, config, sim, motor digests, engine hash,
-//!   core version, seed, integrator), so the same inputs always land in the
-//!   same directory and a second request is a cache hit (I7).
+//!   core version, aero model revision, seed, integrator), so the same
+//!   inputs always land in the same directory and a second request is a
+//!   cache hit (I7). The revision is there because a physics change does not
+//!   bump the core version.
 //! - A run directory appears atomically: the files are written into a
 //!   hidden temp directory beside it, which is then renamed into place.
 //! - `summary.json` and `events.json` are key-sorted with fixed significant
 //!   figures and no timestamps (I8); `manifest.json` is the only file with
 //!   wall-clock fields, and they are not part of the key.
 //! - Status is computed from the manifest's `model_hash` against the current
-//!   model ([`status_of`]), never stored.
+//!   model, and for a flight its `core_version` against
+//!   [`flight_core_version`] ([`status_of`]); it is never stored.
 
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -37,6 +40,17 @@ pub const SERIES_SIG_FIGS: usize = 9;
 /// Version recorded in manifests and hashed into `run_id`.
 pub const CORE_VERSION: &str = env!("CARGO_PKG_VERSION");
 
+/// The `core_version` a flight manifest records: [`CORE_VERSION`] with the
+/// aero model revision as build metadata (`0.1.0+aero.2`). [`status_of`]
+/// compares it, so a run computed under other physics lists as outdated.
+pub fn flight_core_version() -> String {
+    flight_stamp(rw_aero::AERO_MODEL_REVISION)
+}
+
+fn flight_stamp(aero_revision: u32) -> String {
+    format!("{CORE_VERSION}+aero.{aero_revision}")
+}
+
 /// The canonical inputs of one run (hashed into `run_id`).
 #[derive(Debug, Clone, Serialize)]
 pub struct RunKey<'a> {
@@ -49,6 +63,8 @@ pub struct RunKey<'a> {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub engine: Option<&'a str>,
     pub core_version: &'a str,
+    /// `rw_aero::AERO_MODEL_REVISION` at the time of the run.
+    pub aero_revision: u32,
     pub seed: u64,
     pub integrator: IntegratorKind,
 }
@@ -63,9 +79,17 @@ impl RunKey<'_> {
 }
 
 /// Run status from the manifest: `Complete` when it was computed from the
-/// current model, otherwise `Outdated` (I7).
+/// current model by the current physics, otherwise `Outdated` (I7).
 pub fn status_of(manifest: &RunManifest, current_model_hash: &str) -> RunStatus {
-    if manifest.model_hash == current_model_hash {
+    status_at(manifest, current_model_hash, &flight_core_version())
+}
+
+/// [`status_of`] against a given flight stamp. Only engineering runs carry
+/// the stamp; a visual study's key and manifest use the plain core version.
+fn status_at(manifest: &RunManifest, current_model_hash: &str, stamp: &str) -> RunStatus {
+    let same_physics =
+        manifest.provenance != rw_api::Provenance::Engineering || manifest.core_version == stamp;
+    if manifest.model_hash == current_model_hash && same_physics {
         RunStatus::Complete
     } else {
         RunStatus::Outdated
@@ -442,22 +466,29 @@ mod tests {
     #[test]
     fn run_id_is_a_stable_content_hash() {
         let (sim, cfg) = (sim_json(), config_json());
-        let key = |hash: &'static str, seed: u64| RunKey {
+        let key_at = |hash: &'static str, seed: u64, aero_revision: u32| RunKey {
             model_hash: hash,
             config: &cfg,
             sim: &sim,
             motors: vec!["ab"],
             engine: None,
             core_version: CORE_VERSION,
+            aero_revision,
             seed,
             integrator: IntegratorKind::Rk4,
         };
+        let key = |hash, seed| key_at(hash, seed, rw_aero::AERO_MODEL_REVISION);
         let a = key("h1", 0).run_id();
         assert_eq!(a.len(), 12);
         assert!(a.chars().all(|c| c.is_ascii_hexdigit()));
         assert_eq!(a, key("h1", 0).run_id(), "deterministic");
         assert_ne!(a, key("h2", 0).run_id(), "model hash is an input");
         assert_ne!(a, key("h1", 1).run_id(), "seed is an input");
+        assert_ne!(
+            a,
+            key_at("h1", 0, rw_aero::AERO_MODEL_REVISION + 1).run_id(),
+            "aero model revision is an input"
+        );
     }
 
     #[test]
@@ -514,8 +545,34 @@ mod tests {
                 "{r}"
             );
         }
+        m.core_version = flight_core_version();
         assert_eq!(status_of(&m, &m.model_hash.clone()), RunStatus::Complete);
         assert_eq!(status_of(&m, "other"), RunStatus::Outdated);
+    }
+
+    #[test]
+    fn a_flight_made_under_another_aero_revision_is_outdated() {
+        let mut m: RunManifest = serde_json::from_value(
+            serde_json::from_str::<serde_json::Value>(include_str!(
+                "../../../fixtures/contracts/run-manifest.json"
+            ))
+            .unwrap()["payload"]
+                .clone(),
+        )
+        .unwrap();
+        let hash = m.model_hash.clone();
+        // The fixture predates the revision: a bare core version.
+        assert_eq!(m.core_version, CORE_VERSION);
+        assert_eq!(status_of(&m, &hash), RunStatus::Outdated);
+        m.core_version = flight_stamp(rw_aero::AERO_MODEL_REVISION + 1);
+        assert_eq!(status_of(&m, &hash), RunStatus::Outdated);
+        assert_eq!(status_at(&m, &hash, &m.core_version), RunStatus::Complete);
+        m.core_version = flight_core_version();
+        assert_eq!(status_of(&m, &hash), RunStatus::Complete);
+        // A visual study is not a flight: its manifest keeps the bare version.
+        m.provenance = rw_api::Provenance::Visual;
+        m.core_version = CORE_VERSION.into();
+        assert_eq!(status_of(&m, &hash), RunStatus::Complete);
     }
 
     #[test]

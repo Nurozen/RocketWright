@@ -42,7 +42,10 @@ printf 'make wasm: %s (%s bytes, %s gzip)\n' "$out/rw_wasm_bg.wasm" "$bytes" "$g
 # for viewport cuts (`MeshOptions.cutters`, `mesh_model_glb`) took it to 2.1121 MB.
 # ThrustCurve raised it to 2.13 MB: the model's `[lib.source]` provenance table
 # (`LibSource`) and the RW-E015..017 code rows took it from 2.1140 MB to 2.1240 MB.
-max=${RW_WASM_MAX_BYTES:-2130000}
+# Supersonic tip relief raised it to 2.14 MB: the tip Mach-cone strip factor,
+# the low-aspect-ratio factor and the rectangular-wing tube-fin slope in
+# rw-aero took it from 2.1295 MB to 2.1313 MB.
+max=${RW_WASM_MAX_BYTES:-2140000}
 if [ "$bytes" -gt "$max" ]; then
   echo "make wasm: rw_wasm_bg.wasm is $bytes bytes, over the $max-byte gate" >&2
   exit 1

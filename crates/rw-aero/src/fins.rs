@@ -1,6 +1,7 @@
 //! Fin-set normal force and CP (Barrowman 1967 as extended by Niskanen 2009):
-//! single-fin C_Nα (Diederich subsonic, Busemann supersonic), the N-fin
-//! factor, fin–body interference K_T(B), and the Mach-dependent fin CP.
+//! single-fin C_Nα (Diederich subsonic; supersonic two-face Busemann strip
+//! load with the tip Mach-cone relief of Barrowman App. A), the N-fin factor,
+//! fin–body interference K_T(B), and the Mach-dependent fin CP.
 //! Notation follows `docs/dev/literature-map.md`.
 
 use std::f64::consts::PI;
@@ -8,7 +9,7 @@ use std::f64::consts::PI;
 use rw_geom::{FinGeometry, fins::planform_stats};
 use rw_model::FinCrossSection;
 
-use crate::mach::{beta, busemann, transonic_blend};
+use crate::mach::{beta, flat_plate_strip_secant, hermite, transonic_blend};
 
 /// Number of spanwise strips used for the strip sums (sweep angles, roll damping).
 pub(crate) const STRIPS: usize = 200;
@@ -123,6 +124,150 @@ impl FinPlanform {
             0.0
         }
     }
+
+    /// Tip Mach-cone geometry of this panel for the supersonic strip load.
+    /// cite: barrowman-1967 eq 38 p 101
+    pub fn tip_cone(&self) -> TipCone {
+        TipCone {
+            xi_root: self.r_t,
+            span: self.span,
+            tan_le: self.gamma_le.tan(),
+            aspect_ratio: self.aspect_ratio(),
+        }
+    }
+}
+
+/// βAR below which the rectangular-wing slope is taken at the slender-wing
+/// limit; the TR 1307 chart 8 linear-theory curve for λ = 1 stops here and is
+/// extrapolated to the origin.
+pub const SLENDER_BETA_AR: f64 = 0.5;
+
+/// What the supersonic strip load needs to know about a panel's tip: the
+/// root radius, the exposed span s, tan Γ_L, and the aspect ratio
+/// AR = 2s²/A_fin of the two exposed panels joined together (the wing alone
+/// of naca-tr-1307, footnote 1 pdf 5).
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct TipCone {
+    pub xi_root: f64,
+    pub span: f64,
+    pub tan_le: f64,
+    pub aspect_ratio: f64,
+}
+
+impl TipCone {
+    /// Load factor of one strip: [`tip_cone_strip_factor`] at the strip's
+    /// spanwise position times [`low_aspect_ratio_factor`] at β·AR.
+    /// cite: barrowman-1967 eq 39-44 p 102
+    /// cite: naca-tr-1307 eq chart-8 p 63
+    pub fn strip_factor(&self, mach: f64, strip: &Strip) -> f64 {
+        let b = beta(mach.max(1.0 + 1e-9));
+        tip_cone_strip_factor(
+            mach,
+            strip.chord,
+            strip.xi - self.xi_root,
+            self.span,
+            self.tan_le,
+        ) * low_aspect_ratio_factor(b * self.aspect_ratio)
+    }
+
+    /// Finite-span factor of the whole panel on its 2D load: the
+    /// area-weighted mean of the strip factors, Σ f_i c_i Δξ_i / Σ c_i Δξ_i.
+    /// A rectangle gives [`rectangular_tip_relief`] at β·AR.
+    /// cite: barrowman-1967 eq 39-44 p 102
+    /// cite: naca-tr-1307 eq chart-8 p 63
+    pub fn panel_factor(&self, mach: f64, strips: &[Strip]) -> f64 {
+        let (mut load, mut area) = (0.0, 0.0);
+        for s in strips {
+            let a = s.chord * s.width;
+            load += self.strip_factor(mach, s) * a;
+            area += a;
+        }
+        if area > 0.0 { load / area } else { 1.0 }
+    }
+}
+
+/// Fraction of a strip's chord that lies behind a tip Mach line crossing the
+/// strip a distance `l_w` from its leading edge: (c − l_w)/c within [0, 1].
+fn chord_fraction_behind(chord: f64, l_w: f64) -> f64 {
+    if chord <= 0.0 {
+        return 0.0;
+    }
+    ((chord - l_w.max(0.0)) / chord).clamp(0.0, 1.0)
+}
+
+/// Tip Mach-cone load factor of a flat-plate strip at spanwise distance y
+/// from the root of a panel of exposed span s and leading-edge sweep Γ_L:
+/// f = 1 − ½ r_own − ½ r_opp, r the fraction of the chord behind a tip Mach
+/// line. Barrowman takes the pressure coefficient behind the tip Mach cone as
+/// half the 2D value ((39)-(44) and the sentence after them); the Mach line
+/// from the panel's own tip leading edge crosses the strip
+/// l_w = (s − y)(tan Γ_L + β) from its leading edge (38). The second term is
+/// the same rule for the tip of the opposite panel of the wing alone (the two
+/// exposed panels joined at the root, naca-tr-1307 footnote 1 pdf 5), whose
+/// Mach line crosses at (s − y) tan Γ_L + β(s + y); it acts only when β·AR < 2
+/// for a rectangle. Summed over a rectangular panel the factor is the
+/// linear-theory 1 − 1/(2 β AR) for β·AR ≥ 1 (naca-tr-1307 chart 8, λ = 1:
+/// β C_Lα = 2 at βA = 1, 3 at βA = 2) and β·AR/2 below.
+///
+/// The rule is sourced for aft-swept and unswept leading edges. A
+/// forward-swept leading edge (tan Γ_L < 0) is treated as unswept here: the
+/// Mach-line distances use max(tan Γ_L, 0). With the negative value both
+/// distances shrink and the panel loses far more than half the load behind
+/// the cone. By the reverse-flow theorem a forward-swept panel should carry
+/// the load of its flow-reversed twin, which this clamp only approximates
+/// (model choice, parity-log).
+/// cite: barrowman-1967 eq 38 p 101
+/// cite: barrowman-1967 eq 39-44 p 102
+pub fn tip_cone_strip_factor(mach: f64, chord: f64, y: f64, span: f64, tan_le: f64) -> f64 {
+    let b = beta(mach.max(1.0 + 1e-9));
+    let to_tip = (span - y).max(0.0);
+    let tan_le = tan_le.max(0.0);
+    let own = to_tip * (tan_le + b);
+    let opposite = to_tip * tan_le + (span + y) * b;
+    1.0 - 0.5 * (chord_fraction_behind(chord, own) + chord_fraction_behind(chord, opposite))
+}
+
+/// Low-aspect-ratio correction to the tip-cone strip rule, as a function of
+/// g = β·AR. The strip rule gives a rectangular wing β C_Lα = 2g below g = 1,
+/// where each tip Mach line crosses the other tip and the half-load rule no
+/// longer holds. naca-tr-1307 chart 8 (λ = 1) falls from β C_Lα = 2 at g = 1
+/// to the slender-wing line (π/2) g at g = 0.5, where the linear-theory curve
+/// ends and is extrapolated to the origin. This factor is that curve over the
+/// strip rule's 2g: 1 for g ≥ 1; π/4 for g ≤ 0.5 (so for a rectangular panel
+/// the slope is the slender-wing (π/2) AR on its own area at any Mach, the
+/// same limit as the subsonic (3.40)); between, a cubic in g matching value
+/// and slope at both ends, H(g)/(2g) with H from (0.5, π/4, slope π/2) to
+/// (1, 2, slope 2). On other planforms the strip rule's tip loss differs (a
+/// delta has none), so the same factor does not give them the slender-wing
+/// limit. The cubic and its use on non-rectangular planforms are model
+/// choices (parity-log).
+/// cite: naca-tr-1307 eq chart-8 p 63
+pub fn low_aspect_ratio_factor(beta_ar: f64) -> f64 {
+    let (g0, g1) = (SLENDER_BETA_AR, 1.0);
+    if beta_ar >= g1 {
+        1.0
+    } else if beta_ar <= g0 {
+        PI / 4.0
+    } else {
+        hermite(beta_ar, g0, g1, PI / 2.0 * g0, PI / 2.0, 2.0, 2.0) / (2.0 * beta_ar)
+    }
+}
+
+/// Finite-span factor of a rectangular wing on its 2D slope 4/β, as a
+/// function of g = β·AR: 1 − 1/(2g) for g ≥ 1 (linear theory, tip Mach lines
+/// on the wing), (g/2)·[`low_aspect_ratio_factor`] below, which is (π/8) g
+/// for g ≤ 0.5 (slender wing, C_Lα = (π/2) AR). Continuous with a continuous
+/// slope, positive, and increasing in g. Equals the strip sum
+/// [`TipCone::panel_factor`] of a rectangular panel.
+/// cite: naca-tr-1307 eq chart-8 p 63
+/// cite: barrowman-1967 eq 39-44 p 102
+pub fn rectangular_tip_relief(beta_ar: f64) -> f64 {
+    let g = beta_ar.max(0.0);
+    if g >= 1.0 {
+        1.0 - 0.5 / g
+    } else {
+        0.5 * g * low_aspect_ratio_factor(g)
+    }
 }
 
 /// Horizontal slice of a planform polygon at height y: (chord, LE station,
@@ -159,20 +304,34 @@ pub fn single_fin_cna_subsonic(mach: f64, span: f64, a_fin: f64, a_ref: f64, gam
 }
 
 /// Supersonic single-fin secant slope at angle of attack α (flat plate,
-/// uncanted, no roll): (C_Nα)_1 = (A_fin/A_ref)(K_1 + K_2 α + K_3 α²).
-/// cite: niskanen-2009 eq 3.49 p 41
+/// uncanted, no roll), both faces loaded, infinite span:
+/// (C_Nα)_1 = (A_fin/A_ref) ΔC_P(α)/α = (A_fin/A_ref) 2(K_1 + K_3 α_c²),
+/// ΔC_P/α from [`crate::mach::flat_plate_strip_secant`], α_c = min(α, 17.5°)
+/// ([`crate::mach::SERIES_INCIDENCE_LIMIT`]). At α → 0 this is the
+/// Ackeret slope (A_fin/A_ref) 4/β. niskanen-2009 (3.48)/(3.49) build the same
+/// strip sum from one face's C_P, (A_fin/A_ref)(K_1 + K_2 α + K_3 α²), which is
+/// half at α → 0 (literature-map Errata). The finite-span loss is applied by
+/// [`single_fin_cna`] through its `relief` factor.
+/// cite: barrowman-1967 eq 8 p 96
+/// cite: barrowman-1967 eq 16 p 97
+/// cite: barrowman-1967 eq 33a-33d p 98
+/// cite: niskanen-2009 eq 3.47 p 41
 pub fn single_fin_cna_supersonic(mach: f64, alpha: f64, a_fin: f64, a_ref: f64) -> f64 {
     if a_ref <= 0.0 {
         return 0.0;
     }
-    let [k1, k2, k3] = busemann(mach);
-    let a = alpha.abs();
-    a_fin / a_ref * (k1 + k2 * a + k3 * a * a)
+    // ΔC_P/α as the secant slope, so α = 0 gives the limit, not 0/0.
+    a_fin / a_ref * flat_plate_strip_secant(mach, alpha)
 }
 
 /// Single-fin secant slope over the whole Mach range: subsonic (3.40) up to
-/// M 0.9, supersonic (3.49) from M 1.5, C¹ cubic blend between.
+/// M 0.9; from M 1.5 the supersonic two-face strip load times `relief(M)`,
+/// the panel's finite-span factor ([`TipCone::panel_factor`] for a planar
+/// fin, [`rectangular_tip_relief`] for a wing given by its aspect ratio);
+/// C¹ cubic blend between, whose M 1.5 end takes the value and Mach slope of
+/// the relieved load.
 /// cite: niskanen-2009 eq 3.40 p 39
+/// cite: barrowman-1967 eq 39-44 p 102
 pub fn single_fin_cna(
     mach: f64,
     alpha: f64,
@@ -180,11 +339,12 @@ pub fn single_fin_cna(
     a_fin: f64,
     a_ref: f64,
     gamma_c: f64,
+    relief: impl Fn(f64) -> f64,
 ) -> f64 {
     transonic_blend(
         mach,
         |m| single_fin_cna_subsonic(m, span, a_fin, a_ref, gamma_c),
-        |m| single_fin_cna_supersonic(m, alpha, a_fin, a_ref),
+        |m| single_fin_cna_supersonic(m, alpha, a_fin, a_ref) * relief(m),
     )
 }
 
@@ -360,12 +520,227 @@ mod tests {
     #[test]
     fn supersonic_slope_continuity_and_blend() {
         let (s, a_fin, a_ref, gc) = (0.05, 0.003, 0.002, 0.3);
-        let lo = single_fin_cna(0.9, 0.0, s, a_fin, a_ref, gc);
+        let ar = 2.0 * s * s / a_fin;
+        let relief = |m: f64| rectangular_tip_relief(beta(m) * ar);
+        let lo = single_fin_cna(0.9, 0.0, s, a_fin, a_ref, gc, relief);
         assert!((lo - single_fin_cna_subsonic(0.9, s, a_fin, a_ref, gc)).abs() < 1e-12);
-        let hi = single_fin_cna(1.5, 0.0, s, a_fin, a_ref, gc);
-        assert!((hi - single_fin_cna_supersonic(1.5, 0.0, a_fin, a_ref)).abs() < 1e-12);
-        // Supersonic K_1 term alone: (A_fin/A_ref)(2/β).
+        let hi = single_fin_cna(1.5, 0.0, s, a_fin, a_ref, gc, relief);
+        let sup = single_fin_cna_supersonic(1.5, 0.0, a_fin, a_ref) * relief(1.5);
+        assert!((hi - sup).abs() < 1e-12);
+        // The blend's M 1.5 end slope includes the relief's Mach dependence.
+        let h = 1e-5;
+        let below = single_fin_cna(1.5 - h, 0.0, s, a_fin, a_ref, gc, relief);
+        let above = single_fin_cna(1.5 + h, 0.0, s, a_fin, a_ref, gc, relief);
+        let (dl, dr) = ((hi - below) / h, (above - hi) / h);
+        assert!((dl - dr).abs() < 1e-3 * dr.abs().max(1.0), "{dl} vs {dr}");
+        // Both faces at α → 0: the Ackeret slope (A_fin/A_ref)(4/β).
         let k1 = single_fin_cna_supersonic(2.0, 0.0, a_fin, a_ref);
-        assert!((k1 - a_fin / a_ref * 2.0 / 3.0_f64.sqrt()).abs() < 1e-12);
+        assert!((k1 - a_fin / a_ref * 4.0 / 3.0_f64.sqrt()).abs() < 1e-12);
+    }
+
+    #[test]
+    fn supersonic_slope_is_two_face_ackeret_at_small_alpha() {
+        let (a_fin, a_ref) = (0.003, 0.002);
+        for m in [1.5_f64, 2.0, 2.5, 4.3] {
+            let ackeret = a_fin / a_ref * 4.0 / beta(m);
+            let at0 = single_fin_cna_supersonic(m, 0.0, a_fin, a_ref);
+            assert!((at0 - ackeret).abs() <= 1e-12 * ackeret, "M={m}");
+            // Secant slope at small α is the strip ΔC_P over α on the fin area.
+            let alpha = 1e-3;
+            let secant = a_fin / a_ref * crate::mach::flat_plate_strip_dcp(m, alpha) / alpha;
+            let s = single_fin_cna_supersonic(m, alpha, a_fin, a_ref);
+            assert!((s - secant).abs() <= 1e-12 * secant, "M={m}");
+            assert!(((s - ackeret) / ackeret).abs() < 1e-4, "M={m}");
+            // Even in α.
+            assert_eq!(s, single_fin_cna_supersonic(m, -alpha, a_fin, a_ref));
+        }
+    }
+
+    #[test]
+    fn supersonic_slope_is_bounded_at_high_alpha() {
+        // M 1.5: K_1 = 1.7888544, K_3 = 3.0590364 (hand, γ = 1.4), limit
+        // 17.5° = 0.3054326 rad: 2(K_1 + K_3·0.0932891) = 4.1484582 at every
+        // α from the limit to 90°. The unbounded series gave 18.67 at 90°.
+        let at = |deg: f64| single_fin_cna_supersonic(1.5, deg.to_radians(), 1.0, 1.0);
+        for deg in [17.5, 30.0, 60.0, 90.0] {
+            assert!((at(deg) - 4.148_458_2).abs() < 1e-6, "{deg}: {}", at(deg));
+        }
+        assert!(at(10.0) < at(17.5) && at(0.0) < at(10.0));
+    }
+
+    fn rect_strips(chord: f64, span: f64, r_t: f64, n: usize) -> Vec<Strip> {
+        (0..n)
+            .map(|k| Strip {
+                xi: r_t + span * (k as f64 + 0.5) / n as f64,
+                chord,
+                width: span / n as f64,
+            })
+            .collect()
+    }
+
+    #[test]
+    fn tip_relief_of_a_rectangle_is_linear_theory() {
+        // Rectangular panel, c = 0.1, s = 0.1: AR = 2. Hand values of
+        // 1 − 1/(2 β AR): M 2 (β = √3) 0.8556624, M 3 (β = √8) 0.9116117,
+        // M 1.25 (β = 0.75, β AR = 1.5) 0.6666667.
+        let (c, s, r_t) = (0.1, 0.1, 0.02);
+        let cone = TipCone {
+            xi_root: r_t,
+            span: s,
+            tan_le: 0.0,
+            aspect_ratio: 2.0 * s / c,
+        };
+        let strips = rect_strips(c, s, r_t, 20_000);
+        for (m, hand) in [(2.0, 0.855_662_4), (3.0, 0.911_611_7), (1.25, 0.666_666_7)] {
+            let f = cone.panel_factor(m, &strips);
+            assert!((f - hand).abs() < 2e-6, "M={m}: {f}");
+            assert!((rectangular_tip_relief(beta(m) * 2.0) - hand).abs() < 1e-7);
+        }
+        // TR 1307 chart 8, λ = 1: β C_Lα = 4·factor is 2 at βA = 1 and 3 at
+        // βA = 2.
+        assert!((4.0 * rectangular_tip_relief(1.0) - 2.0).abs() < 1e-12);
+        assert!((4.0 * rectangular_tip_relief(2.0) - 3.0).abs() < 1e-12);
+        // No relief far from the tip; half load right at it.
+        assert_eq!(tip_cone_strip_factor(2.0, c, 0.0, 10.0, 0.0), 1.0);
+        let at_tip = tip_cone_strip_factor(2.0, c, s * (1.0 - 1e-12), s, 0.0);
+        assert!((at_tip - 0.5).abs() < 1e-9);
+    }
+
+    #[test]
+    fn strip_sum_matches_rectangular_closed_form_at_low_beta_ar() {
+        // The strip rule with both tips, times the low-aspect-ratio factor,
+        // against the closed form across β·AR from 0.1 to 6.
+        let (s, r_t) = (0.05, 0.01);
+        for ar in [0.1_f64, 0.3, 0.6, 0.9, 1.3, 2.0, 5.0] {
+            let c = 2.0 * s / ar;
+            let cone = TipCone {
+                xi_root: r_t,
+                span: s,
+                tan_le: 0.0,
+                aspect_ratio: ar,
+            };
+            let strips = rect_strips(c, s, r_t, 20_000);
+            for m in [1.5_f64, 2.0, 4.0] {
+                let f = cone.panel_factor(m, &strips);
+                let closed = rectangular_tip_relief(beta(m) * ar);
+                assert!((f - closed).abs() < 1e-5, "AR={ar} M={m}: {f} vs {closed}");
+            }
+        }
+    }
+
+    #[test]
+    fn low_beta_ar_slope_is_continuous_positive_monotone_and_slender() {
+        // β C_Lα = 4·factor of the rectangular wing against g = β·AR.
+        let slope = |g: f64| 4.0 * rectangular_tip_relief(g);
+        // Slender-wing line (π/2) g up to g = 0.5: π/8 at 0.25, π/4 at 0.5,
+        // 0.6283185 at 0.4.
+        assert!((slope(0.25) - std::f64::consts::FRAC_PI_8).abs() < 1e-12);
+        assert!((slope(0.5) - std::f64::consts::FRAC_PI_4).abs() < 1e-12);
+        assert!((slope(0.4) - 0.628_318_5).abs() < 1e-7);
+        // Mid-blend, hand: H(0.75) = (π/4 + 2)/2 + 0.5(π/2 − 2)/8 = 1.3658739.
+        assert!((slope(0.75) - 1.365_873_9).abs() < 1e-7);
+        // Continuous in value and slope at both switches.
+        let h = 1e-6;
+        for g in [0.5_f64, 1.0] {
+            let (l, c, r) = (slope(g - h), slope(g), slope(g + h));
+            assert!((l - c).abs() < 1e-5 && (r - c).abs() < 1e-5, "C0 at {g}");
+            assert!(((c - l) / h - (r - c) / h).abs() < 1e-4, "C1 at {g}");
+        }
+        // Positive and strictly increasing from 0.01 to 20; below 4.
+        let mut prev = 0.0;
+        for k in 1..=2000 {
+            let v = slope(0.01 * k as f64);
+            assert!(v > prev && v < 4.0, "g={}", 0.01 * k as f64);
+            prev = v;
+        }
+        // Up to g = 1 the slope never drops below the slender-wing (π/2) g.
+        for k in 1..=100 {
+            let g = 0.01 * k as f64;
+            assert!(slope(g) >= PI / 2.0 * g * (1.0 - 1e-12), "g={g}");
+        }
+    }
+
+    #[test]
+    fn tip_relief_handles_sweep_and_taper() {
+        // Swept trapezoid c_r = 0.12, c_t = 0.06, s = 0.08, Γ_L = 30°.
+        let (cr, ct, s, r_t) = (0.12, 0.06, 0.08, 0.02);
+        let n = 4000;
+        let strips: Vec<Strip> = (0..n)
+            .map(|k| {
+                let y = s * (k as f64 + 0.5) / n as f64;
+                Strip {
+                    xi: r_t + y,
+                    chord: cr + (ct - cr) * y / s,
+                    width: s / n as f64,
+                }
+            })
+            .collect();
+        let area = 0.5 * (cr + ct) * s;
+        let cone = TipCone {
+            xi_root: r_t,
+            span: s,
+            tan_le: 30f64.to_radians().tan(),
+            aspect_ratio: 2.0 * s * s / area,
+        };
+        // M 2: β AR = 3.079, the opposite tip is off the panel, and the own
+        // tip's Mach line l_w = (s − y)(tan 30° + √3) meets the chord
+        // c(y) at s − y = c_t/(tan Γ_L + β − (c_r − c_t)/s) = 0.0384763. The
+        // cone covers the triangle ½·0.0384763·0.06, half its load is lost:
+        // 1 − ½(0.0011543)/0.0072 = 0.9198410.
+        let f = cone.panel_factor(2.0, &strips);
+        assert!((f - 0.919_841_0).abs() < 2e-6, "{f}");
+        // Sweep moves the Mach line aft on every strip, so the loss is less
+        // than the unswept panel's.
+        let unswept = TipCone {
+            tan_le: 0.0,
+            ..cone
+        };
+        assert!(unswept.panel_factor(2.0, &strips) < f);
+        // More relief (smaller factor) toward M 1.5, none in the limit of
+        // high Mach.
+        assert!(cone.panel_factor(1.5, &strips) < f);
+        assert!(cone.panel_factor(50.0, &strips) > 0.99);
+        // Every strip factor stays within [0, 1].
+        for m in [1.01_f64, 1.5, 3.0] {
+            for st in &strips {
+                let v = cone.strip_factor(m, st);
+                assert!((0.0..=1.0).contains(&v));
+            }
+        }
+    }
+
+    #[test]
+    fn forward_swept_leading_edge_is_treated_as_unswept() {
+        // c_r = 1, c_t = 0.5, s = 0.5, Γ_L = −30°: the tip-cone geometry
+        // clamps tan Γ_L at 0, so the panel factor equals the unswept
+        // panel's and stays between the half-load floor and 1.
+        let (cr, ct, s, r_t) = (1.0, 0.5, 0.5, 0.1);
+        let n = 4000;
+        let strips: Vec<Strip> = (0..n)
+            .map(|k| {
+                let y = s * (k as f64 + 0.5) / n as f64;
+                Strip {
+                    xi: r_t + y,
+                    chord: cr + (ct - cr) * y / s,
+                    width: s / n as f64,
+                }
+            })
+            .collect();
+        let unswept = TipCone {
+            xi_root: r_t,
+            span: s,
+            tan_le: 0.0,
+            aspect_ratio: 2.0 * s * s / (0.5 * (cr + ct) * s),
+        };
+        let forward = TipCone {
+            tan_le: (-30f64).to_radians().tan(),
+            ..unswept
+        };
+        for m in [1.5_f64, 2.0] {
+            let f = forward.panel_factor(m, &strips);
+            assert_eq!(f, unswept.panel_factor(m, &strips), "M={m}");
+            assert!(f > 0.5 && f < 1.0, "M={m}: {f}");
+            println!("forward-swept panel factor M={m}: {f:.6}");
+        }
     }
 }

@@ -134,7 +134,7 @@ sha256 = "c1a18686adcc73dbeed56b198417a4f878ed0c1bdb85c605f13878543ea5b37d"
 citation = "Pitts, W. C., Nielsen, J. N., and Kaattari, G. E. Lift and Center of Pressure of Wing-Body-Tail Combinations at Subsonic, Transonic, and Supersonic Speeds. NACA Report 1307, 1957."
 url = "https://ntrs.nasa.gov/citations/19930091008"
 license = "public domain (NACA, U.S. Government work); NTRS distribution PUBLIC"
-usage = "equations-only; chart 16 ordinates digitised by us (crates/rw-aero/src/body_load.rs)"
+usage = "equations-only; chart 16 ordinates digitised by us (crates/rw-aero/src/body_load.rs); chart 8 rectangular-wing values at βA = 0.5, 1 and 2 read by us (crates/rw-aero/src/fins.rs)"
 page_offset = "printed = pdf - 4"
 local_copy = "not in references/ (downloaded from NTRS to verify; the catalog lists it)"
 

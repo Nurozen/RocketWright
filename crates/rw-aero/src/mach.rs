@@ -58,13 +58,43 @@ pub fn busemann(mach: f64) -> [f64; 3] {
     [k1, k2, k3]
 }
 
-/// Busemann strip pressure coefficient C_P = K_1 η + K_2 η² + K_3 η³ for a
-/// surface inclination η (odd-extended: C_P(−η) = −C_P(η)).
-/// cite: niskanen-2009 eq 3.41 p 40
-pub fn busemann_cp(mach: f64, eta: f64) -> f64 {
-    let [k1, k2, k3] = busemann(mach);
-    let e = eta.abs();
-    eta.signum() * (k1 * e + k2 * e * e + k3 * e * e * e)
+/// Incidence above which the K_3 term of the strip load is held (17.5°).
+/// Against the exact shock-expansion flat plate for M 1.5-4.3 with the shock
+/// attached, the third-order series 2(K_1 η + K_3 η³) is at most +5.9 % high
+/// up to here (M 4.3, 17.5°). On the low side it is −3.0 % at M 1.5, 10°, and
+/// under-predicts by up to about 14 % in the last degree or two before shock
+/// detachment for M 1.5-1.8 (−13.7 % at M 1.5, 12.1°; −14.0 % at M 1.7,
+/// 17.0°; −5.2 % at M 1.8, 17.5°). Beyond this incidence the η³ term grows
+/// without limit (+22 % at 30°, M 4.3), so the secant slope
+/// 2(K_1 + K_3 η²) is frozen here (parity-log model choices).
+pub const SERIES_INCIDENCE_LIMIT: f64 = 17.5 * std::f64::consts::PI / 180.0;
+
+/// Pressure difference across a flat-plate strip at incidence η, both faces
+/// summed: ΔC_P = C_P(+η) − C_P(−η) = 2 η (K_1 + K_3 η_c²), with
+/// η_c = min(|η|, [`SERIES_INCIDENCE_LIMIT`]). Each face takes the
+/// Busemann series K_1 η + K_2 η² + K_3 η³ (K* = 0, no upstream shock) at its
+/// own signed inclination: the windward face at +η, the leeward at −η
+/// ((33a)-(33d) with ζ = 0), and the strip load is the sum over the regions of
+/// both faces (8). K_2 cancels. niskanen-2009 (3.48), (3.49), (3.72) apply one
+/// face's C_P as the whole load, half of this at small η (literature-map Errata).
+/// Below the limit this is 2(K_1 η + K_3 η³); above it the load stays
+/// continuous and grows linearly in η.
+/// cite: barrowman-1967 eq 8 p 96
+/// cite: barrowman-1967 eq 33a-33d p 98
+/// cite: barrowman-1967 eq 1 p 92
+pub fn flat_plate_strip_dcp(mach: f64, eta: f64) -> f64 {
+    eta * flat_plate_strip_secant(mach, eta)
+}
+
+/// Secant slope ΔC_P/η of [`flat_plate_strip_dcp`], 2(K_1 + K_3 η_c²) with
+/// η_c = min(|η|, [`SERIES_INCIDENCE_LIMIT`]); finite at η = 0 (the Ackeret
+/// 4/β).
+/// cite: barrowman-1967 eq 8 p 96
+/// cite: barrowman-1967 eq 33a-33d p 98
+pub fn flat_plate_strip_secant(mach: f64, eta: f64) -> f64 {
+    let [k1, _, k3] = busemann(mach);
+    let held = eta.abs().min(SERIES_INCIDENCE_LIMIT);
+    2.0 * (k1 + k3 * held * held)
 }
 
 /// Cubic Hermite interpolant on `[x0, x1]` through `(x0, y0)` with slope `d0`
@@ -130,7 +160,50 @@ mod tests {
         // K3 at M = 2 with the −12M² term: (2.4·256 + (3.92 − 9.8 − 5)·64 + 24·16 − 48 + 8)/(6 b⁷).
         let num = 2.4 * 256.0 + (2.0 * 1.96 - 9.8 - 5.0) * 64.0 + 24.0 * 16.0 - 48.0 + 8.0;
         assert!((k3 - num / (6.0 * b.powi(7))).abs() < 1e-12);
-        assert!((busemann_cp(2.0, -0.1) + busemann_cp(2.0, 0.1)).abs() < 1e-15);
+    }
+
+    #[test]
+    fn strip_dcp_is_odd_with_no_eta_squared_term() {
+        for m in [1.6_f64, 2.0, 3.5] {
+            let [k1, k2, k3] = busemann(m);
+            for eta in [0.01_f64, 0.05, 0.2] {
+                let (p, n) = (flat_plate_strip_dcp(m, eta), flat_plate_strip_dcp(m, -eta));
+                assert_eq!(p, -n, "M={m} η={eta}: not odd");
+                // Face by face: windward C_P(+η) minus leeward C_P(−η) of the
+                // full series, K_2 included; the K_2 η² terms cancel.
+                let face = |e: f64| k1 * e + k2 * e * e + k3 * e * e * e;
+                let faces = face(eta) - face(-eta);
+                assert!((p - faces).abs() <= 1e-14 * faces.abs(), "M={m} η={eta}");
+            }
+            // Even part is zero, so no η² term survives.
+            let even = flat_plate_strip_dcp(m, 0.1) + flat_plate_strip_dcp(m, -0.1);
+            assert_eq!(even, 0.0);
+            assert_eq!(flat_plate_strip_dcp(m, 0.0), 0.0);
+        }
+    }
+
+    #[test]
+    fn strip_dcp_literal_and_incidence_limit() {
+        // M 2, η = 0.1: K_1 = 2/√3 = 1.1547005, K_3 = 262.08/(6·3^3.5) = 0.9340244,
+        // ΔC_P = 2(0.11547005 + 0.00093402) = 0.23280816.
+        assert!((flat_plate_strip_dcp(2.0, 0.1) - 0.232_808_16).abs() < 1e-8);
+        // Above the limit the secant slope ΔC_P/η is constant, and the load is
+        // continuous through the limit.
+        let lim = SERIES_INCIDENCE_LIMIT;
+        for m in [1.5_f64, 2.0, 4.3] {
+            let secant = |e: f64| flat_plate_strip_dcp(m, e) / e;
+            let at = secant(lim);
+            assert!((secant(lim * (1.0 - 1e-9)) - at).abs() < 1e-8 * at, "M={m}");
+            for e in [0.4_f64, 0.8, 1.2, std::f64::consts::FRAC_PI_2] {
+                assert!((secant(e) - at).abs() <= 1e-14 * at, "M={m} η={e}");
+                assert_eq!(flat_plate_strip_dcp(m, -e), -flat_plate_strip_dcp(m, e));
+            }
+            // Below it the full series applies.
+            let [k1, _, k3] = busemann(m);
+            let e = 0.25;
+            let series = 2.0 * (k1 * e + k3 * e * e * e);
+            assert!((flat_plate_strip_dcp(m, e) - series).abs() <= 1e-14 * series);
+        }
     }
 
     #[test]
@@ -144,13 +217,13 @@ mod tests {
 
     #[test]
     fn busemann_flat_plate_is_ackeret_lift() {
-        // Checks only that 2·K₁ = 4/β: busemann_cp is odd in the incidence, so
-        // a flat plate loaded on both surfaces has slope 2·busemann_cp(M, α)/α,
-        // which tends to 4/β. It does not exercise the fin CNα code.
-        // α = 1e-10 keeps the 2·K₂·α residual near 1e-10, below the 1e-7 tolerance.
+        // Checks only that the two-face flat-plate slope flat_plate_strip_dcp(M, α)/α
+        // tends to the Ackeret 4/β (= 2·K₁). It does not exercise the fin CNα code.
+        // ΔC_P has no η² term, so the residual at α = 1e-10 is 2·K₃·α², far
+        // below the 1e-7 tolerance.
         for m in [2.0_f64, 3.0] {
             let alpha = 1e-10_f64;
-            let net = 2.0 * busemann_cp(m, alpha) / alpha;
+            let net = flat_plate_strip_dcp(m, alpha) / alpha;
             let ackeret = 4.0 / beta(m);
             assert!(
                 (net - ackeret).abs() < 1e-7,

@@ -28,6 +28,13 @@ mod testutil;
 
 pub use types::*;
 
+/// Revision of the aerodynamic model, hashed into every flight run id.
+/// Bump it whenever a change alters any coefficient this crate returns for
+/// an unchanged model and flight state, so cached runs made under the old
+/// physics stop being served. Revision 2 is the two-face supersonic fin
+/// load with tip relief.
+pub const AERO_MODEL_REVISION: u32 = 2;
+
 use std::f64::consts::PI;
 
 use rw_geom::Geometry;
@@ -57,12 +64,16 @@ const ALPHA_EPS: f64 = 1e-9;
 const MODEL_NOSE: &str = "niskanen-2009:nose eq 3.19 3.26 3.28";
 const MODEL_TUBE: &str = "niskanen-2009:body-tube eq 3.19 3.26 3.28";
 const MODEL_TRANSITION: &str = "niskanen-2009:transition eq 3.19 3.26 3.28";
-const MODEL_FINS: &str = "niskanen-2009:fins eq 3.40 3.49 3.56 3.36; niskanen-2013 eq 3.54; \
-     barrowman-1967 eq 3-7 (K_3) 3-98 (K_B(T))";
-const MODEL_FINS_BODY_LOAD: &str = "niskanen-2009:fins eq 3.40 3.49 3.56 3.36; niskanen-2013 eq 3.54; \
-     barrowman-1967 eq 3-7 (K_3) 3-98 (K_B(T)); naca-tr-1307 eq 14 D5 chart 16 (body-load CP)";
-const MODEL_TUBE_FINS: &str = "naca-tn-4117:tube-fins annular wing 2x rectangular wing of A = d/L; \
-     niskanen-2009 eq 3.40 3.49 3.36; niskanen-2013 eq 3.54; barrowman-1967 eq 3-98 (K_B(T))";
+const MODEL_FINS: &str = "niskanen-2009:fins eq 3.40 3.56 3.36; niskanen-2013 eq 3.54; \
+     barrowman-1967 eq 3-98 (K_B(T)), App. A eq 8 33 (supersonic two-face strip load, K_1 K_3) \
+     38-44 (tip Mach cone); naca-tr-1307 chart 8 (low aspect ratio)";
+const MODEL_FINS_BODY_LOAD: &str = "niskanen-2009:fins eq 3.40 3.56 3.36; niskanen-2013 eq 3.54; \
+     barrowman-1967 eq 3-98 (K_B(T)), App. A eq 8 33 (supersonic two-face strip load, K_1 K_3) \
+     38-44 (tip Mach cone); naca-tr-1307 chart 8 (low aspect ratio), eq 14 D5 chart 16 (body-load CP)";
+const MODEL_TUBE_FINS: &str = "naca-tn-4117:tube-fins annular wing 2x rectangular wing of A = d/L \
+     (mil-hdbk-762 5-3.2 supersonic); niskanen-2009 eq 3.40 3.36; niskanen-2013 eq 3.54; \
+     barrowman-1967 eq 3-98 (K_B(T)), App. A eq 8 33 (supersonic two-face strip load); \
+     naca-tr-1307 chart 8 (rectangular wing at beta A, slender limit)";
 
 /// Pressure-drag model of a body component.
 #[derive(Debug, Clone, PartialEq)]
@@ -532,9 +543,12 @@ impl AeroModel {
             // Tube fins: annular wings, each tube 2x the rectangular wing of
             // A = d/L, summed over N tubes (`tube_fins`).
             let interference = kt_b(p.r_t, p.span) + kb_t(mach, p.r_t, p.span);
+            // Supersonic finite-span factor of the panel (tip Mach cone).
+            let tip = p.tip_cone();
+            let relief = |m: f64| tip.panel_factor(m, &p.strips);
             let set = |a: f64| match f.drag {
                 FinDrag::Planar => {
-                    single_fin_cna(mach, a, p.span, p.area, a_ref, p.gamma_c)
+                    single_fin_cna(mach, a, p.span, p.area, a_ref, p.gamma_c, relief)
                         * fin_count_factor(p.count)
                         * interference
                 }
@@ -824,9 +838,11 @@ impl AeroModel {
             let p = &f.fins;
             let x_f = fin_cp(f, mach);
             cm += damping::pitch_damping_fins(p.count, p.area, x_f - x_cg, a, d, w, v);
-            let cna1 = single_fin_cna(mach, 0.0, p.span, p.area, a, p.gamma_c);
+            let tip = p.tip_cone();
+            let relief = |m: f64| tip.panel_factor(m, &p.strips);
+            let cna1 = single_fin_cna(mach, 0.0, p.span, p.area, a, p.gamma_c, relief);
             forcing += damping::roll_forcing(p.count, p.y_mac, p.r_t, cna1, p.cant, d);
-            roll += damping::roll_damping(p.count, mach, state.roll_rate, a, d, v, &p.strips);
+            roll += damping::roll_damping(p.count, mach, state.roll_rate, a, d, v, &p.strips, &tip);
         }
         (cm, forcing, roll)
     }
