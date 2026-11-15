@@ -148,9 +148,14 @@ ops -> `TomlStore::preview` -> eval (+library) -> `Checker` -> dry run returns
 ## Runs and jobs (M1.28; `runs.rs`, `jobs.rs`, `session/runs_cmd.rs`)
 
 - `run_id` = first 12 hex of blake3 over the JCS form of `{model_hash,
-  config, sim, motors (curve sha256s), engine?, core_version, seed,
-  integrator}`. Same inputs, same id: `simulate` answers a cache hit
-  (`cached: true`, no job) unless `force`.
+  config, sim, motors (curve sha256s), engine?, core_version, aero_revision,
+  seed, integrator}`. Same inputs, same id: `simulate` answers a cache hit
+  (`cached: true`, no job) unless `force`. `aero_revision` is
+  `rw_aero::AERO_MODEL_REVISION`: bump it in any change that alters a
+  coefficient `rw-aero` returns for the same model and flight state, because
+  the workspace version does not move with a physics change and the cache
+  would keep serving the old flight. A flight manifest's `core_version`
+  records both (`0.1.0+aero.2`).
 - `runs/<sim>/<id>/{manifest,summary,events}.json` + `series.csv` (header of
   `SERIES_COLUMNS` names, `t` first; the sim's `series_dt` grid plus exact
   event rows, 9 significant figures). Written into a hidden temp dir, then
@@ -163,7 +168,9 @@ ops -> `TomlStore::preview` -> eval (+library) -> `Checker` -> dry run returns
   sim plots the pair.
 - Status is computed: `running` (an active job), `failed` (the sim's newest
   job failed), else `complete` when the manifest `model_hash` equals the
-  current model's, otherwise `outdated`; `not_run` without a run.
+  current model's and, for a flight, its `core_version` equals the current
+  one (so a run from before a physics revision lists as `outdated`),
+  otherwise `outdated`; `not_run` without a run.
 - `JobQueue`: up to 2 workers started on demand. The flight (aero, mass,
   `rw_sim::simulate`) runs on a worker, never on the MCP loop or under the
   session lock. Listeners hear every state change and each 10 % of progress;

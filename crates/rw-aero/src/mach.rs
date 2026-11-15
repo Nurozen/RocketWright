@@ -58,19 +58,43 @@ pub fn busemann(mach: f64) -> [f64; 3] {
     [k1, k2, k3]
 }
 
+/// Incidence above which the K_3 term of the strip load is held (17.5°).
+/// Against the exact shock-expansion flat plate for M 1.5-4.3 with the shock
+/// attached, the third-order series 2(K_1 η + K_3 η³) is at most +5.9 % high
+/// up to here (M 4.3, 17.5°). On the low side it is −3.0 % at M 1.5, 10°, and
+/// under-predicts by up to about 14 % in the last degree or two before shock
+/// detachment for M 1.5-1.8 (−13.7 % at M 1.5, 12.1°; −14.0 % at M 1.7,
+/// 17.0°; −5.2 % at M 1.8, 17.5°). Beyond this incidence the η³ term grows
+/// without limit (+22 % at 30°, M 4.3), so the secant slope
+/// 2(K_1 + K_3 η²) is frozen here (parity-log model choices).
+pub const SERIES_INCIDENCE_LIMIT: f64 = 17.5 * std::f64::consts::PI / 180.0;
+
 /// Pressure difference across a flat-plate strip at incidence η, both faces
-/// summed: ΔC_P = C_P(+η) − C_P(−η) = 2(K_1 η + K_3 η³). Each face takes the
+/// summed: ΔC_P = C_P(+η) − C_P(−η) = 2 η (K_1 + K_3 η_c²), with
+/// η_c = min(|η|, [`SERIES_INCIDENCE_LIMIT`]). Each face takes the
 /// Busemann series K_1 η + K_2 η² + K_3 η³ (K* = 0, no upstream shock) at its
 /// own signed inclination: the windward face at +η, the leeward at −η
 /// ((33a)-(33d) with ζ = 0), and the strip load is the sum over the regions of
 /// both faces (8). K_2 cancels. niskanen-2009 (3.48), (3.49), (3.72) apply one
 /// face's C_P as the whole load, half of this at small η (literature-map Errata).
+/// Below the limit this is 2(K_1 η + K_3 η³); above it the load stays
+/// continuous and grows linearly in η.
 /// cite: barrowman-1967 eq 8 p 96
 /// cite: barrowman-1967 eq 33a-33d p 98
 /// cite: barrowman-1967 eq 1 p 92
 pub fn flat_plate_strip_dcp(mach: f64, eta: f64) -> f64 {
+    eta * flat_plate_strip_secant(mach, eta)
+}
+
+/// Secant slope ΔC_P/η of [`flat_plate_strip_dcp`], 2(K_1 + K_3 η_c²) with
+/// η_c = min(|η|, [`SERIES_INCIDENCE_LIMIT`]); finite at η = 0 (the Ackeret
+/// 4/β).
+/// cite: barrowman-1967 eq 8 p 96
+/// cite: barrowman-1967 eq 33a-33d p 98
+pub fn flat_plate_strip_secant(mach: f64, eta: f64) -> f64 {
     let [k1, _, k3] = busemann(mach);
-    2.0 * (k1 * eta + k3 * eta * eta * eta)
+    let held = eta.abs().min(SERIES_INCIDENCE_LIMIT);
+    2.0 * (k1 + k3 * held * held)
 }
 
 /// Cubic Hermite interpolant on `[x0, x1]` through `(x0, y0)` with slope `d0`
@@ -150,12 +174,35 @@ mod tests {
                 let face = |e: f64| k1 * e + k2 * e * e + k3 * e * e * e;
                 let faces = face(eta) - face(-eta);
                 assert!((p - faces).abs() <= 1e-14 * faces.abs(), "M={m} η={eta}");
-                assert!((p - 2.0 * (k1 * eta + k3 * eta.powi(3))).abs() < 1e-15);
             }
             // Even part is zero, so no η² term survives.
             let even = flat_plate_strip_dcp(m, 0.1) + flat_plate_strip_dcp(m, -0.1);
             assert_eq!(even, 0.0);
             assert_eq!(flat_plate_strip_dcp(m, 0.0), 0.0);
+        }
+    }
+
+    #[test]
+    fn strip_dcp_literal_and_incidence_limit() {
+        // M 2, η = 0.1: K_1 = 2/√3 = 1.1547005, K_3 = 262.08/(6·3^3.5) = 0.9340244,
+        // ΔC_P = 2(0.11547005 + 0.00093402) = 0.23280816.
+        assert!((flat_plate_strip_dcp(2.0, 0.1) - 0.232_808_16).abs() < 1e-8);
+        // Above the limit the secant slope ΔC_P/η is constant, and the load is
+        // continuous through the limit.
+        let lim = SERIES_INCIDENCE_LIMIT;
+        for m in [1.5_f64, 2.0, 4.3] {
+            let secant = |e: f64| flat_plate_strip_dcp(m, e) / e;
+            let at = secant(lim);
+            assert!((secant(lim * (1.0 - 1e-9)) - at).abs() < 1e-8 * at, "M={m}");
+            for e in [0.4_f64, 0.8, 1.2, std::f64::consts::FRAC_PI_2] {
+                assert!((secant(e) - at).abs() <= 1e-14 * at, "M={m} η={e}");
+                assert_eq!(flat_plate_strip_dcp(m, -e), -flat_plate_strip_dcp(m, e));
+            }
+            // Below it the full series applies.
+            let [k1, _, k3] = busemann(m);
+            let e = 0.25;
+            let series = 2.0 * (k1 * e + k3 * e * e * e);
+            assert!((flat_plate_strip_dcp(m, e) - series).abs() <= 1e-14 * series);
         }
     }
 

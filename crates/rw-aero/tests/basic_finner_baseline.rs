@@ -1,8 +1,10 @@
-//! Baseline error report: rw-aero vs DREV-TM-9703 (Dupuis & Hathaway 1997)
-//! Table IX multiple-fit aerodynamic coefficients for the Basic Finner
-//! reference projectile. Report mode: the test prints the errors and fails
-//! only on a non-finite output, a malformed reference table, or an RMS error
-//! above a sanity ceiling set just over the Phase 1 baseline.
+//! Error report: rw-aero vs DREV-TM-9703 (Dupuis & Hathaway 1997) for the
+//! Basic Finner reference projectile: Table IX multiple-fit coefficients
+//! (static slope, CP, roll damping, drag) and Table X roll moment due to fin
+//! cant. Report mode: the tests print the errors and fail only on a
+//! non-finite output, a malformed reference table, or an error above a sanity
+//! ceiling set about 10 % over the current model's value, so a change that
+//! makes the supersonic fin model worse fails here.
 //!
 //! The fixture geometry is inline in `basic_finner()`. Sources in the report:
 //! d, l and CG from Table I (pdf p 36); cone, fin planform, fin thickness
@@ -38,6 +40,12 @@ const A0: f64 = 340.294; // sea-level speed of sound (USSA 1976)
 const NU0: f64 = 1.4607e-5; // kinematic viscosity
 
 fn basic_finner() -> EvaluatedModel {
+    basic_finner_canted(0.0)
+}
+
+/// The Basic Finner with all four fins canted by `cant` radians (Table X
+/// models: 2° and 4°).
+fn basic_finner_canted(cant: f64) -> EvaluatedModel {
     let fixture: Value = serde_json::from_str(include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/../../fixtures/contracts/evaluated-model.json"
@@ -99,7 +107,7 @@ fn basic_finner() -> EvaluatedModel {
             "count": 4u32,
             "thickness": 0.08 * D,
             "cross_section": "airfoil",
-            "cant": 0.0,
+            "cant": cant,
             "fillet_radius": 0.0,
             "root_chord": D,
             "tip_chord": D,
@@ -163,10 +171,11 @@ fn parse_table_ix() -> Vec<DrevRow> {
     rows
 }
 
-/// Baseline error report: rw-aero vs DREV-TM-9703 Table IX. This test prints
-/// a comparison table and asserts that all outputs are finite and that the
-/// RMS errors in CX0, CNα and CP stay under sanity ceilings set just above the
-/// Phase 1 baseline.
+/// Error report: rw-aero vs DREV-TM-9703 Table IX. This test prints a
+/// comparison table and asserts that all outputs are finite and that the RMS
+/// errors in CX0, CNα, Cmα and CP, and the signed CP error at every Mach
+/// group, stay within sanity bounds set just outside the current model's
+/// values.
 #[test]
 fn basic_finner_baseline_vs_drev() {
     let model = basic_finner();
@@ -181,7 +190,7 @@ fn basic_finner_baseline_vs_drev() {
     let r_t = D / 2.0;
     let kt_b_val = kt_b(r_t, D);
 
-    println!("\n=== Basic Finner DREV-TM-9703 baseline (Phase 1, report mode) ===");
+    println!("\n=== Basic Finner vs DREV-TM-9703 Table IX (report mode) ===");
     println!(
         "Ref: A_ref = π d²/4 = {:.4e} m²  d = {:.3} m  CG = {:.4} m from nose",
         a_ref, D, X_CG
@@ -231,6 +240,7 @@ fn basic_finner_baseline_vs_drev() {
     let mut sq_cma = 0.0_f64;
     let mut sq_cp = 0.0_f64;
     let mut sq_clp = 0.0_f64;
+    let (mut d_cal_min, mut d_cal_max) = (f64::INFINITY, f64::NEG_INFINITY);
     let n = rows.len() as f64;
 
     // Per-row data accumulated for the breakdown tables below.
@@ -316,7 +326,8 @@ fn basic_finner_baseline_vs_drev() {
         let cmq_apparent = -c_pitch.cm_damping * 2.0 * speed / (q_ref * D);
 
         // CP sign: d_cal = model_CP − DREV_CP, in calibers from nose, positive = aft.
-        // Negative d_cal → model CP more forward than DREV → UNDERESTIMATES stability.
+        // Positive d_cal: model CP aft of DREV, static margin over-predicted.
+        // Negative d_cal: model CP forward of DREV, static margin under-predicted.
         let cp_cal_ref = 5.50 - row.cma / row.cna;
         let pct = |rw: f64, r: f64| 100.0 * (rw / r - 1.0);
 
@@ -343,6 +354,8 @@ fn basic_finner_baseline_vs_drev() {
         sq_cna += (cna_rw / row.cna - 1.0).powi(2);
         sq_cma += (cma_rw / row.cma - 1.0).powi(2);
         sq_cp += (cp_cal_rw - cp_cal_ref).powi(2);
+        d_cal_min = d_cal_min.min(cp_cal_rw - cp_cal_ref);
+        d_cal_max = d_cal_max.max(cp_cal_rw - cp_cal_ref);
         sq_clp += (clp_rw - row.clp).powi(2);
 
         println!(
@@ -401,20 +414,23 @@ fn basic_finner_baseline_vs_drev() {
     let rms_cx = (sq_cx / n).sqrt();
     let rms_cna = (sq_cna / n).sqrt();
     let rms_cp = (sq_cp / n).sqrt();
+    let rms_cma = (sq_cma / n).sqrt();
     println!(
         "RMS err%: CX0={:.1}%  CNα={:.1}%  Cmα={:.1}%  CP={:.4} cal  Clp={:.3} (abs)",
         rms_cx * 100.0,
         rms_cna * 100.0,
-        (sq_cma / n).sqrt() * 100.0,
+        rms_cma * 100.0,
         rms_cp,
         (sq_clp / n).sqrt()
     );
+    println!("CP d_cal range: {d_cal_min:+.3} to {d_cal_max:+.3} cal");
 
     // === CP sign convention ===
     println!();
     println!(
         "CP sign: d_cal = model_CP − DREV_CP, cal from nose, positive = aft.\n\
-         Negative d_cal → model CP more forward → UNDERESTIMATES stability."
+         Positive d_cal: model CP aft of DREV, static margin OVER-predicted by d_cal.\n\
+         Negative d_cal: model CP forward of DREV, static margin UNDER-predicted."
     );
 
     // === Drag breakdown ===
@@ -459,9 +475,10 @@ fn basic_finner_baseline_vs_drev() {
     );
     println!(
         "fn_bare = fins_int / (K_T(B) + K_B(T)): single-fin CNα × fin_count_factor(4) = 2.\n\
-         Supersonic single-fin slope = (A_fin/A_ref)*2(K1 + K3 α²), both fin faces\n\
-         (barrowman-1967 App. A); at α → 0 this is Ackeret (A_fin/A_ref)*4/β, so the\n\
-         4-fin term is 8/β on A_fin/A_ref.\n\
+         Supersonic single-fin slope = (A_fin/A_ref)*2(K1 + K3 α²)*tip, both fin faces\n\
+         (barrowman-1967 App. A) with the tip Mach-cone factor, 1 − 1/(2 β AR) for this\n\
+         rectangular AR 2 panel; at α → 0 the 4-fin term is (8/β)(1 − 1/(4β)) on\n\
+         A_fin/A_ref.\n\
          DREV_fin = (DREV_CNα − ns_CNα) / int: the bare fin term DREV implies.\n\
          ratio = fn_bare / DREV_fin."
     );
@@ -508,7 +525,7 @@ fn basic_finner_baseline_vs_drev() {
     println!(
         "Normalization: pd/(2V). DREV BARDAS uses pd/(2V) (AMCP-706-280 §3.2 convention).\n\
          Clp = −cl_damping × 2V/(p×d). cl_damping is a positive magnitude (damping.rs:7).\n\
-         Subsonic formula is linear in p; supersonic Busemann is linear for small p.\n\
+         Subsonic formula is linear in p; the supersonic strip load is linear for small p.\n\
          ratio = Clp(p=0.5)/Clp(p=1.0) ≈ 1.0 confirms linearity.\n\
          M=1.077–1.293: Hermite blend may overshoot because subsonic CNα(0.9) = 2π/β(0.9) is large."
     );
@@ -536,7 +553,7 @@ fn basic_finner_baseline_vs_drev() {
 
     // === Cmq documentation ===
     println!();
-    println!("=== Cmq (NOT SCORED in Phase 1) ===");
+    println!("=== Cmq (NOT SCORED) ===");
     println!(
         "rw-aero pitch damping is QUADRATIC in pitch rate (Niskanen 2009 eq 3.59 p 45):\n\
            pitch_damping_body = 0.55 * l^4 * r̄ / (A_ref * d) * (ω/V)^2   [damping.rs:26]\n\
@@ -551,11 +568,150 @@ fn basic_finner_baseline_vs_drev() {
         println!("{:>6.3} | {:>10.1} {:>12.4}", mach, drev_cmq, cmq_app);
     }
 
-    // Sanity bound only (report mode). The ceilings sit just above the Phase 1
-    // baseline (RMS CX0 0.844, CNα 0.466, CP 0.848 cal) so a sign flip or a
-    // worse supersonic model fails here. Ratchet them down when the physics
-    // improves.
+    // Sanity bounds only (report mode), about 10 % over the current model
+    // (two-face strip load with tip relief): RMS CX0 0.844, CNα 0.271,
+    // Cmα 0.250, CP 0.083 cal, d_cal −0.032 to +0.178 cal. The one-face
+    // model (CNα 0.466, CP 0.848 cal) and the two-face model without tip
+    // relief (Cmα 0.130 but CP 0.215 cal, d_cal up to +0.354) both fail the
+    // CP bounds. Tighten them when the physics improves.
     assert!(rms_cx <= 0.90, "RMS CX0 error {:.1}%", 100.0 * rms_cx);
-    assert!(rms_cna <= 0.50, "RMS CNα error {:.1}%", 100.0 * rms_cna);
-    assert!(rms_cp <= 0.90, "RMS CP error {rms_cp:.3} cal");
+    assert!(rms_cna <= 0.30, "RMS CNα error {:.1}%", 100.0 * rms_cna);
+    assert!(rms_cma <= 0.275, "RMS Cmα error {:.1}%", 100.0 * rms_cma);
+    assert!(rms_cp <= 0.092, "RMS CP error {rms_cp:.3} cal");
+    // Signed: the model CP may sit at most 0.05 cal forward and 0.20 cal aft
+    // of the measured one at any Mach group (aft = margin over-predicted).
+    assert!(
+        d_cal_min >= -0.05 && d_cal_max <= 0.20,
+        "CP d_cal range {d_cal_min:+.3} to {d_cal_max:+.3} cal"
+    );
+}
+
+/// Table X rows joined to their Mach number: (model, Mach, cant in rad,
+/// measured Cl_δ per rad).
+fn parse_table_x() -> Vec<(String, f64, f64, f64)> {
+    let table = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../tests/validation/basic_finner_drev/drev-tm-9703_table-X_fin-cant-roll.csv"
+    ));
+    let machs = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../tests/validation/basic_finner_drev/drev-tm-9703_table-X_model-mach.csv"
+    ));
+    let data = |csv: &'static str| {
+        csv.lines()
+            .filter(|l| !l.starts_with('#') && !l.trim().is_empty())
+            .skip(1)
+            .map(|l| l.split(',').map(str::trim).collect::<Vec<_>>())
+            .collect::<Vec<_>>()
+    };
+    let num = |cell: &str, what: &str| -> f64 {
+        cell.parse()
+            .unwrap_or_else(|_| panic!("Table X {what} cell {cell:?} does not parse"))
+    };
+    let mach_rows = data(machs);
+    let rows: Vec<_> = data(table)
+        .into_iter()
+        .map(|r| {
+            // model(0), fin_cant_rad(1), Cl_delta_times_delta(2), Cl_delta_per_rad(3)
+            let m = mach_rows
+                .iter()
+                .find(|m| m[0] == r[0])
+                .unwrap_or_else(|| panic!("no Mach for Table X model {}", r[0]));
+            // model(0), shot(1), mach_single_fit(2), mach_mid_range(3)
+            let (single, mid) = (num(m[2], "mach_single_fit"), num(m[3], "mach_mid_range"));
+            assert!((single - mid).abs() < 0.011, "{}: {single} vs {mid}", r[0]);
+            (
+                r[0].to_string(),
+                single,
+                num(r[1], "cant"),
+                num(r[3], "Cl_delta"),
+            )
+        })
+        .collect();
+    // Table X has 16 canted-fin models.
+    assert_eq!(rows.len(), 16, "Table X row count");
+    rows
+}
+
+/// Roll forcing vs DREV-TM-9703 Table X (roll moment due to fin cant, 16
+/// models at 2° and 4° cant). Report mode: prints model/measured for every
+/// model and asserts sanity bounds on the 12 models at M 1.80-4.47, above the
+/// M 1.5 end of the blend, where the supersonic strip load applies. The four models at M 1.06-1.38 sit in the
+/// M 0.9-1.5 blend and are printed, not scored.
+#[test]
+fn basic_finner_roll_forcing_vs_drev_table_x() {
+    let rows = parse_table_x();
+    println!("\n=== Basic Finner vs DREV-TM-9703 Table X: Cl_δ per rad (report mode) ===");
+    println!(
+        "Cl_δ = cl_forcing / δ at zero spin and α = 0. spin = steady pd/(2V)/δ, the\n\
+         small-rate balance Cl_δ / |Clp| (Clp from a 1 rad/s roll rate)."
+    );
+    println!(
+        "{:>5} | {:>6} {:>8} | {:>8} {:>8} {:>6} | {:>7}",
+        "model", "Mach", "cant", "DREV", "rw", "rw/ref", "spin"
+    );
+    println!("{}", "-".repeat(62));
+    let (mut sq, mut sum, mut n) = (0.0_f64, 0.0_f64, 0usize);
+    let (mut lo, mut hi) = (f64::INFINITY, f64::NEG_INFINITY);
+    for (model, mach, cant, cl_delta) in &rows {
+        let m = basic_finner_canted(*cant);
+        let am = AeroModel::new(&m, &rw_geom::build(&m), &AeroOptions::default());
+        let speed = mach * A0;
+        let state = AeroState {
+            mach: *mach,
+            speed,
+            alpha: 0.0,
+            roll_rate: 0.0,
+            pitch_rate: 0.0,
+            kinematic_viscosity: NU0,
+            thrusting: false,
+        };
+        let rw = am.eval_with_cg(&state, X_CG).cl_forcing / cant;
+        let spun = am.eval_with_cg(
+            &AeroState {
+                roll_rate: 1.0,
+                ..state
+            },
+            X_CG,
+        );
+        assert!(rw.is_finite(), "{model}: cl_forcing not finite");
+        assert!(
+            spun.cl_damping.is_finite(),
+            "{model}: cl_damping not finite"
+        );
+        let clp = spun.cl_damping * 2.0 * speed / D;
+        let ratio = rw / cl_delta;
+        // Above the M 1.5 end of the transonic blend: M 1.80 to 4.47.
+        let scored = *mach >= 1.5;
+        println!(
+            "{:>5} | {:>6.3} {:>8.5} | {:>8.2} {:>8.2} {:>6.2} | {:>7.3}{}",
+            model,
+            mach,
+            cant,
+            cl_delta,
+            rw,
+            ratio,
+            rw / clp,
+            if scored { "" } else { "  (blend, not scored)" }
+        );
+        if scored {
+            sq += (ratio - 1.0).powi(2);
+            sum += ratio - 1.0;
+            lo = lo.min(ratio);
+            hi = hi.max(ratio);
+            n += 1;
+        }
+    }
+    println!("{}", "-".repeat(62));
+    assert_eq!(n, 12, "models above M 1.5");
+    let (rms, mean) = ((sq / n as f64).sqrt(), sum / n as f64);
+    println!(
+        "M 1.80-4.47 ({n} models): rw/ref {lo:.2} to {hi:.2}, mean {:+.1}%, RMS {:.1}%",
+        100.0 * mean,
+        100.0 * rms
+    );
+    // Sanity bounds, about 10 % over the current model (rw/ref 0.75 to 1.01,
+    // mean −10.5 %, RMS 12.7 %). The one-face model sat at 0.40 to 0.60.
+    assert!(rms <= 0.14, "RMS Cl_δ error {:.1}%", 100.0 * rms);
+    assert!(lo >= 0.70 && hi <= 1.10, "rw/ref range {lo:.2} to {hi:.2}");
 }

@@ -7,8 +7,14 @@
 //! conclusion 3 pdf 8, curve D of Fig 11 pdf 21); its low-A theory curve B,
 //! C_Lα = π A, agrees for A < 1. MIL-HDBK-762 §5-3.2 gives the
 //! same factor of about two for ringtails against planar fins, subsonic and
-//! supersonic (pdf 252). So one tube's slope is 2 × the rectangular-wing slope of
-//! niskanen-2009 (3.40)/(3.49) at AR = A on S (literature-map TF-01..TF-03).
+//! supersonic (pdf 252, TF-06). So one tube's slope is 2 × the slope of the
+//! rectangular wing of AR = A on S at every Mach: niskanen-2009 (3.40) up to
+//! M 0.9 (TF-01..TF-03, low-speed data), and from M 1.5 the two-face strip
+//! load 4/β times the rectangular finite-span factor at β A
+//! (`fins::rectangular_tip_relief`, TF-06 for the factor of two). Where β A is
+//! below 0.5 (oracle case 4, A = 0.3167: up to M 1.87) that factor is the
+//! slender-wing limit, so the supersonic ring slope is the same π A on S as
+//! the subsonic low-A limit rather than twice a 2D plate.
 //! A ring is axisymmetric about its own axis, so its normal force does not
 //! depend on its roll position: N tubes sum N slopes, where N planar fins sum
 //! N/2 (3.53) (literature-map Gaps 11). The niskanen-2013 (3.54) fin–fin factor and the
@@ -55,8 +61,11 @@ use rw_geom::ComponentGeometry;
 use rw_model::{EvalComponent, FinCrossSection};
 
 use crate::drag::base::base_cd;
-use crate::fins::{FinPlanform, STRIPS, Strip, fin_count_factor, kb_t, kt_b, single_fin_cna};
-use crate::mach::stagnation_cd;
+use crate::fins::{
+    FinPlanform, STRIPS, Strip, fin_count_factor, kb_t, kt_b, rectangular_tip_relief,
+    single_fin_cna,
+};
+use crate::mach::{beta, stagnation_cd};
 
 /// Ring diameter of a tube for the annular-wing terms: NACA TN 4117 defines
 /// A = d/c and S = d c with d the inner diameter (symbols, pdf 4); a tube with
@@ -74,16 +83,22 @@ pub fn ring_aspect_ratio(d: f64, length: f64) -> f64 {
 
 /// Normal-force slope of one tube on A_ref: twice the slope of a plane
 /// rectangular wing of the same aspect ratio A = d/L on the projected area
-/// S = d L. The rectangular wing is (3.40)/(3.49) with AR = A, i.e. the
-/// single-fin form with s = d/√2 (2s²/A_fin = A). Tends to curve B,
-/// C_Lα = π A on S, as A → 0.
+/// S = d L, subsonic and supersonic. The rectangular wing is the single-fin
+/// form with s = d/√2 (2s²/A_fin = A): (3.40) up to M 0.9, and from M 1.5
+/// the two-face strip load times the rectangular-wing finite-span factor at
+/// β A ([`rectangular_tip_relief`]: linear theory for β A ≥ 1, the
+/// slender-wing (π/2) A for β A ≤ 0.5). Tends to curve B, C_Lα = π A on S, as
+/// A → 0 at any Mach.
 /// cite: naca-tn-4117 sec conclusions p 8
 /// cite: naca-tn-4117 fig 11 p 21
+/// cite: mil-hdbk-762 sec 5-3.2 p 252
 /// cite: niskanen-2009 eq 3.40 p 39
+/// cite: naca-tr-1307 eq chart-8 p 63
 pub fn ring_cna(mach: f64, alpha: f64, d: f64, length: f64, a_ref: f64) -> f64 {
     if d <= 0.0 || length <= 0.0 {
         return 0.0;
     }
+    let a = ring_aspect_ratio(d, length);
     2.0 * single_fin_cna(
         mach,
         alpha,
@@ -91,6 +106,7 @@ pub fn ring_cna(mach: f64, alpha: f64, d: f64, length: f64, a_ref: f64) -> f64 {
         d * length,
         a_ref,
         0.0,
+        |m| rectangular_tip_relief(beta(m) * a),
     )
 }
 
@@ -469,6 +485,35 @@ mod tests {
     }
 
     #[test]
+    fn supersonic_ring_slope_is_the_low_aspect_ratio_wing() {
+        // Case-4-like tube, A = 0.024/0.076 = 0.3158: β A is 0.353 at M 1.5
+        // and 0.5 at M 1.87, so the rectangular wing is at the slender limit
+        // (π/2) A and the ring at π A on S, at any α = 0 Mach in that range.
+        let (d, c) = (0.024, 0.076);
+        let a = d / c;
+        for mach in [1.5, 1.7, 1.87] {
+            let ring = ring_cna(mach, 0.0, d, c, 1.0) / (d * c);
+            assert!(close(ring, PI * a, 1e-9), "M {mach}: {ring}");
+        }
+        // Above β A = 1 (M 3.32 for this tube) it is twice the linear-theory
+        // rectangular wing, 2 (4/β)(1 − 1/(2 β A)). M 5: β = √24, β A = 1.547.
+        let b5 = 24f64.sqrt();
+        let ring5 = ring_cna(5.0, 0.0, d, c, 1.0) / (d * c);
+        assert!(close(ring5, 2.0 * 4.0 / b5 * (1.0 - 0.5 / (b5 * a)), 1e-12));
+        // Never more than twice the 2D plate, and within 1.3x of the M 0.3
+        // slope from M 0.9 to 3 (it was 5.4x at M 1.5 with the 2D plate).
+        let sub = ring_cna(0.3, 0.0, d, c, 1.0);
+        for k in 0..=42 {
+            let mach = 0.9 + 0.05 * f64::from(k);
+            let r = ring_cna(mach, 0.0, d, c, 1.0);
+            assert!(r > 0.0 && r < 1.3 * sub, "M {mach}: {}", r / sub);
+            if mach >= 1.5 {
+                assert!(r / (d * c) <= 2.0 * 4.0 / beta(mach));
+            }
+        }
+    }
+
+    #[test]
     fn tubes_count_without_roll_weighting() {
         // Planar fins sum N/2 slopes (3.53); rings are axisymmetric: N.
         for n in 1..=4 {
@@ -507,7 +552,7 @@ mod tests {
         // About twice the old equivalent-planar-fin set (N/2 roll weighting,
         // AR = 2d/L): the roll factor 2 times ring/panel ≈ (ID/OD)².
         let p = equivalent_planform(6, L, OD, ID, 0.35, R_BODY);
-        let planar = single_fin_cna(mach, 0.0, p.span, p.area, a_ref(), 0.0)
+        let planar = single_fin_cna(mach, 0.0, p.span, p.area, a_ref(), 0.0, |_| 1.0)
             * fin_count_factor(6)
             * (kt_b(R_BODY, OD) + kb_t(mach, R_BODY, OD));
         let ratio = r6.cn_alpha / planar;

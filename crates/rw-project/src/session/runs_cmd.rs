@@ -30,7 +30,7 @@ use rw_sim::{RunSummary, SimError, SimInput};
 use super::phases::{golden_phases, phase_rows, run_phases};
 use super::{Session, SessionEvent, URI_RUNS, err, io_err, with_hint};
 use crate::jobs::{JobFailure, JobOutcome, JobQueue, JobSpec};
-use crate::runs::{CORE_VERSION, RunKey, RunStore, status_of, stored_summary};
+use crate::runs::{CORE_VERSION, RunKey, RunStore, flight_core_version, status_of, stored_summary};
 use crate::{clock, fsutil};
 
 /// Test hook (I12): with `RW_TEST_HOOKS=1`, a simulation job first waits
@@ -575,6 +575,7 @@ impl Session {
             motors: shas,
             engine: engine_hash.as_deref(),
             core_version: CORE_VERSION,
+            aero_revision: rw_aero::AERO_MODEL_REVISION,
             seed: sim.seed,
             integrator: sim.conditions.integrator,
         };
@@ -605,7 +606,7 @@ impl Session {
                 })
                 .collect(),
             inputs: self.inputs(&self.known),
-            core_version: CORE_VERSION.to_string(),
+            core_version: flight_core_version(),
             seed: sim.seed,
             rtol: sim.rtol,
             atol: sim.atol,

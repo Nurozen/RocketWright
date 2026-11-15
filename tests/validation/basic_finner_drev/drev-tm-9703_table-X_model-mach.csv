@@ -1,0 +1,20 @@
+# DREV-TM-9703 (Dupuis & Hathaway, 1997): Mach number of each canted-fin model of Table X. Table X prints no Mach; this file joins it to the shots.
+# shot and mach_single_fit: Table VIII "Single fits", pdf pp 44-47, the row whose Cl_delta*delta equals the Table X entry to the printed precision. mach_mid_range: Table IV, pdf pp 39-40, by model number.
+# The two Mach columns agree within 0.011 for all 16 models. Transcribed by Claude from rendered page images, 2026-11-15; not yet checked by a second reader.
+model,shot,mach_single_fit,mach_mid_range
+DA11,DA95030111,4.473,4.47
+DA12,DA95022712,3.775,3.78
+DA13,DA95030613,1.254,1.26
+DA15,DA95022215,3.312,3.31
+DA16,DA95020916,2.749,2.75
+DA17,DA95021317,2.414,2.42
+DA18,DA95021318,1.799,1.80
+DA19,DA95022219,1.058,1.06
+DA21,DA95030121,3.745,3.74
+DA22,DA95030622,1.377,1.38
+DA23,DA95031523,4.127,4.13
+DA26,DA95022726,3.338,3.34
+DA27,DA95020927,2.663,2.67
+DA28,DA95021328,2.348,2.35
+DA29,DA95021529,1.846,1.85
+DA30,DA95022230,1.116,1.12

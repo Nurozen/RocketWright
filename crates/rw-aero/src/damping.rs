@@ -6,7 +6,7 @@
 //! rates and act against them (the caller applies −sign(ω)); roll forcing
 //! carries the sign of the cant angle.
 
-use crate::fins::Strip;
+use crate::fins::{Strip, TipCone};
 use crate::mach::{beta, flat_plate_strip_dcp, transonic_blend};
 
 /// Body pitch-damping coefficient of one portion (fore or aft of the CG) of
@@ -97,14 +97,19 @@ pub fn roll_damping_subsonic(
     count as f64 * cna0 * omega / (a_ref * d_ref * speed) * sum
 }
 
-/// Supersonic roll-damping coefficient, (N/(A_ref d)) Σ ΔC_P,i c_i ξ_i Δξ_i with
-/// the two-face flat-plate ΔC_P ([`flat_plate_strip_dcp`]) at the strip
-/// incidence η_i = atan(ω ξ_i / V). niskanen-2009 (3.72) sums one face's C_P,i,
-/// half of this (literature-map Errata); roll forcing takes the two-face
-/// single-fin slope, so both change together.
+/// Supersonic roll-damping coefficient, (N/(A_ref d)) Σ f_i ΔC_P,i c_i ξ_i Δξ_i
+/// with the two-face flat-plate ΔC_P ([`flat_plate_strip_dcp`]) at the strip
+/// incidence η_i = atan(ω ξ_i / V) and the strip's tip Mach-cone load factor
+/// f_i ([`TipCone::strip_factor`]). niskanen-2009 (3.72) sums one face's C_P,i
+/// with no tip factor (literature-map Errata). Roll forcing takes the
+/// two-face single-fin slope with the same strip factors area-weighted, so
+/// from M 1.5 at small spin the two share the 2D load and differ only in how
+/// the tip loss is weighted (ξ here, the panel mean there).
 /// cite: niskanen-2009 eq 3.72 p 49
 /// cite: barrowman-1967 eq 8 p 96
 /// cite: barrowman-1967 eq 33a-33d p 98
+/// cite: barrowman-1967 eq 39-44 p 102
+#[allow(clippy::too_many_arguments)]
 pub fn roll_damping_supersonic(
     count: u32,
     mach: f64,
@@ -113,6 +118,7 @@ pub fn roll_damping_supersonic(
     d_ref: f64,
     speed: f64,
     strips: &[Strip],
+    tip: &TipCone,
 ) -> f64 {
     if a_ref <= 0.0 || d_ref <= 0.0 || speed <= 0.0 {
         return 0.0;
@@ -120,15 +126,20 @@ pub fn roll_damping_supersonic(
     let sum: f64 = strips
         .iter()
         .map(|s| {
-            flat_plate_strip_dcp(mach, (omega * s.xi / speed).atan()) * s.chord * s.xi * s.width
+            tip.strip_factor(mach, s)
+                * flat_plate_strip_dcp(mach, (omega * s.xi / speed).atan())
+                * s.chord
+                * s.xi
+                * s.width
         })
         .sum();
     count as f64 / (a_ref * d_ref) * sum
 }
 
 /// Roll damping over the whole Mach range (subsonic to M 0.9, supersonic
-/// from M 1.5, C¹ blend between).
+/// with tip relief from M 1.5, C¹ blend between).
 /// cite: niskanen-2009 eq 3.69 p 49
+#[allow(clippy::too_many_arguments)]
 pub fn roll_damping(
     count: u32,
     mach: f64,
@@ -137,12 +148,13 @@ pub fn roll_damping(
     d_ref: f64,
     speed: f64,
     strips: &[Strip],
+    tip: &TipCone,
 ) -> f64 {
     let sum = strip_sum(strips);
     transonic_blend(
         mach,
         |m| roll_damping_subsonic(count, m, omega, a_ref, d_ref, speed, sum),
-        |m| roll_damping_supersonic(count, m, omega, a_ref, d_ref, speed, strips),
+        |m| roll_damping_supersonic(count, m, omega, a_ref, d_ref, speed, strips, tip),
     )
 }
 
@@ -218,18 +230,35 @@ mod tests {
         // Subsonic damping at M = 0.6 (β = 0.8).
         let strips = trapezoid_strips(0.14, 0.06, 0.09, 0.027, 400);
         let sum = strip_sum(&strips);
-        let d = roll_damping(4, 0.6, 5.0, a, 0.054, 200.0, &strips);
+        // Tip geometry of the same trapezoid (unswept leading edge).
+        let tip = TipCone {
+            xi_root: 0.027,
+            span: 0.09,
+            tan_le: 0.0,
+            aspect_ratio: 2.0 * 0.09 * 0.09 / (0.5 * (0.14 + 0.06) * 0.09),
+        };
+        let d = roll_damping(4, 0.6, 5.0, a, 0.054, 200.0, &strips, &tip);
         assert!(close(
             d,
             4.0 * (2.0 * PI / 0.8) * 5.0 / (a * 0.054 * 200.0) * sum,
             1e-12
         ));
-        // Supersonic, linear in small ω: both faces, 2 K_1 = 4/β.
-        let s2 = roll_damping(4, 2.0, 1e-3, a, 0.054, 600.0, &strips);
+        // Supersonic, linear in small ω, with no tip in reach (a panel whose
+        // tip is far outboard of these strips): both faces, 2 K_1 = 4/β.
+        let far = TipCone {
+            span: 100.0,
+            aspect_ratio: 1e6,
+            ..tip
+        };
+        let s2 = roll_damping(4, 2.0, 1e-3, a, 0.054, 600.0, &strips, &far);
         let lin = 4.0 / (a * 0.054) * (4.0 / 3.0_f64.sqrt()) * 1e-3 / 600.0 * sum;
         assert!(close(s2, lin, 1e-4));
-        // Damping and forcing use the same two-face slope per unit fin area,
-        // so the supersonic equilibrium spin rate keeps its (3.73) form.
+        // Damping and forcing use the same two-face slope per unit fin area.
+        // The small-rate equilibrium spin is then the ratio of the two: the
+        // (3.74) closed form with 8π for 4π when there is no tip relief
+        // (DM-15). With tip relief the factor enters both, the forcing as
+        // the area mean and the damping strip by strip, so only the ratio
+        // form holds.
         let per_area = crate::fins::single_fin_cna_supersonic(2.0, 0.0, 1.0, 1.0);
         assert!(close(per_area, 4.0 / 3.0_f64.sqrt(), 1e-12));
         assert!(close(
@@ -238,7 +267,60 @@ mod tests {
             1e-4
         ));
         // Odd in ω.
-        let neg = roll_damping(4, 2.0, -1e-3, a, 0.054, 600.0, &strips);
+        let neg = roll_damping(4, 2.0, -1e-3, a, 0.054, 600.0, &strips, &far);
         assert!(close(-neg, s2, 1e-12));
+        // With the real tip the damping is less than the 2D value, and
+        // reduced more than the panel's area-weighted factor because the tip
+        // strips have the longest arm.
+        let s3 = roll_damping(4, 2.0, 1e-3, a, 0.054, 600.0, &strips, &tip);
+        let panel = tip.panel_factor(2.0, &strips);
+        assert!(s3 / s2 < panel && panel < 1.0 && s3 / s2 > 0.5);
+        // Hand value on a rectangle: c = 0.1, r = 0.02, s = 0.1 (R = 0.12),
+        // M 2 (β = √3, β AR = 3.46, only the own tip's Mach line on the
+        // panel, c/β = 0.0577350 < s). Unrelieved ∫ c ξ² dξ = c(R³ − r³)/3 =
+        // 5.7333333e-5; the cone takes ½∫₀^(c/β) (c − βu)(R − u)² du =
+        // 1.4919818e-5 (u from the tip), leaving 4.2413515e-5: ratio
+        // 0.7397706.
+        let (c, r, s) = (0.1, 0.02, 0.1);
+        let rect = trapezoid_strips(c, c, s, r, 20_000);
+        let rect_tip = TipCone {
+            xi_root: r,
+            span: s,
+            tan_le: 0.0,
+            aspect_ratio: 2.0 * s / c,
+        };
+        let rect_far = TipCone {
+            span: 100.0,
+            aspect_ratio: 1e6,
+            ..rect_tip
+        };
+        let with_tip = roll_damping(4, 2.0, 1e-3, a, 0.054, 600.0, &rect, &rect_tip);
+        let no_tip = roll_damping(4, 2.0, 1e-3, a, 0.054, 600.0, &rect, &rect_far);
+        assert!(close(with_tip / no_tip, 0.739_770_6, 1e-6));
+    }
+
+    #[test]
+    fn supersonic_roll_damping_is_bounded_at_high_spin() {
+        // Strip incidence above 17.5° takes the held secant slope, so the
+        // damping per unit incidence stops growing with spin.
+        let strips = trapezoid_strips(0.14, 0.06, 0.09, 0.027, 400);
+        let a = PI * 0.027 * 0.027;
+        let tip = TipCone {
+            xi_root: 0.027,
+            span: 100.0,
+            tan_le: 0.0,
+            aspect_ratio: 1e6,
+        };
+        // ω ξ/V from 0.58 to 2.5 across the span: every strip above the limit.
+        let w = 13_000.0;
+        let d = roll_damping_supersonic(4, 2.0, w, a, 0.054, 600.0, &strips, &tip);
+        let secant = crate::mach::flat_plate_strip_secant(2.0, 1.0);
+        let by_hand: f64 = strips
+            .iter()
+            .map(|s| secant * (w * s.xi / 600.0).atan() * s.chord * s.xi * s.width)
+            .sum::<f64>()
+            * 4.0
+            / (a * 0.054);
+        assert!(close(d, by_hand, 1e-12));
     }
 }
