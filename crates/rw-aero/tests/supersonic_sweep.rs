@@ -376,20 +376,22 @@ fn blend_boundaries_are_c1() {
     // A smooth curve gives a value ratio near 2h·|y'/y| and a slope ratio near
     // h·|y''/y|; a step of size s gives a slope ratio near s/(h·|y|).
     // Measured at h = 1e-4 (case 1), two-face supersonic fin load with tip
-    // relief:
-    //   M 0.9  cn_alpha  value 4.4e-5  slope 4.2e-4
+    // relief and the supersonic carry-over (case 1's K_B(T) window is M 1.310
+    // to 1.560, so M 1.5 lies inside it):
+    //   M 0.9  cn_alpha  value 4.4e-5  slope 5.8e-4
     //   M 0.9  cd        value 5.4e-4 (slope 4.8, the unblended drag-rise kink)
-    //   M 0.9  cp        value 1.1e-5  slope 5.0e-5
-    //   M 1.5  cn_alpha  value 1.8e-4  slope 2.1e-4
+    //   M 0.9  cp        value 1.1e-5  slope 7.1e-5
+    //   M 1.5  cn_alpha  value 3.0e-4  slope 2.7e-4
     //   M 1.5  cd        value 5.4e-5
-    //   M 1.5  cp        value 1.6e-5  slope 4.1e-5
-    // The cn_alpha and cp slope ratios fall in proportion to h (4.2e-3 and
-    // 5.0e-4 at M 0.9 for h = 1e-3), so they are the cubic's curvature and not
-    // a kink; the cd slope ratio at M 0.9 does not fall. At this h a 1 % error
-    // in either end slope of the fin blend shows as a cn_alpha slope ratio of
-    // about 1e-2, above the tolerance.
-    // Tolerances are about 10× the larger measured ratio per quantity, in
-    // the order [cn_alpha, cd, cp]. The CD slope is not checked.
+    //   M 1.5  cp        value 2.4e-5  slope 1.8e-5
+    // The cn_alpha slope ratio falls in proportion to h (5.8e-3 at M 0.9 for
+    // h = 1e-3), so it is the cubic's curvature and not a kink; the cd slope
+    // ratio at M 0.9 does not fall. At this h a 1 % error in either end slope
+    // of the fin blend shows as a cn_alpha slope ratio of about 1e-2, above
+    // the tolerance.
+    // Tolerances are about 7× to 10× the larger measured ratio per quantity,
+    // in the order [cn_alpha, cd, cp]. The CD slope is not checked. The
+    // carry-over window ends are checked in the rw-aero unit tests.
     const VALUE_TOL: [f64; 3] = [0.002, 0.006, 0.0002];
     const SLOPE_TOL: [f64; 3] = [0.004, f64::INFINITY, 0.0005];
 

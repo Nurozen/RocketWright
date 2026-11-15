@@ -18,8 +18,9 @@
 //! normalisation (section 7, eqs [1]-[2]). See
 //! tests/validation/basic_finner_drev/PROVENANCE.md.
 
+use rw_aero::carryover::Carryover;
 use rw_aero::drag::pressure::{fin_le_cd, fin_te_cd};
-use rw_aero::fins::{Strip, kb_t, kt_b};
+use rw_aero::fins::{FinPlanform, Strip, kt_b};
 use rw_aero::{AeroModel, AeroOptions, AeroState, DragKind};
 use rw_model::{EvaluatedModel, FinCrossSection};
 use serde_json::{Value, json};
@@ -178,8 +179,18 @@ fn parse_table_ix() -> Vec<DrevRow> {
 #[test]
 fn basic_finner_baseline_vs_drev() {
     let model = basic_finner();
-    let am = AeroModel::new(&model, &rw_geom::build(&model), &AeroOptions::default());
+    let geometry = rw_geom::build(&model);
+    let am = AeroModel::new(&model, &geometry, &AeroOptions::default());
     let rows = parse_table_ix();
+    // K_B(T) as the model builds it: the fins end at the base (section 3.1,
+    // Figure 2), so there is no body behind the root trailing edge.
+    let fin_geometry = geometry
+        .components
+        .iter()
+        .find(|g| g.id == "fins")
+        .and_then(|g| g.fins.as_ref())
+        .expect("fin geometry");
+    let carry = Carryover::new(&FinPlanform::from_geometry(fin_geometry), 0.0);
 
     // Reference area and fin geometry for drag breakdown.
     let a_ref = std::f64::consts::PI * D * D / 4.0; // 7.069e-4 m²
@@ -415,7 +426,7 @@ fn basic_finner_baseline_vs_drev() {
             .iter()
             .find(|k| k.id == "fins")
             .map_or(0.0, |k| k.cn_alpha);
-        let kb_t_val = kb_t(row.mach, r_t, D);
+        let kb_t_val = carry.kb_t(row.mach);
         cna_rows.push((row.mach, cna_nose, cna_fins_int, kb_t_val, cna_rw, row.cna));
 
         clp_rows.push((row.mach, clp_p05, clp_p1, row.clp));
@@ -481,9 +492,11 @@ fn basic_finner_baseline_vs_drev() {
         kt_b_val
     );
     println!(
-        "K_B(T) fades from ~{:.4} (subsonic) to 0 at M≥1.5 (BW-B67-073: supersonic \
-         K'_B(T), Barrowman Fig 3-9, not digitised).",
-        kt_b_val * kt_b_val - kt_b_val // K_B(T) subsonic = K_T(B)² − K_T(B)
+        "K_B(T) is the slender-body {:.4} up to M {:.3} (naca-tr-1307 eq 22), the\n\
+         supersonic lift integral (eq 23, no afterbody) from M {:.3}, a cubic between.",
+        kt_b_val * kt_b_val - kt_b_val, // K_B(T) subsonic = K_T(B)² − K_T(B)
+        carry.window().0,
+        carry.window().1
     );
     println!(
         "fn_bare = fins_int / (K_T(B) + K_B(T)): single-fin CNα × fin_count_factor(4) = 2.\n\
@@ -581,32 +594,27 @@ fn basic_finner_baseline_vs_drev() {
 
     // Sanity bounds only (report mode), about 10 % over the current model
     // (wedge section: forebody and base drag, two-face strip load with tip
-    // relief and thickness lift): RMS CX0 0.217, CNα 0.205, Cmα 0.092,
-    // CP 0.267 cal, d_cal +0.042 to +0.384 cal. With the fixture's former
-    // "airfoil" section the same model gave CX0 0.844, CNα 0.271,
-    // Cmα 0.250, CP 0.083 cal, d_cal −0.032 to +0.178.
+    // relief and thickness lift; supersonic K_B(T) from the TR 1307 lift
+    // integral): RMS CX0 0.217, CNα 0.166, Cmα 0.043, CP 0.337 cal,
+    // d_cal +0.073 to +0.446 cal.
     //
-    // The CP bounds are wider than they were with "airfoil" (0.092 cal RMS,
-    // +0.20 cal aft), and that is a real limit of the model, not headroom:
-    // for wedge fins on this body the static margin is OVER-predicted by up
-    // to 0.38 cal (M 3.73), 0.27 cal RMS over the eight Mach groups. The
-    // wedge thickness lift is right for the fins (Cl_δ, which only the fins
-    // produce, is within 12 % from M 1.8), and CNα and Cmα both improve.
-    // But the total CNα is still 14 to 26 % low (20.5 % RMS), and what is missing is
-    // lift on the body ahead of the fins (the supersonic body lift and the
-    // fin-to-body carry-over K_B(T), which is zero from M 1.5; parity-log
-    // known gaps). Adding the correct fin lift at the tail without that
-    // forward lift moves the CP aft of the measured one. The flat-plate fin
-    // load hid this by being too small. Tighten these when the body terms
-    // are added.
+    // The CP bounds record a real limit of the model, not headroom: for
+    // wedge fins on this body the static margin is OVER-predicted by up to
+    // 0.45 cal (M 3.73), 0.34 cal RMS over the eight Mach groups. The fin
+    // terms are supported by the roll data (Cl_δ, which only the fins
+    // produce, is within 12 % from M 1.8) and the carried lift sits at the
+    // fin root, so both act at the tail. The total CNα is still 5 to 25 %
+    // low (16.6 % RMS), and what is missing is lift on the body ahead of the
+    // fins (parity-log known gaps). Tighten these when the supersonic body
+    // lift is added.
     assert!(rms_cx <= 0.24, "RMS CX0 error {:.1}%", 100.0 * rms_cx);
-    assert!(rms_cna <= 0.225, "RMS CNα error {:.1}%", 100.0 * rms_cna);
-    assert!(rms_cma <= 0.101, "RMS Cmα error {:.1}%", 100.0 * rms_cma);
-    assert!(rms_cp <= 0.293, "RMS CP error {rms_cp:.3} cal");
-    // Signed: the model CP may sit at most 0.05 cal forward and 0.42 cal aft
+    assert!(rms_cna <= 0.183, "RMS CNα error {:.1}%", 100.0 * rms_cna);
+    assert!(rms_cma <= 0.048, "RMS Cmα error {:.1}%", 100.0 * rms_cma);
+    assert!(rms_cp <= 0.37, "RMS CP error {rms_cp:.3} cal");
+    // Signed: the model CP may sit at most 0.05 cal forward and 0.49 cal aft
     // of the measured one at any Mach group (aft = margin over-predicted).
     assert!(
-        d_cal_min >= -0.05 && d_cal_max <= 0.42,
+        d_cal_min >= -0.05 && d_cal_max <= 0.49,
         "CP d_cal range {d_cal_min:+.3} to {d_cal_max:+.3} cal"
     );
 }

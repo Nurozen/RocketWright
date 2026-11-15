@@ -116,7 +116,8 @@ cited to `literature-map.md`. Delta = (ours / oracle − 1).
 | Roughness-limited C_f | Used as a floor on the turbulent C_f | SF-03, SF-05, SF-06 | (3.79) only approximates where (3.78) meets (3.80) (Fig 3.10). Switching on Re_crit,ε alone leaves a jump of about 7% at the switch. |
 | Boundary layer | Fully turbulent by default (thesis §3.4.1); laminar/transitional (Barrowman 4-2, 4-6) via `AeroModel::with_boundary_layer` | SF-B67-002, SF-B67-006 | |
 | K_T(B) | 1 + r_t/(s + r_t) | BW-32 | The slender-body form (3-96) with +π/4 is kept as a cross-check (`fins::kt_b_slender_body`); within 3% at τ = 2. |
-| K_B(T) (M1.38-p) | Included: fin-set row = (C_Nα)_N [K_T(B) + K_B(T)] = (C_Nα)_N (1 + r_t/(s + r_t))² subsonic | BW-B67-068, BW-B67-071, BW-B67-078 | Niskanen (3.55) neglects K_B(T); Barrowman (3-94)/(3-98)/(3-106) keeps it. Supersonic K'_B(T) (Fig 3-9) is not digitised, so K_B(T) fades to 0 over M 0.9 to 1.5 with the fin transonic blend. |
+| K_B(T) (M1.38-p) | Included: fin-set row = (C_Nα)_N [K_T(B) + K_B(T)] = (C_Nα)_N (1 + r_t/(s + r_t))² subsonic | BW-B67-068, BW-B67-071, BW-B67-078 | Niskanen (3.55) neglects K_B(T); Barrowman (3-94)/(3-98)/(3-106) keeps it. Supersonic: see the next row. |
+| Supersonic K_B(T) and its CP (PR A) | Slender-body K_B(T) up to the eq 22 Mach number M_c; above M_c + 0.25 (not below M 1.5) the TR 1307 lift integral, eq 23/25, with upper limit c_r + min(βη, l_aft), and its first moment for the CP; a C¹ cubic between | BW-1307-08..15, BW-B67-072, BW-B67-073 | Replaces the fade to 0 over M 0.9 to 1.5 for planar fins; tube fins keep the fade. K_B(T) is the carried lift over the linear-theory wing-alone lift with tip relief (TR 1307 eq 27 for a rectangle). Section "Supersonic carry-over". |
 | CP of the K_B(T) load | At the fin CP | BW-B67-070, BW-B67-074 | Barrowman (3-101) needs β·AR ≥ 4 (case 1: β·AR ≈ 1.1); Fig 3-10 for lower β·AR is not digitised. Using (3-101) anyway would move the case-1 total CP about 0.9 mm forward. |
 | K_3 (Busemann) | Barrowman, with −12 M² | BW-B67-008 | Niskanen (3.44) drops it (Errata). |
 | N-fin factor (M1.38-p) | niskanen-2013 (3.54): N/2 × fin–fin factor (1.000 for N ≤ 4; 0.948, 0.913, 0.854, 0.810 for N = 5..8; 0.750 above) | BW-B67-012, BW-29 | Barrowman (3-11) gives N/2 for N = 3, 4. The 2009 thesis roll reduction (−15 % for N = 3, −6 % for N = 4) is dropped, as niskanen-2013 pdf 42 does. N = 3 now gives 1.50 (was 1.3875 roll-averaged). |
@@ -193,10 +194,10 @@ At α = 5° (secant C_N/α, oracle numbers from a black-box probe, not yet an
 exported golden): nose 2.3236 vs 2.324, body tube 1.4629 vs 1.463 (eq 3.26 body
 lift), fins 12.9026 vs 12.903.
 
-Supersonic K_B(T) is a gap: Barrowman's (3-98) holds until the fin-tip Mach
-cone reaches the body (3-99); beyond that K'_B(T) comes from Fig 3-9, which is
-not digitised. We fade K_B(T) to 0 over M 0.9 to 1.5. The sweep golden stops at
-M 0.9, so this range is unchecked.
+Supersonic K_B(T): Barrowman's (3-98) holds until the fin-tip Mach cone
+reaches the body (3-99); beyond that it is the NACA TR 1307 lift integral
+behind Fig 3-9 (section "Supersonic carry-over"). The sweep golden stops at
+M 0.9, so this range is unchecked against the oracle.
 
 ### M1.38-p: case 1 drag, launch lug (open, literature disagrees with oracle)
 
@@ -959,7 +960,9 @@ chart, both analytic endpoints checked), and interpolates in βA, r/s, sweep
 family and λ. It applies to trapezoids on a constant-radius tube within the
 chart's families (openrocket-techdoc-2026 pdf 47 bounds); other planforms
 keep the old placement (literature-map BW-1307-01..05, Gaps 13). The shift
-fades with K_B(T) through M 0.9-1.5 and with α from 10° to 20°.
+fades with α from 10° to 20°. Above M 0.9 it holds with β frozen at M 0.9 up
+to the eq 22 Mach number, then goes over to the supersonic carried-load CP
+(section "Supersonic carry-over").
 
 Implied chart fraction from the oracle vs ours (case 5 at M 0.3: 0.628 vs
 0.639; case 7 forward set: 0.914 vs 0.917; case 6 aft set: 0.691 vs 0.670).
@@ -1147,8 +1150,10 @@ Table X: roll moment due to fin cant for 16 models with 2° and 4° cant. CG at
 5.50 cal from the nose; d = 30 mm. Files in `tests/validation/basic_finner_drev/`.
 
 The model scored here is the two-face supersonic fin load with tip Mach-cone
-relief, on a fixture whose fins are `cross_section = "wedge"`: forebody and
-base pressure drag for the wedge, and its thickness lift. Until the wedge
+relief and the supersonic fin-to-body carry-over K_B(T) (section
+"Supersonic carry-over" below), on a fixture whose fins are
+`cross_section = "wedge"`: forebody and base pressure drag for the wedge,
+and its thickness lift. Until the wedge
 section existed the fixture used "airfoil"; that column is kept in the
 tables below because it is the same aero model with a flat-plate fin.
 
@@ -1156,8 +1161,8 @@ The two tests run in report mode. They print the errors and fail only on a
 non-finite output, a malformed table, or an error above a sanity bound set
 about 10% outside the current values:
 
-- Table IX: RMS CX0 ≤ 0.24, CNα ≤ 0.225, Cmα ≤ 0.101, CP ≤ 0.293 cal, and the
-  signed CP error d_cal within −0.05 to +0.42 cal at every Mach group.
+- Table IX: RMS CX0 ≤ 0.24, CNα ≤ 0.183, Cmα ≤ 0.048, CP ≤ 0.37 cal, and the
+  signed CP error d_cal within −0.05 to +0.49 cal at every Mach group.
 - Table X, the 12 models at M 1.80 to 4.47: RMS Cl_δ error ≤ 0.064 and every
   model/measured ratio within 0.84 to 1.23.
 
@@ -1247,58 +1252,60 @@ DREV CP, positive aft. The static margin is CP − 5.50 cal.
 
 | Mach | CX0 DREV | rw (err) | CNα DREV | rw (err) | Cmα DREV | rw (err) | CP DREV | CP rw | d_cal | margin DREV | margin rw | Clp DREV (pd/2V) | rw (err) |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 1.077 | 0.863 | 0.707 (−18.1%) | 18.47 | 15.87 (−14.1%) | −52.65 | −45.92 (−12.8%) | 8.350 | 8.393 | +0.042 | 2.85 | 2.89 | −18.16 | −199.46 (+998.3%) |
-| 1.293 | 0.731 | 0.591 (−19.2%) | 18.27 | 14.53 (−20.5%) | −50.97 | −41.69 (−18.2%) | 8.290 | 8.370 | +0.081 | 2.79 | 2.87 | −23.57 | −103.67 (+339.8%) |
-| 1.832 | 0.585 | 0.439 (−24.9%) | 11.78 | 10.16 (−13.8%) | −27.98 | −25.15 (−10.1%) | 7.875 | 7.976 | +0.101 | 2.37 | 2.48 | −22.35 | −23.72 (+6.1%) |
-| 2.375 | 0.484 | 0.357 (−26.2%) | 10.52 | 8.24 (−21.6%) | −18.90 | −17.62 (−6.8%) | 7.297 | 7.638 | +0.341 | 1.80 | 2.14 | −18.31 | −18.47 (+0.9%) |
-| 2.718 | 0.435 | 0.322 (−25.9%) | 9.01 | 7.50 (−16.7%) | −15.20 | −14.70 (−3.3%) | 7.187 | 7.459 | +0.272 | 1.69 | 1.96 | −16.65 | −16.44 (−1.3%) |
-| 3.147 | 0.373 | 0.288 (−22.7%) | 8.69 | 6.83 (−21.4%) | −12.46 | −12.04 (−3.3%) | 6.933 | 7.262 | +0.329 | 1.43 | 1.76 | −13.50 | −14.58 (+8.0%) |
-| 3.734 | 0.309 | 0.254 (−17.9%) | 8.32 | 6.18 (−25.7%) | −9.53 | −9.46 (−0.8%) | 6.646 | 7.030 | +0.384 | 1.15 | 1.53 | −13.18 | −12.74 (−3.3%) |
-| 4.300 | 0.271 | 0.229 (−15.7%) | 7.74 | 5.73 (−26.0%) | −7.85 | −7.67 (−2.4%) | 6.515 | 6.838 | +0.323 | 1.01 | 1.34 | −11.71 | −11.45 (−2.2%) |
+| 1.077 | 0.863 | 0.707 (−18.1%) | 18.47 | 16.64 (−9.9%) | −52.65 | −48.66 (−7.6%) | 8.350 | 8.424 | +0.073 | 2.85 | 2.92 | −18.16 | −199.46 (+998.3%) |
+| 1.293 | 0.731 | 0.591 (−19.2%) | 18.27 | 17.30 (−5.3%) | −50.97 | −51.67 (+1.4%) | 8.290 | 8.487 | +0.197 | 2.79 | 2.99 | −23.57 | −103.67 (+339.8%) |
+| 1.832 | 0.585 | 0.439 (−24.9%) | 11.78 | 10.91 (−7.3%) | −27.98 | −28.31 (+1.2%) | 7.875 | 8.093 | +0.219 | 2.37 | 2.59 | −22.35 | −23.72 (+6.1%) |
+| 2.375 | 0.484 | 0.357 (−26.2%) | 10.52 | 8.63 (−17.9%) | −18.90 | −19.25 (+1.8%) | 7.297 | 7.730 | +0.433 | 1.80 | 2.23 | −18.31 | −18.47 (+0.9%) |
+| 2.718 | 0.435 | 0.322 (−25.9%) | 9.01 | 7.79 (−13.5%) | −15.20 | −15.90 (+4.6%) | 7.187 | 7.541 | +0.354 | 1.69 | 2.04 | −16.65 | −16.44 (−1.3%) |
+| 3.147 | 0.373 | 0.288 (−22.7%) | 8.69 | 7.04 (−19.0%) | −12.46 | −12.92 (+3.7%) | 6.933 | 7.334 | +0.401 | 1.43 | 1.83 | −13.50 | −14.58 (+8.0%) |
+| 3.734 | 0.309 | 0.254 (−17.9%) | 8.32 | 6.33 (−23.9%) | −9.53 | −10.08 (+5.7%) | 6.646 | 7.092 | +0.446 | 1.15 | 1.59 | −13.18 | −12.74 (−3.3%) |
+| 4.300 | 0.271 | 0.229 (−15.7%) | 7.74 | 5.84 (−24.5%) | −7.85 | −8.14 (+3.6%) | 6.515 | 6.893 | +0.378 | 1.01 | 1.39 | −11.71 | −11.45 (−2.2%) |
 
-RMS over the 8 Mach groups (unsigned). The first two columns are the earlier
-fin-load revisions and the third the current load, all three on the
-"airfoil" fixture; the last is the current model on the wedge fixture:
+RMS over the 8 Mach groups (unsigned). The first three columns are the
+fin-load revisions on the "airfoil" fixture, the fourth the wedge fixture
+with K_B(T) faded to zero from M 1.5, and the last the current model:
 
-| Coefficient | one face, airfoil | two faces, airfoil | two faces + tip relief, airfoil | wedge (current) | Direction now |
-|---|---|---|---|---|---|
-| CX0 | 84.4% | 84.4% | 84.4% | 21.7% | model low at all 8 |
-| CNα | 46.6% | 21.3% | 27.1% | 20.5% | model low at all 8 |
-| Cmα | 76.1% | 13.0% | 25.0% | 9.2% | model magnitude low at all 8 |
-| CP | 0.848 cal | 0.215 cal | 0.083 cal | 0.267 cal | d_cal +0.042 to +0.384 cal, aft at all 8 |
-| Clp (pd/2V, absolute) | 68.4 | 72.1 | 69.4 | 70.1 | magnitude high at M 1.077 and 1.293; within 8% from M 1.832 |
+| Coefficient | one face, airfoil | two faces, airfoil | two faces + tip relief, airfoil | wedge | wedge + K_B(T) (current) | Direction now |
+|---|---|---|---|---|---|---|
+| CX0 | 84.4% | 84.4% | 84.4% | 21.7% | 21.7% | model low at all 8 |
+| CNα | 46.6% | 21.3% | 27.1% | 20.5% | 16.6% | model low at all 8 |
+| Cmα | 76.1% | 13.0% | 25.0% | 9.2% | 4.3% | magnitude low at M 1.077, high by 1 to 6% at the other 7 |
+| CP | 0.848 cal | 0.215 cal | 0.083 cal | 0.267 cal | 0.337 cal | d_cal +0.073 to +0.446 cal, aft at all 8 |
+| Clp (pd/2V, absolute) | 68.4 | 72.1 | 69.4 | 70.1 | 70.1 | magnitude high at M 1.077 and 1.293; within 8% from M 1.832 |
 
 **Static margin.** Positive d_cal means the model CP is aft of the measured
 one, so the model static margin is larger than the real one by d_cal: the
 model is optimistic. With wedge fins on this body it is optimistic at every
-Mach group: by 0.04 to 0.10 cal at M 1.077 to 1.832 and by 0.27 to 0.38 cal
-from M 2.375 up (most at M 3.734: model 1.53 cal against 1.15 measured).
+Mach group: by 0.07 to 0.22 cal at M 1.077 to 1.832 and by 0.35 to 0.45 cal
+from M 2.375 up (most at M 3.734: model 1.59 cal against 1.15 measured).
 Treat a supersonic static margin computed for a wedge-finned rocket as up to
-0.4 cal too large.
+0.45 cal too large.
 
 This is worse than the "airfoil" fixture gave (d_cal −0.032 to +0.178 cal)
 although the fin model is better, and the reason is the body, not the fins.
 The wedge thickness lift is supported by the roll data, which only the fins
 produce: Cl_δ is within 12% and Clp within 8% from M 1.8 (below), where the
 flat plate was 10% and up to 20% low. With it CNα and Cmα both move toward
-the data. But the total CNα is still 14 to 26% low, and the DREV (CNα, CP)
-pairs put the missing lift ahead of the fins (CNα below). Adding the correct
-lift at the tail without the missing lift forward of it moves the CP aft of
-the measured one. The flat-plate fin load was too small by about the right
+the data. The carried lift K_B(T) acts at the fin root, 9.67 cal from the
+nose on this body, and moves the CP another 0.03 to 0.12 cal aft. But the
+total CNα is still 5 to 25% low, and the DREV (CNα, CP) pairs put the
+missing lift ahead of the fins (CNα below). Adding the correct lift at the
+tail without the missing lift forward of it moves the CP aft of the
+measured one. The flat-plate fin load was too small by about the right
 amount to hide that. The fix is the body terms listed under Known gaps, not
 a smaller fin load. This is one rectangular AR 2 planform with 8% wedges. No
 other supersonic CP data is in the repo.
 
-**CNα.** The model is low at every Mach, by 14% at M 1.077 and 26% at
+**CNα.** The model is low at every Mach, by 5% at M 1.293 and 24% at
 M 4.300. The bare fin term over the fin term DREV implies,
-(DREV CNα − nose CNα)/(K_T(B) + K_B(T)), is 0.83 at M 1.832 and falls to 0.65
-at M 4.300 (fn_bare / DREV_fin in the test output; 0.76 to 0.53 with the
-flat-plate load). What is known about the shortfall:
+(DREV CNα − nose CNα)/(K_T(B) + K_B(T)), is 0.91 at M 1.832 and falls to 0.67
+at M 4.300 (fn_bare / DREV_fin in the test output). What is known about the
+shortfall:
 
-- Supersonic K_B(T) does not close it. TR 1307 chart 4(b) gives K_B(T) about
-  0.08 for this no-afterbody case (βd/c_r = 2.15 at M 2.375); with the test's
-  fn_bare 4.682 that adds 0.37, taking CNα from 8.24 to 8.62 against DREV
-  10.52. K_B(T) is still faded to zero by M 1.5 (BW-B67-073 not digitised).
+- Supersonic K_B(T) does not close it. The TR 1307 lift integral gives
+  K_B(T) 0.124 at M 1.832 falling to 0.041 at M 4.300 for this no-afterbody
+  case, which adds 0.76 and 0.11 to CNα (0.39 at M 2.375, taking CNα from
+  8.24 to 8.63 against DREV 10.52).
 - DREV's (CNα, CP) pairs, with the model's nose term (CNα 2.0 at 1.89 cal),
   put the rest of the load at 8.1 to 8.7 cal for M ≥ 2.375, ahead of the fin
   leading edge at 9.0 cal. That points to body lift the model does not have
@@ -1383,9 +1390,8 @@ predicted spin there is too low on every revision.
 
 ### Known gaps
 
-- Static margin over-predicted by up to 0.38 cal for wedge fins on this
-  case (above), and CNα 14% to 26% low: no body lift at supersonic speed,
-  and K_B(T) faded to zero from M 1.5.
+- Static margin over-predicted by up to 0.45 cal for wedge fins on this
+  case (above), and CNα 5% to 25% low: no body lift at supersonic speed.
 - CX0 16% to 26% low with the wedge section (CX0 above). Likely missing:
   the drag of the 0.004 cal leading-edge radius (estimated +0.042 at
   M 1.832, +0.048 at M 4.300; a sharp wedge has none) and base drag above
@@ -1407,3 +1413,103 @@ predicted spin there is too low on every revision.
   flow-reversed twin, which this only approximates.
 - Above 17.5° incidence the strip load keeps the 17.5° secant slope (model
   choices table); no separated-flow or detached-shock model.
+
+## Supersonic carry-over: K_B(T) and its CP from NACA TR 1307 (2026-11-15)
+
+Reproduce: `cargo test -p rw-aero --test basic_finner_baseline -- --nocapture`
+
+Above M 1.5 rw-aero carried no fin lift onto the body: K_B(T) was the
+slender-body value faded to 0 over M 0.9 to 1.5, because Barrowman's supersonic
+K'_B(T) (Fig 3-9) was not digitised. Fig 3-9 is NACA TR 1307 chart 4(b), and
+both come from the report's lift integral over the body strip beside the fin
+root (eq 23 for a supersonic leading edge, eq 25 for a subsonic one;
+literature-map BW-1307-08..15). `rw-aero/src/carryover.rs` integrates it
+numerically, so nothing is read from a chart.
+
+### Model choices
+
+1. **Regime.** Slender-body K_B(T) = K_T(B)² − K_T(B) holds up to the Mach
+   number M_c at which the tip Mach line passes behind the carry-over region,
+   β A (1 + λ)(1/(β m) + 1) = 4 (eq 22; the TR 1307 selection rule, pdf 12, and
+   Barrowman (3-99)). The integral is used from M_hi = max(M_c + 0.25, 1.5).
+   Between M_c and M_hi a cubic matches value and slope at both ends. The 0.25
+   width is ours: the sources give a switch, not a transition. The window sits
+   above M_c so the integral is only used where eq 22 holds, and it does not
+   end below M 1.5 because the fin slope is itself a transonic blend there.
+2. **No fade below M_c.** Between M 0.9 and M_c the slender-body K_B(T) is now
+   kept at full value. It used to fade from M 0.9.
+3. **Afterbody.** The streamwise upper limit is c_r + min(βη, l_aft), where
+   l_aft is the length of body behind the root trailing edge that stays a tube
+   of the root radius. A transition, step or the base ends it. l_aft = 0 is
+   TR 1307's no-afterbody case (eqs 30/31) and l_aft ≥ β d its afterbody case
+   (eqs 24/26). For β d > c_r + l_aft the strip beyond the last Mach line
+   carries nothing, which is the report's "constant for d > c_r/β" (pdf 14).
+4. **Normalisation.** K_B(T) = β L_B(W)/(4 q α A_fin F): the carried lift of
+   one half-wing over the linear-theory wing-alone lift with its tip effects,
+   (A_fin/A_ref)(4/β) F, F the panel's tip-relief factor. For a rectangle
+   (4/β) F = (4 − 2/(βA))/β, which is TR 1307's own divisor (eq 27). The
+   flat-plate fin-set row (C_Nα)_N (K_T(B) + K_B(T)) then carries exactly the
+   integrated lift. A wedge section's thickness lift is carried in the same
+   ratio, as TR 1307 applies K_B(W) to whatever wing-alone slope is used.
+5. **Planform.** m = cot Γ_L uses the strip-averaged leading-edge sweep, exact
+   for trapezoids. A forward-swept edge is taken as unswept. Body upwash on
+   the fin is left out of the carried lift, as in the report (pdf 11).
+6. **CP.** The carried load acts at the first moment of the same integrand
+   over the lift (eqs 66, 68, 69), measured from the root leading edge. The
+   shift of the fin-set CP, (K_B(T)/(K_T(B) + K_B(T)))(x_B − x_F), goes from
+   the subsonic chart 16 shift (β frozen at M 0.9) at M_c to the supersonic
+   one at M_hi through the same cubic. Planforms outside chart 16 have no
+   subsonic shift and gain the supersonic one. Barrowman (3-102)/(3-103) is
+   the same ratio for no afterbody; its two prefactors are swapped (Errata).
+7. **Cost.** The integral depends on geometry and Mach only. `AeroModel::new`
+   tabulates K_B(T) and the CP on a Mach grid (0.05 steps from M_hi to M 6,
+   20-point Gauss-Legendre in each direction, about 1 ms per fin set in a
+   release build) and `eval` interpolates with cubic Hermite segments. Above
+   M 6 the last value is held.
+8. **Tube fins** keep the faded slender-body K_B(T): the planar strip model
+   does not describe a ring.
+9. Up to M 0.9 nothing changes. The dump of every `AeroCoeffs` field (cases
+   1–7, M 0–0.9 in 0.01 steps, α 0–15°, three roll/pitch-rate pairs, thrusting
+   on and off; 22,932 evaluations) is identical before and after.
+
+### Checks
+
+- Quadrature vs the closed forms (24), (26), (27), (30), (31) over β m 0.2 to
+  50 and β d/c_r 0.1 to 4: within 2e-5.
+- (30) at 2 β r/c_r = 0.2: 6.06, 5.16, 4.51 for β m = ∞, 4, 2, the Fig 3-9
+  curves.
+- Rectangular fin, no afterbody, β d ≥ c_r: lift 2 c_r²/(π β²) per half-wing and
+  CP at ⅔ c_r, both in closed form.
+
+### Basic Finner before and after (rw-aero vs DREV Table IX)
+
+The fins end at the base (DREV section 3.1, Figure 2), so l_aft = 0. M_c = √2
+(A = 2, λ = 1, unswept) and M_hi = 1.664. "Before" is the wedge-section model
+with K_B(T) faded to zero from M 1.5. CX0, Clp and Cmq are unchanged. err% is
+(rw − DREV)/DREV; d_cal is model CP minus DREV CP, positive aft.
+
+| Mach | K_B(T) before | after | CNα DREV | before (err) | after (err) | Cmα DREV | before (err) | after (err) | CP d_cal before | after |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 1.077 | 0.351 | 0.444 | 18.47 | 15.87 (−14.1%) | 16.64 (−9.9%) | −52.65 | −45.92 (−12.8%) | −48.66 (−7.6%) | +0.042 | +0.073 |
+| 1.293 | 0.122 | 0.444 | 18.27 | 14.53 (−20.5%) | 17.30 (−5.3%) | −50.97 | −41.69 (−18.2%) | −51.67 (+1.4%) | +0.081 | +0.197 |
+| 1.832 | 0 | 0.124 | 11.78 | 10.16 (−13.8%) | 10.91 (−7.3%) | −27.98 | −25.15 (−10.1%) | −28.31 (+1.2%) | +0.101 | +0.219 |
+| 2.375 | 0 | 0.084 | 10.52 | 8.24 (−21.6%) | 8.63 (−17.9%) | −18.90 | −17.62 (−6.8%) | −19.25 (+1.8%) | +0.341 | +0.433 |
+| 2.718 | 0 | 0.070 | 9.01 | 7.50 (−16.7%) | 7.79 (−13.5%) | −15.20 | −14.70 (−3.3%) | −15.90 (+4.6%) | +0.272 | +0.354 |
+| 3.147 | 0 | 0.058 | 8.69 | 6.83 (−21.4%) | 7.04 (−19.0%) | −12.46 | −12.04 (−3.3%) | −12.92 (+3.7%) | +0.329 | +0.401 |
+| 3.734 | 0 | 0.048 | 8.32 | 6.18 (−25.7%) | 6.33 (−23.9%) | −9.53 | −9.46 (−0.8%) | −10.08 (+5.7%) | +0.384 | +0.446 |
+| 4.300 | 0 | 0.041 | 7.74 | 5.73 (−26.0%) | 5.84 (−24.5%) | −7.85 | −7.67 (−2.4%) | −8.14 (+3.6%) | +0.323 | +0.378 |
+
+| RMS over the 8 Mach groups | before | after |
+|---|---|---|
+| CNα | 20.5% | 16.6% |
+| Cmα | 9.2% | 4.3% |
+| CP | 0.267 cal | 0.337 cal |
+
+Carry-over is small on this body: with no afterbody the carried lift is
+2 c_r²/(π β²) per fin once β d ≥ c_r, so K_B(T) = 1/(2πβ F) with
+F = 1 − 1/(4β), 0.124 at M 1.832 falling to 0.041 at M 4.3. CNα gains 0.1 to
+0.8 from M 1.832 and stays 13 to 25% low from M 2.375 up. The added load sits
+at ⅔ of the root chord, 9.67 cal from the nose, so the model CP moves 0.03 to
+0.12 cal further aft of DREV. The CNα that is still missing is therefore not
+at the fins. At M 1.293 the fin term is the M 0.9 to 1.5 transonic blend, now
+multiplied by the full slender-body K_B(T).
