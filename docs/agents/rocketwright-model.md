@@ -373,6 +373,25 @@ as `name`, `material`, `finish`, `appearance`, `instances`, `override`, and
 | `tank` | `fore` `aft` `inner` `outlet` | inner of `body_tube`, `coupler` | `length` (length), `od` (length), `wall` (length), `end_cap` |
 <!-- /generated:components -->
 
+Fin sets (`trapezoidal_fin_set`, `elliptical_fin_set`, `freeform_fin_set`)
+take an optional `cross_section`; without it the fin is `square`. It sets
+what `thickness` means, the fin's mass, and its edge drag:
+
+| `cross_section` | `thickness` is | Mass against a flat plate | Drag and lift |
+|---|---|---|---|
+| `square` | the plate thickness | all of it | blunt leading and trailing edges (the most drag) |
+| `rounded` | the plate thickness | a little less (the half-round edges; under 1% for a 2 mm fin on a 50 mm chord) | rounded leading edge, half the base drag behind |
+| `airfoil` | the maximum thickness, at 30% chord | 0.685 of it, centroid at 42% chord | rounded leading edge, no base drag |
+| `wedge` | the trailing-edge thickness; the leading edge is sharp | half of it, centroid at 2/3 chord | supersonic fins: small leading-edge pressure drag, full base drag on the blunt trailing edge, and more lift than a flat plate above Mach 1.5 (about 10% at Mach 2 for an 8% wedge). Below Mach 0.9 it lifts as a flat plate. |
+
+Above Mach 1 a wedge fin's stability margin reads high. On the measured
+validation case it is up to 0.4 calibers larger than the real one, so keep
+that much extra margin on a supersonic design with wedge fins.
+
+A material given as a sheet (mass per area) weighs the same for every
+section. `.ork` has no wedge section: `rw export ork` writes it as airfoil
+and lists the fin set under `approximated` in its result.
+
 ## Commands
 
 | Command | Use it to |

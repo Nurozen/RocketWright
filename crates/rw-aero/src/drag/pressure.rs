@@ -6,7 +6,10 @@
 use rw_model::{FinCrossSection, NoseShape};
 
 use crate::drag::base::base_cd;
-use crate::mach::{GAMMA, hermite, stagnation_cd};
+use crate::fins::Strip;
+use crate::mach::{
+    GAMMA, compression_cp, hermite, stagnation_cd, transonic_blend, wedge_half_angle,
+};
 
 /// Lower Mach bound of the supersonic cone formula (B.4).
 const CONE_SUPERSONIC: f64 = 1.3;
@@ -164,38 +167,82 @@ pub fn fin_le_rounded_cd(mach: f64) -> f64 {
     }
 }
 
+/// Forebody pressure drag of a single-wedge strip of half-angle δ, on the
+/// strip's frontal area (its trailing-edge thickness times its width). Both
+/// faces carry C_P(δ) = K_1 δ + C_2 δ² + K_3 δ³ and each projects half the
+/// thickness, so the coefficient on the frontal area is C_P(δ) itself. That
+/// holds from M 1.5; below M 0.9 the term is zero (an unseparated sharp
+/// wedge has no forebody pressure drag in subsonic flow; its drag is the
+/// base term), with the C¹ cubic of [`transonic_blend`] between. The result
+/// is capped at the blunt-edge stagnation value (eq B.2), which bounds any
+/// forebody. The zero subsonic value and the blend are model choices
+/// (parity-log).
+/// cite: barrowman-1967 eq 3-7 p 13-14
+/// cite: niskanen-2009 eq B.2 p 117
+pub fn wedge_le_cd(half_angle: f64, mach: f64) -> f64 {
+    transonic_blend(mach, |_| 0.0, |m| compression_cp(m, half_angle)).min(stagnation_cd(mach))
+}
+
+/// Span-mean of [`wedge_le_cd`] over the strips of a wedge fin of
+/// trailing-edge thickness `thickness`, each strip at its own half-angle
+/// δ_i = [`wedge_half_angle`] and weighted by its width (the frontal area
+/// of a strip is t Δξ_i whatever its chord).
+/// cite: barrowman-1967 eq 3-7 p 13-14
+pub fn wedge_le_mean_cd(thickness: f64, strips: &[Strip], mach: f64) -> f64 {
+    let (mut sum, mut width) = (0.0, 0.0);
+    for s in strips {
+        sum += wedge_le_cd(wedge_half_angle(thickness, s.chord), mach) * s.width;
+        width += s.width;
+    }
+    if width > 0.0 { sum / width } else { 0.0 }
+}
+
 /// Fin leading-edge drag on the fin frontal area: square edges take the
-/// stagnation value (eq 3.90), rounded and airfoil edges eq 3.89; swept by
-/// cos²Γ_L (eq 3.91).
+/// stagnation value (eq 3.90), rounded and airfoil edges eq 3.89, both swept
+/// by cos²Γ_L (eq 3.91). A wedge takes [`wedge_le_mean_cd`] over `strips`
+/// with no sweep factor: the series already acts on the streamwise section.
+/// `thickness` and `strips` are read only for a wedge.
 /// cite: niskanen-2009 eq 3.91 p 60
-pub fn fin_le_cd(section: FinCrossSection, gamma_le: f64, mach: f64) -> f64 {
+/// cite: barrowman-1967 eq 3-7 p 13-14
+pub fn fin_le_cd(
+    section: FinCrossSection,
+    gamma_le: f64,
+    thickness: f64,
+    strips: &[Strip],
+    mach: f64,
+) -> f64 {
     let perp = match section {
         FinCrossSection::Square => stagnation_cd(mach),
         FinCrossSection::Rounded | FinCrossSection::Airfoil => fin_le_rounded_cd(mach),
+        FinCrossSection::Wedge => return wedge_le_mean_cd(thickness, strips, mach),
     };
     perp * gamma_le.cos().powi(2)
 }
 
 /// Fin trailing-edge (base) drag on the fin frontal area: the body base
-/// drag for square edges, half of it for rounded, zero for tapered (airfoil).
+/// drag for square edges and for the blunt base of a wedge, half of it for
+/// rounded, zero for tapered (airfoil).
 /// cite: niskanen-2009 eq 3.92 p 60
 pub fn fin_te_cd(section: FinCrossSection, mach: f64) -> f64 {
     match section {
-        FinCrossSection::Square => base_cd(mach),
+        FinCrossSection::Square | FinCrossSection::Wedge => base_cd(mach),
         FinCrossSection::Rounded => 0.5 * base_cd(mach),
         FinCrossSection::Airfoil => 0.0,
     }
 }
 
 /// Fin pressure drag (LE + TE) of `count` fins on the reference area; the
-/// component frontal area is N t s.
+/// component frontal area is N t s. `strips` are the fin's spanwise strips,
+/// read only for a wedge section.
 /// cite: niskanen-2009 eq 3.93 p 60
+#[allow(clippy::too_many_arguments)]
 pub fn fin_pressure_cd(
     section: FinCrossSection,
     gamma_le: f64,
     count: u32,
     thickness: f64,
     span: f64,
+    strips: &[Strip],
     a_ref: f64,
     mach: f64,
 ) -> f64 {
@@ -203,12 +250,86 @@ pub fn fin_pressure_cd(
         return 0.0;
     }
     let a = count as f64 * thickness * span;
-    a / a_ref * (fin_le_cd(section, gamma_le, mach) + fin_te_cd(section, mach))
+    a / a_ref * (fin_le_cd(section, gamma_le, thickness, strips, mach) + fin_te_cd(section, mach))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn wedge_forebody_drag() {
+        let d = wedge_half_angle(0.08, 1.0); // atan(0.04)
+        // M 2 (hand, mach.rs): C_P(δ) = 0.0485673 on the wedge's own t·s.
+        assert!((wedge_le_cd(d, 2.0) - 0.048_567_3).abs() < 1e-6);
+        // Zero up to M 0.9, rising through the blend, C¹ into the series.
+        for m in [0.0, 0.3, 0.9] {
+            assert_eq!(wedge_le_cd(d, m), 0.0);
+        }
+        assert!(wedge_le_cd(d, 1.0) > 0.0 && wedge_le_cd(d, 1.0) < wedge_le_cd(d, 1.2));
+        let (lo, hi) = (wedge_le_cd(d, 1.5 - 1e-9), wedge_le_cd(d, 1.5));
+        assert!((lo - hi).abs() < 1e-8);
+        assert!((hi - compression_cp(1.5, d)).abs() < 1e-15);
+        // Never above the blunt edge, even at the angle cap near M 1.
+        let cap = crate::mach::WEDGE_HALF_ANGLE_LIMIT;
+        for k in 0..=500 {
+            let m = 0.01 * k as f64;
+            assert!(wedge_le_cd(cap, m) <= stagnation_cd(m), "M={m}");
+            assert!(wedge_le_cd(cap, m) >= 0.0, "M={m}");
+        }
+        // No thickness, no forebody drag.
+        assert_eq!(wedge_le_cd(0.0, 2.0), 0.0);
+    }
+
+    #[test]
+    fn wedge_fin_pressure_drag() {
+        // Rectangular fin, t/c = 0.08: every strip at atan(0.04). The span
+        // mean is the strip value, with no sweep factor.
+        let (c, s, t) = (0.03, 0.03, 0.0024);
+        let strips: Vec<Strip> = (0..10)
+            .map(|k| Strip {
+                xi: 0.015 + s * (k as f64 + 0.5) / 10.0,
+                chord: c,
+                width: s / 10.0,
+            })
+            .collect();
+        let le = fin_le_cd(FinCrossSection::Wedge, 0.0, t, &strips, 2.0);
+        assert!((le - 0.048_567_3).abs() < 1e-6);
+        assert_eq!(le, fin_le_cd(FinCrossSection::Wedge, 0.7, t, &strips, 2.0));
+        // 4 fins on A_ref = π 0.03²/4: (N t s/A_ref)(C_P + base 0.25/M).
+        let a_ref = std::f64::consts::PI * 0.03 * 0.03 / 4.0;
+        let v = fin_pressure_cd(FinCrossSection::Wedge, 0.0, 4, t, s, &strips, a_ref, 2.0);
+        assert!(close(v, 4.0 * t * s / a_ref * (le + 0.125), 1e-12));
+        // Two strips of unequal chord, equal width: the mean of the two
+        // strip values (frontal area t Δξ each), δ = atan(t/2c).
+        let two = [
+            Strip {
+                xi: 0.02,
+                chord: 0.03,
+                width: 0.01,
+            },
+            Strip {
+                xi: 0.03,
+                chord: 0.01,
+                width: 0.01,
+            },
+        ];
+        let mean =
+            0.5 * (compression_cp(2.0, (0.04_f64).atan()) + compression_cp(2.0, (0.12_f64).atan()));
+        assert!(close(wedge_le_mean_cd(t, &two, 2.0), mean, 1e-12));
+        // A pointed tip (zero chord) is held at the 10° cap, not a blunt face.
+        let tip = [Strip {
+            xi: 0.02,
+            chord: 0.0,
+            width: 0.01,
+        }];
+        assert!(close(
+            wedge_le_mean_cd(t, &tip, 2.0),
+            compression_cp(2.0, crate::mach::WEDGE_HALF_ANGLE_LIMIT),
+            1e-12
+        ));
+        assert_eq!(wedge_le_mean_cd(t, &[], 2.0), 0.0);
+    }
 
     fn close(a: f64, b: f64, tol: f64) -> bool {
         (a - b).abs() <= tol * b.abs().max(1e-12)
@@ -277,12 +398,12 @@ mod tests {
         assert!((fin_le_rounded_cd(1.0 - 1e-9) - 0.8215).abs() < 1e-6);
         assert!(close(fin_le_rounded_cd(1.0), 0.8215, 1e-12));
         assert!(close(
-            fin_le_cd(FinCrossSection::Square, 0.0, 0.0),
+            fin_le_cd(FinCrossSection::Square, 0.0, 0.0, &[], 0.0),
             0.85,
             1e-12
         ));
         assert!(close(
-            fin_le_cd(FinCrossSection::Rounded, 0.5, 0.5),
+            fin_le_cd(FinCrossSection::Rounded, 0.5, 0.0, &[], 0.5),
             fin_le_rounded_cd(0.5) * 0.5_f64.cos().powi(2),
             1e-12
         ));
@@ -292,9 +413,20 @@ mod tests {
             1e-12
         ));
         assert_eq!(fin_te_cd(FinCrossSection::Airfoil, 0.5), 0.0);
+        assert_eq!(fin_te_cd(FinCrossSection::Wedge, 0.5), base_cd(0.5));
+        assert_eq!(fin_te_cd(FinCrossSection::Wedge, 2.0), base_cd(2.0));
         // 3 fins, t = 2 mm, s = 30 mm on A_ref = 4.909e-4.
         let a_ref = std::f64::consts::PI * 0.0125 * 0.0125;
-        let v = fin_pressure_cd(FinCrossSection::Square, 0.0, 3, 0.002, 0.03, a_ref, 0.0);
+        let v = fin_pressure_cd(
+            FinCrossSection::Square,
+            0.0,
+            3,
+            0.002,
+            0.03,
+            &[],
+            a_ref,
+            0.0,
+        );
         assert!(close(v, 3.0 * 0.002 * 0.03 / a_ref * (0.85 + 0.12), 1e-12));
     }
 }

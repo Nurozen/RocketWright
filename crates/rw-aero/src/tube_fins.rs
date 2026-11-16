@@ -107,6 +107,7 @@ pub fn ring_cna(mach: f64, alpha: f64, d: f64, length: f64, a_ref: f64) -> f64 {
         a_ref,
         0.0,
         |m| rectangular_tip_relief(beta(m) * a),
+        |_| 0.0,
     )
 }
 
@@ -552,7 +553,7 @@ mod tests {
         // About twice the old equivalent-planar-fin set (N/2 roll weighting,
         // AR = 2d/L): the roll factor 2 times ring/panel ≈ (ID/OD)².
         let p = equivalent_planform(6, L, OD, ID, 0.35, R_BODY);
-        let planar = single_fin_cna(mach, 0.0, p.span, p.area, a_ref(), 0.0, |_| 1.0)
+        let planar = single_fin_cna(mach, 0.0, p.span, p.area, a_ref(), 0.0, |_| 1.0, |_| 0.0)
             * fin_count_factor(6)
             * (kt_b(R_BODY, OD) + kb_t(mach, R_BODY, OD));
         let ratio = r6.cn_alpha / planar;

@@ -320,9 +320,19 @@ pub enum NoseShape {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum FinCrossSection {
+    // Plain `//` comments: a doc comment on a variant turns the generated
+    // schema enum into a `oneOf` of constants, which the web field specs
+    // (app/apps/web/src/ui/fields/spec.ts) do not read.
+    // Constant thickness, blunt edges.
     Square,
+    // Constant thickness with half-round leading and trailing edges.
     Rounded,
+    // Symmetric four-digit airfoil thickness distribution; `thickness` is the
+    // maximum thickness.
     Airfoil,
+    // Single wedge: zero thickness at the leading edge, growing linearly to
+    // `thickness` at a blunt trailing edge.
+    Wedge,
 }
 
 /// A shoulder on a nose cone or transition.

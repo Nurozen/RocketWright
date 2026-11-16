@@ -2416,7 +2416,8 @@
       "enum": [
         "square",
         "rounded",
-        "airfoil"
+        "airfoil",
+        "wedge"
       ]
     },
     "EvalFinTab": {
@@ -5959,6 +5960,13 @@
             "type": "string"
           },
           "description": "Ids of components the format could not represent and the file leaves\nout (`.ork` has no tank or feed parts)."
+        },
+        "approximated": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "What the format could not hold exactly and the file carries as the\nnearest thing it has, one line per component (`.ork` has no wedge fin\ncross-section; it is written as airfoil)."
         }
       },
       "required": [

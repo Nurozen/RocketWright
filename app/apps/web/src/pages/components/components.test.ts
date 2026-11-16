@@ -92,7 +92,7 @@ describe("schema-driven fields", () => {
     expect(geo.slice(1, 7).map((x) => x.key)).toEqual(["root_chord", "tip_chord", "span", "sweep", "thickness", "count"]);
     expect(geo.find((x) => x.key === "count")).toMatchObject({ label: "Fin count", kind: "integer", min: 1, max: 8 });
     expect(geo.find((x) => x.key === "span")).toMatchObject({ kind: "quantity", dim: "length", expr: true, group: "Fins" });
-    expect(geo.find((x) => x.key === "cross_section")).toMatchObject({ kind: "enum", options: ["square", "rounded", "airfoil"] });
+    expect(geo.find((x) => x.key === "cross_section")).toMatchObject({ kind: "enum", options: ["square", "rounded", "airfoil", "wedge"] });
     // The fin tab is a named group, not a field of the flat grid.
     expect(geo.some((x) => x.key === "tab")).toBe(false);
     expect(geo.filter((x) => x.parent === "tab").map((x) => x.key)).toEqual(["tab.height", "tab.length", "tab.offset"]);

@@ -250,6 +250,131 @@ fn trapezoidal_fin_set() {
     assert_close("Iyy", c.iyy, iyy, TOL);
 }
 
+const RECT: Trap = Trap {
+    cr: 0.06,
+    ct: 0.06,
+    s: 0.05,
+    sweep: 0.0,
+    t: 0.003,
+    x_le: 0.3,
+};
+
+/// Wedge section on a rectangular fin: m = ρ t c s/2, centroid 2c/3 from the
+/// leading edge, m c²/18 about the spanwise axis through it, m t²/24 across
+/// the thickness.
+#[test]
+fn wedge_fin_set_rectangular() {
+    let rho = 1800.0;
+    let (c, s, t, rt) = (RECT.cr, RECT.s, RECT.t, 0.025);
+    let w = fin_entry(&fin_model(&RECT, rho, json!({"cross_section": "wedge"})));
+    let m1 = rho * t * c * s / 2.0;
+    assert_close("m", w.mass, 3.0 * m1, TOL);
+    assert_close("x_cg", w.cg, RECT.x_le + 2.0 * c / 3.0, TOL);
+    // Roll inertia: the span distribution is the slab's (λ = 1), the
+    // thickness term m t²/24.
+    let ixx = 3.0 * (m1 * (rt * rt + rt * s + s * s / 3.0) + m1 * t * t / 24.0);
+    assert_close("Ixx", w.ixx, ixx, TOL);
+    // Three fins 120° apart: I_yy = Σ m σ_x² + I_xx/2 with σ_x² = c²/18.
+    assert_close("Iyy", w.iyy, 3.0 * m1 * c * c / 18.0 + 0.5 * ixx, TOL);
+    // Half the slab, and aft of it by c/6.
+    let sq = fin_entry(&fin_model(&RECT, rho, json!({})));
+    assert_close("half", w.mass, 0.5 * sq.mass, TOL);
+    assert_close("aft", w.cg - sq.cg, c / 6.0, TOL);
+}
+
+/// Wedge section on a swept, tapered fin: each strip of chord c(y) weighs
+/// ρ t c/2 per unit span and sits at x_LE(y) + 2c(y)/3.
+#[test]
+fn wedge_fin_set_swept_trapezoid() {
+    let rho = 1800.0;
+    let w = fin_entry(&fin_model(&TRAP, rho, json!({"cross_section": "wedge"})));
+    assert_close("m", w.mass, 3.0 * rho * TRAP.t * TRAP.area() / 2.0, TOL);
+    // Simpson in y is exact (the integrands are quadratic in y).
+    let strip = |y: f64| {
+        let le = TRAP.x_le + TRAP.sweep * y / TRAP.s;
+        let c = TRAP.cr + (TRAP.ct - TRAP.cr) * y / TRAP.s;
+        (c / 2.0, c / 2.0 * (le + 2.0 * c / 3.0))
+    };
+    let simpson =
+        |f: &dyn Fn(f64) -> f64| TRAP.s / 6.0 * (f(0.0) + 4.0 * f(TRAP.s / 2.0) + f(TRAP.s));
+    let (a, ax) = (simpson(&|y| strip(y).0), simpson(&|y| strip(y).1));
+    assert_close("x_cg", w.cg, ax / a, TOL);
+    // The tab stays a slab of the full thickness.
+    let (h, len, off) = (0.002, 0.05, 0.01);
+    let tabbed = fin_entry(&fin_model(
+        &TRAP,
+        rho,
+        json!({"cross_section": "wedge", "tab": {"height": h, "length": len, "offset": off}}),
+    ));
+    assert_close(
+        "tab",
+        tabbed.mass - w.mass,
+        3.0 * rho * TRAP.t * h * len,
+        1e-8,
+    );
+}
+
+/// Rounded section: the slab less its half-round leading and trailing
+/// edges, k = 1 − (1 − π/4) t s/A; centroid unchanged.
+#[test]
+fn rounded_fin_set_mass_factor() {
+    let rho = 1800.0;
+    let sq = fin_entry(&fin_model(&TRAP, rho, json!({})));
+    let r = fin_entry(&fin_model(&TRAP, rho, json!({"cross_section": "rounded"})));
+    // t = 3 mm, s = 60 mm, A = 0.0033 m²: k = 1 − 0.2146018·0.0545455 = 0.9882944.
+    let k = 1.0 - (1.0 - PI / 4.0) * TRAP.t * TRAP.s / TRAP.area();
+    assert!((k - 0.988_294_4).abs() < 1e-7, "{k}");
+    assert_close("m", r.mass, k * sq.mass, TOL);
+    assert_close("x_cg", r.cg, sq.cg, TOL);
+    assert_close("Ixx", r.ixx, k * sq.ixx, TOL);
+    assert_close("Iyy", r.iyy, k * sq.iyy, TOL);
+    // In volume terms: ρ (t A − (1 − π/4) t² s) per fin.
+    let v1 = TRAP.t * TRAP.area() - (1.0 - PI / 4.0) * TRAP.t * TRAP.t * TRAP.s;
+    assert_close("stadium", r.mass, 3.0 * rho * v1, TOL);
+}
+
+/// Airfoil section (NACA four-digit thickness form, `thickness` the
+/// maximum): area 0.6850833 t c, centroid 0.420435 c from the leading edge
+/// (hand integrals of the printed polynomial, rw-geom `section`).
+#[test]
+fn airfoil_fin_set_mass_factor() {
+    let rho = 1800.0;
+    let sq = fin_entry(&fin_model(&RECT, rho, json!({})));
+    let a = fin_entry(&fin_model(&RECT, rho, json!({"cross_section": "airfoil"})));
+    assert_close("m", a.mass, 0.685_083_3 * sq.mass, 1e-7);
+    assert_close("x_cg", a.cg, RECT.x_le + 0.420_435 * RECT.cr, 1e-7);
+    // Three fins 120° apart: I_yy = Σ m σ_x² + I_xx/2, with
+    // σ_x²/c² = 0.1589190/0.6850833 − 0.420435² = 0.055204.
+    let sigma2 = (a.iyy - 0.5 * a.ixx) / a.mass;
+    assert_close("σ_x²", sigma2, 0.055_204 * RECT.cr * RECT.cr, 1e-4);
+    // Same on a swept taper: the factor does not depend on the planform.
+    let sq = fin_entry(&fin_model(&TRAP, rho, json!({})));
+    let a = fin_entry(&fin_model(&TRAP, rho, json!({"cross_section": "airfoil"})));
+    assert_close("m", a.mass, 0.685_083_3 * sq.mass, 1e-7);
+}
+
+/// A sheet material given by surface density weighs per unit planform area
+/// whatever the section.
+#[test]
+fn surface_density_fins_ignore_the_section() {
+    let sheet = |section: &str| {
+        let mut mdl = fin_model(&TRAP, 1800.0, json!({"cross_section": section}));
+        let m = mdl.materials.get_mut("m").expect("material");
+        m.density = None;
+        m.surface_density = Some(0.9);
+        fin_entry(&mdl)
+    };
+    let sq = sheet("square");
+    assert_close("m", sq.mass, 3.0 * 0.9 * TRAP.area(), TOL);
+    for section in ["rounded", "airfoil", "wedge"] {
+        let c = sheet(section);
+        assert_eq!(
+            (c.mass, c.cg, c.ixx, c.iyy),
+            (sq.mass, sq.cg, sq.ixx, sq.iyy)
+        );
+    }
+}
+
 /// Tabs add a rectangle below the root (y ∈ [−h, 0]).
 #[test]
 fn fin_tab_mass_and_cg() {

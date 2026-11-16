@@ -45,7 +45,10 @@ printf 'make wasm: %s (%s bytes, %s gzip)\n' "$out/rw_wasm_bg.wasm" "$bytes" "$g
 # Supersonic tip relief raised it to 2.14 MB: the tip Mach-cone strip factor,
 # the low-aspect-ratio factor and the rectangular-wing tube-fin slope in
 # rw-aero took it from 2.1295 MB to 2.1313 MB.
-max=${RW_WASM_MAX_BYTES:-2140000}
+# The wedge fin section raised it to 2.15 MB: the section mass integrals in
+# rw-geom and the wedge drag and thickness lift in rw-aero took the macOS build
+# from 2.1305 MB to 2.1393 MB, and the Linux build runs about 0.8 kB larger.
+max=${RW_WASM_MAX_BYTES:-2150000}
 if [ "$bytes" -gt "$max" ]; then
   echo "make wasm: rw_wasm_bg.wasm is $bytes bytes, over the $max-byte gate" >&2
   exit 1

@@ -2176,7 +2176,8 @@
       "enum": [
         "square",
         "rounded",
-        "airfoil"
+        "airfoil",
+        "wedge"
       ]
     },
     "EvalFinTab": {

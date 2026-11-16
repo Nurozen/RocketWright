@@ -138,6 +138,15 @@ usage = "equations-only; chart 16 ordinates digitised by us (crates/rw-aero/src/
 page_offset = "printed = pdf - 4"
 local_copy = "not in references/ (downloaded from NTRS to verify; the catalog lists it)"
 
+[naca-report-460]
+sha256 = "ed7f7a0c24f95bf62c3a66868765f6f6a2b6430c4bd79299724fb001201c7d41"
+citation = "Jacobs, E. N., Ward, K. E., and Pinkerton, R. M. The Characteristics of 78 Related Airfoil Sections from Tests in the Variable-Density Wind Tunnel. NACA Report 460, 1933."
+url = "https://ntrs.nasa.gov/citations/19930091108"
+license = "public domain (NACA, U.S. Government work); NTRS distribution PUBLIC"
+usage = "equations-only; the four-digit thickness polynomial (crates/rw-geom/src/section.rs), integrated by us"
+page_offset = "printed = pdf - 2"
+local_copy = "not in references/ (downloaded from NTRS to verify)"
+
 [openrocket-techdoc-2026]
 file = "references/rocketry-literature/openrocket-technical-documentation-github-unstable-2026-08.pdf"
 sha256 = "84d51513e0f330ee9b3f1fe5530a7ade63fdd976e55caf489ec7d2c0168094cd"

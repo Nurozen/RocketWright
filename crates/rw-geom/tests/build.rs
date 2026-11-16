@@ -80,7 +80,11 @@ fn fixture_fins() {
     // barrowman-1967 eq 3-23: A_fin = (c_r + c_t) s / 2 = 0.009; wetted 2 N A_fin.
     assert!(close(c.planform_area, 0.009, 1e-12));
     assert!(close(c.wetted_area, 0.072, 1e-12));
-    assert!(close(c.volume, 4.0 * 0.003 * 0.009, 1e-12));
+    // Rounded section: the slab t A_fin less the corners outside the
+    // half-round leading and trailing edges, (1 − π/4) t² per unit span.
+    assert_eq!(f.cross_section, rw_model::FinCrossSection::Rounded);
+    let rounded = 0.003 * 0.009 - (1.0 - std::f64::consts::FRAC_PI_4) * 0.003 * 0.003 * 0.09;
+    assert!(close(c.volume, 4.0 * rounded, 1e-12));
     assert!(close(f.mean_aero_chord, trapezoid_mac(0.14, 0.06), 1e-12));
     assert!(close(f.span, 0.09, 1e-12));
     assert!(close(f.root_chord, 0.14, 1e-12) && close(f.tip_chord, 0.06, 1e-12));

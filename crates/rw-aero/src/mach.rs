@@ -58,6 +58,64 @@ pub fn busemann(mach: f64) -> [f64; 3] {
     [k1, k2, k3]
 }
 
+/// Exact second-order Busemann coefficient C_2 of the single-face series
+/// C_P = K_1 η + C_2 η² + K_3 η³:
+/// C_2 = ((γ + 1) M⁴ − 4 β²)/(2 β⁴). barrowman-1967 (3-7) prints K_2 with
+/// 4 β⁴ in the denominator, half of this (literature-map Errata); the
+/// two-face flat-plate load does not see it because the η² terms cancel, so
+/// [`busemann`] keeps the printed K_2. A section whose two faces are inclined
+/// to each other (a wedge) does see it, and takes this value.
+/// cite: barrowman-1967 eq 3-7 p 13-14
+pub fn busemann_c2(mach: f64) -> f64 {
+    let m = mach.max(1.0 + 1e-9);
+    let b = beta(m);
+    ((GAMMA + 1.0) * m.powi(4) - 4.0 * b * b) / (2.0 * b.powi(4))
+}
+
+/// Largest wedge half-angle the series terms are evaluated at (10°). Against
+/// the exact oblique shock the third-order C_P is within 0.5 % at 10° for
+/// M 2-3, +1.1 % at M 4.3 and −5.9 % at M 1.5; a thicker strip (short chord
+/// near a pointed tip) is held at this angle (parity-log model choices).
+pub const WEDGE_HALF_ANGLE_LIMIT: f64 = 10.0 * std::f64::consts::PI / 180.0;
+
+/// Half-angle δ of a single-wedge strip of trailing-edge thickness t and
+/// chord c: atan(t/(2c)), at most [`WEDGE_HALF_ANGLE_LIMIT`]. Zero when the
+/// thickness is zero, whatever the chord.
+/// cite: n/a pure geometry (wedge half-angle from thickness and chord)
+pub fn wedge_half_angle(thickness: f64, chord: f64) -> f64 {
+    if thickness <= 0.0 {
+        return 0.0;
+    }
+    if chord <= 0.0 {
+        return WEDGE_HALF_ANGLE_LIMIT;
+    }
+    (thickness / (2.0 * chord))
+        .atan()
+        .min(WEDGE_HALF_ANGLE_LIMIT)
+}
+
+/// Surface pressure coefficient of a face turned into the flow by δ:
+/// C_P = K_1 δ + C_2 δ² + K_3 δ³ (third-order Busemann series, attached
+/// shock), with the exact C_2 of [`busemann_c2`].
+/// cite: barrowman-1967 eq 3-7 p 13-14
+pub fn compression_cp(mach: f64, delta: f64) -> f64 {
+    let [k1, _, k3] = busemann(mach);
+    delta * (k1 + delta * (busemann_c2(mach) + delta * k3))
+}
+
+/// Extra secant slope ΔC_P/η of a strip whose two faces are each inclined δ
+/// to the chord plane (a single wedge), over the flat plate's
+/// [`flat_plate_strip_secant`]: 4 C_2 δ + 6 K_3 δ². The windward face sits
+/// at δ + η and the leeward at δ − η, so
+/// ΔC_P = C_P(δ + η) − C_P(δ − η) = η [2(K_1 + K_3 η²) + 4 C_2 δ + 6 K_3 δ²]
+/// ((33a)-(33d) with ζ_L = δ on both faces). Exactly zero at δ = 0.
+/// cite: barrowman-1967 eq 33a-33d p 98
+/// cite: barrowman-1967 eq 3-7 p 13-14
+pub fn wedge_strip_secant(mach: f64, delta: f64) -> f64 {
+    let [_, _, k3] = busemann(mach);
+    4.0 * busemann_c2(mach) * delta + 6.0 * k3 * delta * delta
+}
+
 /// Incidence above which the K_3 term of the strip load is held (17.5°).
 /// Against the exact shock-expansion flat plate for M 1.5-4.3 with the shock
 /// attached, the third-order series 2(K_1 η + K_3 η³) is at most +5.9 % high
@@ -160,6 +218,56 @@ mod tests {
         // K3 at M = 2 with the −12M² term: (2.4·256 + (3.92 − 9.8 − 5)·64 + 24·16 − 48 + 8)/(6 b⁷).
         let num = 2.4 * 256.0 + (2.0 * 1.96 - 9.8 - 5.0) * 64.0 + 24.0 * 16.0 - 48.0 + 8.0;
         assert!((k3 - num / (6.0 * b.powi(7))).abs() < 1e-12);
+    }
+
+    #[test]
+    fn wedge_series_hand_values_at_mach_two() {
+        // M 2, γ = 1.4, β² = 3: K_1 = 2/√3 = 1.1547005,
+        // C_2 = (2.4·16 − 12)/(2·9) = 26.4/18 = 1.4666667 (twice the printed
+        // K_2 = 26.4/36), K_3 = 0.9340244.
+        let [k1, k2, k3] = busemann(2.0);
+        let c2 = busemann_c2(2.0);
+        assert!((c2 - 26.4 / 18.0).abs() < 1e-12);
+        assert!((c2 - 2.0 * k2).abs() < 1e-12);
+        assert!((k1 - 1.154_700_5).abs() < 1e-7 && (k3 - 0.934_024_4).abs() < 1e-7);
+        // Half-angle of a wedge with t/c = 0.08: atan(0.04) = 0.0399787 rad.
+        let d = wedge_half_angle(0.08, 1.0);
+        assert!((d - 0.039_978_7).abs() < 1e-7);
+        // C_P = 1.1547005·0.0399787 + 1.4666667·0.00159830 + 0.9340244·6.38977e-5
+        //     = 0.0461634 + 0.0023442 + 0.0000597 = 0.0485673.
+        assert!((compression_cp(2.0, d) - 0.048_567_3).abs() < 1e-6);
+        // Secant slope: flat 2 K_1 = 2.3094011; wedge adds
+        // 4·1.4666667·0.0399787 + 6·0.9340244·0.00159830 = 0.2345417 + 0.0089571,
+        // total 2.5528999.
+        let flat = flat_plate_strip_secant(2.0, 0.0);
+        assert!((flat - 2.309_401_1).abs() < 1e-7);
+        assert!((flat + wedge_strip_secant(2.0, d) - 2.552_899_9).abs() < 2e-6);
+        // Face by face: ΔC_P = C_P(δ + η) − C_P(δ − η) of the full series.
+        for m in [1.6_f64, 2.0, 4.3] {
+            for eta in [1e-3_f64, 0.02, 0.1] {
+                let faces = compression_cp(m, d + eta) - compression_cp(m, d - eta);
+                let model = eta * (flat_plate_strip_secant(m, eta) + wedge_strip_secant(m, d));
+                assert!(
+                    (model - faces).abs() <= 1e-12 * faces.abs(),
+                    "M={m} η={eta}"
+                );
+            }
+            // No thickness, no extra lift, to the last bit.
+            assert_eq!(wedge_strip_secant(m, 0.0), 0.0);
+            assert_eq!(wedge_strip_secant(m, wedge_half_angle(0.0, 0.0)), 0.0);
+        }
+    }
+
+    #[test]
+    fn wedge_half_angle_is_capped() {
+        assert_eq!(wedge_half_angle(0.0, 0.1), 0.0);
+        assert_eq!(wedge_half_angle(0.0, 0.0), 0.0);
+        // t/(2c) = tan 10° is the last uncapped strip.
+        let lim = WEDGE_HALF_ANGLE_LIMIT;
+        assert!((wedge_half_angle(2.0 * lim.tan(), 1.0) - lim).abs() < 1e-12);
+        assert_eq!(wedge_half_angle(1.0, 1.0), lim);
+        assert_eq!(wedge_half_angle(0.003, 0.0), lim);
+        assert!((lim.to_degrees() - 10.0).abs() < 1e-12);
     }
 
     #[test]

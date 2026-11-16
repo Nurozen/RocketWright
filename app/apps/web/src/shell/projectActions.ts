@@ -137,11 +137,14 @@ export function importedNotice(fileName: string, out: Pick<schema.ImportOut, "di
   return { tone: "warning", text: `Imported ${fileName}, with ${warnings.length === 1 ? "a warning" : `${warnings.length} warnings`}: ${itemList(warnings)}` };
 }
 
-/** What the person is told after an export; parts the format cannot hold must not vanish silently (U44). */
-export function exportedNotice(out: Pick<schema.ExportOut, "path" | "skipped">): Notice {
+/** What the person is told after an export; parts the format cannot hold, or holds only approximately, must not change silently (U44). */
+export function exportedNotice(out: Pick<schema.ExportOut, "path" | "skipped" | "approximated">): Notice {
   const skipped = out.skipped ?? [];
-  if (skipped.length === 0) return { tone: "success", text: `Exported to ${out.path}.` };
-  return { tone: "warning", text: `Exported to ${out.path}, leaving out ${skipped.length === 1 ? "a part" : `${skipped.length} parts`} this format cannot hold: ${itemList(skipped)}.` };
+  const approximated = out.approximated ?? [];
+  if (skipped.length === 0 && approximated.length === 0) return { tone: "success", text: `Exported to ${out.path}.` };
+  const leftOut = skipped.length === 0 ? "" : `, leaving out ${skipped.length === 1 ? "a part" : `${skipped.length} parts`} this format cannot hold: ${itemList(skipped)}`;
+  const approx = approximated.length === 0 ? "" : ` Approximated: ${itemList(approximated)}.`;
+  return { tone: "warning", text: `Exported to ${out.path}${leftOut}.${approx}` };
 }
 
 /** The file name a save dialog starts from. */

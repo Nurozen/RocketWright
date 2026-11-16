@@ -1937,6 +1937,12 @@ export interface ExportOut {
    * out (`.ork` has no tank or feed parts).
    */
   skipped?: string[];
+  /**
+   * What the format could not hold exactly and the file carries as the
+   * nearest thing it has, one line per component (`.ork` has no wedge fin
+   * cross-section; it is written as airfoil).
+   */
+  approximated?: string[];
 }
 
 /**
@@ -2100,7 +2106,7 @@ export interface FileChange {
 
 export type FileStatus = "A" | "M" | "D";
 
-export type FinCrossSection = "square" | "rounded" | "airfoil";
+export type FinCrossSection = "square" | "rounded" | "airfoil" | "wedge";
 
 /**
  * A fin set's plates.

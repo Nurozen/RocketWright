@@ -31,9 +31,12 @@ pub use types::*;
 /// Revision of the aerodynamic model, hashed into every flight run id.
 /// Bump it whenever a change alters any coefficient this crate returns for
 /// an unchanged model and flight state, so cached runs made under the old
-/// physics stop being served. Revision 2 is the two-face supersonic fin
-/// load with tip relief.
-pub const AERO_MODEL_REVISION: u32 = 2;
+/// physics stop being served. The mass model has no revision of its own, so
+/// this one covers any physics that changes a flight for an unchanged model:
+/// aerodynamics and mass properties. Revision 3 is the fin cross-section
+/// model: wedge drag and thickness lift, and fin mass by section (rounded,
+/// airfoil and wedge fins weigh less than the slab they were before).
+pub const AERO_MODEL_REVISION: u32 = 3;
 
 use std::f64::consts::PI;
 
@@ -67,6 +70,9 @@ const MODEL_TRANSITION: &str = "niskanen-2009:transition eq 3.19 3.26 3.28";
 const MODEL_FINS: &str = "niskanen-2009:fins eq 3.40 3.56 3.36; niskanen-2013 eq 3.54; \
      barrowman-1967 eq 3-98 (K_B(T)), App. A eq 8 33 (supersonic two-face strip load, K_1 K_3) \
      38-44 (tip Mach cone); naca-tr-1307 chart 8 (low aspect ratio)";
+/// Appended to a fin set's lift model when its section is a wedge.
+const MODEL_WEDGE_LIFT: &str = "; barrowman-1967 App. A eq 33 with the wedge half-angle \
+     (supersonic thickness lift, second-order coefficient of eq 3-7 with 2 beta^4)";
 const MODEL_FINS_BODY_LOAD: &str = "niskanen-2009:fins eq 3.40 3.56 3.36; niskanen-2013 eq 3.54; \
      barrowman-1967 eq 3-98 (K_B(T)), App. A eq 8 33 (supersonic two-face strip load, K_1 K_3) \
      38-44 (tip Mach cone); naca-tr-1307 chart 8 (low aspect ratio), eq 14 D5 chart 16 (body-load CP)";
@@ -546,9 +552,12 @@ impl AeroModel {
             // Supersonic finite-span factor of the panel (tip Mach cone).
             let tip = p.tip_cone();
             let relief = |m: f64| tip.panel_factor(m, &p.strips);
+            // Supersonic thickness lift of the section (zero unless a wedge).
+            let wedge_t = p.wedge_thickness();
+            let thick = |m: f64| tip.thickness_lift(m, &p.strips, wedge_t);
             let set = |a: f64| match f.drag {
                 FinDrag::Planar => {
-                    single_fin_cna(mach, a, p.span, p.area, a_ref, p.gamma_c, relief)
+                    single_fin_cna(mach, a, p.span, p.area, a_ref, p.gamma_c, relief, thick)
                         * fin_count_factor(p.count)
                         * interference
                 }
@@ -569,12 +578,19 @@ impl AeroModel {
                 id: f.id.clone(),
                 cn_alpha: cna,
                 cp: x,
-                model: match f.drag {
-                    FinDrag::Planar if f.body_load.is_some() => MODEL_FINS_BODY_LOAD,
-                    FinDrag::Planar => MODEL_FINS,
-                    FinDrag::Tube { .. } => MODEL_TUBE_FINS,
-                }
-                .to_string(),
+                model: {
+                    let base = match f.drag {
+                        FinDrag::Planar if f.body_load.is_some() => MODEL_FINS_BODY_LOAD,
+                        FinDrag::Planar => MODEL_FINS,
+                        FinDrag::Tube { .. } => MODEL_TUBE_FINS,
+                    };
+                    // A wedge section adds the thickness lift: name its source.
+                    if wedge_t > 0.0 {
+                        format!("{base}{MODEL_WEDGE_LIFT}")
+                    } else {
+                        base.to_string()
+                    }
+                },
             });
         }
         let cna0: f64 = slope0.iter().map(|t| t.0).sum();
@@ -720,10 +736,16 @@ impl AeroModel {
                             p.count,
                             p.thickness,
                             p.span,
+                            &p.strips,
                             a_ref,
                             mach,
                         ),
-                        "niskanen-2009:fin-pressure eq 3.89 3.90 3.91 3.92 3.93",
+                        match p.cross_section {
+                            rw_model::FinCrossSection::Wedge => {
+                                "barrowman-1967:fin-wedge eq 3-7; niskanen-2009 eq 3.92 3.93"
+                            }
+                            _ => "niskanen-2009:fin-pressure eq 3.89 3.90 3.91 3.92 3.93",
+                        },
                     );
                 }
                 // Tube fins: outside friction off the corner channels, pipe
@@ -840,9 +862,21 @@ impl AeroModel {
             cm += damping::pitch_damping_fins(p.count, p.area, x_f - x_cg, a, d, w, v);
             let tip = p.tip_cone();
             let relief = |m: f64| tip.panel_factor(m, &p.strips);
-            let cna1 = single_fin_cna(mach, 0.0, p.span, p.area, a, p.gamma_c, relief);
+            let wedge_t = p.wedge_thickness();
+            let thick = |m: f64| tip.thickness_lift(m, &p.strips, wedge_t);
+            let cna1 = single_fin_cna(mach, 0.0, p.span, p.area, a, p.gamma_c, relief, thick);
             forcing += damping::roll_forcing(p.count, p.y_mac, p.r_t, cna1, p.cant, d);
-            roll += damping::roll_damping(p.count, mach, state.roll_rate, a, d, v, &p.strips, &tip);
+            roll += damping::roll_damping(
+                p.count,
+                mach,
+                state.roll_rate,
+                a,
+                d,
+                v,
+                &p.strips,
+                &tip,
+                wedge_t,
+            );
         }
         (cm, forcing, roll)
     }
@@ -1025,6 +1059,87 @@ mod tests {
         );
         let am = AeroModel::new(&m, &rw_geom::build(&m), &AeroOptions::default());
         assert!(close(am.reference_cg(), 0.5, 1e-9));
+    }
+
+    /// Case 1 with its fin cross-section replaced.
+    fn case1_with_section(section: &str) -> AeroModel {
+        let mut v = serde_json::to_value(case_model("case1")).expect("model json");
+        let fins = v["components"]
+            .as_array_mut()
+            .expect("components")
+            .iter_mut()
+            .find(|c| c["id"] == "fins")
+            .expect("fins");
+        fins["shape"]["cross_section"] = serde_json::json!(section);
+        let m: EvaluatedModel = serde_json::from_value(v).expect("model");
+        AeroModel::new(&m, &rw_geom::build(&m), &AeroOptions::default())
+    }
+
+    #[test]
+    fn wedge_section_changes_supersonic_lift_roll_and_fin_pressure_only() {
+        let (square, wedge) = (case1_with_section("square"), case1_with_section("wedge"));
+        let x_cg = 0.25;
+        let spin = |mach: f64| AeroState {
+            roll_rate: 2.0,
+            ..state(mach)
+        };
+        // Subsonic: the same lift, CP and roll damping to the last bit; the
+        // wedge has no leading-edge pressure drag and the same base drag.
+        let (a, b) = (
+            square.eval_with_cg(&spin(0.5), x_cg),
+            wedge.eval_with_cg(&spin(0.5), x_cg),
+        );
+        assert_eq!(a.cn_alpha.to_bits(), b.cn_alpha.to_bits());
+        assert_eq!(a.cp.to_bits(), b.cp.to_bits());
+        assert_eq!(a.cl_damping.to_bits(), b.cl_damping.to_bits());
+        let fin_pressure = |am: &AeroModel, mach: f64| -> f64 {
+            am.drag_terms(&state(mach))
+                .iter()
+                .filter(|t| t.id == "fins" && t.kind == DragKind::Pressure)
+                .map(|t| t.cd)
+                .sum()
+        };
+        // 3 fins, t = 2 mm, s = 30 mm on A_ref = π 0.025²/4.
+        let ratio = 3.0 * 0.002 * 0.03 / (PI * 0.025 * 0.025 / 4.0);
+        assert!(close(
+            fin_pressure(&wedge, 0.5),
+            ratio * base_cd(0.5),
+            1e-12
+        ));
+        // The square edge's stagnation drag is swept by cos²Γ_L,
+        // tan Γ_L = 25.4/30; the wedge has no such term below M 0.9.
+        let cos2 = 1.0 / (1.0 + (0.0254_f64 / 0.03).powi(2));
+        assert!(close(
+            fin_pressure(&square, 0.5) - fin_pressure(&wedge, 0.5),
+            ratio * stagnation_cd(0.5) * cos2,
+            1e-9
+        ));
+        // M 2: wedge fins lift more by (flat + 4 C_2 δ + 6 K_3 δ²)/flat at
+        // δ = atan(0.002/(2·0.0508)); the fin CP station is unchanged.
+        let (a, b) = (
+            square.eval_with_cg(&spin(2.0), x_cg),
+            wedge.eval_with_cg(&spin(2.0), x_cg),
+        );
+        let fin = |c: &AeroCoeffs| {
+            c.components
+                .iter()
+                .find(|k| k.id == "fins")
+                .unwrap()
+                .clone()
+        };
+        let delta = (0.002_f64 / (2.0 * 0.0508)).atan();
+        let factor =
+            1.0 + mach::wedge_strip_secant(2.0, delta) / mach::flat_plate_strip_secant(2.0, 0.0);
+        assert!(close(fin(&b).cn_alpha / fin(&a).cn_alpha, factor, 1e-9));
+        assert_eq!(fin(&a).cp.to_bits(), fin(&b).cp.to_bits());
+        assert!(b.cl_damping > a.cl_damping);
+        assert!(close(b.cl_damping / a.cl_damping, factor, 1e-3));
+        // Fin pressure drag: forebody C_P(δ) plus the full base drag.
+        assert!(close(
+            fin_pressure(&wedge, 2.0),
+            ratio * (mach::compression_cp(2.0, delta) + base_cd(2.0)),
+            1e-9
+        ));
     }
 
     #[test]
