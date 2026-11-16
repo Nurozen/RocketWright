@@ -25,7 +25,7 @@
 use std::f64::consts::PI;
 
 use crate::fins::{FinPlanform, kt_b};
-use crate::mach::{SUPERSONIC_LIMIT, beta, hermite};
+use crate::mach::{SUPERSONIC_LIMIT, beta, hermite, table_hermite};
 
 /// Gauss-Legendre order of each one-dimensional rule.
 const QUAD_N: usize = 20;
@@ -260,38 +260,10 @@ impl Carryover {
         (self.m_lo, self.m_hi)
     }
 
-    /// C¹ interpolant of a node table at `mach` (clamped to the grid): cubic
-    /// Hermite segments with central-difference node slopes. Returns (value,
-    /// slope in Mach).
+    /// C¹ interpolant of a node table at `mach` (clamped to the grid).
+    /// Returns (value, slope in Mach).
     fn table(&self, v: &[f64], mach: f64) -> (f64, f64) {
-        let last = v.len() - 1;
-        // Node slopes: central differences, and the second-order one-sided
-        // form at the two ends (first-order when the grid has two nodes).
-        let slope = |i: usize| {
-            if last < 2 {
-                (v[last] - v[0]) / (last as f64 * self.dm)
-            } else if i == 0 {
-                (-3.0 * v[0] + 4.0 * v[1] - v[2]) / (2.0 * self.dm)
-            } else if i == last {
-                (3.0 * v[last] - 4.0 * v[last - 1] + v[last - 2]) / (2.0 * self.dm)
-            } else {
-                (v[i + 1] - v[i - 1]) / (2.0 * self.dm)
-            }
-        };
-        let t = ((mach - self.m0) / self.dm).clamp(0.0, last as f64);
-        let i = (t.floor() as usize).min(last - 1);
-        let (x0, x1) = (
-            self.m0 + self.dm * i as f64,
-            self.m0 + self.dm * (i + 1) as f64,
-        );
-        let m = mach.clamp(x0, x1);
-        let value = hermite(m, x0, x1, v[i], slope(i), v[i + 1], slope(i + 1));
-        let h = 1e-6 * self.dm;
-        let (ma, mb) = ((m - h).max(x0), (m + h).min(x1));
-        let d = (hermite(mb, x0, x1, v[i], slope(i), v[i + 1], slope(i + 1))
-            - hermite(ma, x0, x1, v[i], slope(i), v[i + 1], slope(i + 1)))
-            / (mb - ma);
-        (value, d)
+        table_hermite(v, self.m0, self.dm, mach)
     }
 
     /// Supersonic K_B(T) from the tabulated integral, valid from the upper end

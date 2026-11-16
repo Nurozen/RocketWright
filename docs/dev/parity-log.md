@@ -1150,8 +1150,9 @@ Table X: roll moment due to fin cant for 16 models with 2° and 4° cant. CG at
 5.50 cal from the nose; d = 30 mm. Files in `tests/validation/basic_finner_drev/`.
 
 The model scored here is the two-face supersonic fin load with tip Mach-cone
-relief and the supersonic fin-to-body carry-over K_B(T) (section
-"Supersonic carry-over" below), on a fixture whose fins are
+relief, the supersonic fin-to-body carry-over K_B(T) (section "Supersonic
+carry-over" below) and the supersonic nose and tube lift (section
+"Supersonic body lift"), on a fixture whose fins are
 `cross_section = "wedge"`: forebody and base pressure drag for the wedge,
 and its thickness lift. Until the wedge
 section existed the fixture used "airfoil"; that column is kept in the
@@ -1161,14 +1162,12 @@ The two tests run in report mode. They print the errors and fail only on a
 non-finite output, a malformed table, or an error above a sanity bound set
 about 10% outside the current values:
 
-- Table IX: RMS CX0 ≤ 0.24, CNα ≤ 0.183, Cmα ≤ 0.048, CP ≤ 0.37 cal, and the
-  signed CP error d_cal within −0.05 to +0.49 cal at every Mach group.
+- Table IX: RMS CX0 ≤ 0.24, CNα ≤ 0.058, Cmα ≤ 0.043, CP ≤ 0.094 cal, and the
+  signed CP error d_cal within −0.10 to +0.16 cal at every Mach group.
 - Table X, the 12 models at M 1.80 to 4.47: RMS Cl_δ error ≤ 0.064 and every
   model/measured ratio within 0.84 to 1.23.
 
-The CP bounds (0.092 cal RMS and +0.20 cal with "airfoil") and the upper
-Cl_δ ratio (1.10) are wider than they were. The CP ones record a real limit:
-see Static margin below.
+The upper Cl_δ ratio is wider than the 1.10 it was with "airfoil".
 
 Cmq is printed but not scored: the rw-aero model is quadratic in pitch rate
 and the DREV Cmq is linear, normalised by qd/2V (report section 7, eqs
@@ -1252,64 +1251,58 @@ DREV CP, positive aft. The static margin is CP − 5.50 cal.
 
 | Mach | CX0 DREV | rw (err) | CNα DREV | rw (err) | Cmα DREV | rw (err) | CP DREV | CP rw | d_cal | margin DREV | margin rw | Clp DREV (pd/2V) | rw (err) |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 1.077 | 0.863 | 0.707 (−18.1%) | 18.47 | 16.64 (−9.9%) | −52.65 | −48.66 (−7.6%) | 8.350 | 8.424 | +0.073 | 2.85 | 2.92 | −18.16 | −199.46 (+998.3%) |
-| 1.293 | 0.731 | 0.591 (−19.2%) | 18.27 | 17.30 (−5.3%) | −50.97 | −51.67 (+1.4%) | 8.290 | 8.487 | +0.197 | 2.79 | 2.99 | −23.57 | −103.67 (+339.8%) |
-| 1.832 | 0.585 | 0.439 (−24.9%) | 11.78 | 10.91 (−7.3%) | −27.98 | −28.31 (+1.2%) | 7.875 | 8.093 | +0.219 | 2.37 | 2.59 | −22.35 | −23.72 (+6.1%) |
-| 2.375 | 0.484 | 0.357 (−26.2%) | 10.52 | 8.63 (−17.9%) | −18.90 | −19.25 (+1.8%) | 7.297 | 7.730 | +0.433 | 1.80 | 2.23 | −18.31 | −18.47 (+0.9%) |
-| 2.718 | 0.435 | 0.322 (−25.9%) | 9.01 | 7.79 (−13.5%) | −15.20 | −15.90 (+4.6%) | 7.187 | 7.541 | +0.354 | 1.69 | 2.04 | −16.65 | −16.44 (−1.3%) |
-| 3.147 | 0.373 | 0.288 (−22.7%) | 8.69 | 7.04 (−19.0%) | −12.46 | −12.92 (+3.7%) | 6.933 | 7.334 | +0.401 | 1.43 | 1.83 | −13.50 | −14.58 (+8.0%) |
-| 3.734 | 0.309 | 0.254 (−17.9%) | 8.32 | 6.33 (−23.9%) | −9.53 | −10.08 (+5.7%) | 6.646 | 7.092 | +0.446 | 1.15 | 1.59 | −13.18 | −12.74 (−3.3%) |
-| 4.300 | 0.271 | 0.229 (−15.7%) | 7.74 | 5.84 (−24.5%) | −7.85 | −8.14 (+3.6%) | 6.515 | 6.893 | +0.378 | 1.01 | 1.39 | −11.71 | −11.45 (−2.2%) |
+| 1.077 | 0.863 | 0.707 (−18.1%) | 18.47 | 16.80 (−9.1%) | −52.65 | −48.49 (−7.9%) | 8.350 | 8.387 | +0.036 | 2.85 | 2.89 | −18.16 | −199.46 (+998.3%) |
+| 1.293 | 0.731 | 0.591 (−19.2%) | 18.27 | 17.86 (−2.2%) | −50.97 | −51.07 (+0.2%) | 8.290 | 8.359 | +0.070 | 2.79 | 2.86 | −23.57 | −103.67 (+339.8%) |
+| 1.832 | 0.585 | 0.439 (−24.9%) | 11.78 | 11.97 (+1.6%) | −27.98 | −27.43 (−1.9%) | 7.875 | 7.792 | −0.083 | 2.37 | 2.29 | −22.35 | −23.72 (+6.1%) |
+| 2.375 | 0.484 | 0.357 (−26.2%) | 10.52 | 9.88 (−6.1%) | −18.90 | −18.58 (−1.7%) | 7.297 | 7.380 | +0.083 | 1.80 | 1.88 | −18.31 | −18.47 (+0.9%) |
+| 2.718 | 0.435 | 0.322 (−25.9%) | 9.01 | 9.12 (+1.2%) | −15.20 | −15.39 (+1.2%) | 7.187 | 7.188 | +0.001 | 1.69 | 1.69 | −16.65 | −16.44 (−1.3%) |
+| 3.147 | 0.373 | 0.288 (−22.7%) | 8.69 | 8.43 (−3.0%) | −12.46 | −12.60 (+1.1%) | 6.933 | 6.994 | +0.061 | 1.43 | 1.49 | −13.50 | −14.58 (+8.0%) |
+| 3.734 | 0.309 | 0.254 (−17.9%) | 8.32 | 7.76 (−6.7%) | −9.53 | −9.99 (+4.8%) | 6.646 | 6.787 | +0.142 | 1.15 | 1.29 | −13.18 | −12.74 (−3.3%) |
+| 4.300 | 0.271 | 0.229 (−15.7%) | 7.74 | 7.28 (−5.9%) | −7.85 | −8.24 (+4.9%) | 6.515 | 6.631 | +0.117 | 1.01 | 1.13 | −11.71 | −11.45 (−2.2%) |
 
 RMS over the 8 Mach groups (unsigned). The first three columns are the
 fin-load revisions on the "airfoil" fixture, the fourth the wedge fixture
-with K_B(T) faded to zero from M 1.5, and the last the current model:
+with K_B(T) faded to zero from M 1.5, the fifth adds the supersonic K_B(T),
+and the last is the current model, which adds the supersonic body lift:
 
-| Coefficient | one face, airfoil | two faces, airfoil | two faces + tip relief, airfoil | wedge | wedge + K_B(T) (current) | Direction now |
-|---|---|---|---|---|---|---|
-| CX0 | 84.4% | 84.4% | 84.4% | 21.7% | 21.7% | model low at all 8 |
-| CNα | 46.6% | 21.3% | 27.1% | 20.5% | 16.6% | model low at all 8 |
-| Cmα | 76.1% | 13.0% | 25.0% | 9.2% | 4.3% | magnitude low at M 1.077, high by 1 to 6% at the other 7 |
-| CP | 0.848 cal | 0.215 cal | 0.083 cal | 0.267 cal | 0.337 cal | d_cal +0.073 to +0.446 cal, aft at all 8 |
-| Clp (pd/2V, absolute) | 68.4 | 72.1 | 69.4 | 70.1 | 70.1 | magnitude high at M 1.077 and 1.293; within 8% from M 1.832 |
+| Coefficient | one face, airfoil | two faces, airfoil | two faces + tip relief, airfoil | wedge | wedge + K_B(T) | + body lift (current) | Direction now |
+|---|---|---|---|---|---|---|---|
+| CX0 | 84.4% | 84.4% | 84.4% | 21.7% | 21.7% | 21.7% | model low at all 8 |
+| CNα | 46.6% | 21.3% | 27.1% | 20.5% | 16.6% | 5.2% | −9.1% at M 1.077, within −6.7% to +1.6% at the other 7 |
+| Cmα | 76.1% | 13.0% | 25.0% | 9.2% | 4.3% | 3.9% | magnitude 7.9% low at M 1.077, within ±2% to M 3.147, 5% high at M 3.734 and 4.300 |
+| CP | 0.848 cal | 0.215 cal | 0.083 cal | 0.267 cal | 0.337 cal | 0.085 cal | d_cal −0.083 to +0.142 cal, forward at M 1.832, aft at the other 7 |
+| Clp (pd/2V, absolute) | 68.4 | 72.1 | 69.4 | 70.1 | 70.1 | 70.1 | magnitude high at M 1.077 and 1.293; within 8% from M 1.832 |
 
 **Static margin.** Positive d_cal means the model CP is aft of the measured
 one, so the model static margin is larger than the real one by d_cal: the
-model is optimistic. With wedge fins on this body it is optimistic at every
-Mach group: by 0.07 to 0.22 cal at M 1.077 to 1.832 and by 0.35 to 0.45 cal
-from M 2.375 up (most at M 3.734: model 1.59 cal against 1.15 measured).
-Treat a supersonic static margin computed for a wedge-finned rocket as up to
-0.45 cal too large.
+model is optimistic. On this body it is optimistic by up to 0.14 cal (M 3.734:
+model 1.29 cal against 1.15 measured) and pessimistic by 0.08 cal at
+M 1.832; the other six Mach groups are within +0.12 cal.
 
-This is worse than the "airfoil" fixture gave (d_cal −0.032 to +0.178 cal)
-although the fin model is better, and the reason is the body, not the fins.
-The wedge thickness lift is supported by the roll data, which only the fins
-produce: Cl_δ is within 12% and Clp within 8% from M 1.8 (below), where the
-flat plate was 10% and up to 20% low. With it CNα and Cmα both move toward
-the data. The carried lift K_B(T) acts at the fin root, 9.67 cal from the
-nose on this body, and moves the CP another 0.03 to 0.12 cal aft. But the
-total CNα is still 5 to 25% low, and the DREV (CNα, CP) pairs put the
-missing lift ahead of the fins (CNα below). Adding the correct lift at the
-tail without the missing lift forward of it moves the CP aft of the
-measured one. The flat-plate fin load was too small by about the right
-amount to hide that. The fix is the body terms listed under Known gaps, not
-a smaller fin load. This is one rectangular AR 2 planform with 8% wedges. No
-other supersonic CP data is in the repo.
+The three terms act at different stations, and the CP only lands once all
+three are in. The wedge thickness lift is supported by the roll data, which
+only the fins produce: Cl_δ is within 12% and Clp within 8% from M 1.8
+(below). The carried lift K_B(T) acts at the fin root, 9.67 cal from the
+nose. With those two and the slender-body nose term alone the CP was 0.07 to
+0.45 cal aft of the measured one, because the lift on the body ahead of the
+fins was missing. The shock-expansion body term supplies it: 3.06 to 3.44 in
+CNα from M 1.832 against the slender-body 2.00, the added part on the
+forward tube. This is one rectangular AR 2 planform with 8% wedges on a
+10-calibre body with a 10° cone. No other supersonic CP data for a finned
+body is in the repo.
 
-**CNα.** The model is low at every Mach, by 5% at M 1.293 and 24% at
-M 4.300. The bare fin term over the fin term DREV implies,
-(DREV CNα − nose CNα)/(K_T(B) + K_B(T)), is 0.91 at M 1.832 and falls to 0.67
-at M 4.300 (fn_bare / DREV_fin in the test output). What is known about the
-shortfall:
+**CNα.** The model is 9.1% low at M 1.077 and within −6.7% to +1.6% from
+M 1.293 up. The bare fin term over the fin term DREV implies,
+(DREV CNα − body CNα)/(K_T(B) + K_B(T)), is 1.02, 0.91, 1.02, 0.95, 0.89, 0.89
+at M 1.832 to 4.300 (fn_bare / DREV_fin in the test output). By term:
 
-- Supersonic K_B(T) does not close it. The TR 1307 lift integral gives
-  K_B(T) 0.124 at M 1.832 falling to 0.041 at M 4.300 for this no-afterbody
-  case, which adds 0.76 and 0.11 to CNα (0.39 at M 2.375, taking CNα from
-  8.24 to 8.63 against DREV 10.52).
-- DREV's (CNα, CP) pairs, with the model's nose term (CNα 2.0 at 1.89 cal),
-  put the rest of the load at 8.1 to 8.7 cal for M ≥ 2.375, ahead of the fin
-  leading edge at 9.0 cal. That points to body lift the model does not have
-  (an inference from the data, not checked against a body-lift model).
+- Body (nose and tube), second-order shock-expansion: 3.06 at M 1.832 rising
+  to 3.44 at M 4.300 (section "Supersonic body lift").
+- Supersonic K_B(T) from the TR 1307 lift integral: 0.124 at M 1.832 falling
+  to 0.041 at M 4.300 for this no-afterbody case, which is 0.76 and 0.11 in
+  CNα.
+- M 1.077 and 1.293 are inside the transonic windows of the fin, carry-over
+  and body terms, which are cubics between the M 0.9 and supersonic laws.
 
 **Clp.** From M 1.832 the model is within −3.3% to +8.0% of DREV (flat-plate
 load: −3.6% to −19.9%; one face: −36% to −55%). At M 1.077 and 1.293 it is 4
@@ -1390,8 +1383,9 @@ predicted spin there is too low on every revision.
 
 ### Known gaps
 
-- Static margin over-predicted by up to 0.45 cal for wedge fins on this
-  case (above), and CNα 5% to 25% low: no body lift at supersonic speed.
+- Supersonic body lift covers a pointed nose and the tubes behind it only;
+  transitions, boattails and blunt noses keep the slender-body terms
+  (literature-map Gaps 16).
 - CX0 16% to 26% low with the wedge section (CX0 above). Likely missing:
   the drag of the 0.004 cal leading-edge radius (estimated +0.042 at
   M 1.832, +0.048 at M 4.300; a sharp wedge has none) and base drag above
@@ -1513,3 +1507,140 @@ at ⅔ of the root chord, 9.67 cal from the nose, so the model CP moves 0.03 to
 0.12 cal further aft of DREV. The CNα that is still missing is therefore not
 at the fins. At M 1.293 the fin term is the M 0.9 to 1.5 transonic blend, now
 multiplied by the full slender-body K_B(T).
+
+## Supersonic body lift: second-order shock-expansion, NACA TR 1328 (2026-11-15)
+
+Reproduce: `cargo test -p rw-aero --test basic_finner_baseline -- --nocapture`
+and `cargo test -p rw-aero --lib tr_1328 -- --nocapture`
+
+The nose and body tubes kept the slender-body C_Nα = 2 (A_1 − A_0)/A_ref at
+every Mach number, so a cylinder carried no potential lift. Supersonically the
+expansion at the nose-cylinder junction leaves a loading on the cylinder that
+decays over several diameters. For a pointed nose and the tubes behind it the
+potential term now comes from the second-order shock-expansion method of
+Syvertson and Dennis (literature-map BW-1328-01..10, `supersonic::body`), with
+the cone values it needs from `supersonic::cone` (BW-3004-01..02, BW-3007-01).
+
+### Model choices
+
+1. **Scope.** A nose that starts at a point, with a convex profile and an
+   attached shock, and the tubes of its base radius that follow it without a
+   gap. Everything else keeps the slender-body terms: literature-map Gaps 16.
+   The body-lift (cross-flow) term K A_plan sin²α is unchanged at every Mach
+   number.
+2. **Tangent body.** Tangents at x/l_n = 0, 0.1, ..., 1 (the report's
+   ten-step solution); equal neighbours merge, so a cone is one element.
+   C_Nα and C_mα are integrated over the tangent body, not the profile.
+   Forty steps move C_Nα by less than 0.01.
+3. **Loading.** Eq (19), not the shorter (20). The integrals (14) and (21)
+   over each frustum are in closed form (r linear, Λ a constant plus an
+   exponential).
+4. **η < 0.** The report requires η ≥ 0 and gives no rule otherwise. On the
+   forward elements of an ogive at about M/f_n ≥ 1.4 (f_n = 3 from M 5) the
+   gradient behind a corner and p_c − p_2 have opposite signs. |η| is used:
+   the pressure and loading still relax to the tangent-cone values, stay
+   between the corner and cone values, and are continuous through
+   p_c = p_2. Unclamped the exponentials diverge; η = 0 would be
+   discontinuous. Cone-cylinders always have η > 0.
+5. **Cone surface state.** By integrating the conical-flow equation
+   (nasa-sp-3004 (1), (5), (6)) outward from the surface, where the report
+   reads its figure 3. Nine values of SP-3004 Tables 2 and 7 are matched to
+   5e-5. The equation is singular just outside a weak shock (normal speed
+   sonic), so each step covers at most half the estimated distance to the
+   shock.
+6. **Cone normal-force slope.** NASA SP-3007 Table 2, where the report reads
+   its figure 4 (from Kopal's tables, whose cross-flow terms SP-3007 reports
+   as wrongly computed). The table is our transcription from the rendered
+   page, interpolated with C¹ cubics in half-angle and Mach number, with the
+   slender-body value 2 added as the δ = 0 column. A second reader has
+   checked the five overstruck cells and spot-checked the rest
+   (`tests/validation/nasa_sp_3007/PROVENANCE.md`).
+7. **Switch.** No option. The table starts at M_hi, the lowest Mach number
+   from 1.5 (in steps of 0.05) at which the method applies with a vertex
+   surface Mach number of at least 1.2 (1.5 for the Basic Finner's 10° cone,
+   1.6 for a 20° cone). Up to M 0.9 the slender-body path is untouched.
+   Between 0.9 and M_hi a cubic joins the slender-body C_Nα and moment (zero
+   slope) to the tabulated values and slopes. Nothing supports the values in
+   that window beyond continuity (Gaps 16).
+8. **Mach grid.** `AeroModel::new` tabulates C_Nα and x̄ C_Nα per part (nose,
+   each tube) from M_hi to 6 at about 0.25 spacing, cubic Hermite between
+   (within 2e-3 of the direct solution), held above M 6. A nose the method
+   does not cover has no table.
+9. **Below the tested range.** The report's experiments are at M 3.00 to
+   6.28. The Basic Finner gate at M 1.8 to 3 is below them, though within
+   their M/f_n range (0.6 to 1.1 against 0.4 to 2.1). No body-alone
+   table of α → 0 values below M 3 was found: NACA RM A54H23 (fineness-3
+   ogive-cylinder, M 1.98) gives only plotted load distributions at α ≥ 5°
+   and is not used.
+10. Up to M 0.9 nothing changes (the same 22,932-evaluation dump is
+    identical). The component rows of a covered nose and tube name the new
+    model above M 0.9.
+
+### Checks: TR 1328 Tables I and II
+
+120 rows with a measured value (cone- and ogive-cylinders, f_n = 3, 5, 7,
+f_a = 0 to 10, M 3.00, 4.24, 5.05, 6.28), body alone, C_Nα per radian on the
+base area and CP in diameters from the vertex.
+
+| | max | RMS | rows beyond ±0.2 |
+|---|---|---|---|
+| C_Nα, model − experiment | 0.254 | 0.090 | 3 |
+| CP, model − experiment | 0.613 | 0.135 | 12 |
+| C_Nα, report's second-order column − experiment | 0.21 | | 1 |
+| CP, report's column − experiment | 0.23 | | 8 |
+| C_Nα, model − report's column | 0.150 | 0.045 | 0 |
+| CP, model − report's column | 0.743 | 0.110 | 5 |
+
+The target was ±0.2 on every row; 12 rows miss it, all in CP and 3 of them
+in C_Nα as well.
+The test holds the counts and RMS values above as ceilings.
+
+- **Ogive f_n = 3 at M 5.05** (4 rows, CP 0.21 to 0.61 forward, C_Nα 0.25
+  low at f_a = 10). This is the η < 0 case of choice 4. The report's column
+  follows the measured CP there (3.73 against 3.60 at f_a = 10; the model
+  gives 2.99), so its authors handled these elements differently from |η|;
+  the report does not say how. At M 6.28 and f_a = 10 the same body is
+  within 0.12.
+- **Cones with f_a = 10** (5 rows: f_n = 7 at M 4.24, 5.05, 6.28; f_n = 5
+  and 3 at M 6.28; CP 0.25 to 0.33 aft, C_Nα up to 0.25 high). The model's
+  afterbody loading decays more slowly than the report's column implies for
+  the slender cones: the model is 0.06 to 0.15 above the report in C_Nα on
+  the f_n = 5 and 7 rows (equal to it at f_n = 3). The cause is not
+  identified; the cone-alone values agree.
+- The other three rows (cone f_n = 7 M 3 f_a = 6; ogive f_n = 7 M 5.05
+  f_a = 4; ogive f_n = 5 M 5.05 f_a = 10) miss CP by 0.20 to 0.22.
+
+### Basic Finner before and after (rw-aero vs DREV Table IX)
+
+"Before" is the model with the supersonic carry-over and the slender-body
+nose term. The body term (nose and tube) is 2.16, 2.56, 3.06, 3.25, 3.32,
+3.39, 3.43, 3.44 at M 1.077 to 4.300, against 2.00 before: from M 1.832 the
+cone carries 1.82 and the tube 1.23 to 1.60. CX0, Clp and Cmq are unchanged.
+
+| Mach | CNα DREV | before (err) | after (err) | Cmα DREV | before (err) | after (err) | CP d_cal before | after |
+|---|---|---|---|---|---|---|---|---|
+| 1.077 | 18.47 | 16.64 (−9.9%) | 16.80 (−9.1%) | −52.65 | −48.66 (−7.6%) | −48.49 (−7.9%) | +0.073 | +0.036 |
+| 1.293 | 18.27 | 17.30 (−5.3%) | 17.86 (−2.2%) | −50.97 | −51.67 (+1.4%) | −51.07 (+0.2%) | +0.197 | +0.070 |
+| 1.832 | 11.78 | 10.91 (−7.3%) | 11.97 (+1.6%) | −27.98 | −28.31 (+1.2%) | −27.43 (−1.9%) | +0.219 | −0.083 |
+| 2.375 | 10.52 | 8.63 (−17.9%) | 9.88 (−6.1%) | −18.90 | −19.25 (+1.8%) | −18.58 (−1.7%) | +0.433 | +0.083 |
+| 2.718 | 9.01 | 7.79 (−13.5%) | 9.12 (+1.2%) | −15.20 | −15.90 (+4.6%) | −15.39 (+1.2%) | +0.354 | +0.001 |
+| 3.147 | 8.69 | 7.04 (−19.0%) | 8.43 (−3.0%) | −12.46 | −12.92 (+3.7%) | −12.60 (+1.1%) | +0.401 | +0.061 |
+| 3.734 | 8.32 | 6.33 (−23.9%) | 7.76 (−6.7%) | −9.53 | −10.08 (+5.7%) | −9.99 (+4.8%) | +0.446 | +0.142 |
+| 4.300 | 7.74 | 5.84 (−24.5%) | 7.28 (−5.9%) | −7.85 | −8.14 (+3.6%) | −8.24 (+4.9%) | +0.378 | +0.117 |
+
+| RMS over the 8 Mach groups | before | after |
+|---|---|---|
+| CNα | 16.6% | 5.2% |
+| Cmα | 4.3% | 3.9% |
+| CP | 0.337 cal | 0.085 cal |
+
+The body term adds 1.1 to 1.4 from M 1.832 up. Against ±10% in CNα and
+±0.25 cal in CP at M 1.8 to 3, all three Mach groups pass: M 1.832 (+1.6%,
+−0.083 cal), M 2.375 (−6.1%, +0.083 cal) and M 2.718 (+1.2%, +0.001 cal).
+M 1.293 is inside the blend window of choice 7 and is not a test of the
+method. The added lift sits on the forward part of the tube (its CP is 4.3
+to 5.2 cal from the nose, ahead of the CG at 5.5 cal), so the CP moves 0.26
+to 0.35 cal forward from M 1.832 up while Cmα barely moves (lift added near
+the CG has a short arm). With this body term the model's fin term is 1.02,
+0.91, 1.02, 0.95, 0.89, 0.89 of the one DREV implies at M 1.832 to 4.300
+(`ratio` in the test's breakdown).

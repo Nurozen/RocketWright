@@ -147,6 +147,33 @@ usage = "equations-only; the four-digit thickness polynomial (crates/rw-geom/src
 page_offset = "printed = pdf - 2"
 local_copy = "not in references/ (downloaded from NTRS to verify)"
 
+[naca-tr-1328]
+file = "references/rocketry-literature/naca-tr-1328-1957-syvertson-dennis-second-order-shock-expansion.pdf"
+sha256 = "37b9cce582b4214ca7a89bf6ec20a81774394df8cdd77d9d16828b29e2276059"
+citation = "Syvertson, C. A., and Dennis, D. H. A Second-Order Shock-Expansion Method Applicable to Bodies of Revolution Near Zero Lift. NACA Report 1328, 1957."
+url = "https://ntrs.nasa.gov/citations/19930091011"
+license = "public domain (NACA, U.S. Government work); NTRS distribution PUBLIC"
+usage = "equations (crates/rw-aero/src/supersonic/body.rs); validation data: Tables I and II transcribed, see NOTICE.md"
+page_offset = "printed = pdf - 4"
+
+[nasa-sp-3004]
+file = "references/rocketry-literature/nasa-sp-3004-1964-sims-cone-tables-zero-alpha.pdf"
+sha256 = "0b338735017d47876be4bb680173743a75752f192c6e6e8ef3e6aa7b16b2bee2"
+citation = "Sims, J. L. Tables for Supersonic Flow Around Right Circular Cones at Zero Angle of Attack. NASA SP-3004, 1964."
+url = "https://ntrs.nasa.gov/citations/19640009035"
+license = "public domain (NASA, U.S. Government work); NTRS distribution PUBLIC"
+usage = "equations (crates/rw-aero/src/supersonic/cone.rs); nine values of Tables 2 and 7 used as test references"
+page_offset = "printed = pdf - 6"
+
+[nasa-sp-3007]
+file = "references/rocketry-literature/nasa-sp-3007-1964-sims-cone-tables-small-alpha.pdf"
+sha256 = "5cadc5141543d2fccc031a884cd48d44507d28a1f617096b64d353200aa2936c"
+citation = "Sims, J. L. Tables for Supersonic Flow Around Right Circular Cones at Small Angle of Attack. NASA SP-3007, 1964."
+url = "https://ntrs.nasa.gov/citations/19640015103"
+license = "public domain (NASA, U.S. Government work); NTRS distribution PUBLIC"
+usage = "data: Table 2 transcribed (crates/rw-aero/src/supersonic/cone.rs, tests/validation/nasa_sp_3007/), see NOTICE.md"
+page_offset = "printed = pdf - 8"
+
 [openrocket-techdoc-2026]
 file = "references/rocketry-literature/openrocket-technical-documentation-github-unstable-2026-08.pdf"
 sha256 = "84d51513e0f330ee9b3f1fe5530a7ade63fdd976e55caf489ec7d2c0168094cd"

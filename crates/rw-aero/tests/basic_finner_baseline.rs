@@ -416,11 +416,14 @@ fn basic_finner_baseline_vs_drev() {
         });
 
         // CNα breakdown from c.components.
-        let cna_nose = c
+        // Nose and tube together: above M 0.9 the tube carries lift
+        // (shock-expansion afterbody loading, naca-tr-1328).
+        let cna_nose: f64 = c
             .components
             .iter()
-            .find(|k| k.id == "nose")
-            .map_or(0.0, |k| k.cn_alpha);
+            .filter(|k| k.id != "fins")
+            .map(|k| k.cn_alpha)
+            .sum();
         let cna_fins_int = c
             .components
             .iter()
@@ -503,14 +506,16 @@ fn basic_finner_baseline_vs_drev() {
          Supersonic single-fin slope = (A_fin/A_ref)*(2(K1 + K3 α²) + 4 C2 δ + 6 K3 δ²)*tip,\n\
          both fin faces (barrowman-1967 App. A) at the wedge half-angle δ = atan(0.04), with\n\
          the tip Mach-cone factor, 1 − 1/(2 β AR) for this rectangular AR 2 panel.\n\
-         DREV_fin = (DREV_CNα − ns_CNα) / int: the bare fin term DREV implies.\n\
+         bd_CNα = nose + tube: slender-body 2 up to M 0.9, second-order\n\
+         shock-expansion (naca-tr-1328) from M 1.5, a cubic between.\n\
+         DREV_fin = (DREV_CNα − bd_CNα) / int: the bare fin term DREV implies.\n\
          ratio = fn_bare / DREV_fin."
     );
     println!(
         "{:>6} | {:>8} {:>8} {:>8} {:>7} {:>7} {:>7} | {:>8} {:>8} {:>6}",
         "Mach",
         "tot_CNα",
-        "ns_CNα",
+        "bd_CNα",
         "fn_bare",
         "K_T(B)",
         "K_B(T)",
@@ -595,26 +600,18 @@ fn basic_finner_baseline_vs_drev() {
     // Sanity bounds only (report mode), about 10 % over the current model
     // (wedge section: forebody and base drag, two-face strip load with tip
     // relief and thickness lift; supersonic K_B(T) from the TR 1307 lift
-    // integral): RMS CX0 0.217, CNα 0.166, Cmα 0.043, CP 0.337 cal,
-    // d_cal +0.073 to +0.446 cal.
-    //
-    // The CP bounds record a real limit of the model, not headroom: for
-    // wedge fins on this body the static margin is OVER-predicted by up to
-    // 0.45 cal (M 3.73), 0.34 cal RMS over the eight Mach groups. The fin
-    // terms are supported by the roll data (Cl_δ, which only the fins
-    // produce, is within 12 % from M 1.8) and the carried lift sits at the
-    // fin root, so both act at the tail. The total CNα is still 5 to 25 %
-    // low (16.6 % RMS), and what is missing is lift on the body ahead of the
-    // fins (parity-log known gaps). Tighten these when the supersonic body
-    // lift is added.
+    // integral; nose and tube lift by second-order shock-expansion):
+    // RMS CX0 0.217, CNα 0.052, Cmα 0.039, CP 0.085 cal, d_cal −0.083 to
+    // +0.142 cal. Without the supersonic body lift the same model gave
+    // CNα 0.166, Cmα 0.043, CP 0.337 cal, d_cal +0.073 to +0.446.
     assert!(rms_cx <= 0.24, "RMS CX0 error {:.1}%", 100.0 * rms_cx);
-    assert!(rms_cna <= 0.183, "RMS CNα error {:.1}%", 100.0 * rms_cna);
-    assert!(rms_cma <= 0.048, "RMS Cmα error {:.1}%", 100.0 * rms_cma);
-    assert!(rms_cp <= 0.37, "RMS CP error {rms_cp:.3} cal");
-    // Signed: the model CP may sit at most 0.05 cal forward and 0.49 cal aft
+    assert!(rms_cna <= 0.058, "RMS CNα error {:.1}%", 100.0 * rms_cna);
+    assert!(rms_cma <= 0.043, "RMS Cmα error {:.1}%", 100.0 * rms_cma);
+    assert!(rms_cp <= 0.094, "RMS CP error {rms_cp:.3} cal");
+    // Signed: the model CP may sit at most 0.10 cal forward and 0.16 cal aft
     // of the measured one at any Mach group (aft = margin over-predicted).
     assert!(
-        d_cal_min >= -0.05 && d_cal_max <= 0.49,
+        d_cal_min >= -0.10 && d_cal_max <= 0.16,
         "CP d_cal range {d_cal_min:+.3} to {d_cal_max:+.3} cal"
     );
 }

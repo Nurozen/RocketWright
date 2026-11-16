@@ -7,7 +7,9 @@
 //! NACA TR 1307 chart 16), [`carryover`] (supersonic K_B(T) and its CP, NACA
 //! TR 1307 eqs 22-31), [`mach`] (compressibility, transonic blends), [`drag`]
 //! (friction, pressure, base, parasitic, axial), [`damping`] (pitch, roll),
-//! [`tube_fins`] (tube fins as annular wings, NACA TN 4117; drag by flow path).
+//! [`tube_fins`] (tube fins as annular wings, NACA TN 4117; drag by flow path),
+//! [`supersonic`] (pointed nose and cylinder above the transonic range:
+//! second-order shock-expansion, NACA TR 1328).
 //! Every equation cites its row in `docs/dev/literature-map.md`; model
 //! choices and deltas against the oracle are in `docs/dev/parity-log.md`.
 //!
@@ -22,6 +24,7 @@ pub mod damping;
 pub mod drag;
 pub mod fins;
 pub mod mach;
+pub mod supersonic;
 pub mod tube_fins;
 pub mod types;
 
@@ -39,7 +42,8 @@ pub use types::*;
 /// model: wedge drag and thickness lift, and fin mass by section (rounded,
 /// airfoil and wedge fins weigh less than the slab they were before).
 /// Revision 4 is the supersonic fin-to-body carry-over K_B(T) and its CP.
-pub const AERO_MODEL_REVISION: u32 = 4;
+/// Revision 5 is the supersonic nose and tube lift by shock-expansion.
+pub const AERO_MODEL_REVISION: u32 = 5;
 
 use std::f64::consts::PI;
 
@@ -60,6 +64,7 @@ use drag::parasitic::{
 use drag::pressure::{NoseDragModel, boattail_cd, fin_pressure_cd, nose_pressure_cd};
 use fins::{FinPlanform, cp_fraction, fin_count_factor, kb_t, kt_b, single_fin_cna};
 use mach::{SUBSONIC_LIMIT, beta, hermite, stagnation_cd};
+use supersonic::body::BodyLift;
 
 /// Sea-level speed of sound and kinematic viscosity (USSA 1976, AT-28), used
 /// for the static report at `AeroOptions::static_mach`.
@@ -71,6 +76,10 @@ const ALPHA_EPS: f64 = 1e-9;
 const MODEL_NOSE: &str = "niskanen-2009:nose eq 3.19 3.26 3.28";
 const MODEL_TUBE: &str = "niskanen-2009:body-tube eq 3.19 3.26 3.28";
 const MODEL_TRANSITION: &str = "niskanen-2009:transition eq 3.19 3.26 3.28";
+const MODEL_NOSE_SUPERSONIC: &str = "naca-tr-1328:nose eq 14 19 21 (second-order shock-expansion), \
+     nasa-sp-3004 eq 1, nasa-sp-3007 tab 2; niskanen-2009 eq 3.26";
+const MODEL_TUBE_SUPERSONIC: &str = "naca-tr-1328:body-tube eq 14 19 21 (second-order shock-expansion); \
+     niskanen-2009 eq 3.26";
 const MODEL_FINS: &str = "niskanen-2009:fins eq 3.40 3.56 3.36; niskanen-2013 eq 3.54; \
      barrowman-1967 eq 3-98 (K_B(T)), App. A eq 8 33 (supersonic two-face strip load, K_1 K_3) \
      38-44 (tip Mach cone); naca-tr-1307 chart 8 (low aspect ratio)";
@@ -209,6 +218,10 @@ pub struct AeroModel {
     bodies: Vec<BodyTerm>,
     fins: Vec<FinTerm>,
     parasites: Vec<ParasiteTerm>,
+    /// Supersonic C_Nα and CP of a pointed nose and the flush tubes behind
+    /// it (the first `BodyLift::parts` entries of `bodies`), tabulated over
+    /// Mach. `None` keeps the slender-body terms at every Mach number.
+    body_lift: Option<BodyLift>,
     steps: Vec<Step>,
     base_area: f64,
     motor_area: f64,
@@ -450,6 +463,7 @@ impl AeroModel {
                 f.carry = Some(Carryover::new(p, l_aft));
             }
         }
+        let body_lift = supersonic_body_lift(&bodies);
         let steps = steps(&bodies);
         let base_area = bodies.last().map_or(0.0, |b| b.body.areas().1);
         let body_end = bodies.last().map_or(0.0, |b| b.body.x_fore + b.body.length);
@@ -476,6 +490,7 @@ impl AeroModel {
             bodies,
             fins,
             parasites,
+            body_lift,
             steps,
             base_area,
             motor_area: motor_area.min(base_area),
@@ -537,10 +552,33 @@ impl AeroModel {
         let a_ref = self.ref_area;
         let mut components = Vec::with_capacity(self.bodies.len() + self.fins.len());
         let (mut slope0, mut force) = (Vec::new(), Vec::new());
-        for b in &self.bodies {
-            let cna0 = b.body.cna0(a_ref);
-            let (cn, x) = b.body.cn_at(a_ref, alpha);
-            let x0 = b.body.cp();
+        // Above the subsonic range a pointed nose and the tubes flush behind
+        // it take their potential term from the shock-expansion table
+        // (`supersonic::body`), blended in from the slender-body value; the
+        // body-lift term is unchanged. Everything else, and every Mach number
+        // up to `SUBSONIC_LIMIT`, keeps the slender-body path as it was.
+        let shock_expansion = self.body_lift.as_ref().filter(|l| mach > l.window().0);
+        for (i, b) in self.bodies.iter().enumerate() {
+            let supersonic = shock_expansion.filter(|l| i < l.parts());
+            let (cna0, x0, (cn, x)) = match supersonic {
+                None => (b.body.cna0(a_ref), b.body.cp(), b.body.cn_at(a_ref, alpha)),
+                Some(l) => {
+                    let x_tip = self.bodies[0].body.x_fore;
+                    let (c0, xs) = (b.body.cna0(a_ref), b.body.cp());
+                    let (cna0, moment) = l.blended(i, mach, a_ref, (c0, c0 * (xs - x_tip)));
+                    let x0 = if cna0.abs() > 1e-12 {
+                        x_tip + moment / cna0
+                    } else {
+                        xs
+                    };
+                    let pot = cna0 * alpha.sin();
+                    let lift = barrowman::body_lift_cn(b.body.planform, a_ref, alpha);
+                    let x_lift = b.body.x_fore + b.body.planform_x;
+                    let at = combine(&[(pot, x0), (lift, x_lift)])
+                        .map_or((0.0, x0), |x| (pot + lift, x));
+                    (cna0, x0, at)
+                }
+            };
             slope0.push((cna0, x0));
             force.push((cn, x));
             let lifting = alpha > ALPHA_EPS;
@@ -548,10 +586,12 @@ impl AeroModel {
                 id: b.body.id.clone(),
                 cn_alpha: if lifting { cn / alpha } else { cna0 },
                 cp: if lifting && cn.abs() > 1e-15 { x } else { x0 },
-                model: match b.body.kind {
-                    BodyKind::Nose => MODEL_NOSE,
-                    BodyKind::Tube => MODEL_TUBE,
-                    BodyKind::Transition => MODEL_TRANSITION,
+                model: match (b.body.kind, supersonic.is_some()) {
+                    (BodyKind::Nose, true) => MODEL_NOSE_SUPERSONIC,
+                    (BodyKind::Nose, false) => MODEL_NOSE,
+                    (BodyKind::Tube, true) => MODEL_TUBE_SUPERSONIC,
+                    (BodyKind::Tube, false) => MODEL_TUBE,
+                    (BodyKind::Transition, _) => MODEL_TRANSITION,
                 }
                 .to_string(),
             });
@@ -950,6 +990,43 @@ fn tube_run_aft(bodies: &[BodyTerm], x: f64, r: f64) -> f64 {
         covered = hi;
     }
     (covered - x).max(0.0)
+}
+
+/// The shock-expansion table for the front of the body: a nose that starts
+/// at a point, with the tubes of its base radius that follow it without a
+/// gap. `None` when the body does not start with such a nose or the method
+/// does not cover its profile (`supersonic::body`); anything behind the
+/// first transition, step, or gap keeps its slender-body term.
+fn supersonic_body_lift(bodies: &[BodyTerm]) -> Option<BodyLift> {
+    let nose = &bodies.first()?.body;
+    if nose.kind != BodyKind::Nose || !(nose.length > 0.0 && nose.r1 > 0.0) {
+        return None;
+    }
+    let tol = 1e-6 * nose.r1.max(1e-3);
+    let mut end = nose.length;
+    let mut tubes = Vec::new();
+    for b in &bodies[1..] {
+        let (lo, hi) = (
+            b.body.x_fore - nose.x_fore,
+            b.body.x_fore - nose.x_fore + b.body.length,
+        );
+        let flush = b.body.kind == BodyKind::Tube
+            && (b.body.r0 - nose.r1).abs() <= tol
+            && (lo - end).abs() <= tol
+            && hi > end;
+        if !flush {
+            break;
+        }
+        tubes.push((end, hi));
+        end = hi;
+    }
+    BodyLift::new(
+        |x| nose.radius(x),
+        nose.length,
+        nose.r1,
+        &tubes,
+        SUBSONIC_LIMIT,
+    )
 }
 
 /// Whether the body over stations [x0, x1] is tube of radius `r` (flush

@@ -155,8 +155,7 @@ ops -> `TomlStore::preview` -> eval (+library) -> `Checker` -> dry run returns
   coefficient `rw-aero` returns for the same model and flight state, because
   the workspace version does not move with a physics change and the cache
   would keep serving the old flight. A flight manifest's `core_version`
-  records both (`0.1.0+aero.3`; revision 3 is the fin cross-section change:
-  wedge drag and lift).
+  records both (`0.1.0+aero.5`; revision 5 is the supersonic body lift).
 - `runs/<sim>/<id>/{manifest,summary,events}.json` + `series.csv` (header of
   `SERIES_COLUMNS` names, `t` first; the sim's `series_dt` grid plus exact
   event rows, 9 significant figures). Written into a hidden temp dir, then

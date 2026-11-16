@@ -48,7 +48,11 @@ printf 'make wasm: %s (%s bytes, %s gzip)\n' "$out/rw_wasm_bg.wasm" "$bytes" "$g
 # The wedge fin section raised it to 2.15 MB: the section mass integrals in
 # rw-geom and the wedge drag and thickness lift in rw-aero took the macOS build
 # from 2.1305 MB to 2.1393 MB, and the Linux build runs about 0.8 kB larger.
-max=${RW_WASM_MAX_BYTES:-2150000}
+# Supersonic carry-over and body lift raised it to 2.17 MB: the K_B(T) lift
+# integral took the macOS build from 2.1393 MB to 2.1443 MB, and the
+# shock-expansion body solution with the SP-3007 cone table took it to
+# 2.1569 MB.
+max=${RW_WASM_MAX_BYTES:-2170000}
 if [ "$bytes" -gt "$max" ]; then
   echo "make wasm: rw_wasm_bg.wasm is $bytes bytes, over the $max-byte gate" >&2
   exit 1
