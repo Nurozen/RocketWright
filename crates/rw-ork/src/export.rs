@@ -31,6 +31,9 @@ pub struct OrkOut {
     pub files: BTreeMap<String, Vec<u8>>,
     /// Components that could not be written (e.g. tanks).
     pub skipped: Vec<String>,
+    /// Components written with the nearest thing the format has, one line
+    /// each saying what changed (a wedge fin section becomes "airfoil").
+    pub approximated: Vec<String>,
 }
 
 fn tag(t: ComponentType) -> Option<&'static str> {
@@ -371,6 +374,15 @@ impl Ctx<'_> {
                         rw_model::FinCrossSection::Square => "square",
                         rw_model::FinCrossSection::Rounded => "rounded",
                         rw_model::FinCrossSection::Airfoil => "airfoil",
+                        // The format has no wedge section; the nearest is
+                        // the tapered one, and the export says so.
+                        rw_model::FinCrossSection::Wedge => {
+                            self.out.approximated.push(format!(
+                                "{}: wedge fin cross-section written as airfoil",
+                                c.id
+                            ));
+                            "airfoil"
+                        }
                     },
                 );
                 w.num("cant", fins.cant * 180.0 / PI);

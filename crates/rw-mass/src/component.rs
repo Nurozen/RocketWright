@@ -284,7 +284,15 @@ pub fn component_body_loaded(
                     .or(d.surface)
                     .unwrap_or(0.0);
                 let rho_fillet = d.bulk.unwrap_or(0.0);
-                fin_set_body(fg, &g.instances, rho_t, rho_fillet)
+                // A bulk material fills the section's profile. A sheet
+                // material given by surface density weighs per unit
+                // planform area, whatever the section.
+                let section = if d.bulk.is_some() {
+                    fg.cross_section
+                } else {
+                    rw_model::FinCrossSection::Square
+                };
+                fin_set_body(fg, section, &g.instances, rho_t, rho_fillet)
             }
             None => RigidBody::ZERO,
         },

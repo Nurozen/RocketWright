@@ -93,12 +93,14 @@ impl Session {
     pub(super) fn export_file(&mut self, i: &ExportFileIn) -> Result<ExportOut, ApiError> {
         let (model, _) = self.evaluated(i.config.as_deref())?;
         let mut skipped = Vec::new();
+        let mut approximated = Vec::new();
         let bytes = match i.format {
             ExportFormat::Ork => {
                 let disk = self.disk_lib()?;
-                let (bytes, left_out) =
+                let (bytes, left_out, approx) =
                     interop::ork(&model, self.store.sources(), &self.library, &disk);
                 skipped = left_out;
+                approximated = approx;
                 bytes
             }
             ExportFormat::Rasp => {
@@ -181,6 +183,7 @@ impl Session {
             bytes: bytes.len() as u64,
             sha256: sha256_hex(&bytes),
             skipped,
+            approximated,
         })
     }
 }

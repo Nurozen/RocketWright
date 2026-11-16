@@ -9,7 +9,7 @@ import * as THREE from "three/webgpu";
 import { describe, expect, it } from "vitest";
 import { lookFor } from "../viewport/materials.ts";
 import { airframeTubeDetail, foreHost, motorMountOf, noseShoulderDetail } from "./airframe.ts";
-import { edgeRadius, finSetDetail, insetConvex, polygonArea, roundedPlate } from "./fins.ts";
+import { edgeRadius, finSetDetail, insetConvex, polygonArea, roundedPlate, wedgePlate } from "./fins.ts";
 import { DetailMaterials } from "./looks.ts";
 import type { DetailContext, EvalComponent } from "./types.ts";
 
@@ -76,6 +76,43 @@ describe("rounded fin plates", () => {
   it("rounds edges per cross-section", () => {
     expect(edgeRadius("rounded", 0.003)).toBe(0.0015);
     expect(edgeRadius("square", 0.004)).toBeCloseTo(0.001, 12);
+  });
+
+  it("tapers a wedge plate from a knife leading edge to the full thickness at the trailing edge", () => {
+    const poly: [number, number][] = [[0, 0], [0.14, 0], [0.1, 0.1], [0.04, 0.1]];
+    const t = 0.003;
+    const g = wedgePlate(poly[0]!, poly[1]!, poly[2]!, poly[3]!, t);
+    g.computeBoundingBox();
+    const bb = g.boundingBox!;
+    expect(bb.max.z - bb.min.z).toBeCloseTo(t, 9);
+    expect([bb.min.x, bb.max.x, bb.min.y, bb.max.y].map((x) => +x.toFixed(6))).toEqual([0, 0.14, 0, 0.1]);
+    // Zero thickness on the leading edge (x = 0.4 y), full on the trailing edge.
+    const p = g.getAttribute("position");
+    for (let i = 0; i < p.count; i++) {
+      const onLe = Math.abs(p.getX(i) - 0.4 * p.getY(i)) < 1e-6;
+      expect(Math.abs(p.getZ(i))).toBeCloseTo(onLe ? 0 : t / 2, 9);
+    }
+    // A closed solid of half the slab's volume (tapered and swept here), to
+    // Float32 position precision, with unit face normals.
+    expect(Math.abs(volume(g) / ((polygonArea(poly) * t) / 2) - 1)).toBeLessThan(1e-5);
+    const rect: [number, number][] = [[0, 0], [0.1, 0], [0.1, 0.05], [0, 0.05]];
+    const r = wedgePlate(rect[0]!, rect[1]!, rect[2]!, rect[3]!, t);
+    expect(Math.abs(volume(r) / ((polygonArea(rect) * t) / 2) - 1)).toBeLessThan(1e-5);
+    const n = g.getAttribute("normal");
+    for (let i = 0; i < n.count; i++) expect(Math.hypot(n.getX(i), n.getY(i), n.getZ(i))).toBeCloseTo(1, 5);
+  });
+
+  it("uses the tapered plate for a wedge fin set", () => {
+    const fins = byId.get("fins")!;
+    const wedge = { ...fins, shape: { ...fins.shape, cross_section: "wedge" } } as EvalComponent;
+    const r = finSetDetail({ ...ctx("fins"), component: wedge })!;
+    const plates = r.group.children.filter((o): o is THREE.Mesh => o instanceof THREE.Mesh);
+    expect(plates.length).toBe(fins.instances.length || 1);
+    // 8 strips of 4 triangles on the two sides, 2 on the base, the root and
+    // the tip: 36 triangles, each with its own 3 vertices.
+    expect(plates[0]!.geometry.getAttribute("position").count).toBe(108);
+    const b = bounds(plates[0]!);
+    expect(b.max.z - b.min.z).toBeCloseTo((fins.shape as unknown as { thickness: number }).thickness, 4);
   });
 
   it("builds one plate per fin at the fin set's thickness, standing on the body", () => {

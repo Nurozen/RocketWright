@@ -7,7 +7,9 @@
 //! carries the sign of the cant angle.
 
 use crate::fins::{Strip, TipCone};
-use crate::mach::{beta, flat_plate_strip_dcp, transonic_blend};
+use crate::mach::{
+    beta, flat_plate_strip_dcp, transonic_blend, wedge_half_angle, wedge_strip_secant,
+};
 
 /// Body pitch-damping coefficient of one portion (fore or aft of the CG) of
 /// length l and mean radius r_t: 0.55 (l⁴ r_t/(A_ref d)) (ω²/V²).
@@ -104,7 +106,11 @@ pub fn roll_damping_subsonic(
 /// with no tip factor (literature-map Errata). Roll forcing takes the
 /// two-face single-fin slope with the same strip factors area-weighted, so
 /// from M 1.5 at small spin the two share the 2D load and differ only in how
-/// the tip loss is weighted (ξ here, the panel mean there).
+/// the tip loss is weighted (ξ here, the panel mean there). A single-wedge
+/// section of trailing-edge thickness `wedge_thickness` adds its thickness
+/// lift η_i (4 C_2 δ_i + 6 K_3 δ_i²) to each strip's ΔC_P
+/// ([`wedge_strip_secant`]); pass 0.0 for a section with equal edge
+/// thicknesses, which adds exactly zero.
 /// cite: niskanen-2009 eq 3.72 p 49
 /// cite: barrowman-1967 eq 8 p 96
 /// cite: barrowman-1967 eq 33a-33d p 98
@@ -119,6 +125,7 @@ pub fn roll_damping_supersonic(
     speed: f64,
     strips: &[Strip],
     tip: &TipCone,
+    wedge_thickness: f64,
 ) -> f64 {
     if a_ref <= 0.0 || d_ref <= 0.0 || speed <= 0.0 {
         return 0.0;
@@ -126,8 +133,14 @@ pub fn roll_damping_supersonic(
     let sum: f64 = strips
         .iter()
         .map(|s| {
+            let eta = (omega * s.xi / speed).atan();
+            let wedge = wedge_strip_secant(mach, wedge_half_angle(wedge_thickness, s.chord));
             tip.strip_factor(mach, s)
-                * flat_plate_strip_dcp(mach, (omega * s.xi / speed).atan())
+                * if wedge == 0.0 {
+                    flat_plate_strip_dcp(mach, eta)
+                } else {
+                    flat_plate_strip_dcp(mach, eta) + eta * wedge
+                }
                 * s.chord
                 * s.xi
                 * s.width
@@ -137,7 +150,8 @@ pub fn roll_damping_supersonic(
 }
 
 /// Roll damping over the whole Mach range (subsonic to M 0.9, supersonic
-/// with tip relief from M 1.5, C¹ blend between).
+/// with tip relief from M 1.5, C¹ blend between). `wedge_thickness` as in
+/// [`roll_damping_supersonic`].
 /// cite: niskanen-2009 eq 3.69 p 49
 #[allow(clippy::too_many_arguments)]
 pub fn roll_damping(
@@ -149,12 +163,25 @@ pub fn roll_damping(
     speed: f64,
     strips: &[Strip],
     tip: &TipCone,
+    wedge_thickness: f64,
 ) -> f64 {
     let sum = strip_sum(strips);
     transonic_blend(
         mach,
         |m| roll_damping_subsonic(count, m, omega, a_ref, d_ref, speed, sum),
-        |m| roll_damping_supersonic(count, m, omega, a_ref, d_ref, speed, strips, tip),
+        |m| {
+            roll_damping_supersonic(
+                count,
+                m,
+                omega,
+                a_ref,
+                d_ref,
+                speed,
+                strips,
+                tip,
+                wedge_thickness,
+            )
+        },
     )
 }
 
@@ -237,7 +264,7 @@ mod tests {
             tan_le: 0.0,
             aspect_ratio: 2.0 * 0.09 * 0.09 / (0.5 * (0.14 + 0.06) * 0.09),
         };
-        let d = roll_damping(4, 0.6, 5.0, a, 0.054, 200.0, &strips, &tip);
+        let d = roll_damping(4, 0.6, 5.0, a, 0.054, 200.0, &strips, &tip, 0.0);
         assert!(close(
             d,
             4.0 * (2.0 * PI / 0.8) * 5.0 / (a * 0.054 * 200.0) * sum,
@@ -250,7 +277,7 @@ mod tests {
             aspect_ratio: 1e6,
             ..tip
         };
-        let s2 = roll_damping(4, 2.0, 1e-3, a, 0.054, 600.0, &strips, &far);
+        let s2 = roll_damping(4, 2.0, 1e-3, a, 0.054, 600.0, &strips, &far, 0.0);
         let lin = 4.0 / (a * 0.054) * (4.0 / 3.0_f64.sqrt()) * 1e-3 / 600.0 * sum;
         assert!(close(s2, lin, 1e-4));
         // Damping and forcing use the same two-face slope per unit fin area.
@@ -267,12 +294,12 @@ mod tests {
             1e-4
         ));
         // Odd in ω.
-        let neg = roll_damping(4, 2.0, -1e-3, a, 0.054, 600.0, &strips, &far);
+        let neg = roll_damping(4, 2.0, -1e-3, a, 0.054, 600.0, &strips, &far, 0.0);
         assert!(close(-neg, s2, 1e-12));
         // With the real tip the damping is less than the 2D value, and
         // reduced more than the panel's area-weighted factor because the tip
         // strips have the longest arm.
-        let s3 = roll_damping(4, 2.0, 1e-3, a, 0.054, 600.0, &strips, &tip);
+        let s3 = roll_damping(4, 2.0, 1e-3, a, 0.054, 600.0, &strips, &tip, 0.0);
         let panel = tip.panel_factor(2.0, &strips);
         assert!(s3 / s2 < panel && panel < 1.0 && s3 / s2 > 0.5);
         // Hand value on a rectangle: c = 0.1, r = 0.02, s = 0.1 (R = 0.12),
@@ -294,8 +321,8 @@ mod tests {
             aspect_ratio: 1e6,
             ..rect_tip
         };
-        let with_tip = roll_damping(4, 2.0, 1e-3, a, 0.054, 600.0, &rect, &rect_tip);
-        let no_tip = roll_damping(4, 2.0, 1e-3, a, 0.054, 600.0, &rect, &rect_far);
+        let with_tip = roll_damping(4, 2.0, 1e-3, a, 0.054, 600.0, &rect, &rect_tip, 0.0);
+        let no_tip = roll_damping(4, 2.0, 1e-3, a, 0.054, 600.0, &rect, &rect_far, 0.0);
         assert!(close(with_tip / no_tip, 0.739_770_6, 1e-6));
     }
 
@@ -313,7 +340,7 @@ mod tests {
         };
         // ω ξ/V from 0.58 to 2.5 across the span: every strip above the limit.
         let w = 13_000.0;
-        let d = roll_damping_supersonic(4, 2.0, w, a, 0.054, 600.0, &strips, &tip);
+        let d = roll_damping_supersonic(4, 2.0, w, a, 0.054, 600.0, &strips, &tip, 0.0);
         let secant = crate::mach::flat_plate_strip_secant(2.0, 1.0);
         let by_hand: f64 = strips
             .iter()
@@ -322,5 +349,45 @@ mod tests {
             * 4.0
             / (a * 0.054);
         assert!(close(d, by_hand, 1e-12));
+    }
+
+    #[test]
+    fn wedge_section_adds_its_thickness_lift_to_roll_damping() {
+        // Rectangular panel c = s = 0.03 at r_t = 0.015, t = 0.0024
+        // (δ = atan 0.04), M 2, no tip in reach: every strip's ΔC_P/η is
+        // 2.5528999 against the flat plate's 2.3094011 (mach.rs hand values),
+        // so the damping is larger by that ratio at small spin.
+        let strips: Vec<Strip> = (0..400)
+            .map(|k| Strip {
+                xi: 0.015 + 0.03 * (k as f64 + 0.5) / 400.0,
+                chord: 0.03,
+                width: 0.03 / 400.0,
+            })
+            .collect();
+        let far = TipCone {
+            xi_root: 0.015,
+            span: 100.0,
+            tan_le: 0.0,
+            aspect_ratio: 1e6,
+        };
+        let (a, d) = (7.0e-4, 0.03);
+        let flat = roll_damping_supersonic(4, 2.0, 1e-3, a, d, 600.0, &strips, &far, 0.0);
+        let wedge = roll_damping_supersonic(4, 2.0, 1e-3, a, d, 600.0, &strips, &far, 0.0024);
+        assert!((wedge / flat - 2.552_899_9 / 2.309_401_1).abs() < 1e-6);
+        // Odd in the spin, and the zero-thickness call is the flat plate's
+        // own sum to the last bit.
+        let neg = roll_damping_supersonic(4, 2.0, -1e-3, a, d, 600.0, &strips, &far, 0.0024);
+        assert!(close(-neg, wedge, 1e-12));
+        let was: f64 = strips
+            .iter()
+            .map(|s| {
+                far.strip_factor(2.0, s)
+                    * flat_plate_strip_dcp(2.0, (1e-3 * s.xi / 600.0_f64).atan())
+                    * s.chord
+                    * s.xi
+                    * s.width
+            })
+            .sum();
+        assert_eq!(flat.to_bits(), (4.0 / (a * d) * was).to_bits());
     }
 }

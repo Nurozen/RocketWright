@@ -20,6 +20,7 @@ pub mod glb;
 pub mod mesh;
 pub mod nose;
 pub mod profile;
+pub mod section;
 pub mod types;
 
 pub use frames::explode_dirs;
@@ -280,7 +281,21 @@ fn fin_set(
         x_aft: c.x_aft,
         outer: Vec::new(),
         inner: Vec::new(),
-        volume: n * plate_volume(stats.area + tab_area, fin.thickness),
+        // The plate takes its section's volume; the tab stays a slab.
+        volume: match fin.cross_section {
+            rw_model::FinCrossSection::Square => {
+                n * plate_volume(stats.area + tab_area, fin.thickness)
+            }
+            section => {
+                n * (section::section_plate_volume(
+                    section,
+                    &fin.planform,
+                    stats.area,
+                    stats.span,
+                    fin.thickness,
+                ) + plate_volume(tab_area, fin.thickness))
+            }
+        },
         wetted_area: if c.aero { 2.0 * n * stats.area } else { 0.0 },
         planform_area: stats.area,
         fins: Some(fin),

@@ -9,6 +9,8 @@
 //! The fixture geometry is inline in `basic_finner()`. Sources in the report:
 //! d, l and CG from Table I (pdf p 36); cone, fin planform, fin thickness
 //! 0.08 cal and LE radius 0.004 cal from section 3.1 and Figure 2 (pdf p 53).
+//! The fins are single wedges (sharp leading edge, blunt 0.08 cal base), so
+//! the fixture uses `cross_section = "wedge"`.
 //!
 //! Cmq is printed but NOT scored: rw-aero uses a quadratic pitch-damping
 //! model (Niskanen eq 3.59), which has no linear Cmq to compare with the
@@ -17,7 +19,7 @@
 //! tests/validation/basic_finner_drev/PROVENANCE.md.
 
 use rw_aero::drag::pressure::{fin_le_cd, fin_te_cd};
-use rw_aero::fins::{kb_t, kt_b};
+use rw_aero::fins::{Strip, kb_t, kt_b};
 use rw_aero::{AeroModel, AeroOptions, AeroState, DragKind};
 use rw_model::{EvaluatedModel, FinCrossSection};
 use serde_json::{Value, json};
@@ -57,14 +59,11 @@ fn basic_finner_canted(cant: f64) -> EvaluatedModel {
     // d = 30 mm; cone 2.84 cal; body to 10.0 cal; 4 fins 1 cal × 1 cal, TE flush.
     // Roughness 0.5 µm (steel surface).
     //
-    // Fin cross-section: "airfoil" (eq 3.89 LE, zero TE).
-    // DREV wedge fins have sharp LE (0.004 cal ≈ 0.12 mm radius) and blunt TE
-    // (0.08 cal). rw-aero has no wedge cross-section (literature-map Gap 15);
-    // "airfoil" is the best available choice: it uses the rounded LE formula
-    // (eq 3.89) which is lower than stagnation drag ("square"), though still
-    // higher than a true sharp wedge LE. TE drag is zero for "airfoil"; a blunt
-    // TE would add base_cd (as "square" gives), which would raise the model CX0
-    // further. See drag breakdown table in the test output.
+    // Fin cross-section: "wedge". The DREV fins have a sharp LE (0.004 cal,
+    // about 0.12 mm radius) and a blunt 0.08 cal TE. The wedge section takes
+    // the attached-shock forebody pressure at the half-angle atan(0.04) and
+    // the full base drag on the blunt TE, and adds the thickness lift of the
+    // two inclined faces. See the drag breakdown table in the test output.
     let nose = json!({
         "id": "nose", "name": "Nose cone", "parent": null, "children": [],
         "containment": "axial", "aero": true, "cut": false,
@@ -106,7 +105,7 @@ fn basic_finner_canted(cant: f64) -> EvaluatedModel {
             "type": "trapezoidal_fin_set",
             "count": 4u32,
             "thickness": 0.08 * D,
-            "cross_section": "airfoil",
+            "cross_section": "wedge",
             "cant": cant,
             "fillet_radius": 0.0,
             "root_chord": D,
@@ -195,13 +194,12 @@ fn basic_finner_baseline_vs_drev() {
         "Ref: A_ref = π d²/4 = {:.4e} m²  d = {:.3} m  CG = {:.4} m from nose",
         a_ref, D, X_CG
     );
-    println!("Fin cross-section: airfoil (eq 3.89 LE, zero TE).");
+    println!("Fin cross-section: wedge (half-angle atan(0.04) = 2.29 deg, blunt 0.08 cal TE).");
     println!(
-        "Gap 15: DREV fins are sharp-LE wedge (LE radius 0.004 cal ≈ 0.12 mm,\n\
-         0.08 cal thickness at base). No wedge cross-section exists in rw-aero.\n\
-         'airfoil' (used here) gives eq 3.89 LE drag (lower than stagnation/'square',\n\
-         but still higher than a true sharp wedge) and zero TE drag (a blunt TE would\n\
-         add base_cd and raise CX0). See drag breakdown table below."
+        "DREV fins are sharp-LE wedges (LE radius 0.004 cal ≈ 0.12 mm, 0.08 cal\n\
+         thickness at the base). The wedge section gives the fin LE the forebody\n\
+         pressure K1 δ + C2 δ² + K3 δ³ (zero below M 0.9, blended to M 1.5), the TE\n\
+         the full base_cd, and the fin lift the thickness term 4 C2 δ + 6 K3 δ²."
     );
     println!();
 
@@ -378,8 +376,22 @@ fn basic_finner_baseline_vs_drev() {
         let body_base = cd_sum("body", DragKind::Base);
         let fin_fric = cd_sum("fins", DragKind::Friction);
         // Fin LE and TE computed separately (fin_press = LE + TE in drag_terms).
-        let fin_le = fin_area_ratio * fin_le_cd(FinCrossSection::Airfoil, 0.0, row.mach);
-        let fin_te = fin_area_ratio * fin_te_cd(FinCrossSection::Airfoil, row.mach);
+        // One strip is enough for a rectangular fin (constant chord).
+        let strip = [Strip {
+            xi: D,
+            chord: D,
+            width: D,
+        }];
+        let fin_le =
+            fin_area_ratio * fin_le_cd(FinCrossSection::Wedge, 0.0, 0.08 * D, &strip, row.mach);
+        let fin_te = fin_area_ratio * fin_te_cd(FinCrossSection::Wedge, row.mach);
+        // The two edge terms are the whole fin pressure row.
+        let fin_press = cd_sum("fins", DragKind::Pressure);
+        assert!(
+            (fin_le + fin_te - fin_press).abs() <= 1e-12 * fin_press.abs().max(1.0),
+            "fin LE + TE {} vs pressure term {fin_press}",
+            fin_le + fin_te
+        );
         drag_rows.push(DragDiag {
             mach: row.mach,
             ns_fric: nose_fric,
@@ -435,10 +447,10 @@ fn basic_finner_baseline_vs_drev() {
 
     // === Drag breakdown ===
     println!();
-    println!("=== Drag breakdown (zero yaw, airfoil cross-section) ===");
+    println!("=== Drag breakdown (zero yaw, wedge cross-section) ===");
     println!(
-        "fin_LE: eq 3.89 (rounded formula); for a sharp wedge LE this is too high.\n\
-         fin_TE: 0 (airfoil); a blunt wedge TE would add base_cd (Gap 15).\n\
+        "fin_LE: wedge forebody pressure (N t s/A_ref)(K1 δ + C2 δ² + K3 δ³) from M 1.5,\n\
+         blended down to zero at M 0.9. fin_TE: full base_cd on the blunt 0.08 cal base.\n\
          All values on the rocket reference area A_ref = π d²/4."
     );
     println!(
@@ -475,10 +487,9 @@ fn basic_finner_baseline_vs_drev() {
     );
     println!(
         "fn_bare = fins_int / (K_T(B) + K_B(T)): single-fin CNα × fin_count_factor(4) = 2.\n\
-         Supersonic single-fin slope = (A_fin/A_ref)*2(K1 + K3 α²)*tip, both fin faces\n\
-         (barrowman-1967 App. A) with the tip Mach-cone factor, 1 − 1/(2 β AR) for this\n\
-         rectangular AR 2 panel; at α → 0 the 4-fin term is (8/β)(1 − 1/(4β)) on\n\
-         A_fin/A_ref.\n\
+         Supersonic single-fin slope = (A_fin/A_ref)*(2(K1 + K3 α²) + 4 C2 δ + 6 K3 δ²)*tip,\n\
+         both fin faces (barrowman-1967 App. A) at the wedge half-angle δ = atan(0.04), with\n\
+         the tip Mach-cone factor, 1 − 1/(2 β AR) for this rectangular AR 2 panel.\n\
          DREV_fin = (DREV_CNα − ns_CNα) / int: the bare fin term DREV implies.\n\
          ratio = fn_bare / DREV_fin."
     );
@@ -569,19 +580,33 @@ fn basic_finner_baseline_vs_drev() {
     }
 
     // Sanity bounds only (report mode), about 10 % over the current model
-    // (two-face strip load with tip relief): RMS CX0 0.844, CNα 0.271,
-    // Cmα 0.250, CP 0.083 cal, d_cal −0.032 to +0.178 cal. The one-face
-    // model (CNα 0.466, CP 0.848 cal) and the two-face model without tip
-    // relief (Cmα 0.130 but CP 0.215 cal, d_cal up to +0.354) both fail the
-    // CP bounds. Tighten them when the physics improves.
-    assert!(rms_cx <= 0.90, "RMS CX0 error {:.1}%", 100.0 * rms_cx);
-    assert!(rms_cna <= 0.30, "RMS CNα error {:.1}%", 100.0 * rms_cna);
-    assert!(rms_cma <= 0.275, "RMS Cmα error {:.1}%", 100.0 * rms_cma);
-    assert!(rms_cp <= 0.092, "RMS CP error {rms_cp:.3} cal");
-    // Signed: the model CP may sit at most 0.05 cal forward and 0.20 cal aft
+    // (wedge section: forebody and base drag, two-face strip load with tip
+    // relief and thickness lift): RMS CX0 0.217, CNα 0.205, Cmα 0.092,
+    // CP 0.267 cal, d_cal +0.042 to +0.384 cal. With the fixture's former
+    // "airfoil" section the same model gave CX0 0.844, CNα 0.271,
+    // Cmα 0.250, CP 0.083 cal, d_cal −0.032 to +0.178.
+    //
+    // The CP bounds are wider than they were with "airfoil" (0.092 cal RMS,
+    // +0.20 cal aft), and that is a real limit of the model, not headroom:
+    // for wedge fins on this body the static margin is OVER-predicted by up
+    // to 0.38 cal (M 3.73), 0.27 cal RMS over the eight Mach groups. The
+    // wedge thickness lift is right for the fins (Cl_δ, which only the fins
+    // produce, is within 12 % from M 1.8), and CNα and Cmα both improve.
+    // But the total CNα is still 14 to 26 % low (20.5 % RMS), and what is missing is
+    // lift on the body ahead of the fins (the supersonic body lift and the
+    // fin-to-body carry-over K_B(T), which is zero from M 1.5; parity-log
+    // known gaps). Adding the correct fin lift at the tail without that
+    // forward lift moves the CP aft of the measured one. The flat-plate fin
+    // load hid this by being too small. Tighten these when the body terms
+    // are added.
+    assert!(rms_cx <= 0.24, "RMS CX0 error {:.1}%", 100.0 * rms_cx);
+    assert!(rms_cna <= 0.225, "RMS CNα error {:.1}%", 100.0 * rms_cna);
+    assert!(rms_cma <= 0.101, "RMS Cmα error {:.1}%", 100.0 * rms_cma);
+    assert!(rms_cp <= 0.293, "RMS CP error {rms_cp:.3} cal");
+    // Signed: the model CP may sit at most 0.05 cal forward and 0.42 cal aft
     // of the measured one at any Mach group (aft = margin over-predicted).
     assert!(
-        d_cal_min >= -0.05 && d_cal_max <= 0.20,
+        d_cal_min >= -0.05 && d_cal_max <= 0.42,
         "CP d_cal range {d_cal_min:+.3} to {d_cal_max:+.3} cal"
     );
 }
@@ -710,8 +735,13 @@ fn basic_finner_roll_forcing_vs_drev_table_x() {
         100.0 * mean,
         100.0 * rms
     );
-    // Sanity bounds, about 10 % over the current model (rw/ref 0.75 to 1.01,
-    // mean −10.5 %, RMS 12.7 %). The one-face model sat at 0.40 to 0.60.
-    assert!(rms <= 0.14, "RMS Cl_δ error {:.1}%", 100.0 * rms);
-    assert!(lo >= 0.70 && hi <= 1.10, "rw/ref range {lo:.2} to {hi:.2}");
+    // Sanity bounds, about 10 % over the current model with the wedge
+    // section (rw/ref 0.92 to 1.12, mean +3.3 %, RMS 5.8 %). The flat-plate
+    // load ("airfoil" section) sat at 0.75 to 1.01, mean −10.5 %, RMS
+    // 12.7 %; the one-face model at 0.40 to 0.60. The upper ratio bound is
+    // wider than the flat-plate one (1.10): the thickness lift raises the
+    // twelve ratios by 10 to 23 %, which centres the set on 1 and puts the
+    // two M 1.80-1.85 models, nearest the blend, 9 and 12 % high.
+    assert!(rms <= 0.064, "RMS Cl_δ error {:.1}%", 100.0 * rms);
+    assert!(lo >= 0.84 && hi <= 1.23, "rw/ref range {lo:.2} to {hi:.2}");
 }

@@ -87,7 +87,7 @@ fn translate(i: usize, c: &Value) -> (String, Value, Value, f64) {
         ),
         "trapezoidal_fin_set" => {
             let mut s = json!({"type": "trapezoidal_fin_set", "count": f(fl, "count") as u32,
-                "thickness": f(fl, "thickness_m"), "cross_section": "square",
+                "thickness": f(fl, "thickness_m"), "cross_section": "rounded",
                 "cant": f(fl, "cant_rad"), "fillet_radius": f(fl, "fillet_radius_m"),
                 "root_chord": f(fl, "root_chord_m"), "tip_chord": f(fl, "tip_chord_m"),
                 "span": f(fl, "height_m"), "sweep": f(fl, "sweep_m")});

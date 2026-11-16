@@ -6,7 +6,9 @@
  * trailing, and tip edges rounded per `cross_section` (rounded: a full
  * half-round; square: a small bevel; airfoil: a full round, slightly larger
  * than square), so the edge catches a highlight line and the faces a soft
- * gradient. The root runs a little into the body tube so no seam shows.
+ * gradient. A wedge section is a tapered plate instead: a knife edge at the
+ * leading edge, the full thickness at a blunt trailing edge, flat faces. The
+ * root runs a little into the body tube so no seam shows.
  *
  * Visual tier only (I13): the planform and thickness are the model's; the
  * edge rounding never feeds mass or aero.
@@ -143,6 +145,71 @@ export function roundedPlate(poly: readonly P2[], o: RoundedPlateOptions): THREE
   return g;
 }
 
+/**
+ * A single-wedge plate over the quad root LE, root TE, tip TE, tip LE (CCW in
+ * local x, y): zero thickness along the leading edge, `thickness` along the
+ * trailing edge, centred on z = 0. The thickness is linear along each chord,
+ * so on a tapered fin the two sides are ruled surfaces, not planes: they are
+ * cut into spanwise strips whose diagonals alternate, which makes the mesh
+ * volume exactly half the slab's for any trapezoid. Every triangle has its own
+ * vertices so the edges stay crisp.
+ */
+export function wedgePlate(rootLe: P2, rootTe: P2, tipTe: P2, tipLe: P2, thickness: number): THREE.BufferGeometry {
+  const h = Math.max(1e-6, thickness) / 2;
+  type P3 = [number, number, number];
+  // An even strip count: the volume error of one diagonal choice cancels the next strip's.
+  const strips = 8;
+  const le = (k: number): P3 => {
+    const f = k / strips;
+    return [rootLe[0] + f * (tipLe[0] - rootLe[0]), rootLe[1] + f * (tipLe[1] - rootLe[1]), 0];
+  };
+  const te = (k: number, z: number): P3 => {
+    const f = k / strips;
+    return [rootTe[0] + f * (tipTe[0] - rootTe[0]), rootTe[1] + f * (tipTe[1] - rootTe[1]), z];
+  };
+  // Triangles wound counter-clockwise seen from outside.
+  const tris: [P3, P3, P3][] = [];
+  for (let k = 0; k < strips; k++) {
+    const a = le(k);
+    const d = le(k + 1);
+    const bU = te(k, h);
+    const cU = te(k + 1, h);
+    const bL = te(k, -h);
+    const cL = te(k + 1, -h);
+    if (k % 2 === 0) {
+      tris.push([a, bU, cU], [a, cU, d], [a, d, cL], [a, cL, bL]);
+    } else {
+      tris.push([a, bU, d], [bU, cU, d], [a, d, bL], [d, cL, bL]);
+    }
+  }
+  const a0 = le(0);
+  const d1 = le(strips);
+  // The blunt base, the root and the tip are flat.
+  tris.push([te(0, -h), te(strips, -h), te(strips, h)], [te(0, -h), te(strips, h), te(0, h)]);
+  tris.push([a0, te(0, -h), te(0, h)], [d1, te(strips, h), te(strips, -h)]);
+  const pos: number[] = [];
+  const nrm: number[] = [];
+  const idx: number[] = [];
+  const u = new THREE.Vector3();
+  const v = new THREE.Vector3();
+  for (const f of tris) {
+    const base = pos.length / 3;
+    u.set(f[1][0] - f[0][0], f[1][1] - f[0][1], f[1][2] - f[0][2]);
+    v.set(f[2][0] - f[0][0], f[2][1] - f[0][1], f[2][2] - f[0][2]);
+    const n = u.cross(v).normalize();
+    for (const p of f) {
+      pos.push(p[0], p[1], p[2]);
+      nrm.push(n.x, n.y, n.z);
+    }
+    idx.push(base, base + 1, base + 2);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute("normal", new THREE.Float32BufferAttribute(nrm, 3));
+  g.setIndex(idx);
+  return g;
+}
+
 /** Edge radius for a fin cross-section (fraction of the thickness). */
 export function edgeRadius(crossSection: string | undefined, thickness: number): number {
   switch (crossSection) {
@@ -163,9 +230,9 @@ export function finRootRadius(c: EvalComponent, lookup: (id: string) => EvalComp
 }
 
 /**
- * Trapezoidal fin sets: one rounded plate per instance, standing on the body
- * at the instance roll. Null (the rw-geom plates stay) for canted fins and
- * other planforms.
+ * Trapezoidal fin sets: one plate per instance (rounded-rim, or tapered for
+ * a wedge section), standing on the body at the instance roll. Null (the
+ * rw-geom plates stay) for canted fins and other planforms.
  */
 export function finSetDetail(ctx: DetailContext): DetailResult | null {
   const c = ctx.component;
@@ -186,7 +253,8 @@ export function finSetDetail(ctx: DetailContext): DetailResult | null {
     [sweep + tip, span],
     [sweep, span],
   ];
-  const plate = roundedPlate(poly, { thickness: t, radius: edgeRadius((c.shape as unknown as { cross_section?: string }).cross_section, t), edgeSegments: 8, cornerSegments: 5 });
+  const section = (c.shape as unknown as { cross_section?: string }).cross_section;
+  const plate = section === "wedge" ? wedgePlate(poly[0]!, poly[1]!, poly[2]!, poly[3]!, t) : roundedPlate(poly, { thickness: t, radius: edgeRadius(section, t), edgeSegments: 8, cornerSegments: 5 });
   const instances = c.instances.length > 0 ? c.instances : [{ roll: c.roll, index: 0, offset: [0, 0, 0] }];
   const group = new THREE.Group();
   const mat = ctx.materials.look(ctx.look);

@@ -656,6 +656,11 @@ pub struct ExportOut {
     /// out (`.ork` has no tank or feed parts).
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub skipped: Vec<String>,
+    /// What the format could not hold exactly and the file carries as the
+    /// nearest thing it has, one line per component (`.ork` has no wedge fin
+    /// cross-section; it is written as airfoil).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub approximated: Vec<String>,
 }
 
 // ---- ThrustCurve (opt-in network) -------------------------------------------

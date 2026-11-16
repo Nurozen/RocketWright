@@ -9,7 +9,9 @@ use std::f64::consts::PI;
 use rw_geom::{FinGeometry, fins::planform_stats};
 use rw_model::FinCrossSection;
 
-use crate::mach::{beta, flat_plate_strip_secant, hermite, transonic_blend};
+use crate::mach::{
+    beta, flat_plate_strip_secant, hermite, transonic_blend, wedge_half_angle, wedge_strip_secant,
+};
 
 /// Number of spanwise strips used for the strip sums (sweep angles, roll damping).
 pub(crate) const STRIPS: usize = 200;
@@ -125,6 +127,18 @@ impl FinPlanform {
         }
     }
 
+    /// Trailing-edge minus leading-edge thickness of the section, the
+    /// quantity the supersonic thickness lift is proportional to: `thickness`
+    /// for a wedge, zero for the sections whose two edges are equally thick
+    /// (square, rounded) or both closed (airfoil).
+    /// cite: n/a section geometry lookup, no physics
+    pub fn wedge_thickness(&self) -> f64 {
+        match self.cross_section {
+            FinCrossSection::Wedge => self.thickness,
+            FinCrossSection::Square | FinCrossSection::Rounded | FinCrossSection::Airfoil => 0.0,
+        }
+    }
+
     /// Tip Mach-cone geometry of this panel for the supersonic strip load.
     /// cite: barrowman-1967 eq 38 p 101
     pub fn tip_cone(&self) -> TipCone {
@@ -183,6 +197,29 @@ impl TipCone {
             area += a;
         }
         if area > 0.0 { load / area } else { 1.0 }
+    }
+
+    /// Thickness lift of a single-wedge panel per unit incidence and unit
+    /// panel area: W = Σ f_i w_i c_i Δξ_i / Σ c_i Δξ_i, with
+    /// w_i = 4 C_2 δ_i + 6 K_3 δ_i² ([`wedge_strip_secant`]) at the strip
+    /// half-angle δ_i = [`wedge_half_angle`] of `wedge_thickness` and the
+    /// same strip factor f_i as the flat-plate load. The fin slope is
+    /// (A_fin/A_ref)(flat secant · F + W). Exactly 0.0 when
+    /// `wedge_thickness` is zero.
+    /// cite: barrowman-1967 eq 33a-33d p 98
+    /// cite: barrowman-1967 eq 39-44 p 102
+    pub fn thickness_lift(&self, mach: f64, strips: &[Strip], wedge_thickness: f64) -> f64 {
+        if wedge_thickness <= 0.0 {
+            return 0.0;
+        }
+        let (mut load, mut area) = (0.0, 0.0);
+        for s in strips {
+            let a = s.chord * s.width;
+            let w = wedge_strip_secant(mach, wedge_half_angle(wedge_thickness, s.chord));
+            load += self.strip_factor(mach, s) * w * a;
+            area += a;
+        }
+        if area > 0.0 { load / area } else { 0.0 }
     }
 }
 
@@ -329,9 +366,15 @@ pub fn single_fin_cna_supersonic(mach: f64, alpha: f64, a_fin: f64, a_ref: f64) 
 /// the panel's finite-span factor ([`TipCone::panel_factor`] for a planar
 /// fin, [`rectangular_tip_relief`] for a wing given by its aspect ratio);
 /// C¹ cubic blend between, whose M 1.5 end takes the value and Mach slope of
-/// the relieved load.
+/// the relieved load. `thickness_lift(M)` is the section's supersonic
+/// thickness lift per unit panel area ([`TipCone::thickness_lift`] for a
+/// wedge; the constant 0.0 for a section with equal edge thicknesses, which
+/// leaves the flat-plate value unchanged to the last bit), added to the
+/// supersonic law as (A_fin/A_ref) W.
 /// cite: niskanen-2009 eq 3.40 p 39
 /// cite: barrowman-1967 eq 39-44 p 102
+/// cite: barrowman-1967 eq 33a-33d p 98
+#[allow(clippy::too_many_arguments)]
 pub fn single_fin_cna(
     mach: f64,
     alpha: f64,
@@ -340,11 +383,20 @@ pub fn single_fin_cna(
     a_ref: f64,
     gamma_c: f64,
     relief: impl Fn(f64) -> f64,
+    thickness_lift: impl Fn(f64) -> f64,
 ) -> f64 {
     transonic_blend(
         mach,
         |m| single_fin_cna_subsonic(m, span, a_fin, a_ref, gamma_c),
-        |m| single_fin_cna_supersonic(m, alpha, a_fin, a_ref) * relief(m),
+        |m| {
+            let flat = single_fin_cna_supersonic(m, alpha, a_fin, a_ref) * relief(m);
+            let w = thickness_lift(m);
+            if w == 0.0 || a_ref <= 0.0 {
+                flat
+            } else {
+                flat + a_fin / a_ref * w
+            }
+        },
     )
 }
 
@@ -522,15 +574,15 @@ mod tests {
         let (s, a_fin, a_ref, gc) = (0.05, 0.003, 0.002, 0.3);
         let ar = 2.0 * s * s / a_fin;
         let relief = |m: f64| rectangular_tip_relief(beta(m) * ar);
-        let lo = single_fin_cna(0.9, 0.0, s, a_fin, a_ref, gc, relief);
+        let lo = single_fin_cna(0.9, 0.0, s, a_fin, a_ref, gc, relief, |_| 0.0);
         assert!((lo - single_fin_cna_subsonic(0.9, s, a_fin, a_ref, gc)).abs() < 1e-12);
-        let hi = single_fin_cna(1.5, 0.0, s, a_fin, a_ref, gc, relief);
+        let hi = single_fin_cna(1.5, 0.0, s, a_fin, a_ref, gc, relief, |_| 0.0);
         let sup = single_fin_cna_supersonic(1.5, 0.0, a_fin, a_ref) * relief(1.5);
         assert!((hi - sup).abs() < 1e-12);
         // The blend's M 1.5 end slope includes the relief's Mach dependence.
         let h = 1e-5;
-        let below = single_fin_cna(1.5 - h, 0.0, s, a_fin, a_ref, gc, relief);
-        let above = single_fin_cna(1.5 + h, 0.0, s, a_fin, a_ref, gc, relief);
+        let below = single_fin_cna(1.5 - h, 0.0, s, a_fin, a_ref, gc, relief, |_| 0.0);
+        let above = single_fin_cna(1.5 + h, 0.0, s, a_fin, a_ref, gc, relief, |_| 0.0);
         let (dl, dr) = ((hi - below) / h, (above - hi) / h);
         assert!((dl - dr).abs() < 1e-3 * dr.abs().max(1.0), "{dl} vs {dr}");
         // Both faces at α → 0: the Ackeret slope (A_fin/A_ref)(4/β).
@@ -566,6 +618,69 @@ mod tests {
             assert!((at(deg) - 4.148_458_2).abs() < 1e-6, "{deg}: {}", at(deg));
         }
         assert!(at(10.0) < at(17.5) && at(0.0) < at(10.0));
+    }
+
+    #[test]
+    fn wedge_thickness_lift_adds_to_the_flat_plate_slope() {
+        // Rectangular panel c = s = 0.03 (AR 2), t = 0.0024 (δ = atan 0.04),
+        // M 2: flat secant 2.3094011, wedge secant 2.5528999 (mach.rs hand
+        // values), tip factor 1 − 1/(2√3·2) = 0.8556624 on both.
+        let (c, s, r_t, t) = (0.03, 0.03, 0.015, 0.0024);
+        let strips = rect_strips(c, s, r_t, 2000);
+        let cone = TipCone {
+            xi_root: r_t,
+            span: s,
+            tan_le: 0.0,
+            aspect_ratio: 2.0,
+        };
+        let w = cone.thickness_lift(2.0, &strips, t);
+        assert!(
+            (w - 0.855_662_4 * (2.552_899_9 - 2.309_401_1)).abs() < 2e-5,
+            "{w}"
+        );
+        let relief = |m: f64| cone.panel_factor(m, &strips);
+        let (a_fin, a_ref) = (c * s, 7.0e-4);
+        let flat = single_fin_cna(2.0, 0.0, s, a_fin, a_ref, 0.0, relief, |_| 0.0);
+        let wedge = single_fin_cna(2.0, 0.0, s, a_fin, a_ref, 0.0, relief, |m| {
+            cone.thickness_lift(m, &strips, t)
+        });
+        assert!((wedge / flat - 2.552_899_9 / 2.309_401_1).abs() < 1e-5);
+        // Subsonic: no thickness term at all.
+        let sub =
+            |f: &dyn Fn(f64) -> f64| single_fin_cna(0.6, 0.0, s, a_fin, a_ref, 0.0, relief, f);
+        assert_eq!(sub(&|_| 0.0), sub(&|m| cone.thickness_lift(m, &strips, t)));
+        // The blend's M 1.5 end carries the wedge value and slope.
+        let at = |m: f64| {
+            single_fin_cna(m, 0.0, s, a_fin, a_ref, 0.0, relief, |m| {
+                cone.thickness_lift(m, &strips, t)
+            })
+        };
+        let h = 1e-5;
+        let (dl, dr) = ((at(1.5) - at(1.5 - h)) / h, (at(1.5 + h) - at(1.5)) / h);
+        assert!((dl - dr).abs() < 1e-3 * dr.abs().max(1.0), "{dl} vs {dr}");
+        // No wedge thickness: exactly zero.
+        assert_eq!(cone.thickness_lift(2.0, &strips, 0.0), 0.0);
+    }
+
+    #[test]
+    fn sections_with_equal_edges_keep_the_flat_plate_slope_bit_for_bit() {
+        // The slope with the zero thickness term against the expression the
+        // flat-plate model has always used, over Mach and α.
+        let (s, a_fin, a_ref, gc) = (0.05, 0.003, 0.002, 0.3);
+        let ar = 2.0 * s * s / a_fin;
+        let relief = |m: f64| rectangular_tip_relief(beta(m) * ar);
+        for k in 0..=450 {
+            let m = 0.01 * k as f64;
+            for alpha in [0.0, 0.02, 0.2, 0.5] {
+                let was = transonic_blend(
+                    m,
+                    |m| single_fin_cna_subsonic(m, s, a_fin, a_ref, gc),
+                    |m| single_fin_cna_supersonic(m, alpha, a_fin, a_ref) * relief(m),
+                );
+                let now = single_fin_cna(m, alpha, s, a_fin, a_ref, gc, relief, |_| 0.0);
+                assert_eq!(now.to_bits(), was.to_bits(), "M={m} α={alpha}");
+            }
+        }
     }
 
     fn rect_strips(chord: f64, span: f64, r_t: f64, n: usize) -> Vec<Strip> {

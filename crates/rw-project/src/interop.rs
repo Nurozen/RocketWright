@@ -395,13 +395,14 @@ fn motor_file(c: &ThrustCurve, disk_lib: &BTreeMap<String, Vec<u8>>) -> Option<(
     }
 }
 
-/// The `.ork` container bytes for `model`.
+/// The `.ork` container bytes for `model`, the ids of the components the
+/// format left out, and a line for each one it wrote approximately.
 pub fn ork(
     model: &EvaluatedModel,
     sources: &SourceSet,
     library: &Library,
     disk_lib: &BTreeMap<String, Vec<u8>>,
-) -> (Vec<u8>, Vec<String>) {
+) -> (Vec<u8>, Vec<String>, Vec<String>) {
     let mv = ModelValue::from_sources(sources).0;
     let source: BTreeMap<String, Component> = mv
         .get("c")
@@ -419,6 +420,7 @@ pub fn ork(
     (
         container::write_container(out.xml.as_bytes(), &out.files),
         out.skipped,
+        out.approximated,
     )
 }
 

@@ -134,6 +134,13 @@ describe("import and export helpers", () => {
     expect(exportedNotice({ path: "a", skipped: ["1", "2", "3", "4", "5", "6", "7"] }).text).toBe("Exported to a, leaving out 7 parts this format cannot hold: 1, 2, 3, 4, 5, and 2 more.");
   });
 
+  it("says what the format holds only approximately", () => {
+    const wedge = "fins: wedge fin cross-section written as airfoil";
+    expect(exportedNotice({ path: "/o/a.ork", approximated: [] }).tone).toBe("success");
+    expect(exportedNotice({ path: "/o/a.ork", approximated: [wedge] })).toEqual({ tone: "warning", text: `Exported to /o/a.ork. Approximated: ${wedge}.` });
+    expect(exportedNotice({ path: "/o/a.ork", skipped: ["lox_tank"], approximated: [wedge] }).text).toBe(`Exported to /o/a.ork, leaving out a part this format cannot hold: lox_tank. Approximated: ${wedge}.`);
+  });
+
   it("carries the file's import warnings to the person", () => {
     expect(importedNotice("a.ork", {})).toEqual({ tone: "success", text: "Imported a.ork." });
     const d = { code: "RW-W010", severity: "warning", path: "/c/x", message: "pod approximated" } as NonNullable<Parameters<typeof importedNotice>[1]["diagnostics"]>[number];

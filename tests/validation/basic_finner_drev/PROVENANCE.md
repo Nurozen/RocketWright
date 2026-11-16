@@ -46,36 +46,39 @@ report-mode tests against the current rw-aero model:
 - `basic_finner_baseline_vs_drev` reads `drev-tm-9703_table-IX_multiple-fit.csv`.
   It fails on a non-finite output, on a Table IX that does not have 8 rows or
   has a used cell that does not parse, and on an error above a sanity bound:
-  RMS CX0 ≤ 0.90, CNα ≤ 0.30, Cmα ≤ 0.275, CP ≤ 0.092 cal, and the signed CP
+  RMS CX0 ≤ 0.24, CNα ≤ 0.225, Cmα ≤ 0.101, CP ≤ 0.293 cal, and the signed CP
   error (model minus DREV, positive aft = static margin over-predicted) within
-  −0.05 to +0.20 cal at every Mach group. The current values are 0.844, 0.271,
-  0.250, 0.083 cal and −0.032 to +0.178 cal. Cmq is printed but not scored.
+  −0.05 to +0.42 cal at every Mach group. The current values are 0.217, 0.205,
+  0.092, 0.267 cal and +0.042 to +0.384 cal. Cmq is printed but not scored.
 - `basic_finner_roll_forcing_vs_drev_table_x` reads Table X and the model-Mach
-  file. It scores the 12 models at M 1.80 to 4.47 (RMS Cl_δ error ≤ 0.14,
-  every model/measured ratio within 0.70 to 1.10; currently 0.127 and 0.75 to
-  1.01) and prints the four at M 1.06 to 1.38 without scoring them.
+  file. It scores the 12 models at M 1.80 to 4.47 (RMS Cl_δ error ≤ 0.064,
+  every model/measured ratio within 0.84 to 1.23; currently 0.058 and 0.92 to
+  1.12) and prints the four at M 1.06 to 1.38 without scoring them.
 
 The bounds sit about 10% outside the current values. Tighten them when the
-physics improves. Table VII is kept as data and no code reads it.
+physics improves. The CP bounds and the upper Cl_δ ratio are wider than they
+were on the "airfoil" fixture (0.092 cal, +0.20 cal, 1.10): with the wedge
+fin lift the model static margin is over-predicted by up to 0.38 cal (see
+the parity-log section). Table VII is kept as data and no code reads it.
 
-## Fixture compromise: fin cross-section
+## Fixture fin cross-section
 
 DREV Basic Finner fins are sharp-LE wedge sections: LE radius 0.004 cal
 (≈ 0.12 mm) and 0.08 cal thickness at the base of the fin (section 3.1,
-Figure 2). rw-aero has no wedge cross-section (literature-map **Gap 15**).
-The fixture uses `cross_section = "airfoil"`, which is the best
-available choice:
+Figure 2). The fixture uses `cross_section = "wedge"` with
+`thickness` = 0.08 cal = 2.4 mm, the trailing-edge thickness, so the wedge
+half-angle is atan(0.04) = 2.29°. The leading-edge radius is taken as sharp.
 
-- LE drag: eq 3.89 (rounded formula). Lower than stagnation drag ("square"),
-  but still higher than a true sharp wedge LE. At M 1.1–4.3 this gives
-  fn_LE ≈ 0.35–0.48 on A_ref (see drag breakdown in test output).
-- TE drag: zero for "airfoil". A blunt wedge TE takes the full base_cd (what
-  "square" gives). The drag breakdown table in the test output shows both
-  terms.
+- LE drag: the wedge forebody pressure K₁δ + C₂δ² + K₃δ³ on the frontal area
+  N t s from M 1.5, blended to zero at M 0.9. fn_LE is 0.008 to 0.026 on
+  A_ref over M 1.077 to 4.300.
+- TE drag: the full base_cd on the blunt 0.08 cal base. fn_TE is 0.095 to
+  0.024.
+- Lift: the wedge thickness term 4C₂δ + 6K₃δ² on top of the flat-plate load.
 
-CX0 is too high at all 8 Mach groups (RMS error 84.4%). The LE overestimate causes this. The missing TE drag works the
-other way: adding it would raise the model CX0 further, so today it offsets
-part of the LE overestimate.
+CX0 is now too low at all 8 Mach groups (RMS error 21.7%, −15.7% to
+−26.2%). Until the wedge section existed the fixture used "airfoil" and CX0
+was too high at all 8 (RMS 84.4%), because eq 3.89 is a rounded-edge law.
 
 ## Open items
 
@@ -86,17 +89,13 @@ part of the LE overestimate.
 - Table VIII (single 6DOF fits, pdf pp 44–47) has not been transcribed, apart
   from the shot and Mach of the 16 canted-fin models in
   `drev-tm-9703_table-X_model-mach.csv`. That file needs a second reader.
-- Wedge fin-section profile: section 3.1 and Figure 2 give 0.08 cal as the
-  thickness at the base of the fin. With 0.08 cal the full thickness over a
-  1 cal chord, a single-wedge semi-angle is atan(0.04) = 2.29°. Reading 0.08
-  cal as a half-thickness would give 4.57°. Confirm the profile from Figure 2
-  before the wedge cross-section is added.
-- Gap 15: no wedge cross-section in rw-aero; "airfoil" used as above.
-  Open: add `FinCrossSection::Wedge` with LE and TE drag.
-- Supersonic CNα is 16% to 35% low against Table IX with the current fin
-  model (both faces loaded, tip Mach-cone relief). Supersonic K_B(T) is
-  faded to zero from M 1.5 and would add about 0.3 to CNα at M 2.375; the
-  model has no supersonic body lift and loads the fins as flat plates. See
+- CX0 is 16% to 26% low. The 0.004 cal leading-edge radius is not modelled
+  (estimated +0.04 to +0.05 on A_ref) and the base law 0.25/M may be low
+  for these bases; see the parity-log CX0 paragraph.
+- Supersonic CNα is 14% to 26% low against Table IX with the current fin
+  model (both faces loaded, tip Mach-cone relief, wedge thickness lift).
+  Supersonic K_B(T) is faded to zero from M 1.5 and would add about 0.4 to
+  CNα at M 2.375; the model has no supersonic body lift. See
   the parity-log section "rw-aero DREV-TM-9703: Basic Finner supersonic
   validation".
 - M 1.077 and 1.293 sit in the M 0.9 to 1.5 blend, where roll damping is 4 to

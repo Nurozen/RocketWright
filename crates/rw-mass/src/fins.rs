@@ -5,7 +5,9 @@
 //! moments), so the roll inertia keeps the cross term 2 r_t η̄ m that the
 //! handbook table drops (literature-map Errata, amcp-706-280 Table 6-1).
 
+use rw_geom::section::{profile_moments, rounded_plate_factor, section_thickness};
 use rw_geom::{FinGeometry, InstanceGeometry};
+use rw_model::FinCrossSection;
 
 use crate::body::{Mat3, RigidBody, rot_x, rot_y};
 
@@ -27,6 +29,17 @@ pub struct PolyMoments {
 }
 
 impl PolyMoments {
+    fn scaled(self, k: f64) -> PolyMoments {
+        PolyMoments {
+            a: k * self.a,
+            ax: k * self.ax,
+            ay: k * self.ay,
+            axx: k * self.axx,
+            ayy: k * self.ayy,
+            axy: k * self.axy,
+        }
+    }
+
     fn plus(self, o: PolyMoments) -> PolyMoments {
         PolyMoments {
             a: self.a + o.a,
@@ -121,22 +134,72 @@ impl Raw {
     }
 }
 
+/// Thickness-weighted area moments of the planform for a section, and the
+/// matching ∫∫τ³ dA for the inertia across the thickness. Square is the
+/// polygon itself. Rounded scales it uniformly by
+/// [`rounded_plate_factor`] (the half-round edges come off both ends of
+/// every chord, so the centroid stays at mid-chord). Wedge and airfoil
+/// integrate their thickness profile strip by strip
+/// ([`profile_moments`]): a wedge strip of chord c has mass ρ t c/2 per
+/// unit span centred 2c/3 from its leading edge and m t²/24 across the
+/// thickness; an airfoil strip 0.68508 ρ t c centred 0.42044 c from it.
+fn planform_section_moments(fin: &FinGeometry, section: FinCrossSection) -> (PolyMoments, f64) {
+    match section {
+        FinCrossSection::Square => {
+            let pm = polygon_moments(&fin.planform);
+            (pm, pm.a)
+        }
+        FinCrossSection::Rounded => {
+            let pm = polygon_moments(&fin.planform);
+            let pm = pm.scaled(rounded_plate_factor(fin.thickness, fin.span, pm.a));
+            (pm, pm.a)
+        }
+        FinCrossSection::Wedge | FinCrossSection::Airfoil => {
+            let m = profile_moments(&fin.planform, |xi| section_thickness(section, xi));
+            (
+                PolyMoments {
+                    a: m.a,
+                    ax: m.ax,
+                    ay: m.ay,
+                    axx: m.axx,
+                    ayy: m.ayy,
+                    axy: m.axy,
+                },
+                m.a3,
+            )
+        }
+    }
+}
+
 /// One fin (no roll, no instance offset) as a rigid body in the
-/// component-local frame: plate (planform + tab) of thickness t with areal
-/// mass `rho_t` = ρ t, plus two root fillets of bulk density `rho_fillet`,
-/// with the cant rotation about the root mid-chord at radius `root_radius`.
+/// component-local frame: plate (planform + tab) with areal mass
+/// `rho_t` = ρ t at full thickness t, plus two root fillets of bulk density
+/// `rho_fillet`, with the cant rotation about the root mid-chord at radius
+/// `root_radius`. `section` shapes the planform part of the plate
+/// (square: slab; rounded: slab less its half-round edges; wedge and
+/// airfoil: their chordwise thickness profile); the tab is a slab of the
+/// full thickness for every section. Pass `FinCrossSection::Square` for a
+/// sheet material given by surface density.
 /// cite: amcp-706-280 tab 6-1 p 104
 /// cite: mil-hdbk-762 eq 7-20 p 564
-pub fn fin_local_body(fin: &FinGeometry, rho_t: f64, rho_fillet: f64) -> RigidBody {
-    let pm = fin
-        .tab
-        .as_deref()
-        .map(polygon_moments)
-        .unwrap_or_default()
-        .plus(polygon_moments(&fin.planform));
+/// cite: naca-report-460 eq yt p 6
+pub fn fin_local_body(
+    fin: &FinGeometry,
+    section: FinCrossSection,
+    rho_t: f64,
+    rho_fillet: f64,
+) -> RigidBody {
+    let tab = fin.tab.as_deref().map(polygon_moments).unwrap_or_default();
+    let (plan, plan_a3) = planform_section_moments(fin, section);
+    let pm = tab.plus(plan);
+    // ∫∫τ³ dA of tab and planform: the area itself for a slab.
+    let a3 = match section {
+        FinCrossSection::Square => pm.a,
+        _ => tab.a + plan_a3,
+    };
     let xp = rw_geom::frames::fin_pivot_x(fin);
     let t = fin.thickness;
-    // Plate: shift x to u = x − xp; the thickness adds ∫w² = t²/12 per mass.
+    // Plate: shift x to u = x − xp; the thickness adds ∫w² = t² τ²/12 per mass.
     let mut raw = Raw {
         m: rho_t * pm.a,
         first: [rho_t * (pm.ax - xp * pm.a), rho_t * pm.ay, 0.0],
@@ -144,7 +207,7 @@ pub fn fin_local_body(fin: &FinGeometry, rho_t: f64, rho_fillet: f64) -> RigidBo
     };
     raw.second[0][0] = rho_t * (pm.axx - 2.0 * xp * pm.ax + xp * xp * pm.a);
     raw.second[1][1] = rho_t * pm.ayy;
-    raw.second[2][2] = rho_t * pm.a * t * t / 12.0;
+    raw.second[2][2] = rho_t * a3 * t * t / 12.0;
     raw.second[0][1] = rho_t * (pm.axy - xp * pm.ay);
     raw.second[1][0] = raw.second[0][1];
     // Fillets: two line masses along the root, one on each face.
@@ -172,11 +235,12 @@ pub fn fin_local_body(fin: &FinGeometry, rho_t: f64, rho_fillet: f64) -> RigidBo
 /// cite: mil-hdbk-762 eq 7-22 p 564
 pub fn fin_set_body(
     fin: &FinGeometry,
+    section: FinCrossSection,
     instances: &[InstanceGeometry],
     rho_t: f64,
     rho_fillet: f64,
 ) -> RigidBody {
-    let one = fin_local_body(fin, rho_t, rho_fillet);
+    let one = fin_local_body(fin, section, rho_t, rho_fillet);
     let placed: Vec<RigidBody> = instances
         .iter()
         .map(|i| one.rotated(&rot_x(i.roll)).translated(i.offset))

@@ -26,13 +26,13 @@ Conventions:
 | DM | Roll and pitch damping, roll forcing | 59 |
 | TF | Tube fins as annular (ring) wings, ringtails | 11 |
 | GE | Nose and transition geometry | 10 |
-| MI | Mass and inertia (Pappus/shell/solid, parallel axis, combination) | 32 |
+| MI | Mass and inertia (Pappus/shell/solid, parallel axis, combination) | 33 |
 | MM | Motor mass over the burn | 15 |
 | AT | USSA 1976 atmosphere, 0-86 km | 33 |
 | RC | Recovery, descent, tumbling | 7 |
 | RB | Rigid-body 6DOF (impl.) | 4 |
 | LQ | Liquid engines: thrust chamber, injector, feed, pressurant, tanks (sp-125) | 19 |
-| | **total** | **439** |
+| | **total** | **440** |
 
 ## Symbols
 
@@ -336,7 +336,7 @@ Conventions:
 | BW-19 | Barrowman fins | single-fin C_Nα, simplified | niskanen-2009 | (3.40) | 39 | 29 | (C_Nα)_1 = 2π (s²/A_ref) / (1 + sqrt(1 + (β s²/(A_fin cos Γ_c))²)) | subsonic |
 | BW-20 | Barrowman fins | supersonic strip pressure coefficient | niskanen-2009 | (3.41) | 40 | 30 | C_P,i = K_1 η_i + K_2 η_i² + K_3 η_i³ | Busemann 3rd order, flat plate |
 | BW-21 | Barrowman fins | Busemann K_1 | niskanen-2009 | (3.42) | 40 | 30 | K_1 = 2/β | M > 1 |
-| BW-22 | Barrowman fins | Busemann K_2 | niskanen-2009 | (3.43) | 40 | 30 | K_2 = ((γ + 1) M⁴ − 4β²)/(4β⁴) | half the second-order coefficient (Errata); not used in rw-aero outside tests |
+| BW-22 | Barrowman fins | Busemann K_2 | niskanen-2009 | (3.43) | 40 | 30 | K_2 = ((γ + 1) M⁴ − 4β²)/(4β⁴) | half the second-order coefficient (Errata); rw-aero uses the 2β⁴ form (`mach::busemann_c2`) for the wedge fin section and the printed form nowhere outside tests |
 | BW-23 | Barrowman fins | Busemann K_3 | niskanen-2009 | (3.44) | 40 | 30 | K_3 = ((γ + 1) M⁸ + (2γ² − 7γ − 5) M⁶ + 10(γ + 1) M⁴ + 8)/(6β⁷) |  |
 | BW-24 | Barrowman fins | supersonic strip force | niskanen-2009 | (3.45) | 41 | 31 | F_i = C_P,i q_dyn c_i Δξ |  |
 | BW-25 | Barrowman fins | supersonic fin C_N from strips | niskanen-2009 | (3.47) | 41 | 31 | C_N = (1/A_ref) Σ_i C_P,i c_i Δξ |  |
@@ -446,7 +446,7 @@ Conventions:
 | BW-B67-089 | fin (App. A) | pitching moment coefficient, fin pair | barrowman-1967 | (18) | 97 | 87 | C_m = 2 M_p Δy / (A L) | 2 fins |
 | BW-B67-090 | fin (App. A) | supersonic fin CP coordinates | barrowman-1967 | (20)-(21) | 97 | 87 | X̄ = M_p / (F_l cos α) ; Ȳ = M_r / F_l |  |
 | BW-B67-091 | fin (App. A) | slopes from 1-degree values | barrowman-1967 | (22)-(24) | 97 | 87 | C_Lα = (180/π) C_L at α=1° ; C_mα = (180/π) C_m at α=1° ; C_lδ = (180/π) C_l at δ=1° | per radian |
-| BW-B67-095 | fin (App. A) | region surface inclinations | barrowman-1967 | (33a)-(33d) | 98 | 88 | η_1 = ζ_L − α ; η_2 = −α ; η_3 = −ζ_T − α ; η_4 = ζ_L + α ; (η_5 = α ; η_6 = −ζ_T + α, pdf 101) | η_5, η_6 printed as (38e), (38f) on pdf 101 (Errata) |
+| BW-B67-095 | fin (App. A) | region surface inclinations | barrowman-1967 | (33a)-(33d) | 98 | 88 | η_1 = ζ_L − α ; η_2 = −α ; η_3 = −ζ_T − α ; η_4 = ζ_L + α ; (η_5 = α ; η_6 = −ζ_T + α, pdf 101) | η_5, η_6 printed as (38e), (38f) on pdf 101 (Errata). Implemented for the single-wedge fin section with ζ_L = δ on both faces and no aft region: ΔC_P = C_P(δ + η) − C_P(δ − η) = η[2(K_1 + K_3 η²) + 4 C_2 δ + 6 K_3 δ²], C_2 the 2β⁴ coefficient (Errata) |
 | BW-B67-092 | fin (App. A) | Mach angle | barrowman-1967 | (36) | 101 | 91 | μ = tan⁻¹(1/β) = sin⁻¹(1/M) | M > 1 |
 | BW-B67-093 | fin (App. A) | tip Mach-cone intersection distance | barrowman-1967 | (38) | 101 | 91 | l_w = (s − y)(tan Γ_L + β) | (37): (s − y)[tan Γ_L + tan(90° − μ)] |
 | BW-B67-096 | fin (App. A) | load behind the tip Mach cone | barrowman-1967 | (39)-(44) | 102 | 92 | r_i = fraction of region i behind the tip Mach line: l_w ≥ c: none; c > l_w ≥ c − l_T: r_3 = r_6 = (c − l_w)/l_T; c − l_T > l_w ≥ l_L: r_2 = r_5 = (c − l_T − l_w)/l_M, r_3 = r_6 = 1; below: r_1 = r_4 = (l_L − l_w)/l_L, others 1. C_p behind the Mach cone = ½ the (1) value | the half is the sentence after (44). Flat plate: the fraction (c − l_w)/c of the chord carries half load. Summed over a rectangular panel with βAR ≥ 2: 1 − 1/(2βAR), AR = 2s/c. rw-aero adds the opposite panel's tip (BW-1307-07), which keeps that result down to βAR = 1 (`fins::tip_cone_strip_factor`) |
@@ -584,6 +584,7 @@ d is the ring diameter (TN 4117: inner diameter), c the chord (tube length L), A
 | MI-30 | mass/inertia | parallel-axis (impl.) | rocketpy | - | - | - | I_ref = I + m d_axis² | rocketpy:rocketpy/tools.py:parallel_axis_theorem_from_com |
 | MI-31 | mass/inertia | rocket CG with motor (impl.) | rocketpy | - | - | - | x_cg(t) = (m_dry x_cg,dry + m_mot(t) x_cg,mot(t)) / (m_dry + m_mot(t)) | rocketpy:rocketpy/rocket/rocket.py:Rocket.evaluate_center_of_mass |
 | MI-32 | mass/inertia | rocket inertia combine (impl.) | rocketpy | - | - | - | I_yy = Σ_i [I_yy,i + m_i (x_i − x_ref)²] ; I_xx = Σ_i I_xx,i | rocketpy:rocketpy/rocket/rocket.py:Rocket.evaluate_dry_inertias / evaluate_inertias |
+| MI-N460-01 | mass/inertia | airfoil fin section thickness form | naca-report-460 | unnumbered | 6 | 4 | ±y_t = (t/0.20)(0.29690 √x − 0.12600 x − 0.35160 x² + 0.28430 x³ − 0.10150 x⁴), x the chord fraction, t the maximum thickness over the chord | symmetric four-digit section; full thickness over t is τ = 10(…), 1.0003 at x = 0.3, 0.021 at the open trailing edge. Our integrals: ∫τ = 0.68508, ∫xτ = 0.28803 (centroid 0.42044 c), ∫x²τ = 0.15892. Used for the `airfoil` fin section mass (rw-geom `section.rs`); choosing this form for `airfoil` is ours |
 
 ### MM — Motor mass over the burn
 
@@ -697,7 +698,7 @@ SI forms (SP-125 writes weight flow ẇ and g; here ṁ = ẇ/g). sp-125 printed
 | niskanen-2009 | (3.44), pdf 40 | K_3 omits the −12 M² term that barrowman-1967 (3-7), pdf 14, prints. | Use Barrowman's K_3 (BW-B67-008). |
 | niskanen-2009 vs barrowman-1967 | (3.48)/(3.49), pdf 41; (3.72), pdf 49; barrowman-1967 App. A (8), (33a)-(33d), (16), pdf 96-98 | The supersonic fin load and roll damping apply one face's Busemann C_P as the whole strip load. App. A sums the regions of both faces, so for a flat plate the load is ΔC_P = 2(K_1 η + K_3 η³): twice the thesis at α → 0, with no K_2 term. The thesis's own subsonic (3.67)/(3.69) use the two-face 2π/β, and the two-face supersonic limit is Ackeret's 4/β. | Two-face ΔC_P (BW-B67-094/095) in BW-26 and DM-13; parity-log, Basic Finner section. |
 | barrowman-1967 | App. A (4), (8), pdf 94/96; (38e)/(38f), pdf 101 | (4) and (8) print no face sign: with d_i = l_i cos η_i > 0 for all six regions, a literal sum cancels the K_1 term. η_5 and η_6 are numbered (38e)/(38f), continuing (33a)-(33d) two pages earlier. | Lift = windward minus leeward face (BW-B67-094); read (38e)/(38f) as (33e)/(33f). |
-| niskanen-2009, barrowman-1967 | (3.43), pdf 40; (3-7), pdf 13; App. A (2b), pdf 94 | K_2 is printed as ((γ+1)M⁴ − 4β²)/(4β⁴), 0.7333 at M 2. Expanding the exact simple-wave C_P to second order in the deflection gives ((γ+1)M⁴ − 4β²)/(2β⁴), 1.4667 at M 2. | None needed: K_2 cancels in the two-face flat-plate load, and rw-aero evaluates it only in tests (`mach::busemann` returns the printed form). A one-face or cambered-section load would need the 2β⁴ form. |
+| niskanen-2009, barrowman-1967 | (3.43), pdf 40; (3-7), pdf 13; App. A (2b), pdf 94 | K_2 is printed as ((γ+1)M⁴ − 4β²)/(4β⁴), 0.7333 at M 2. Expanding the exact simple-wave C_P to second order in the deflection gives ((γ+1)M⁴ − 4β²)/(2β⁴), 1.4667 at M 2. | `mach::busemann` returns the printed form, which nothing outside tests reads: K_2 cancels in the two-face flat-plate load. The wedge fin section, whose faces are inclined to each other, takes the 2β⁴ form from `mach::busemann_c2` for its forebody pressure and its thickness lift. |
 | niskanen-2009 | (3.73)/(3.74), pdf 50 | The equilibrium roll rate uses y_mac, but the forcing term (3.66) uses (y_mac + r_t). | Equate DM-08 and DM-10 directly; do not use the printed f_eq. |
 | niskanen-2009 vs barrowman-1967 | (3.82) vs (4-9)/(4-10), pdf 55/57 | Subsonic C_f correction: Niskanen uses 1 − 0.1 M² for both smooth and rough. Barrowman uses 1 − 0.09 M² (smooth) and 1 − 0.12 M² (rough). | Model choice: Niskanen. Flag in the parity log. |
 | niskanen-2009 vs barrowman-1967 | (3.89) vs (4-18)/(4-19), pdf 59/60 | LE drag: the transonic slope is 1.785 vs 1.5, and Niskanen drops the supersonic +0.0231/M⁶ term. | Model choice: Niskanen. Flag in the parity log. |
@@ -729,7 +730,7 @@ SI forms (SP-125 writes weight flow ẇ and g; here ṁ = ẇ/g). sp-125 printed
 12. **Nose/transition wall-to-shoulder joint.** MI-07 (wall of thickness t_w), MI-18 (shoulder tube) and MI-25 (superposition) define the parts; no source adds material where the wall meets the shoulder, so rw-geom adds none (the M2.1 45° chamfer was removed in M2-parity).
 13. **Body-load CP outside chart 16.** NACA TR 1307 chart 16 covers subsonic trapezoids with λ = 0..1 between the no-leading-edge and no-trailing-edge sweep families; other planforms (elliptical, freeform, aft-swept trailing edge, forward-swept leading edge, λ < ½ with a forward-swept mid-chord) keep the body load at the fin CP. The supersonic body-load CP (TR 1307 charts 14-15, eqs 66-70) is not implemented: rw-aero fades the body load and its CP shift with K_B(T) from M 0.9 to 1.5 (BW-1307-05, `fin_body_cp`), freezing β at M 0.9.
 14. **Liquid propellant and pressurant properties.** SP-125 tabulates no N2O or alcohol data; `rw_liquid::props` uses NIST Chemistry WebBook reference values at 20 °C (N2O 786.6, ethanol 789.3, IPA 785.1 kg/m³; N2 R = 296.8 J/(kg K), γ = 1.40; He 2077.1, 1.667) and treats N2O as single-phase liquid (spec S:129).
-15. **Fin cross-section: wedge (sharp LE, linear thickness taper, blunt TE).** The equations are in the folder; the missing piece is the model. `FinCrossSection` offers `Rounded`, `Square`, and `Airfoil` (zero TE), and Niskanen (3.89)/(3.90) cover only rounded and square LE profiles, so there is no wedge option. The leading face of a sharp wedge is a compression surface behind an attached oblique shock. At small wedge angle its pressure is the Busemann series C_p = K_1 η + K_2 η² + K_3 η³ (BW-20, BW-21; Barrowman Appendix A prints it with the shock term K* in BW-B67-080..082). Barrowman's strip method turns that pressure into the fin wave drag (BW-B67-084, BW-B67-088), and (4-39) adds the wave drag to the supersonic tail drag sum (PD-B67-013). A blunt wedge TE takes the full base_cd, as `Square` does. Until the option exists the DREV Basic Finner fixture uses `Airfoil` (see parity log).
+15. **Fin cross-section: wedge (sharp LE, linear thickness taper, blunt TE). Closed.** `FinCrossSection::Wedge` exists. No source prints a wedge-section fin formula in closed form; the model is assembled from cited pieces. The forebody pressure is the Busemann series on a face turned δ into the flow, C_p = K_1 δ + C_2 δ² + K_3 δ³ (BW-B67-006..008, with the 2β⁴ second-order coefficient of the Errata), which is what Barrowman's strip method integrates into the fin wave drag (BW-B67-084, BW-B67-088, PD-B67-013). The blunt base takes the full base drag (PD-08, as square). The lift takes the same series on both faces at δ ± η (BW-B67-094, BW-B67-095). What no source gives, and is ours: zero forebody pressure drag below M 0.9 with a cubic to M 1.5, the cap at the blunt-edge value, and holding δ at 10° on short-chord strips (parity-log model choices). The K* shock term is left out, as for the flat plate.
 
 ## Verification
 
@@ -737,3 +738,4 @@ SI forms (SP-125 writes weight flow ẇ and g; here ṁ = ẇ/g). sp-125 printed
 - 2026-11-09: niskanen-2009 (3.45)-(3.49) pdf 41 and (3.67)-(3.72) pdf 49, and barrowman-1967 App. A (1)-(7) pdf 92-94, (8)-(15) pdf 96, (16)-(24) pdf 97, (33a)-(33d) pdf 98, Fig 3 pdf 99 and (38e)/(38f) pdf 101 were checked on rendered page images for the BW-26, DM-13, BW-B67-094/095 rows and the two-face Errata entries.
 - The row builders verified each row against the page text, using rendered images where the text was garbled. The Errata entries for niskanen-2009 (3.44) and barrowman-1967 (3-96) were re-confirmed on page images (pdf 14 and pdf 41).
 - 2026-11-15: barrowman-1967 App. A (36)-(44) and the sentence after (44), pdf 101-102, and naca-tr-1307 chart 8 (pdf 63) were read on rendered page images, and naca-tr-1307 footnote 1 (pdf 5) in the extracted text, for the BW-B67-096, BW-1307-06 and BW-1307-07 rows. The 2β⁴ form in the K_2 Errata row is our expansion, not a printed equation.
+- 2026-11-15: naca-report-460 pdf 6 (printed 4) was read on a rendered page image for MI-N460-01: the five coefficients, the t/0.20 scaling, and the four conditions (ordinate 0.1 at 0.3 chord, 0.002 at the trailing edge). The OCR text layer of that page garbles the equation. The integrals in the row are ours.

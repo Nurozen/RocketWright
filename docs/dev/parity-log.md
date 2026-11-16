@@ -19,7 +19,7 @@ aft end at inner-tube aft + overhang; golden `case1-generic.json` `static`).
 | shock cord | 7.2e-4 | 7.2e-4 | 0.000% |
 | wadding (mass component) | 2.0e-3 | 2.0e-3 | 0.000% |
 | launch lug | 4.486194e-4 | 4.486194e-4 | 0.000% |
-| trapezoidal fin set (3) | 6.155741e-3 | 6.217920e-3 | +1.01% |
+| trapezoidal fin set (3, rounded section) | 6.155741e-3 | 6.165385e-3 | +0.16% |
 | centering ring ×2 | 1.794478e-4 | 1.794478e-4 | 0.000% |
 | inner tube | 1.482046e-3 | 1.482046e-3 | 0.000% |
 | engine block | 4.806637e-4 | 4.806637e-4 | 0.000% |
@@ -38,18 +38,56 @@ Causes:
   integration):** IF2 `EvalShape::Parachute` carries `line_count`,
   `line_length`, `line_material`, and `rw-mass/src/component.rs::lump_mass`
   adds `line_count · line_length · λ(line_material)`. The parachute now
-  matches the oracle (7.975951e-3 kg, 0.000%); static mass +0.133%, CG
-  +0.06 mm.
-- **Fin set +1.0%.** Our plate is ρ t A with A = 1.524e-3 m² per fin (the
-  oracle's own `planform_area_m2` agrees). The oracle mass implies an
-  effective area of 1.509e-3 m² (−1.5e-5 m² per fin, about 0.3 mm of root
-  chord depth). Cause not identified; no tab (tab height 0) and no fillet.
+  matches the oracle (7.975951e-3 kg, 0.000%); static mass was then +0.133%,
+  CG +0.06 mm, and with the rounded fin section (next item) it is +0.014%,
+  CG +0.01 mm.
+- **Fin set +0.16% (was +1.01%).** The fins are rounded
+  (`cross_section_rounded` in the oracle geometry) and were weighed as a
+  square-edged slab ρ t A, A = 1.524e-3 m² per fin: 6.217920e-3 kg, +1.01%.
+  The oracle mass is 0.99000 of that slab. rw-mass now takes the half-round
+  leading and trailing edges off the slab, k = 1 − (1 − π/4) t s/A
+  (`rw_geom::section::rounded_plate_factor`; model choices below). For this
+  fin (t = 2 mm, chord 50.8 mm) k = 0.99155, which leaves +0.16%. The test
+  now builds the fins as `rounded`. No tab (tab height 0) and no fillet.
 - **Nose cone +0.26%.** Our cavity is the inward normal offset of the outer
   curve with a 45° chamfer down to the shoulder bore and a capped shoulder
   (rw-geom `profile.rs`); the oracle's wall/shoulder construction evidently
   differs slightly. Outer volume, shoulder, and density agree. **Resolved
   (M2-parity):** the chamfer had no source; without it (wall MI-07 +
   shoulder tube MI-18 + cap, MI-25) the nose is 1.315640e-2 kg (+0.003%).
+
+Fin mass by cross-section (rw-geom `section.rs`, rw-mass `fins.rs`). The
+planform part of the plate takes the section; the fin tab is a slab of the
+full thickness for every section; a sheet material given by surface density
+weighs per unit planform area whatever the section:
+
+| Section | `thickness` is | Volume over the slab t A | Chordwise centroid from the LE | Source |
+|---|---|---|---|---|
+| square | the plate thickness | 1 | c/2 | MI-20 |
+| rounded | the plate thickness | k = 1 − (1 − π/4) t s/A, at least π/4, applied uniformly | c/2 | derived: each half-round edge of radius t/2 removes t²/2 − πt²/8 per unit length, two edges per chord. Edge length is measured along the span: sweep and the tip edge are not counted. |
+| airfoil | the maximum thickness (at 30% chord) | 0.68508 | 0.42044 c | MI-N460-01: NACA four-digit thickness form, open trailing edge (0.021 t), integrated strip by strip |
+| wedge | the trailing-edge thickness (zero at the leading edge) | 1/2 | 2c/3 | triangle; second moment about the strip LE c²/2 of the strip mass, m t²/24 across the thickness |
+
+Choosing the NACA four-digit form for "airfoil" is ours: the model has no
+profile parameter, and the aero terms for this section (eq 3.89 leading
+edge, zero trailing-edge drag) do not depend on the profile. Before this
+change rounded, airfoil and wedge fins were all weighed as the slab.
+
+Model choices in the fin section mass (ours, not from a source):
+
+- **Rounded edges are counted along the span only.** k uses an edge length
+  of s for the leading and the trailing edge. A swept edge is longer
+  (s/cos Γ) and the tip edge is not rounded at all in this count, so a
+  swept or low-aspect-ratio rounded fin is weighed slightly heavy. For
+  case 1 the residual is +0.16% of the fin set.
+- **Airfoil is the NACA four-digit thickness form.** Its volume is 0.685
+  of the slab, with the centroid at 0.42 chord (naca-report-460). A fin
+  imported from an OpenRocket file as `airfoil` is weighed this way, which
+  need not match the mass the originating program gives it. No oracle case
+  has airfoil fins, so no parity number covers it.
+- **A surface-density material ignores the section.** A sheet stock given
+  in kg/m² weighs σ times the planform area for every `cross_section`: its
+  thickness is not a volume the section can take material from.
 
 Errata-driven model choices in rw-mass:
 
@@ -87,7 +125,8 @@ cited to `literature-map.md`. Delta = (ours / oracle − 1).
 | Supersonic tip relief | Strip factor f = 1 − ½r_own − ½r_opp, r the fraction of the strip chord behind a tip Mach line: own tip l_w = (s − y)(tan Γ_L + β), opposite tip of the joined wing (s − y) tan Γ_L + β(s + y). F is the area mean of f. Γ_L is the planform's strip-averaged leading-edge sweep, taken as 0 when negative (forward-swept leading edge) | BW-B67-092, BW-B67-093, BW-B67-096, BW-1307-06 | Barrowman App. A halves C_P behind the own-tip Mach cone. The opposite-tip term is ours: the wing alone is the two exposed panels joined (TR 1307 footnote 1), and with it a rectangle gives the linear-theory 1 − 1/(2βAR) down to βAR = 1 instead of βAR = 2. The same strip factors go to roll damping and (as F) roll forcing, although a rolling or canted set loads opposite panels in opposite senses. The strip rule is sourced for aft-swept and unswept leading edges only; treating a forward-swept leading edge as unswept is ours. |
 | Supersonic fin load, βAR < 1 | Every strip factor is multiplied by H(g)/(2g), g = β·AR: 1 at g ≥ 1; π/4 at g ≤ 0.5; between, H is the cubic from (0.5, π/4, slope π/2) to (1, 2, slope 2) | BW-1307-06, BW-19 | Below g = 1 the half-load rule gives a rectangle βC_Lα = 2g; chart 8 (λ = 1) falls from 2 at g = 1 to the slender-wing (π/2)g at g = 0.5, where its linear-theory curve ends. With the factor the rectangular slope is continuous with a continuous derivative, positive, increasing in g, and equal to the slender-wing (π/2)AR on the panel area for g ≤ 0.5, the low-AR limit of (3.40). The cubic and its use for non-rectangular planforms are ours. |
 | Strip load at high incidence | The K₃ term is held at 17.5°: ΔC_P = 2η(K₁ + K₃·min(|η|, 17.5°)²), in fin C_Nα (η = α) and roll damping (η = atan(ωξ/V)) | BW-B67-094 | Against exact shock-expansion for a flat plate (γ = 1.4, M 1.5 to 4.3, attached shock) the series is at most +5.9% high up to 17.5° (M 4.3, 17.5°). On the low side it is −3.0% at M 1.5, 10°, and it under-predicts by up to about 14% in the last degree or two before shock detachment for M 1.5 to 1.8 (−13.7% at M 1.5, 12.1°; −14.0% at M 1.7, 17.0°; −5.2% at M 1.8, 17.5°). Unbounded it is +8.4% at 20° and +22% at 30° for M 4.3, and its secant slope at M 1.5, α = 90° is 18.7 per unit fin area. Held, the error over M 1.5 to 4.3 with the shock attached is −11.4% to +0.9% at 20°, −16.1% to −7.8% at 25°, −23.1% to −15% at 30°, and the M 1.5 secant slope is 4.15 at any α above the limit. Continuous in value; the slope of ΔC_P in η steps at the limit. |
-| Fin cross-section: wedge | No wedge option; "airfoil" used in the DREV Basic Finner fixture | BW-B67-080..088, PD-B67-013 (literature-map Gap 15) | DREV fins are sharp-LE wedges (0.004 cal LE radius, 0.08 cal thick at the base). The "airfoil" LE drag (eq 3.89) is too high for a sharp LE. Its TE drag is zero; a blunt wedge TE takes the full base_cd, which would raise C_D. Open: add `FinCrossSection::Wedge`. |
+| Fin cross-section: wedge drag | Forebody (LE row): per strip C_D•,LE = min(blend, 0.85 q_stag/q), blend = 0 for M ≤ 0.9, K₁δ + C₂δ² + K₃δ³ from M 1.5, the C¹ cubic of the fin blend between; span mean over the strips on N t s; no cos²Γ_L factor. Trailing edge: the full base drag, as square. δ_i = min(atan(t/2c_i), 10°), C₂ = ((γ+1)M⁴ − 4β²)/(2β⁴) | BW-B67-006, BW-B67-007, PD-B67-013, PD-08 | The exact second-order coefficient is twice the printed K₂ (Errata), and a wedge needs it because its two faces do not cancel. Against the exact oblique shock at δ = 2.29° the third-order C_P is within 0.1% for M 1.5 to 4.3. Ours: the zero forebody term below M 0.9 (an unseparated sharp wedge has no forebody pressure drag in subsonic flow; its drag is the base), the cubic to M 1.5 (not a transonic model; the shock is detached near M 1), the stagnation cap, and the 10° cap on δ, which only short-chord strips near a pointed tip reach (at 10° the series is −5.9% at M 1.5, within 0.5% at M 2 to 3, +1.1% at M 4.3). No tip relief on drag. |
+| Fin cross-section: wedge lift | Supersonic strip secant slope gains 4C₂δ_i + 6K₃δ_i²: ΔC_P = C_P(δ+η) − C_P(δ−η) = η[2(K₁ + K₃η²) + 4C₂δ + 6K₃δ²]. Fin slope (A_fin/A_ref)[2(K₁ + K₃α_c²)F + W], W the area mean of f_i(4C₂δ_i + 6K₃δ_i²); roll damping adds the same term strip by strip, roll forcing takes it through the fin slope | BW-B67-094, BW-B67-095 | (33a)-(33d) with the same inclination δ on both faces. Proportional to (t_TE − t_LE)/c, so exactly zero for square, rounded and airfoil, whose output is unchanged to the last bit. At δ = 2.29° and α → 0 the wedge-to-flat-plate load ratio is 1.1105 at M 1.5, 1.1054 at M 2 and 1.2215 at M 4.3, against 1.1127, 1.1059 and 1.2200 from exact shock-expansion (so a flat plate is 10 to 18% low for this section). No change to the fin CP station. Below M 0.9 a wedge lifts as a flat plate. |
 | Supersonic fin CP fit (3.35) | Clamped to 0.25 to 0.5 of the MAC | BW-14 | At low AR·β the fit's denominator nears 0. |
 | Nose drag, ellipsoid/power/parabolic/Haack | Cone curve with the same l_n and d at M ≥ 1 | PD-14, PD-19 | Stoney C_3(M) data is not in any local source (Gaps 5). The `model` string says "cone fallback". |
 | Subsonic nose drag | a M^b + C_0, fitted to value and slope at M = 1 | PD-02 | |
@@ -1107,18 +1146,24 @@ coefficients at 8 Mach groups, M 1.077 to 4.300, α ≈ 0° (abarm ≤ 7.2°).
 Table X: roll moment due to fin cant for 16 models with 2° and 4° cant. CG at
 5.50 cal from the nose; d = 30 mm. Files in `tests/validation/basic_finner_drev/`.
 
-Model revisions scored against this data: the one-face supersonic fin load of
-niskanen-2009 (3.49)/(3.72) until 2026-11-09, both faces loaded from then, tip
-Mach-cone relief added 2026-11-15. The numbers below are the current model.
+The model scored here is the two-face supersonic fin load with tip Mach-cone
+relief, on a fixture whose fins are `cross_section = "wedge"`: forebody and
+base pressure drag for the wedge, and its thickness lift. Until the wedge
+section existed the fixture used "airfoil"; that column is kept in the
+tables below because it is the same aero model with a flat-plate fin.
 
 The two tests run in report mode. They print the errors and fail only on a
 non-finite output, a malformed table, or an error above a sanity bound set
 about 10% outside the current values:
 
-- Table IX: RMS CX0 ≤ 0.90, CNα ≤ 0.30, Cmα ≤ 0.275, CP ≤ 0.092 cal, and the
-  signed CP error d_cal within −0.05 to +0.20 cal at every Mach group.
-- Table X, the 12 models at M 1.80 to 4.47: RMS Cl_δ error ≤ 0.14 and every
-  model/measured ratio within 0.70 to 1.10.
+- Table IX: RMS CX0 ≤ 0.24, CNα ≤ 0.225, Cmα ≤ 0.101, CP ≤ 0.293 cal, and the
+  signed CP error d_cal within −0.05 to +0.42 cal at every Mach group.
+- Table X, the 12 models at M 1.80 to 4.47: RMS Cl_δ error ≤ 0.064 and every
+  model/measured ratio within 0.84 to 1.23.
+
+The CP bounds (0.092 cal RMS and +0.20 cal with "airfoil") and the upper
+Cl_δ ratio (1.10) are wider than they were. The CP ones record a real limit:
+see Static margin below.
 
 Cmq is printed but not scored: the rw-aero model is quadratic in pitch rate
 and the DREV Cmq is linear, normalised by qd/2V (report section 7, eqs
@@ -1128,20 +1173,29 @@ and the DREV Cmq is linear, normalised by qd/2V (report section 7, eqs
 
 The fixture geometry is inline in `crates/rw-aero/tests/basic_finner_baseline.rs`.
 
-- **Fin cross-section**: "airfoil" (literature-map Gap 15; see model choices table above).
+- **Fin cross-section**: "wedge", trailing-edge thickness 0.08 cal = 2.4 mm
+  (section 3.1, Figure 2), so the half-angle is atan(0.04) = 2.29°. The
+  0.004 cal leading-edge radius is taken as sharp.
 - **Fin geometry**: rectangular, root = tip = chord = span = 1 cal = 30 mm;
   TE flush with base (x_fore = 9 cal, x_aft = 10 cal) (section 3.1, Figure 2).
-- **Fin thickness**: 0.08 cal = 2.4 mm (section 3.1, Figure 2).
 - **Roughness**: 5×10⁻⁷ m (steel surface) throughout.
 - **CG**: 5.50 cal = 165 mm from nose tip (Table I).
 
 ### Supersonic fin model
 
 From M 1.5 the load on a fin strip at incidence η is the Busemann series on
-both faces, ΔC_P = C_P(+η) − C_P(−η) = 2(K₁η + K₃η³), as Barrowman 1967 App. A
-sums it ((8), (33a)-(33d), pdf 96-98; BW-B67-094/095). Niskanen (3.48)/(3.49)
-and (3.72) apply one face's C_P as the whole load, half of this at α → 0
-(literature-map Errata).
+both faces. For a flat plate that is ΔC_P = C_P(+η) − C_P(−η) =
+2(K₁η + K₃η³), as Barrowman 1967 App. A sums it ((8), (33a)-(33d), pdf 96-98;
+BW-B67-094/095). Niskanen (3.48)/(3.49) and (3.72) apply one face's C_P as
+the whole load, half of this at α → 0 (literature-map Errata).
+
+A single wedge has both faces inclined δ to the chord plane, so the faces
+sit at δ + η and δ − η and the second-order terms no longer cancel:
+ΔC_P = η[2(K₁ + K₃η²) + 4C₂δ + 6K₃δ²], with C₂ = ((γ+1)M⁴ − 4β²)/(2β⁴), twice
+the printed K₂ (Errata). At δ = atan(0.04) the extra term raises the fin
+load by 10.1% at M 1.832 and 22.1% at M 4.300 (fn_bare, wedge over
+"airfoil"). Sections with equal edge thicknesses (square, rounded, airfoil)
+have no such term and keep the flat-plate load to the last bit.
 
 The finite span is Barrowman's tip Mach-cone correction (App. A (36)-(44),
 pdf 101-102; BW-B67-092, -093, -096): the part of a strip's chord behind the
@@ -1157,98 +1211,146 @@ AR = 2s²/A_fin. Below βAR = 1 a second factor brings the rectangular wing
 down to chart 8 (BW-1307-06, model choices table above). The Basic Finner
 panel has AR = 2, so βAR runs from 3.07 at M 1.832 to 8.36 at M 4.300 and
 only the own-tip term acts: the factor is 0.837 at M 1.832 and 0.940 at
-M 4.300.
+M 4.300. The wedge thickness term takes the same strip factors.
 
 Three terms take it:
 
-- fin C_Nα: (C_Nα)₁ = (A_fin/A_ref)·2(K₁ + K₃α_c²)·F, F the area mean of
-  the strip factors, α_c = min(α, 17.5°);
+- fin C_Nα: (C_Nα)₁ = (A_fin/A_ref)[2(K₁ + K₃α_c²)·F + W], F the area mean
+  of the strip factors, W the area mean of f_i(4C₂δ_i + 6K₃δ_i²) (zero
+  unless a wedge), α_c = min(α, 17.5°);
 - roll damping: each strip's ΔC_P,i times its own factor, so the tip strips,
   which have the longest arm, lose the most;
-- roll forcing: through `single_fin_cna`, so it takes F.
+- roll forcing: through `single_fin_cna`, so it takes F and W.
 
 From M 1.5 and at small spin, forcing and damping are built from the same 2D
 load and the same strip factors. They do not move together in the M 0.9 to
 1.5 blend, where each is a cubic from its own subsonic endpoint, nor at spin
 rates that put strip incidence into the K₃ term.
 
-Below M 0.9 nothing changed in either revision: the blend returns the
-subsonic law without evaluating the supersonic one. A dump of every
-`AeroCoeffs` field for cases 1 to 7, each plain and with 2° of fin cant,
-M 0.05 to 0.90 in 0.005 steps, six α from 0° to 45°, four roll/pitch-rate
-pairs, thrust on and off (114,912 evaluations) is identical to main before
-the two-face change (21b4e14), apart from the `model` strings. The oracles
-stop at M 0.71.
+Wedge pressure drag (`drag::pressure::wedge_le_cd`): the forebody carries
+C_P(δ) = K₁δ + C₂δ² + K₃δ³ on the frontal area N t s from M 1.5, zero below
+M 0.9, a cubic between; the blunt base takes the full base drag. At M 2 the
+forebody coefficient is 0.0486 on its own area.
+
+Below M 0.9 the fin lift and roll terms are the subsonic laws for every
+section: the blend returns them without evaluating the supersonic one. When
+the two-face load went in, a dump of every `AeroCoeffs` field for cases 1 to
+7, each plain and with 2° of fin cant, M 0.05 to 0.90 in 0.005 steps, six α
+from 0° to 45°, four roll/pitch-rate pairs, thrust on and off (114,912
+evaluations) was identical to main before that change (21b4e14), apart from
+the `model` strings. The oracles stop at M 0.71.
 
 ### Current model vs DREV Table IX
 
 err% is (rw − DREV)/DREV. CP is in cal from the nose; d_cal is model CP minus
 DREV CP, positive aft. The static margin is CP − 5.50 cal.
 
-| Mach | CNα DREV | rw (err) | Cmα DREV | rw (err) | CP DREV | CP rw | d_cal | margin DREV | margin rw | Clp DREV (pd/2V) | rw (err) |
-|---|---|---|---|---|---|---|---|---|---|---|---|
-| 1.077 | 18.47 | 15.51 (−16.0%) | −52.65 | −44.52 (−15.4%) | 8.350 | 8.371 | +0.020 | 2.85 | 2.87 | −18.16 | −198.61 (+993.7%) |
-| 1.293 | 18.27 | 13.51 (−26.0%) | −50.97 | −37.74 (−25.9%) | 8.290 | 8.293 | +0.003 | 2.79 | 2.79 | −23.57 | −100.97 (+328.4%) |
-| 1.832 | 11.78 | 9.41 (−20.1%) | −27.98 | −22.17 (−20.7%) | 7.875 | 7.857 | −0.018 | 2.37 | 2.36 | −22.35 | −21.54 (−3.6%) |
-| 2.375 | 10.52 | 7.57 (−28.0%) | −18.90 | −14.95 (−20.9%) | 7.297 | 7.475 | +0.178 | 1.80 | 1.97 | −18.31 | −16.49 (−9.9%) |
-| 2.718 | 9.01 | 6.84 (−24.1%) | −15.20 | −12.06 (−20.6%) | 7.187 | 7.263 | +0.076 | 1.69 | 1.76 | −16.65 | −14.47 (−13.1%) |
-| 3.147 | 8.69 | 6.17 (−29.0%) | −12.46 | −9.40 (−24.5%) | 6.933 | 7.024 | +0.090 | 1.43 | 1.52 | −13.50 | −12.58 (−6.8%) |
-| 3.734 | 8.32 | 5.51 (−33.7%) | −9.53 | −6.79 (−28.7%) | 6.646 | 6.732 | +0.086 | 1.15 | 1.23 | −13.18 | −10.71 (−18.8%) |
-| 4.300 | 7.74 | 5.05 (−34.7%) | −7.85 | −4.97 (−36.8%) | 6.515 | 6.483 | −0.032 | 1.01 | 0.98 | −11.71 | −9.38 (−19.9%) |
+| Mach | CX0 DREV | rw (err) | CNα DREV | rw (err) | Cmα DREV | rw (err) | CP DREV | CP rw | d_cal | margin DREV | margin rw | Clp DREV (pd/2V) | rw (err) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 1.077 | 0.863 | 0.707 (−18.1%) | 18.47 | 15.87 (−14.1%) | −52.65 | −45.92 (−12.8%) | 8.350 | 8.393 | +0.042 | 2.85 | 2.89 | −18.16 | −199.46 (+998.3%) |
+| 1.293 | 0.731 | 0.591 (−19.2%) | 18.27 | 14.53 (−20.5%) | −50.97 | −41.69 (−18.2%) | 8.290 | 8.370 | +0.081 | 2.79 | 2.87 | −23.57 | −103.67 (+339.8%) |
+| 1.832 | 0.585 | 0.439 (−24.9%) | 11.78 | 10.16 (−13.8%) | −27.98 | −25.15 (−10.1%) | 7.875 | 7.976 | +0.101 | 2.37 | 2.48 | −22.35 | −23.72 (+6.1%) |
+| 2.375 | 0.484 | 0.357 (−26.2%) | 10.52 | 8.24 (−21.6%) | −18.90 | −17.62 (−6.8%) | 7.297 | 7.638 | +0.341 | 1.80 | 2.14 | −18.31 | −18.47 (+0.9%) |
+| 2.718 | 0.435 | 0.322 (−25.9%) | 9.01 | 7.50 (−16.7%) | −15.20 | −14.70 (−3.3%) | 7.187 | 7.459 | +0.272 | 1.69 | 1.96 | −16.65 | −16.44 (−1.3%) |
+| 3.147 | 0.373 | 0.288 (−22.7%) | 8.69 | 6.83 (−21.4%) | −12.46 | −12.04 (−3.3%) | 6.933 | 7.262 | +0.329 | 1.43 | 1.76 | −13.50 | −14.58 (+8.0%) |
+| 3.734 | 0.309 | 0.254 (−17.9%) | 8.32 | 6.18 (−25.7%) | −9.53 | −9.46 (−0.8%) | 6.646 | 7.030 | +0.384 | 1.15 | 1.53 | −13.18 | −12.74 (−3.3%) |
+| 4.300 | 0.271 | 0.229 (−15.7%) | 7.74 | 5.73 (−26.0%) | −7.85 | −7.67 (−2.4%) | 6.515 | 6.838 | +0.323 | 1.01 | 1.34 | −11.71 | −11.45 (−2.2%) |
 
-RMS over the 8 Mach groups, for the three model revisions (unsigned; the
-direction column is for the current model):
+RMS over the 8 Mach groups (unsigned). The first two columns are the earlier
+fin-load revisions and the third the current load, all three on the
+"airfoil" fixture; the last is the current model on the wedge fixture:
 
-| Coefficient | one face | two faces | two faces + tip relief (current) | Direction now |
-|---|---|---|---|---|
-| CX0 | 84.4% | 84.4% | 84.4% | model high at all 8 |
-| CNα | 46.6% | 21.3% | 27.1% | model low at all 8 |
-| Cmα | 76.1% | 13.0% | 25.0% | model magnitude low at all 8 |
-| CP | 0.848 cal | 0.215 cal | 0.083 cal | d_cal −0.032 to +0.178 cal |
-| Clp (pd/2V, absolute) | 68.4 | 72.1 | 69.4 | magnitude high at M 1.077 and 1.293, low from M 1.832 |
+| Coefficient | one face, airfoil | two faces, airfoil | two faces + tip relief, airfoil | wedge (current) | Direction now |
+|---|---|---|---|---|---|
+| CX0 | 84.4% | 84.4% | 84.4% | 21.7% | model low at all 8 |
+| CNα | 46.6% | 21.3% | 27.1% | 20.5% | model low at all 8 |
+| Cmα | 76.1% | 13.0% | 25.0% | 9.2% | model magnitude low at all 8 |
+| CP | 0.848 cal | 0.215 cal | 0.083 cal | 0.267 cal | d_cal +0.042 to +0.384 cal, aft at all 8 |
+| Clp (pd/2V, absolute) | 68.4 | 72.1 | 69.4 | 70.1 | magnitude high at M 1.077 and 1.293; within 8% from M 1.832 |
 
 **Static margin.** Positive d_cal means the model CP is aft of the measured
 one, so the model static margin is larger than the real one by d_cal: the
-model is optimistic. It is optimistic by 0.08 to 0.18 cal at M 2.375 to 3.734
-(most at M 2.375: model 1.97 cal against 1.80 measured), within ±0.02 cal at
-M 1.077 to 1.832, and 0.03 cal pessimistic at M 4.300. With the one-face load
-the model was pessimistic at all 8 (0.04 to 1.22 cal forward); with two faces
-and no tip relief it was optimistic at all 8 (0.08 to 0.35 cal aft). This is
-one rectangular AR 2 planform. No other supersonic CP data is in the repo.
+model is optimistic. With wedge fins on this body it is optimistic at every
+Mach group: by 0.04 to 0.10 cal at M 1.077 to 1.832 and by 0.27 to 0.38 cal
+from M 2.375 up (most at M 3.734: model 1.53 cal against 1.15 measured).
+Treat a supersonic static margin computed for a wedge-finned rocket as up to
+0.4 cal too large.
 
-**CNα.** The model is low at every Mach, by 16% at M 1.077 and 35% at
-M 4.300, and the tip relief moved it away from the data (RMS 21.3% to 27.1%)
-while moving CP toward it. The bare fin term over the fin term DREV implies,
-(DREV CNα − nose CNα)/(K_T(B) + K_B(T)), is 0.76 at M 1.832 and falls to 0.53
-at M 4.300 (fn_bare / DREV_fin in the test output). What is known about the
-shortfall:
+This is worse than the "airfoil" fixture gave (d_cal −0.032 to +0.178 cal)
+although the fin model is better, and the reason is the body, not the fins.
+The wedge thickness lift is supported by the roll data, which only the fins
+produce: Cl_δ is within 12% and Clp within 8% from M 1.8 (below), where the
+flat plate was 10% and up to 20% low. With it CNα and Cmα both move toward
+the data. But the total CNα is still 14 to 26% low, and the DREV (CNα, CP)
+pairs put the missing lift ahead of the fins (CNα below). Adding the correct
+lift at the tail without the missing lift forward of it moves the CP aft of
+the measured one. The flat-plate fin load was too small by about the right
+amount to hide that. The fix is the body terms listed under Known gaps, not
+a smaller fin load. This is one rectangular AR 2 planform with 8% wedges. No
+other supersonic CP data is in the repo.
+
+**CNα.** The model is low at every Mach, by 14% at M 1.077 and 26% at
+M 4.300. The bare fin term over the fin term DREV implies,
+(DREV CNα − nose CNα)/(K_T(B) + K_B(T)), is 0.83 at M 1.832 and falls to 0.65
+at M 4.300 (fn_bare / DREV_fin in the test output; 0.76 to 0.53 with the
+flat-plate load). What is known about the shortfall:
 
 - Supersonic K_B(T) does not close it. TR 1307 chart 4(b) gives K_B(T) about
   0.08 for this no-afterbody case (βd/c_r = 2.15 at M 2.375); with the test's
-  fn_bare 4.180 that adds 0.33, taking CNα from 7.57 to 7.91 against DREV
+  fn_bare 4.682 that adds 0.37, taking CNα from 8.24 to 8.62 against DREV
   10.52. K_B(T) is still faded to zero by M 1.5 (BW-B67-073 not digitised).
 - DREV's (CNα, CP) pairs, with the model's nose term (CNα 2.0 at 1.89 cal),
   put the rest of the load at 8.1 to 8.7 cal for M ≥ 2.375, ahead of the fin
   leading edge at 9.0 cal. That points to body lift the model does not have
   (an inference from the data, not checked against a body-lift model).
-- The fins are 8% thick wedges; the model loads a flat plate.
 
-**Clp.** From M 1.832 the model is within −3.6% to −19.9% of DREV (one face:
-−36% to −55%; two faces without tip relief: +29% to −10%). At M 1.077 and
-1.293 it is 4 to 11 times DREV: the M 0.9 to 1.5 blend starts from the
-subsonic 2π/β at M 0.9, which is large. That overshoot is in every revision.
+**Clp.** From M 1.832 the model is within −3.3% to +8.0% of DREV (flat-plate
+load: −3.6% to −19.9%; one face: −36% to −55%). At M 1.077 and 1.293 it is 4
+to 11 times DREV: the M 0.9 to 1.5 blend starts from the subsonic 2π/β at
+M 0.9, which is large. That overshoot is in every revision.
 
-**CX0.** The model is high by 10.8% at M 1.077, rising to 150.9% at M 4.300.
-The driver is the fin LE term. "airfoil" uses eq 3.89, which is calibrated
-for a rounded LE and overestimates the drag of a sharp wedge LE: fn_LE is
-0.35 to 0.48 on A_ref, it is 0.484 of the model's 0.680 at M 4.3, and from
-M 2.718 up it exceeds the DREV total CX0 by itself (0.468 vs 0.435 at
-M 2.718). The nose and body are not the gap. The conical nose already uses
-the Niskanen B.4 supersonic cone pressure-drag law (ns_pres 0.240 at M 1.077
-falling to 0.084 at M 4.3), and body base drag at M 4.3 is 0.058, 21% of the
-DREV 0.271. The missing blunt-TE drag works in the opposite direction:
-"airfoil" has zero TE drag, and the full base_cd of a blunt wedge TE would
-raise the model CX0. Closing Gap 15 changes both terms.
+**CX0.** The model is low by 15.7% to 26.2% at every Mach group (with
+"airfoil" it was high by 10.8% at M 1.077 rising to 150.9% at M 4.300,
+because eq 3.89 is a rounded-edge law). By term on A_ref, M 1.077 to 4.300:
+wedge forebody (fn_LE) 0.008 to 0.026, fin base (fn_TE) 0.095 to 0.024, body
+base 0.232 to 0.058, nose pressure 0.240 to 0.084, friction (nose, body and
+fins) 0.133 to 0.054 in total. The fin forebody term is now small and
+within 0.1% of the exact oblique-shock value from M 1.5, so the remaining
+shortfall is not in it.
+
+The shortfall term by term at two Mach groups (C_D on A_ref; none of this is
+in the model, and nothing was tuned to it):
+
+| Term | M 1.832 | M 4.300 | Reading |
+|---|---|---|---|
+| DREV CX0 | 0.585 | 0.271 | |
+| Model total | 0.439 | 0.229 | short by 0.146 and 0.042 |
+| Nose pressure | 0.120 | 0.084 | Not short. An exact Taylor-Maccoll solution for the 9.98° cone gives 0.109 and 0.078, so the cone law is 8 to 10% high. |
+| Friction (nose + body + fins) | 0.105 | 0.054 | Would have to be 2.4 and 1.8 times larger to close the gap alone. Not checked against a second friction law. |
+| Body base, 0.25/M | 0.137 | 0.058 | Candidate, with the fin base |
+| Fin base, 0.25/M on N t s | 0.056 | 0.024 | Candidate: the body-of-revolution law on a two-dimensional blunt base |
+| Fin forebody | 0.022 | 0.009 | Sharp wedge only; the blunt leading edge is not modelled (below) |
+
+- **Leading-edge radius.** The DREV fin has a 0.004 cal leading-edge radius
+  and the fixture takes it as sharp. A half-cylinder of that radius has a
+  frontal area 4 × 0.008 cal × 1 cal = 0.0407 A_ref. At a modified-Newtonian
+  (2/3)C_P,stag (C_P,stag 1.625 and 1.798 from the Rayleigh pitot formula)
+  it adds about 0.042 at M 1.832 and 0.048 at M 4.300, net of the wedge
+  pressure it replaces. That is an estimate, not a measurement, and it is
+  the whole M 4.300 gap and under a third of the M 1.832 one.
+- **Base drag.** The two base terms together are 0.192 at M 1.832. A base
+  at vacuum, −C_P = 2/(γM²), is 0.426 at M 1.832 and 0.077 at M 4.300, so the
+  base terms have room for the M 1.832 gap (they would need 0.240 on the
+  base area in place of 0.137, or 0.210 after the leading-edge estimate) but
+  not for the M 4.300 one: both bases at vacuum add only 0.027 there. After
+  the leading-edge estimate the base coefficient the data would need is 1.3
+  to 1.6 times 0.25/M from M 1.077 to 3.147 and 1.09 and 0.93 times at
+  M 3.734 and 4.300. No two-dimensional base-pressure source is in the
+  repo, so how much of that belongs to the fin base is open.
+- **Blend.** Below M 1.5 the wedge forebody is a cubic down to zero at
+  M 0.9: 0.008 at M 1.077 against 0.026 at M 1.293. The gap at M 1.077
+  (0.156) is within 0.01 of the one at M 1.832 (0.146), where the blend
+  plays no part, so the blend is not the main term.
 
 **Cmq.** rw-aero pitch damping is proportional to (ω/V)² (Niskanen
 3.59/3.60); apparent Cmq at q = 1 rad/s in qd/2V ranges −0.024 to −0.092 vs
@@ -1260,30 +1362,42 @@ Table X prints no Mach number. `drev-tm-9703_table-X_model-mach.csv` joins
 each model to its shot's Mach from Table VIII (single fits), cross-checked
 against Table IV. Cl_δ is `cl_forcing`/δ at zero spin.
 
-| Band | models | one face | two faces | two faces + tip relief (current) |
-|---|---|---|---|---|
-| M 1.80 to 4.47 | 12 | 0.40 to 0.60 of measured (RMS 50.5%) | 0.80 to 1.21 (mean −0.3%, RMS 11.8%) | 0.75 to 1.01 (mean −10.5%, RMS 12.7%) |
-| M 1.06 to 1.38 (blend) | 4 | 0.81 to 1.83 | 1.49 to 2.21 | 1.16 to 2.00 |
+| Band | models | one face, airfoil | two faces, airfoil | two faces + tip relief, airfoil | wedge (current) |
+|---|---|---|---|---|---|
+| M 1.80 to 4.47 | 12 | 0.40 to 0.60 of measured (RMS 50.5%) | 0.80 to 1.21 (mean −0.3%, RMS 11.8%) | 0.75 to 1.01 (mean −10.5%, RMS 12.7%) | 0.92 to 1.12 (mean +3.3%, RMS 5.8%) |
+| M 1.06 to 1.38 (blend) | 4 | 0.81 to 1.83 | 1.49 to 2.21 | 1.16 to 2.00 | 1.28 to 2.08 |
 
-The current column is the test output; the other two are the same harness
-run on the earlier revisions. The tip relief removes the over-prediction at
-M 1.80 to 1.85 (1.19 and 1.21 to 0.99 and 1.01) and lowers the high-Mach end
-(0.80 to 0.75 at M 4.47). The small-rate steady spin per unit cant,
-pd/(2V)/δ = Cl_δ/|Clp|, is 0.487 to 0.516 over the band (0.462 at every Mach
-without tip relief). Table X Cl_δ over the same shot's Table VIII Clp gives
+The current column is the test output; the others are the same harness run
+on the earlier revisions and the "airfoil" fixture. The wedge thickness lift
+raises the twelve scored ratios by 10% (M 1.80) to 23% (M 4.47), which
+centres them on 1: the high-Mach end comes up from 0.75 to 0.92 and the two
+models nearest the blend, M 1.80 and 1.85, go from 0.99 and 1.01 to 1.09 and
+1.12. That is why the upper ratio bound moved from 1.10 to 1.23. The
+small-rate steady spin per unit cant, pd/(2V)/δ = Cl_δ/|Clp|, is 0.487 to
+0.516 over the band, unchanged by the section because forcing and damping
+take the same term. Table X Cl_δ over the same shot's Table VIII Clp gives
 0.48 to 0.50 (Table VIII is not transcribed in the repo). In the blend band
-forcing is 1.2 to 2.0 times measured and roll damping is several times too
+forcing is 1.3 to 2.1 times measured and roll damping is several times too
 large (4 to 11 times DREV at the Table IX groups M 1.077 and 1.293), so the
 predicted spin there is too low on every revision.
 
 ### Known gaps
 
-- CNα 16% to 35% low (above): no body lift at supersonic speed, K_B(T) faded
-  to zero from M 1.5, flat-plate fins.
-- M 0.9 to 1.5: fin C_Nα, roll forcing and roll damping are cubics between
-  the M 0.9 and M 1.5 laws, not a transonic model. Roll damping is 4 to 11
-  times DREV at M 1.077 and 1.293.
-- Fin drag: no wedge cross-section (Gap 15).
+- Static margin over-predicted by up to 0.38 cal for wedge fins on this
+  case (above), and CNα 14% to 26% low: no body lift at supersonic speed,
+  and K_B(T) faded to zero from M 1.5.
+- CX0 16% to 26% low with the wedge section (CX0 above). Likely missing:
+  the drag of the 0.004 cal leading-edge radius (estimated +0.042 at
+  M 1.832, +0.048 at M 4.300; a sharp wedge has none) and base drag above
+  0.25/M on the body and fin bases up to about M 3 (the data would need
+  about 1.5 times it at M 1.832). The nose law is 8 to 10% high, not low.
+  Not modelled and not tuned.
+- M 0.9 to 1.5: fin C_Nα, roll forcing, roll damping and the wedge forebody
+  drag are cubics between the M 0.9 and M 1.5 laws, not a transonic model.
+  Roll damping is 4 to 11 times DREV at M 1.077 and 1.293.
+- Wedge section: single wedge only (no double wedge, no leading-edge
+  radius); the half-angle is held at 10° on short-chord strips; the K* shock
+  term is left out; no change to the fin CP station.
 - Pitch damping: quadratic in rate, not comparable with a linear Cmq.
 - The tip relief is linear theory for supersonic leading edges. A fin swept
   behind the Mach line (tan Γ_L > β) still takes the 2D strip load and the
