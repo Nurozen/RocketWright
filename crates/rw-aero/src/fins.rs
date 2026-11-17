@@ -435,9 +435,11 @@ pub fn kt_b(r_t: f64, span: f64) -> f64 {
 /// (1 + r_t/(s + r_t))². Barrowman's (1 − 1/τ²)²/(1 − 1/τ)² with
 /// τ = (s + r_t)/r_t is the same (1 + 1/τ)². This is the lift the fins carry
 /// over onto the body between and behind them, which niskanen-2009 (3.55)
-/// neglects. The supersonic form needs K'_B(T) from Barrowman's Fig 3-9
-/// (not digitised, literature-map Gaps), so above M 0.9 the term is faded to
-/// the thesis's neglect (0 from M 1.5) with the fin-slope transonic blend.
+/// neglects. Above M 0.9 this function fades the term to the thesis's
+/// neglect (0 from M 1.5) with the fin-slope transonic blend. Planar fin sets
+/// do not use the fade: they take the supersonic carried lift of NACA TR 1307
+/// from [`crate::carryover::Carryover`], which returns this slender-body
+/// value up to the eq 22 Mach number. Tube fins use this function.
 /// cite: barrowman-1967 eq 3-98 p 41
 /// cite: barrowman-1967 eq 3-94 p 40
 pub fn kb_t(mach: f64, r_t: f64, span: f64) -> f64 {

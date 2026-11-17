@@ -4,9 +4,12 @@
 //!
 //! Modules: [`barrowman`] (bodies, combination), [`fins`] (fin sets,
 //! interference), [`body_load`] (CP of the fin lift carried onto the body,
-//! NACA TR 1307 chart 16), [`mach`] (compressibility, transonic blends), [`drag`]
+//! NACA TR 1307 chart 16), [`carryover`] (supersonic K_B(T) and its CP, NACA
+//! TR 1307 eqs 22-31), [`mach`] (compressibility, transonic blends), [`drag`]
 //! (friction, pressure, base, parasitic, axial), [`damping`] (pitch, roll),
-//! [`tube_fins`] (tube fins as annular wings, NACA TN 4117; drag by flow path).
+//! [`tube_fins`] (tube fins as annular wings, NACA TN 4117; drag by flow path),
+//! [`supersonic`] (pointed nose and cylinder above the transonic range:
+//! second-order shock-expansion, NACA TR 1328).
 //! Every equation cites its row in `docs/dev/literature-map.md`; model
 //! choices and deltas against the oracle are in `docs/dev/parity-log.md`.
 //!
@@ -16,10 +19,12 @@
 
 pub mod barrowman;
 pub mod body_load;
+pub mod carryover;
 pub mod damping;
 pub mod drag;
 pub mod fins;
 pub mod mach;
+pub mod supersonic;
 pub mod tube_fins;
 pub mod types;
 
@@ -36,7 +41,9 @@ pub use types::*;
 /// aerodynamics and mass properties. Revision 3 is the fin cross-section
 /// model: wedge drag and thickness lift, and fin mass by section (rounded,
 /// airfoil and wedge fins weigh less than the slab they were before).
-pub const AERO_MODEL_REVISION: u32 = 3;
+/// Revision 4 is the supersonic fin-to-body carry-over K_B(T) and its CP.
+/// Revision 5 is the supersonic nose and tube lift by shock-expansion.
+pub const AERO_MODEL_REVISION: u32 = 5;
 
 use std::f64::consts::PI;
 
@@ -44,6 +51,7 @@ use rw_geom::Geometry;
 use rw_model::{AnchorKind, ComponentType, EvalShape, EvaluatedModel, NoseShape};
 
 use barrowman::{BodyKind, BodySegment, combine, profile_integrals};
+use carryover::Carryover;
 use drag::axial::axial_factor;
 use drag::base::{base_cd, effective_base_area};
 use drag::friction::{
@@ -55,7 +63,8 @@ use drag::parasitic::{
 };
 use drag::pressure::{NoseDragModel, boattail_cd, fin_pressure_cd, nose_pressure_cd};
 use fins::{FinPlanform, cp_fraction, fin_count_factor, kb_t, kt_b, single_fin_cna};
-use mach::{SUBSONIC_LIMIT, beta, stagnation_cd};
+use mach::{SUBSONIC_LIMIT, beta, hermite, stagnation_cd};
+use supersonic::body::BodyLift;
 
 /// Sea-level speed of sound and kinematic viscosity (USSA 1976, AT-28), used
 /// for the static report at `AeroOptions::static_mach`.
@@ -67,6 +76,10 @@ const ALPHA_EPS: f64 = 1e-9;
 const MODEL_NOSE: &str = "niskanen-2009:nose eq 3.19 3.26 3.28";
 const MODEL_TUBE: &str = "niskanen-2009:body-tube eq 3.19 3.26 3.28";
 const MODEL_TRANSITION: &str = "niskanen-2009:transition eq 3.19 3.26 3.28";
+const MODEL_NOSE_SUPERSONIC: &str = "naca-tr-1328:nose eq 14 19 21 (second-order shock-expansion), \
+     nasa-sp-3004 eq 1, nasa-sp-3007 tab 2; niskanen-2009 eq 3.26";
+const MODEL_TUBE_SUPERSONIC: &str = "naca-tr-1328:body-tube eq 14 19 21 (second-order shock-expansion); \
+     niskanen-2009 eq 3.26";
 const MODEL_FINS: &str = "niskanen-2009:fins eq 3.40 3.56 3.36; niskanen-2013 eq 3.54; \
      barrowman-1967 eq 3-98 (K_B(T)), App. A eq 8 33 (supersonic two-face strip load, K_1 K_3) \
      38-44 (tip Mach cone); naca-tr-1307 chart 8 (low aspect ratio)";
@@ -119,6 +132,11 @@ struct FinTerm {
     /// chart 16 covers: the body-carried load gets its own CP
     /// ([`body_load`]). `None` keeps it at the fin CP.
     body_load: Option<body_load::TrapezoidFin>,
+    /// Planar fins: K_B(T) and the carried-load CP over Mach, slender-body
+    /// below the NACA TR 1307 eq 22 Mach number and the supersonic lift
+    /// integral above it ([`carryover`]). `None` (tube fins) keeps
+    /// `fins::kb_t`.
+    carry: Option<Carryover>,
 }
 
 /// Pressure-drag model of a fin set.
@@ -200,6 +218,10 @@ pub struct AeroModel {
     bodies: Vec<BodyTerm>,
     fins: Vec<FinTerm>,
     parasites: Vec<ParasiteTerm>,
+    /// Supersonic C_Nα and CP of a pointed nose and the flush tubes behind
+    /// it (the first `BodyLift::parts` entries of `bodies`), tabulated over
+    /// Mach. `None` keeps the slender-body terms at every Mach number.
+    body_lift: Option<BodyLift>,
     steps: Vec<Step>,
     base_area: f64,
     motor_area: f64,
@@ -354,6 +376,7 @@ impl AeroModel {
                             wetted: g.wetted_area,
                             drag: FinDrag::Planar,
                             body_load,
+                            carry: None,
                         });
                     }
                 }
@@ -378,6 +401,7 @@ impl AeroModel {
                             wetted: g.wetted_area,
                             drag: FinDrag::Tube { od, id },
                             body_load: None,
+                            carry: None,
                         });
                     }
                 }
@@ -432,7 +456,14 @@ impl AeroModel {
             {
                 f.body_load = None;
             }
+            // The supersonic carry-over reaches as far behind the root
+            // trailing edge as the body stays a tube of the root radius.
+            if f.drag == FinDrag::Planar {
+                let l_aft = tube_run_aft(&bodies, p.x_root_le + p.root_chord, p.r_t);
+                f.carry = Some(Carryover::new(p, l_aft));
+            }
         }
+        let body_lift = supersonic_body_lift(&bodies);
         let steps = steps(&bodies);
         let base_area = bodies.last().map_or(0.0, |b| b.body.areas().1);
         let body_end = bodies.last().map_or(0.0, |b| b.body.x_fore + b.body.length);
@@ -459,6 +490,7 @@ impl AeroModel {
             bodies,
             fins,
             parasites,
+            body_lift,
             steps,
             base_area,
             motor_area: motor_area.min(base_area),
@@ -520,10 +552,33 @@ impl AeroModel {
         let a_ref = self.ref_area;
         let mut components = Vec::with_capacity(self.bodies.len() + self.fins.len());
         let (mut slope0, mut force) = (Vec::new(), Vec::new());
-        for b in &self.bodies {
-            let cna0 = b.body.cna0(a_ref);
-            let (cn, x) = b.body.cn_at(a_ref, alpha);
-            let x0 = b.body.cp();
+        // Above the subsonic range a pointed nose and the tubes flush behind
+        // it take their potential term from the shock-expansion table
+        // (`supersonic::body`), blended in from the slender-body value; the
+        // body-lift term is unchanged. Everything else, and every Mach number
+        // up to `SUBSONIC_LIMIT`, keeps the slender-body path as it was.
+        let shock_expansion = self.body_lift.as_ref().filter(|l| mach > l.window().0);
+        for (i, b) in self.bodies.iter().enumerate() {
+            let supersonic = shock_expansion.filter(|l| i < l.parts());
+            let (cna0, x0, (cn, x)) = match supersonic {
+                None => (b.body.cna0(a_ref), b.body.cp(), b.body.cn_at(a_ref, alpha)),
+                Some(l) => {
+                    let x_tip = self.bodies[0].body.x_fore;
+                    let (c0, xs) = (b.body.cna0(a_ref), b.body.cp());
+                    let (cna0, moment) = l.blended(i, mach, a_ref, (c0, c0 * (xs - x_tip)));
+                    let x0 = if cna0.abs() > 1e-12 {
+                        x_tip + moment / cna0
+                    } else {
+                        xs
+                    };
+                    let pot = cna0 * alpha.sin();
+                    let lift = barrowman::body_lift_cn(b.body.planform, a_ref, alpha);
+                    let x_lift = b.body.x_fore + b.body.planform_x;
+                    let at = combine(&[(pot, x0), (lift, x_lift)])
+                        .map_or((0.0, x0), |x| (pot + lift, x));
+                    (cna0, x0, at)
+                }
+            };
             slope0.push((cna0, x0));
             force.push((cn, x));
             let lifting = alpha > ALPHA_EPS;
@@ -531,10 +586,12 @@ impl AeroModel {
                 id: b.body.id.clone(),
                 cn_alpha: if lifting { cn / alpha } else { cna0 },
                 cp: if lifting && cn.abs() > 1e-15 { x } else { x0 },
-                model: match b.body.kind {
-                    BodyKind::Nose => MODEL_NOSE,
-                    BodyKind::Tube => MODEL_TUBE,
-                    BodyKind::Transition => MODEL_TRANSITION,
+                model: match (b.body.kind, supersonic.is_some()) {
+                    (BodyKind::Nose, true) => MODEL_NOSE_SUPERSONIC,
+                    (BodyKind::Nose, false) => MODEL_NOSE,
+                    (BodyKind::Tube, true) => MODEL_TUBE_SUPERSONIC,
+                    (BodyKind::Tube, false) => MODEL_TUBE,
+                    (BodyKind::Transition, _) => MODEL_TRANSITION,
                 }
                 .to_string(),
             });
@@ -543,12 +600,19 @@ impl AeroModel {
             let p = &f.fins;
             // Fin lift with fin–body interference K_T(B) plus the lift carried
             // over onto the body, K_B(T), both reported on the fin-set row
-            // (barrowman-1967 3-93, 3-94, 3-106). The body-carried load acts
-            // at its NACA TR 1307 chart 16 CP where the chart covers the
-            // planform (`fin_body_cp`), else at the fin CP.
+            // (barrowman-1967 3-93, 3-94, 3-106). K_B(T) is the slender-body
+            // value up to the NACA TR 1307 eq 22 Mach number and the
+            // supersonic lift integral above it (`carryover`). The
+            // body-carried load acts at its own CP (`fin_set_cp`): chart 16
+            // subsonically where the chart covers the planform, the
+            // integral's first moment supersonically.
             // Tube fins: annular wings, each tube 2x the rectangular wing of
             // A = d/L, summed over N tubes (`tube_fins`).
-            let interference = kt_b(p.r_t, p.span) + kb_t(mach, p.r_t, p.span);
+            let interference = kt_b(p.r_t, p.span)
+                + match &f.carry {
+                    Some(c) => c.kb_t(mach),
+                    None => kb_t(mach, p.r_t, p.span),
+                };
             // Supersonic finite-span factor of the panel (tip Mach cone).
             let tip = p.tip_cone();
             let relief = |m: f64| tip.panel_factor(m, &p.strips);
@@ -565,11 +629,7 @@ impl AeroModel {
                     tube_fins::tube_set_cna(mach, a, p.count, od, id, p.root_chord, p.r_t, a_ref)
                 }
             };
-            let x = fin_cp(f, mach);
-            let x = match &f.body_load {
-                Some(t) => fin_body_cp(t, x, p.x_root_le, mach, alpha),
-                None => x,
-            };
+            let x = fin_set_cp(f, mach, alpha);
             let cna0 = set(0.0);
             let cna = set(alpha);
             slope0.push((cna0, x));
@@ -911,6 +971,64 @@ fn fin_cp(f: &FinTerm, mach: f64) -> f64 {
     p.x_mac_le + p.mac * cp_fraction(mach, ar)
 }
 
+/// Length of body behind station `x` that stays a tube of radius `r` (flush
+/// tubes in a row count; a transition, step, or gap ends the run).
+fn tube_run_aft(bodies: &[BodyTerm], x: f64, r: f64) -> f64 {
+    let tol = 1e-6 * r.max(1e-3);
+    let mut covered = x;
+    for b in bodies {
+        let (lo, hi) = (b.body.x_fore, b.body.x_fore + b.body.length);
+        if hi <= covered + tol {
+            continue;
+        }
+        let tube = b.body.kind == BodyKind::Tube
+            && (b.body.r0 - r).abs() <= tol
+            && (b.body.r1 - r).abs() <= tol;
+        if !tube || lo > covered + tol {
+            break;
+        }
+        covered = hi;
+    }
+    (covered - x).max(0.0)
+}
+
+/// The shock-expansion table for the front of the body: a nose that starts
+/// at a point, with the tubes of its base radius that follow it without a
+/// gap. `None` when the body does not start with such a nose or the method
+/// does not cover its profile (`supersonic::body`); anything behind the
+/// first transition, step, or gap keeps its slender-body term.
+fn supersonic_body_lift(bodies: &[BodyTerm]) -> Option<BodyLift> {
+    let nose = &bodies.first()?.body;
+    if nose.kind != BodyKind::Nose || !(nose.length > 0.0 && nose.r1 > 0.0) {
+        return None;
+    }
+    let tol = 1e-6 * nose.r1.max(1e-3);
+    let mut end = nose.length;
+    let mut tubes = Vec::new();
+    for b in &bodies[1..] {
+        let (lo, hi) = (
+            b.body.x_fore - nose.x_fore,
+            b.body.x_fore - nose.x_fore + b.body.length,
+        );
+        let flush = b.body.kind == BodyKind::Tube
+            && (b.body.r0 - nose.r1).abs() <= tol
+            && (lo - end).abs() <= tol
+            && hi > end;
+        if !flush {
+            break;
+        }
+        tubes.push((end, hi));
+        end = hi;
+    }
+    BodyLift::new(
+        |x| nose.radius(x),
+        nose.length,
+        nose.r1,
+        &tubes,
+        SUBSONIC_LIMIT,
+    )
+}
+
 /// Whether the body over stations [x0, x1] is tube of radius `r` (flush
 /// tubes in a row count; a transition, step, or gap does not).
 fn on_constant_tube(bodies: &[BodyTerm], x0: f64, x1: f64, r: f64) -> bool {
@@ -935,14 +1053,71 @@ fn on_constant_tube(bodies: &[BodyTerm], x0: f64, x1: f64, r: f64) -> bool {
     covered >= x1 - tol
 }
 
-/// Fin-set CP with the body-carried load at its own CP (NACA TR 1307):
-/// x = x_F + (K_B(F)/(K_F(B) + K_B(F))) (x_B − x_F), where K_F(B) is eq 14,
-/// K_F(B) + K_B(F) = (1 + τ)² (eq 21), x_F the fin CP, and x_B the chart 16
-/// body-load CP (β frozen at the subsonic limit). The shift fades with the
-/// body-load term through the transonic blend (K_B(T) → 0 by M 1.5, as
-/// `fins::kb_t`), and with α from full at 10° to none at 20°, where the
-/// small-angle theory gives way to the previous scalar model (openrocket-
-/// techdoc-2026 pdf p 47).
+/// CP station of a fin set with the body-carried load at its own CP (NACA TR
+/// 1307 eqs 71-73): x = x_F + w_α S(M), where S = (K_B/(K_F + K_B))(x_B − x_F)
+/// is the shift from the fin CP x_F.
+/// - Up to M 0.9: the subsonic shift of [`fin_body_cp`] (chart 16), where the
+///   chart covers the planform, else none.
+/// - Up to the eq 22 Mach number M_c: the same subsonic shift with β frozen
+///   at M 0.9, as slender-body K_B(T) is kept there.
+/// - From the upper end of the carry-over window: K_B(T) and x_B from the
+///   supersonic lift integral and its first moment ([`carryover`]).
+/// - Between: a cubic matching value and slope at both ends, the same window
+///   as K_B(T).
+///
+/// w_α fades the shift from full at 10° to none at 20°, as before.
+fn fin_set_cp(f: &FinTerm, mach: f64, alpha: f64) -> f64 {
+    let p = &f.fins;
+    let x_fin = fin_cp(f, mach);
+    let carry = match &f.carry {
+        // The subsonic path is kept expression for expression, so output up
+        // to M 0.9 is bit-identical to the chart 16 model.
+        Some(c) if mach > SUBSONIC_LIMIT => c,
+        _ => {
+            return match &f.body_load {
+                Some(t) => fin_body_cp(t, x_fin, p.x_root_le, mach, alpha),
+                None => x_fin,
+            };
+        }
+    };
+    let kt = kt_b(p.r_t, p.span);
+    let sub = |m: f64| match &f.body_load {
+        Some(t) => {
+            let tau = t.r_t / (t.r_t + t.span);
+            let total = (1.0 + tau) * (1.0 + tau);
+            let share = (total - body_load::k_fin_body(tau)) / total;
+            let x_b = p.x_root_le + body_load::body_load_cp(t, beta(SUBSONIC_LIMIT));
+            share * (x_b - fin_cp(f, m))
+        }
+        None => 0.0,
+    };
+    let sup = |m: f64| {
+        let k = carry.kb_t_supersonic(m);
+        k / (kt + k) * (p.x_root_le + carry.cp_supersonic(m) - fin_cp(f, m))
+    };
+    let (m_lo, m_hi) = carry.window();
+    let shift = if mach <= m_lo {
+        sub(mach)
+    } else if mach >= m_hi {
+        sup(mach)
+    } else {
+        let h = 1e-5;
+        let d_lo = (sub(m_lo) - sub(m_lo - h)) / h;
+        let d_hi = (sup(m_hi + h) - sup(m_hi)) / h;
+        hermite(mach, m_lo, m_hi, sub(m_lo), d_lo, sup(m_hi), d_hi)
+    };
+    let (a0, a1) = (10f64.to_radians(), 20f64.to_radians());
+    let w_alpha = ((a1 - alpha) / (a1 - a0)).clamp(0.0, 1.0);
+    x_fin + w_alpha * shift
+}
+
+/// Subsonic fin-set CP with the body-carried load at its own CP (NACA TR
+/// 1307): x = x_F + (K_B(F)/(K_F(B) + K_B(F))) (x_B − x_F), where K_F(B) is
+/// eq 14, K_F(B) + K_B(F) = (1 + τ)² (eq 21), x_F the fin CP, and x_B the
+/// chart 16 body-load CP. Used up to M 0.9 (`fin_set_cp`), where the Mach
+/// weight below is 1. The shift fades with α from full at 10° to none at 20°,
+/// where the small-angle theory gives way to the previous scalar model
+/// (openrocket-techdoc-2026 pdf p 47).
 /// cite: naca-tr-1307 eq 21 p 10
 fn fin_body_cp(
     t: &body_load::TrapezoidFin,
@@ -1188,6 +1363,54 @@ mod tests {
         assert!(c.cn_alpha > c0.cn_alpha * 0.99);
         assert!(c.cp < c0.cp);
         assert_eq!(c.components.len(), 3);
+    }
+
+    #[test]
+    fn carried_load_is_c1_across_the_carryover_window() {
+        // K_B(T) and the carried-load CP change form at the two ends of the
+        // carry-over window; total C_Nα and CP stay C¹ there.
+        let am = case1();
+        let (m_lo, m_hi) = am.fins[0].carry.as_ref().expect("planar fins").window();
+        assert!(m_lo >= 1.0 && m_hi >= mach::SUPERSONIC_LIMIT);
+        let h = 1e-4;
+        for m in [m_lo, m_hi] {
+            let at = |m: f64| {
+                let c = am.eval(&state(m));
+                [c.cn_alpha, c.cp]
+            };
+            let (lo, mid, hi) = (at(m - h), at(m), at(m + h));
+            for i in 0..2 {
+                let value = (hi[i] - lo[i]).abs() / mid[i].abs();
+                let slope = ((hi[i] - mid[i]) - (mid[i] - lo[i])).abs() / (h * mid[i].abs());
+                assert!(
+                    value < 1e-3 && slope < 1e-2,
+                    "M={m} [{i}]: {value:e} {slope:e}"
+                );
+            }
+        }
+        // Up to M 0.9 the fin-set CP is the subsonic path, unchanged.
+        let f = &am.fins[0];
+        for m in [0.3, 0.9] {
+            let old = match &f.body_load {
+                Some(t) => fin_body_cp(t, fin_cp(f, m), f.fins.x_root_le, m, 0.02),
+                None => fin_cp(f, m),
+            };
+            assert_eq!(fin_set_cp(f, m, 0.02), old);
+        }
+    }
+
+    #[test]
+    fn afterbody_length_follows_the_tube_run() {
+        let am = case1();
+        let end = am
+            .bodies
+            .last()
+            .map(|b| b.body.x_fore + b.body.length)
+            .unwrap();
+        let r = am.fins[0].fins.r_t;
+        assert!((tube_run_aft(&am.bodies, end - 0.01, r) - 0.01).abs() < 1e-9);
+        assert_eq!(tube_run_aft(&am.bodies, end, r), 0.0);
+        assert_eq!(tube_run_aft(&am.bodies, end - 0.01, 2.0 * r), 0.0);
     }
 
     #[test]

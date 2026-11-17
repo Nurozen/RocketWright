@@ -169,6 +169,38 @@ pub fn hermite(x: f64, x0: f64, x1: f64, y0: f64, d0: f64, y1: f64, d1: f64) -> 
         + (t3 - t2) * h * d1
 }
 
+/// C¹ interpolant of node values `v` on the uniform grid `m0 + i dm` at
+/// `mach` (clamped to the grid): cubic Hermite segments with
+/// central-difference node slopes, second-order one-sided at the two ends
+/// (first-order when the grid has two nodes). Returns (value, slope in Mach).
+/// Used for the terms tabulated over Mach when the model is built.
+/// cite: n/a numerical interpolation (cubic Hermite on a uniform grid)
+pub fn table_hermite(v: &[f64], m0: f64, dm: f64, mach: f64) -> (f64, f64) {
+    let last = v.len() - 1;
+    let slope = |i: usize| {
+        if last < 2 {
+            (v[last] - v[0]) / (last as f64 * dm)
+        } else if i == 0 {
+            (-3.0 * v[0] + 4.0 * v[1] - v[2]) / (2.0 * dm)
+        } else if i == last {
+            (3.0 * v[last] - 4.0 * v[last - 1] + v[last - 2]) / (2.0 * dm)
+        } else {
+            (v[i + 1] - v[i - 1]) / (2.0 * dm)
+        }
+    };
+    let t = ((mach - m0) / dm).clamp(0.0, last as f64);
+    let i = (t.floor() as usize).min(last - 1);
+    let (x0, x1) = (m0 + dm * i as f64, m0 + dm * (i + 1) as f64);
+    let m = mach.clamp(x0, x1);
+    let value = hermite(m, x0, x1, v[i], slope(i), v[i + 1], slope(i + 1));
+    let h = 1e-6 * dm;
+    let (ma, mb) = ((m - h).max(x0), (m + h).min(x1));
+    let d = (hermite(mb, x0, x1, v[i], slope(i), v[i + 1], slope(i + 1))
+        - hermite(ma, x0, x1, v[i], slope(i), v[i + 1], slope(i + 1)))
+        / (mb - ma);
+    (value, d)
+}
+
 /// Blends a subsonic law (valid to [`SUBSONIC_LIMIT`]) and a supersonic law
 /// (valid from [`SUPERSONIC_LIMIT`]) with a C¹ cubic in M, matching value and
 /// slope at both ends. The thesis prints no transonic rule for fin C_Nα or

@@ -41,7 +41,7 @@ pub const SERIES_SIG_FIGS: usize = 9;
 pub const CORE_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 /// The `core_version` a flight manifest records: [`CORE_VERSION`] with the
-/// aero model revision as build metadata (`0.1.0+aero.3`). [`status_of`]
+/// aero model revision as build metadata (`0.1.0+aero.5`). [`status_of`]
 /// compares it, so a run computed under other physics lists as outdated.
 pub fn flight_core_version() -> String {
     flight_stamp(rw_aero::AERO_MODEL_REVISION)
