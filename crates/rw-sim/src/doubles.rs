@@ -190,7 +190,10 @@ pub struct LinearAero {
     pub cd: f64,
     /// Reference area (m²).
     pub ref_area: f64,
-    /// Pitch damping coefficient per unit (ω/V)² (0 = none).
+    /// Linear pitch damping |C_mq + C_mα̇| per qd/2V, as rw-aero's linear
+    /// term: C_m,damp = this · |q| d/(2V), d the reference length (0 = none).
+    pub cm_damping_per_rate: f64,
+    /// Quadratic (crossflow) pitch damping per unit (ω/V)² (0 = none).
     pub cm_damping_per_rate2: f64,
     /// Roll forcing coefficient (fin cant).
     pub cl_forcing: f64,
@@ -203,7 +206,9 @@ impl AeroEval for LinearAero {
     fn eval(&self, state: &AeroState) -> AeroCoeffs {
         let mut c = coeffs(self.cd, self.cn_alpha, state.alpha, self.cp, self.ref_area);
         if state.speed > 0.0 {
-            c.cm_damping = self.cm_damping_per_rate2 * (state.pitch_rate / state.speed).powi(2);
+            c.cm_damping = self.cm_damping_per_rate * state.pitch_rate.abs() * c.ref_length
+                / (2.0 * state.speed)
+                + self.cm_damping_per_rate2 * (state.pitch_rate / state.speed).powi(2);
         }
         c.cl_forcing = self.cl_forcing;
         if state.speed > 0.0 {

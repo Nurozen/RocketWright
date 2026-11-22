@@ -924,15 +924,19 @@ impl AeroModel {
         let mut cm = 0.0;
         // Linear (C_mq + C_mα̇) per qd/2V, as a magnitude: floored at zero so
         // it can only damp (a negative-C_Nα boattail row could otherwise
-        // flip it). Niskanen's quadratic terms below stay as the crossflow
-        // part, which only matters when tumbling.
+        // flip it). The floor is written out because f64::max would turn a
+        // NaN row into 0 and hide it; NaN propagates instead. Niskanen's
+        // quadratic terms below stay as the crossflow part, which only
+        // matters when tumbling.
         if w != 0.0 && v > 0.0 && d > 0.0 {
             let rows: f64 = slope0
                 .iter()
                 .map(|&(cna, x)| damping::pitch_damping_linear(cna, x - x_cg, d))
                 .sum();
             let volume = damping::pitch_damping_volume(self.body_volume, self.x_cg_ref, x_cg, a, d);
-            cm += (rows + volume).max(0.0) * w.abs() * d / (2.0 * v);
+            let bracket = rows + volume;
+            let bracket = if bracket < 0.0 { 0.0 } else { bracket };
+            cm += bracket * w.abs() * d / (2.0 * v);
         }
         // Body fore and aft of the CG, each with its mean radius (eq 3.59).
         let fore = x_cg.clamp(0.0, self.length);
@@ -1209,7 +1213,7 @@ fn steps(bodies: &[BodyTerm]) -> Vec<Step> {
     out
 }
 
-/// Volume centroid of the outer body (the default damping reference point).
+/// Volume V_b of the outer body (the linear pitch damping's volume term).
 fn body_volume(bodies: &[BodyTerm]) -> f64 {
     bodies
         .iter()
@@ -1217,6 +1221,7 @@ fn body_volume(bodies: &[BodyTerm]) -> f64 {
         .sum()
 }
 
+/// Volume centroid of the outer body (the default damping reference point).
 fn volume_centroid(bodies: &[BodyTerm]) -> Option<f64> {
     let (mut v, mut m) = (0.0, 0.0);
     for b in bodies {

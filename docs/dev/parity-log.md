@@ -1691,11 +1691,17 @@ max(bracket, 0)·|ω| d/(2V) + the Niskanen terms. It is still a magnitude, so
    slender-body one at every Mach number.
 4. **Floor at zero.** The bracket cannot go negative in the slender limit; a
    negative-C_Nα boattail row could make it so in the hybrid, and the floor
-   keeps the term damping.
+   keeps the term damping. The floor is a comparison, not `f64::max`, so a
+   NaN row propagates instead of reading as zero.
 5. **Crossflow term kept.** Niskanen (3.59)/(3.60) stays as an additive term:
    negligible at flight rates (2.8e-6 of the linear term at 1e-3 rad/s on
    case 1, proportional to ω), it matters only when tumbling.
-6. **No tuning.** The model is 9 to 22% low from M 2.7 up. DREV is not
+6. **Fin CP at the flight α.** The fin rows take the same CP as the static
+   path, `fin_set_cp` at the current α, not at zero α. So C_mq moves a
+   little with α where that CP moves (the 10–20° fade); C_Nα is the zero-α
+   slope. Kept shared with the static path rather than evaluating the fin
+   CP twice.
+7. **No tuning.** The model is 9 to 22% low from M 2.7 up. DREV is not
    monotonic there (−306.5, −335.5, −260.1), so part of that is scatter.
 
 ### Basic Finner before and after (rw-aero vs DREV Table IX, CG 5.50 cal)
@@ -1735,3 +1741,17 @@ Finner C_mq + C_mα̇ for a later check.
 - `cm_damping` is finite and positive for cases 1–7 over M 0.01–4 and
   α 0–15° at 0.5 rad/s, and C¹ across M 0.9 and 1.5 for case 1 (value ratio
   6.7e-5 and 2.8e-4, slope ratio 5.8e-4 and 2.3e-4 at h = 1e-4).
+- Volume term off the reference CG (`supersonic_sweep`): for cases 1–7 at
+  CGs 1 cal fore and aft of the volume centroid, M 0.3–3, the bracket's
+  second difference in x_cg is 4 C_Nα (h/d)² and the volume inferred from
+  its first difference is positive and the same at every Mach number (both
+  to 1e-6). Flipping the sign of the volume term fails it.
+- Mach scan at 1e-3 steps, M 0.005–4, the same three CGs, cases 1–7: no
+  floor hits (lowest C_mq 204, case 3 aft) and no jumps (worst second
+  difference 1.6e-4 of the value, case 4 at M 2.84). The supersonic tube
+  rows' CP is moment/C_Nα, which would spike if a row's C_Nα crossed zero
+  with a finite moment; none does in these cases.
+- 6DOF (`rw-sim` frames test, `LinearAero` now with a linear term): with
+  only the damping moment acting, ω̇ = −ρ V S d² C/(4 I) · ω at one state to
+  1e-10, and RK4 at dt 0.05 s follows exp(−λ t) to 1% over 1 s
+  (C = 400, λ dt ≈ 0.18).

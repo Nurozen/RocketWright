@@ -621,7 +621,7 @@ fn basic_finner_baseline_vs_drev() {
     );
     assert_eq!(n_cmq, 7, "Cmq groups from M 1.2");
     // R5: every scored group within a factor of 1.5 of the range value
-    // (today 0.80 to 1.09, RMS 13 %).
+    // (today 0.78 to 1.09, RMS 13.3 %).
     assert!(
         cmq_lo >= 1.0 / 1.5 && cmq_hi <= 1.5,
         "Cmq rw/ref {cmq_lo:.2} to {cmq_hi:.2} outside a factor of 1.5"
