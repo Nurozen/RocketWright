@@ -524,3 +524,51 @@ fn canted_fin_forcing_and_damping_share_the_supersonic_load() {
         prev = r;
     }
 }
+
+/// Pitch damping at a nonzero pitch rate: finite for cases 1–7 over
+/// M 0.1–4, and C¹ in Mach for case 1 across the transonic blend ends.
+/// The checked quantity is C_mq = cm_damping·2V/(q d) at a small rate (the
+/// linear term), with the same value and slope ratios as
+/// `blend_boundaries_are_c1`.
+#[test]
+fn pitch_damping_is_finite_and_c1_in_mach() {
+    let q = 0.5;
+    for case in 1..=7 {
+        let model = load_case(case);
+        let am = AeroModel::new(&model, &rw_geom::build(&model), &AeroOptions::default());
+        for k in 1..=400 {
+            let mach = k as f64 * 0.01;
+            for alpha_deg in [0.0_f64, 5.0, 15.0] {
+                let c = am.eval(&AeroState {
+                    alpha: alpha_deg.to_radians(),
+                    pitch_rate: q,
+                    ..state(mach, 0.0)
+                });
+                assert!(
+                    c.cm_damping.is_finite() && c.cm_damping > 0.0,
+                    "case{case} M={mach:.2} α={alpha_deg}°: cm_damping {}",
+                    c.cm_damping
+                );
+            }
+        }
+    }
+    let model = load_case(1);
+    let am = AeroModel::new(&model, &rw_geom::build(&model), &AeroOptions::default());
+    let d = model.reference.diameter;
+    let cmq = |mach: f64| {
+        let s = AeroState {
+            pitch_rate: 1e-3,
+            ..state(mach, 0.0)
+        };
+        am.eval(&s).cm_damping * 2.0 * s.speed / (1e-3 * d)
+    };
+    let h = 1e-4_f64;
+    for m in [0.9_f64, 1.5] {
+        let (lo, ctr, hi) = (cmq(m - h), cmq(m), cmq(m + h));
+        let value = (hi - lo).abs() / ctr.abs();
+        let slope = ((hi - ctr) / h - (ctr - lo) / h).abs() / ctr.abs();
+        println!("M {m}: Cmq {ctr:.3}  value {value:.2e}  slope {slope:.2e}");
+        assert!(value < 0.002, "M={m}: Cmq value jump ratio {value:.3e}");
+        assert!(slope < 0.004, "M={m}: Cmq slope jump ratio {slope:.3e}");
+    }
+}

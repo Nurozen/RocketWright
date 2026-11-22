@@ -977,6 +977,12 @@ show it. In `--json` they are `phases[]`.
   nothing.
 - Another process (the app) may own the project (`.rw/lock`). CLI writes are
   then forwarded to it automatically. `RW-E007` means it is unreachable.
+- Pitch oscillations (after rail exit in a crosswind, or a gust) die out
+  faster than in OpenRocket. RocketWright's pitch damping includes the part
+  proportional to the pitch rate, which is checked against free-flight range
+  data from Mach 1.3 to 4.3 (within 22%); below Mach 1 it is not yet checked
+  against measurements. In a windy flight, a difference from OpenRocket in
+  weathercocking or apogee can come from this.
 - Monte Carlo is not implemented (a non-goal of this release). Every
   simulation is one deterministic flight, and the `simulate` tool's `mc`
   argument above 1 returns a `not_implemented` error. Omit `mc`. To study

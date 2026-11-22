@@ -12,10 +12,10 @@
 //! The fins are single wedges (sharp leading edge, blunt 0.08 cal base), so
 //! the fixture uses `cross_section = "wedge"`.
 //!
-//! Cmq is printed but NOT scored: rw-aero uses a quadratic pitch-damping
-//! model (Niskanen eq 3.59), which has no linear Cmq to compare with the
-//! report's. The apparent value is printed in the report's qd/(2V)
-//! normalisation (section 7, eqs [1]-[2]). See
+//! Cmq is scored in the report's qd/(2V) normalisation (section 7, eqs
+//! [1]-[2]): the range value is C_mq + C_mα̇, which the model's linear pitch
+//! damping also is. Each Mach group from M 1.2 must be within a factor of 1.5
+//! (spec R5); M 1.077 sits in the transonic blend and is printed only. See
 //! tests/validation/basic_finner_drev/PROVENANCE.md.
 
 use rw_aero::carryover::Carryover;
@@ -315,11 +315,11 @@ fn basic_finner_baseline_vs_drev() {
         let clp_p05 = -c_p05.cl_damping * 2.0 * speed / (p05 * D);
         let clp_rw = clp_p1;
 
-        // Apparent Cmq (NOT SCORED). Printed at q_ref = 1 rad/s in qd/(2V), the
-        // normalisation eqs [1]-[2] of the report's section 7 imply. rw-aero
-        // cm_damping is quadratic in pitch rate (Niskanen eq 3.59); apparent Cmq
-        // printed here is therefore not a linear coefficient.
-        let q_ref = 1.0_f64;
+        // Cmq + Cmα̇ in qd/(2V), the normalisation eqs [1]-[2] of the report's
+        // section 7 imply. cm_damping is a magnitude: the linear term plus
+        // Niskanen's quadratic crossflow term, which at 1e-3 rad/s is below
+        // 1e-6 of the linear one.
+        let q_ref = 1e-3_f64;
         let c_pitch = am.eval_with_cg(
             &AeroState {
                 pitch_rate: q_ref,
@@ -332,7 +332,7 @@ fn basic_finner_baseline_vs_drev() {
             "cm_damping(pitch) NaN at M={}",
             row.mach
         );
-        let cmq_apparent = -c_pitch.cm_damping * 2.0 * speed / (q_ref * D);
+        let cmq_rw = -c_pitch.cm_damping * 2.0 * speed / (q_ref * D);
 
         // CP sign: d_cal = model_CP − DREV_CP, in calibers from nose, positive = aft.
         // Positive d_cal: model CP aft of DREV, static margin over-predicted.
@@ -368,8 +368,8 @@ fn basic_finner_baseline_vs_drev() {
         sq_clp += (clp_rw - row.clp).powi(2);
 
         println!(
-            "       Cmq ref={:>7.1}  apparent rw (q_ref=1 rad/s, qd/(2V), NOT SCORED)={:>10.4}",
-            row.cmq, cmq_apparent
+            "       Cmq ref={:>7.1}  rw (qd/(2V))={:>8.1}",
+            row.cmq, cmq_rw
         );
 
         // Drag breakdown: sum drag_terms by component id and kind.
@@ -433,7 +433,7 @@ fn basic_finner_baseline_vs_drev() {
         cna_rows.push((row.mach, cna_nose, cna_fins_int, kb_t_val, cna_rw, row.cna));
 
         clp_rows.push((row.mach, clp_p05, clp_p1, row.clp));
-        cmq_rows.push((row.mach, row.cmq, cmq_apparent));
+        cmq_rows.push((row.mach, row.cmq, cmq_rw));
     }
 
     println!("{}", "-".repeat(130));
@@ -580,22 +580,52 @@ fn basic_finner_baseline_vs_drev() {
         );
     }
 
-    // === Cmq documentation ===
+    // === Cmq ===
     println!();
-    println!("=== Cmq (NOT SCORED) ===");
+    println!("=== Cmq + Cmα̇ (qd/(2V)) ===");
     println!(
-        "rw-aero pitch damping is QUADRATIC in pitch rate (Niskanen 2009 eq 3.59 p 45):\n\
-           pitch_damping_body = 0.55 * l^4 * r̄ / (A_ref * d) * (ω/V)^2   [damping.rs:26]\n\
-           pitch_damping_fins = 0.6 * N * A_fin * ξ^3 / (A_ref * d) * (ω/V)^2 [damping.rs:45]\n\
-         DREV Cmq is linear: Cm ∝ Cmq × qd/(2V) (report section 7, eqs [1]-[2]).\n\
-         The models are not comparable, so Cmq is not scored.\n\
-         Apparent Cmq below is printed at q=1 rad/s in qd/(2V) for reference only."
+        "rw: −[2 Σ C_Nα,i ((x_i − x_cg)/d)² + 8 V_b (x_c − x_cg)/(S d²)] over the zero-α\n\
+         C_Nα rows (damping.rs pitch_damping_linear, pitch_damping_volume). DREV's\n\
+         range value is Cmq + Cmα̇. Gate: each group from M 1.2 within a factor of\n\
+         1.5 (spec R5); range data scatter 30-50 %."
     );
-    println!("{:>6} | {:>10} {:>12}", "Mach", "DREV_Cmq", "rw_apparent");
-    println!("{}", "-".repeat(35));
-    for (mach, drev_cmq, cmq_app) in &cmq_rows {
-        println!("{:>6.3} | {:>10.1} {:>12.4}", mach, drev_cmq, cmq_app);
+    println!(
+        "{:>6} | {:>10} {:>10} {:>7}",
+        "Mach", "DREV_Cmq", "rw", "rw/ref"
+    );
+    println!("{}", "-".repeat(42));
+    let (mut sq_cmq, mut n_cmq) = (0.0_f64, 0usize);
+    let (mut cmq_lo, mut cmq_hi) = (f64::INFINITY, f64::NEG_INFINITY);
+    for (mach, drev_cmq, cmq_rw) in &cmq_rows {
+        let ratio = cmq_rw / drev_cmq;
+        let scored = *mach >= 1.2;
+        println!(
+            "{:>6.3} | {:>10.1} {:>10.1} {:>7.2}{}",
+            mach,
+            drev_cmq,
+            cmq_rw,
+            ratio,
+            if scored { "" } else { "  (blend, not scored)" }
+        );
+        if scored {
+            sq_cmq += (ratio - 1.0).powi(2);
+            n_cmq += 1;
+            cmq_lo = cmq_lo.min(ratio);
+            cmq_hi = cmq_hi.max(ratio);
+        }
     }
+    let rms_cmq = (sq_cmq / n_cmq as f64).sqrt();
+    println!(
+        "M ≥ 1.2 ({n_cmq} groups): rw/ref {cmq_lo:.2} to {cmq_hi:.2}, RMS {:.1}%",
+        100.0 * rms_cmq
+    );
+    assert_eq!(n_cmq, 7, "Cmq groups from M 1.2");
+    // R5: every scored group within a factor of 1.5 of the range value
+    // (today 0.80 to 1.09, RMS 13 %).
+    assert!(
+        cmq_lo >= 1.0 / 1.5 && cmq_hi <= 1.5,
+        "Cmq rw/ref {cmq_lo:.2} to {cmq_hi:.2} outside a factor of 1.5"
+    );
 
     // Sanity bounds only (report mode), about 10 % over the current model
     // (wedge section: forebody and base drag, two-face strip load with tip
@@ -749,4 +779,38 @@ fn basic_finner_roll_forcing_vs_drev_table_x() {
     // two M 1.80-1.85 models, nearest the blend, 9 and 12 % high.
     assert!(rms <= 0.064, "RMS Cl_δ error {:.1}%", 100.0 * rms);
     assert!(lo >= 0.84 && hi <= 1.23, "rw/ref range {lo:.2} to {hi:.2}");
+}
+
+/// Slender-body limit of the linear pitch damping: the Basic Finner body
+/// alone (no fins) at M 0.3 gives C_mq + C_mα̇ = −4 (S_b/S)((L − x_cg)/d)²
+/// per qd/(2V), naca-tn-3283 eq 58 (per ql/V there, C_Lα = 2 S_b/S, table I)
+/// doubled. Here S_b = S, L = 10 cal and x_cg = 5.5 cal: 4 × 4.5² = 81.0. The
+/// nose row acts at its point CP instead of being spread along the cone,
+/// which costs about 2.2 %.
+#[test]
+fn basic_finner_body_alone_matches_the_slender_body_limit() {
+    let mut model = basic_finner();
+    model.components.retain(|c| c.id != "fins");
+    let am = AeroModel::new(&model, &rw_geom::build(&model), &AeroOptions::default());
+    let speed = 0.3 * A0;
+    let q = 1e-3;
+    let c = am.eval_with_cg(
+        &AeroState {
+            mach: 0.3,
+            speed,
+            alpha: 0.0,
+            roll_rate: 0.0,
+            pitch_rate: q,
+            kinematic_viscosity: NU0,
+            thrusting: false,
+        },
+        X_CG,
+    );
+    let cmq = c.cm_damping * 2.0 * speed / (q * D);
+    let slender = 4.0 * 4.5_f64.powi(2);
+    println!("body alone M 0.3: |Cmq + Cmα̇| = {cmq:.2}, slender body {slender:.1}");
+    assert!(
+        (cmq / slender - 1.0).abs() < 0.03,
+        "{cmq:.2} vs slender-body {slender:.1}"
+    );
 }

@@ -49,7 +49,10 @@ report-mode tests against the current rw-aero model:
   RMS CX0 ≤ 0.24, CNα ≤ 0.225, Cmα ≤ 0.101, CP ≤ 0.293 cal, and the signed CP
   error (model minus DREV, positive aft = static margin over-predicted) within
   −0.05 to +0.42 cal at every Mach group. The current values are 0.217, 0.205,
-  0.092, 0.267 cal and +0.042 to +0.384 cal. Cmq is printed but not scored.
+  0.092, 0.267 cal and +0.042 to +0.384 cal. Cmq is scored in qd/2V
+  against Table IX's C_mq + C_mα̇: each Mach group from M 1.2 within a factor
+  of 1.5 (spec R5; currently 0.78 to 1.09, RMS 13.3%). M 1.077 is in the
+  transonic blend and is printed without scoring.
 - `basic_finner_roll_forcing_vs_drev_table_x` reads Table X and the model-Mach
   file. It scores the 12 models at M 1.80 to 4.47 (RMS Cl_δ error ≤ 0.064,
   every model/measured ratio within 0.84 to 1.23; currently 0.058 and 0.92 to
@@ -83,9 +86,8 @@ was too high at all 8 (RMS 84.4%), because eq 3.89 is a rounded-edge law.
 ## Open items
 
 - Cmq normalisation is qd/2V: eqs [1]-[2] of the report's section 7
-  (pdf pp 28–29) fix it. The test prints the apparent rw-aero Cmq in qd/2V.
-  Cmq stays unscored because rw-aero pitch damping is quadratic in pitch rate
-  and has no linear Cmq.
+  (pdf pp 28–29) fix it. The range value is C_mq + C_mα̇; rw-aero's linear
+  pitch damping is the same sum, applied to the pitch rate alone.
 - Table VIII (single 6DOF fits, pdf pp 44–47) has not been transcribed, apart
   from the shot and Mach of the 16 canted-fin models in
   `drev-tm-9703_table-X_model-mach.csv`. That file needs a second reader.

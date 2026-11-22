@@ -260,7 +260,8 @@ fn rotation_terms_match_rocketpy() {
 #[test]
 fn pitch_damping_sign_matches_rocketpy() {
     // RocketPy damps pitch through the ω×r velocity at the CP; we use the
-    // Niskanen damping coefficient. Both must oppose the transverse rate.
+    // rw-aero damping magnitude (the double here is quadratic in the rate,
+    // only the sign matters). Both must oppose the transverse rate.
     let r = rig();
     let aero = LinearAero {
         cn_alpha: CN_ALPHA,

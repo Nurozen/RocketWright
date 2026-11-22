@@ -1,6 +1,10 @@
 //! Pitch damping, roll forcing, and roll damping (Niskanen 2009 §3.2.3 and
 //! §3.3). Barrowman's pitch-damping result (3-115) is blank in the scan
-//! (literature-map Errata), so pitch damping uses Niskanen's estimates.
+//! (literature-map Errata). Pitch damping is linear in the rate: the
+//! component sum over the zero-α C_Nα rows (MIL-HDBK-762 5-32) plus a
+//! slender-body volume term, which together give Sacks' C_mq + C_mα̇ for a
+//! slender body (NACA TN 3283 eq 58). Niskanen's quadratic estimates stay as
+//! an additive crossflow term.
 //!
 //! Sign convention: the damping coefficients are magnitudes for the given
 //! rates and act against them (the caller applies −sign(ω)); roll forcing
@@ -10,6 +14,42 @@ use crate::fins::{Strip, TipCone};
 use crate::mach::{
     beta, flat_plate_strip_dcp, transonic_blend, wedge_half_angle, wedge_strip_secant,
 };
+
+/// Linear pitch-damping contribution of one zero-α normal-force row,
+/// 2 C_Nα (arm/d)², per qd/2V. The row's load acts at its CP, where the
+/// pitch rate adds the local incidence q·arm/V = (qd/2V)(2 arm/d). Summed
+/// over the body and fin-set rows (fins with their K_T(B) + K_B(T) load) this
+/// is the component method's damping sum.
+/// cite: mil-hdbk-762 eq 5-32 p 279
+pub fn pitch_damping_linear(cna: f64, arm: f64, d_ref: f64) -> f64 {
+    if d_ref <= 0.0 {
+        return 0.0;
+    }
+    2.0 * cna * (arm / d_ref).powi(2)
+}
+
+/// Slender-body volume term of the linear pitch damping,
+/// 8 V (x_c − x_cg)/(S d²), per qd/2V. The slender-body load on a pitching
+/// body goes as d/dx[(α + q(x − x_cg)/V) S(x)]; the product rule leaves a
+/// load (q/V) S(x) along the body that no point-CP row carries. Its moment
+/// is half of this term and C_mα̇ the other half. With slender-body rows
+/// (C_Nα,i = 2ΔS_i/S) the rows plus this term integrate by parts to
+/// Sacks' C_mq + C_mα̇ = −(l − c_1)² C_Lα/l_r² with C_Lα = 2 S_b/S (per
+/// ql/V), i.e. −4 (S_b/S)((L − x_cg)/d)² per qd/2V. Zero for an empty body.
+/// cite: naca-tn-3283 eq 58 p 30
+/// cite: naca-tn-3283 tab I p 57 C_Lα of a circular section
+pub fn pitch_damping_volume(
+    volume: f64,
+    x_centroid: f64,
+    x_cg: f64,
+    a_ref: f64,
+    d_ref: f64,
+) -> f64 {
+    if volume <= 0.0 || a_ref <= 0.0 || d_ref <= 0.0 {
+        return 0.0;
+    }
+    8.0 * volume * (x_centroid - x_cg) / (a_ref * d_ref * d_ref)
+}
 
 /// Body pitch-damping coefficient of one portion (fore or aft of the CG) of
 /// length l and mean radius r_t: 0.55 (l⁴ r_t/(A_ref d)) (ω²/V²).
@@ -222,6 +262,31 @@ mod tests {
             0.6 * 4.0 * 0.0015 * 1e-3 / (a * 0.025) * 0.04,
             1e-12
         ));
+    }
+
+    #[test]
+    fn linear_pitch_damping_worked_values() {
+        // C_Nα 2 at 4.5 cal behind the CG: 2·2·4.5² = 81.
+        assert!(close(pitch_damping_linear(2.0, 0.135, 0.03), 81.0, 1e-12));
+        // Even in the arm, zero without a reference length.
+        assert_eq!(
+            pitch_damping_linear(2.0, -0.135, 0.03),
+            pitch_damping_linear(2.0, 0.135, 0.03)
+        );
+        assert_eq!(pitch_damping_linear(2.0, 0.1, 0.0), 0.0);
+        // Volume term: 8 V (x_c − x_cg)/(S d²). A cylinder of length 1 and
+        // radius 0.05 with S = its own section and d = 0.1, centroid 0.5,
+        // CG 0.4: 8 (π 0.05²)(0.1)/(π 0.05² · 0.01) = 80.
+        let a = PI * 0.05 * 0.05;
+        assert!(close(
+            pitch_damping_volume(a, 0.5, 0.4, a, 0.1),
+            80.0,
+            1e-12
+        ));
+        // Negative with the CG behind the centroid; zero for no volume.
+        assert!(pitch_damping_volume(a, 0.5, 0.6, a, 0.1) < 0.0);
+        assert_eq!(pitch_damping_volume(0.0, 0.5, 0.4, a, 0.1), 0.0);
+        assert_eq!(pitch_damping_volume(-1.0, 0.5, 0.4, a, 0.1), 0.0);
     }
 
     #[test]
