@@ -43,7 +43,9 @@ pub use types::*;
 /// airfoil and wedge fins weigh less than the slab they were before).
 /// Revision 4 is the supersonic fin-to-body carry-over K_B(T) and its CP.
 /// Revision 5 is the supersonic nose and tube lift by shock-expansion.
-pub const AERO_MODEL_REVISION: u32 = 5;
+/// Revision 6 is the linear pitch damping (C_mq + C_mα̇ from the zero-α
+/// C_Nα rows and the slender-body volume term).
+pub const AERO_MODEL_REVISION: u32 = 6;
 
 use std::f64::consts::PI;
 
@@ -227,6 +229,8 @@ pub struct AeroModel {
     motor_area: f64,
     /// Reference CG for `eval`: volume centroid of the outer body.
     x_cg_ref: f64,
+    /// Outer-body volume V_b (linear pitch damping's volume term).
+    body_volume: f64,
     /// Component CD overrides in effect (outermost subtree wins).
     cd_overrides: Vec<CdOverride>,
 }
@@ -479,6 +483,7 @@ impl AeroModel {
             .max(geometry.max_diameter);
         let fineness = if max_d > 0.0 { length / max_d } else { 0.0 };
         let x_cg_ref = volume_centroid(&bodies).unwrap_or(0.5 * length);
+        let body_volume = body_volume(&bodies);
         let cd_overrides = cd_overrides(model, geometry);
         Self {
             ref_area,
@@ -495,6 +500,7 @@ impl AeroModel {
             base_area,
             motor_area: motor_area.min(base_area),
             x_cg_ref,
+            body_volume,
             cd_overrides,
         }
     }
@@ -679,7 +685,7 @@ impl AeroModel {
         };
         drag.total = drag.friction + drag.pressure + drag.base + drag.parasitic;
 
-        let (cm_damping, cl_forcing, cl_damping) = self.damping(state, x_cg, mach);
+        let (cm_damping, cl_forcing, cl_damping) = self.damping(state, x_cg, mach, &slope0);
         AeroCoeffs {
             cn_alpha,
             cn,
@@ -903,11 +909,35 @@ impl AeroModel {
         out
     }
 
-    /// (C_m,damp, C_l,forcing, C_l,damping) at the state's rates.
-    fn damping(&self, state: &AeroState, x_cg: f64, mach: f64) -> (f64, f64, f64) {
+    /// (C_m,damp, C_l,forcing, C_l,damping) at the state's rates. `slope0`
+    /// holds the zero-α (C_Nα, CP) rows of every component; the linear pitch
+    /// damping applies the local incidence q(x_i − x_cg)/V to each.
+    fn damping(
+        &self,
+        state: &AeroState,
+        x_cg: f64,
+        mach: f64,
+        slope0: &[(f64, f64)],
+    ) -> (f64, f64, f64) {
         let (a, d, v) = (self.ref_area, self.ref_length, state.speed.abs());
         let w = state.pitch_rate;
         let mut cm = 0.0;
+        // Linear (C_mq + C_mα̇) per qd/2V, as a magnitude: floored at zero so
+        // it can only damp (a negative-C_Nα boattail row could otherwise
+        // flip it). The floor is written out because f64::max would turn a
+        // NaN row into 0 and hide it; NaN propagates instead. Niskanen's
+        // quadratic terms below stay as the crossflow part, which only
+        // matters when tumbling.
+        if w != 0.0 && v > 0.0 && d > 0.0 {
+            let rows: f64 = slope0
+                .iter()
+                .map(|&(cna, x)| damping::pitch_damping_linear(cna, x - x_cg, d))
+                .sum();
+            let volume = damping::pitch_damping_volume(self.body_volume, self.x_cg_ref, x_cg, a, d);
+            let bracket = rows + volume;
+            let bracket = if bracket < 0.0 { 0.0 } else { bracket };
+            cm += bracket * w.abs() * d / (2.0 * v);
+        }
         // Body fore and aft of the CG, each with its mean radius (eq 3.59).
         let fore = x_cg.clamp(0.0, self.length);
         let aft = (self.length - fore).max(0.0);
@@ -1183,6 +1213,14 @@ fn steps(bodies: &[BodyTerm]) -> Vec<Step> {
     out
 }
 
+/// Volume V_b of the outer body (the linear pitch damping's volume term).
+fn body_volume(bodies: &[BodyTerm]) -> f64 {
+    bodies
+        .iter()
+        .map(|b| profile_integrals(|x| b.body.radius(x), b.body.length).0)
+        .sum()
+}
+
 /// Volume centroid of the outer body (the default damping reference point).
 fn volume_centroid(bodies: &[BodyTerm]) -> Option<f64> {
     let (mut v, mut m) = (0.0, 0.0);
@@ -1422,9 +1460,23 @@ mod tests {
         let c = am.eval_with_cg(&s, 0.25);
         assert!(c.cm_damping > 0.0 && c.cl_damping > 0.0);
         assert_eq!(c.cl_forcing, 0.0);
-        s.pitch_rate = 4.0;
+        // At small rates the linear term dominates: doubling the rate doubles
+        // the damping. Niskanen's quadratic crossflow term is what is left
+        // (2.8e-6 of the linear one at 1e-3 rad/s here, proportional to ω).
+        s.pitch_rate = 1e-4;
+        let c1 = am.eval_with_cg(&s, 0.25);
+        s.pitch_rate = 2e-4;
         let c2 = am.eval_with_cg(&s, 0.25);
-        assert!(close(c2.cm_damping, 4.0 * c.cm_damping, 1e-12));
+        assert!(close(c2.cm_damping, 2.0 * c1.cm_damping, 1e-6));
+        // The sign of the rate does not change the magnitude.
+        s.pitch_rate = -1e-4;
+        assert_eq!(am.eval_with_cg(&s, 0.25).cm_damping, c1.cm_damping);
+        // Above the linear part the remainder is quadratic: ×4 from 2 to 4 rad/s.
+        let lin = |w: f64| c1.cm_damping * w / 1e-4;
+        s.pitch_rate = 4.0;
+        let c4 = am.eval_with_cg(&s, 0.25);
+        let (r2, r4) = (c.cm_damping - lin(2.0), c4.cm_damping - lin(4.0));
+        assert!(r2 > 0.0 && close(r4, 4.0 * r2, 1e-3), "{r2} {r4}");
         let st = am.static_coeffs();
         assert_eq!(st.cm_damping, 0.0);
         assert!(st.cn_alpha > 2.0);

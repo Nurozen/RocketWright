@@ -15,8 +15,8 @@
 //!
 //! Ported from RocketPy (MIT) rocketpy/simulation/flight.py:Flight.u_dot
 //! (structure and signs; the aerodynamic coefficients come from our IF5
-//! models: normal force C_N(α) at the CP, axial drag, Niskanen pitch damping
-//! and roll forcing/damping via `AeroModel::eval_with_cg`).
+//! models: normal force C_N(α) at the CP, axial drag, pitch damping and roll
+//! forcing/damping via `AeroModel::eval_with_cg`).
 //!
 //! Loads, in body axes:
 //! - thrust `F_T` along +3;
@@ -28,7 +28,10 @@
 //!   x_cg - x_cp)`;
 //! - pitch damping `-q A_ref d C_m,damp ω̂_⊥` and roll `q A_ref d (C_l,f -
 //!   sign(ω3) C_l,damp)` (the coefficients are magnitudes, rw-aero
-//!   `damping.rs`);
+//!   `damping.rs`). C_m,damp is linear in the transverse rate,
+//!   |C_mq + C_mα̇|·|ω_⊥| d/(2V) from the slender-body sum, plus Niskanen's
+//!   quadratic crossflow term; the range-measured C_mq + C_mα̇ is applied to
+//!   the pitch rate alone, with no separate α̇ term;
 //! - jet damping `ṁ l_n² ω_⊥` (ṁ < 0 while burning, l_n the nozzle arm,
 //!   literature-map MM-15) and the inertia-rate term `-İ ω`.
 

@@ -147,6 +147,15 @@ usage = "equations-only; the four-digit thickness polynomial (crates/rw-geom/src
 page_offset = "printed = pdf - 2"
 local_copy = "not in references/ (downloaded from NTRS to verify)"
 
+[naca-tn-3283]
+file = "references/rocketry-literature/naca-tn-3283-1954-sacks-slender-bodies-general-cross-section.pdf"
+sha256 = "ff66a38f7734a8c3a4c2f387528f71534647704494695fe1710826badf72ec26"
+citation = "Sacks, A. H. Aerodynamic Forces, Moments, and Stability Derivatives for Slender Bodies of General Cross Section. NACA TN 3283, November 1954."
+url = "https://ntrs.nasa.gov/api/citations/19930083872/downloads/19930083872.pdf"
+license = "public domain (NACA, U.S. Government work); NTRS distribution PUBLIC"
+usage = "equations-only (crates/rw-aero/src/damping.rs: slender-body C_mq + C_mα̇). Rates are per q l_r/U_0 (pdf 7), so eq 58 doubles in qd/2V"
+page_offset = "printed = pdf - 2"
+
 [naca-tr-1328]
 file = "references/rocketry-literature/naca-tr-1328-1957-syvertson-dennis-second-order-shock-expansion.pdf"
 sha256 = "37b9cce582b4214ca7a89bf6ec20a81774394df8cdd77d9d16828b29e2276059"

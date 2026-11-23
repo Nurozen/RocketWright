@@ -524,3 +524,100 @@ fn canted_fin_forcing_and_damping_share_the_supersonic_load() {
         prev = r;
     }
 }
+
+/// Pitch damping at a nonzero pitch rate: finite for cases 1–7 over
+/// M 0.01–4, and C¹ in Mach for case 1 across the transonic blend ends.
+/// The checked quantity is C_mq = cm_damping·2V/(q d) at a small rate (the
+/// linear term), with the same value and slope ratios as
+/// `blend_boundaries_are_c1`.
+#[test]
+fn pitch_damping_is_finite_and_c1_in_mach() {
+    let q = 0.5;
+    for case in 1..=7 {
+        let model = load_case(case);
+        let am = AeroModel::new(&model, &rw_geom::build(&model), &AeroOptions::default());
+        for k in 1..=400 {
+            let mach = k as f64 * 0.01;
+            for alpha_deg in [0.0_f64, 5.0, 15.0] {
+                let c = am.eval(&AeroState {
+                    alpha: alpha_deg.to_radians(),
+                    pitch_rate: q,
+                    ..state(mach, 0.0)
+                });
+                assert!(
+                    c.cm_damping.is_finite() && c.cm_damping > 0.0,
+                    "case{case} M={mach:.2} α={alpha_deg}°: cm_damping {}",
+                    c.cm_damping
+                );
+            }
+        }
+    }
+    let model = load_case(1);
+    let am = AeroModel::new(&model, &rw_geom::build(&model), &AeroOptions::default());
+    let d = model.reference.diameter;
+    let cmq = |mach: f64| {
+        let s = AeroState {
+            pitch_rate: 1e-3,
+            ..state(mach, 0.0)
+        };
+        am.eval(&s).cm_damping * 2.0 * s.speed / (1e-3 * d)
+    };
+    let h = 1e-4_f64;
+    for m in [0.9_f64, 1.5] {
+        let (lo, ctr, hi) = (cmq(m - h), cmq(m), cmq(m + h));
+        let value = (hi - lo).abs() / ctr.abs();
+        let slope = ((hi - ctr) / h - (ctr - lo) / h).abs() / ctr.abs();
+        println!("M {m}: Cmq {ctr:.3}  value {value:.2e}  slope {slope:.2e}");
+        assert!(value < 0.002, "M={m}: Cmq value jump ratio {value:.3e}");
+        assert!(slope < 0.004, "M={m}: Cmq slope jump ratio {slope:.3e}");
+    }
+}
+
+/// The linear pitch-damping bracket away from the reference CG, where the
+/// volume term is not zero. Per qd/2V the bracket is quadratic in x_cg:
+/// B(x) = (2/d²) Σ C_Nα,i (x_i − x)² + 8 V_b (x_c − x)/(S d²). So its second
+/// difference over ±h is 4 C_Nα (h/d)² with C_Nα the total zero-α slope, and
+/// its central first difference, less the rows' part 4 C_Nα (x − x_CP)/d²,
+/// leaves −8 V_b/(S d²): the volume, which must be positive and the same at
+/// every Mach number (it is geometry). The CGs sit 1 cal fore and aft of the
+/// volume centroid. At 1e-6 rad/s the quadratic crossflow term is below 1e-8
+/// of the linear one.
+#[test]
+fn pitch_damping_volume_term_off_the_reference_cg() {
+    let q = 1e-6;
+    for case in 1..=7 {
+        let model = load_case(case);
+        let am = AeroModel::new(&model, &rw_geom::build(&model), &AeroOptions::default());
+        let (d, s_ref) = (model.reference.diameter, model.reference.area);
+        let (x_c, h) = (am.reference_cg(), d);
+        let mut volume: Option<f64> = None;
+        for mach in [0.3, 0.8, 1.2, 2.0, 3.0] {
+            let st = AeroState {
+                pitch_rate: q,
+                ..state(mach, 0.0)
+            };
+            let b = |x: f64| am.eval_with_cg(&st, x).cm_damping * 2.0 * st.speed / (q * d);
+            let (lo, mid, hi) = (b(x_c - h), b(x_c), b(x_c + h));
+            // Not floored at any of the three CGs.
+            assert!(lo > 0.0 && mid > 0.0 && hi > 0.0, "case{case} M={mach}");
+            let c = am.eval_with_cg(&state(mach, 0.0), x_c);
+            let (cna, cp) = (c.cn_alpha, c.cp);
+            let second = hi - 2.0 * mid + lo;
+            let want = 4.0 * cna * (h / d).powi(2);
+            assert!(
+                (second / want - 1.0).abs() < 1e-6,
+                "case{case} M={mach}: second difference {second} vs 4 C_Nα (h/d)² {want}"
+            );
+            let slope = (hi - lo) / (2.0 * h);
+            let v = -(slope - 4.0 * cna * (x_c - cp) / (d * d)) * s_ref * d * d / 8.0;
+            assert!(v > 0.0, "case{case} M={mach}: inferred body volume {v}");
+            match volume {
+                None => volume = Some(v),
+                Some(v0) => assert!(
+                    (v / v0 - 1.0).abs() < 1e-6,
+                    "case{case} M={mach}: inferred volume {v} vs {v0} at M 0.3"
+                ),
+            }
+        }
+    }
+}

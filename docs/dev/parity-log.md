@@ -134,7 +134,7 @@ cited to `literature-map.md`. Delta = (ours / oracle − 1).
 | Boattail | A_base/A_bt taken as 1 | PD-04 | Zero length then equals the base drag of the step, as the text states. |
 | Shoulders | Nose drag of base radius r_1 − r_0, on area A_1 − A_0 | PD-03 | |
 | Axial drag vs α | Cubic Hermite pieces through the stated constraints | PD-11 | Coefficients are not printed (Gaps 4). |
-| Pitch damping | Niskanen (3.59), (3.60) | DM-03, DM-04 | Barrowman's C_mq (3-115) is blank in the scan. `eval` uses the outer-body volume centroid as the CG; `eval_with_cg` takes the real CG. |
+| Pitch damping | Linear C_mq + C_mα̇ = −[2 Σ C_Nα,i ((x_i − x_cg)/d)² + 8 V_b (x_c − x_cg)/(S d²)] per qd/2V over the zero-α C_Nα rows, floored at zero; plus Niskanen (3.59), (3.60) as a quadratic crossflow term | DM-MIL-01, DM-3283-03, DM-03, DM-04 | Barrowman's C_mq (3-115) is blank in the scan. Model choices in "Linear pitch damping" below. `eval` uses the outer-body volume centroid as the CG; `eval_with_cg` takes the real CG. |
 | Roll interference k_T(B), k_R(B) | Not applied (Niskanen model) | DM-B67-028, DM-B67-042 | |
 | Lug / button friction | Not counted (thesis (3.85) uses body + fins only) | SF-08 | |
 
@@ -342,7 +342,7 @@ Hoerner (protuberance chapter) is added to the literature folder.
 |---|---|---|---|
 | Base drag while thrusting | Base area minus the thrusting motors' exhaust area (`AeroOptions::base_drag_power_off_only` now defaults to `false`) | niskanen-2009 sec 3.4.5 p 61 | The old default zeroed the whole base while burning (C_D −16% in the case-1 burn). |
 | Gravity | `Conditions.gravity` if set; absent: WGS84 Somigliana at the site latitude (the documented engine default), or inverse-square for `geodetic = spherical` | ussa-1976 eq 17; rocketpy somigliana | The oracle's series gravity is WGS84 at 45° (9.8062 m/s², falling with altitude) under `geodetic = flat`. |
-| 6DOF equations | RocketPy `Flight.u_dot` structure: Euler parameters, `I ω̇ = M − ω×Iω − İω`, lift at the CP, plus jet damping ṁ l_n² ω⊥ (MM-15) | rocketpy (MIT), `tests/frames.rs` | Pitch damping is Niskanen's C_m,damp (3.59)/(3.60), not RocketPy's ω×r at each surface; `tests/frames.rs` checks that both oppose the rate. |
+| 6DOF equations | RocketPy `Flight.u_dot` structure: Euler parameters, `I ω̇ = M − ω×Iω − İω`, lift at the CP, plus jet damping ṁ l_n² ω⊥ (MM-15) | rocketpy (MIT), `tests/frames.rs` | Pitch damping is rw-aero's C_m,damp (linear C_mq + C_mα̇ plus the Niskanen crossflow term), applied to the transverse rate, not RocketPy's ω×r at each surface; `tests/frames.rs` checks that both oppose the rate. |
 | Quaternion norm | Constraint term −λ(\|e\|² − 1)e, λ = 10 s⁻¹ | n/a | Norm drift < 1e-5 over 10⁴ RK4 steps at h·\|ω\| = 0.4. |
 | Tail-first flight | Axial drag uses α folded into [0, 90°] and opposes the axial velocity | niskanen-2009 PD-11 | The f_A(α) fit is only defined to 90°. |
 | Descent | 3DOF point mass; drag from the deployed devices only | niskanen-2013 sec 4.2.5 p 78-79 | Parachute C_D default 0.8; streamer C_D from (C.6) when unset. |
@@ -1352,9 +1352,9 @@ in the model, and nothing was tuned to it):
   (0.156) is within 0.01 of the one at M 1.832 (0.146), where the blend
   plays no part, so the blend is not the main term.
 
-**Cmq.** rw-aero pitch damping is proportional to (ω/V)² (Niskanen
-3.59/3.60); apparent Cmq at q = 1 rad/s in qd/2V ranges −0.024 to −0.092 vs
-DREV −240 to −490.
+**Cmq.** Scored in qd/2V against DREV's C_mq + C_mα̇: every group from
+M 1.2 within a factor of 1.5 (spec R5), rw/ref 0.78 to 1.09, RMS 13.3%.
+Table in "Linear pitch damping" below.
 
 ### Roll forcing vs DREV Table X
 
@@ -1398,7 +1398,8 @@ predicted spin there is too low on every revision.
 - Wedge section: single wedge only (no double wedge, no leading-edge
   radius); the half-angle is held at 10° on short-chord strips; the K* shock
   term is left out; no change to the fin CP station.
-- Pitch damping: quadratic in rate, not comparable with a linear Cmq.
+- Pitch damping: 9 to 22% low from M 2.7 up; validated on this one
+  geometry, supersonic only ("Linear pitch damping" below).
 - The tip relief is linear theory for supersonic leading edges. A fin swept
   behind the Mach line (tan Γ_L > β) still takes the 2D strip load and the
   same tip rule.
@@ -1644,3 +1645,113 @@ to 0.35 cal forward from M 1.832 up while Cmα barely moves (lift added near
 the CG has a short arm). With this body term the model's fin term is 1.02,
 0.91, 1.02, 0.95, 0.89, 0.89 of the one DREV implies at M 1.832 to 4.300
 (`ratio` in the test's breakdown).
+
+## Linear pitch damping: slender-body C_mq + C_mα̇ (2026-11-21)
+
+Reproduce: `cargo test -p rw-aero --test basic_finner_baseline -- --nocapture`
+
+Pitch damping was Niskanen (3.59)/(3.60) alone, proportional to (ω/V)², so
+its slope at ω = 0 was zero: the Basic Finner's apparent C_mq at 1 rad/s was
+−0.02 to −0.09 against DREV −240 to −490. The term linear in ω was missing at
+every Mach number. `damping.rs` now adds, per qd/2V,
+
+C_mq + C_mα̇ = −[2 Σ_i C_Nα,i ((x_i − x_cg)/d)² + 8 V_b (x_c − x_cg)/(S d²)]
+
+over every zero-α (C_Nα, CP) row of `eval_with_cg` (nose, tubes, transitions,
+fin sets with their K_T(B) + K_B(T) load), so the Mach dependence, tip relief,
+wedge lift and shock-expansion body rows carry over. V_b is the outer-body
+volume and x_c its centroid (the `eval` reference CG). `cm_damping` =
+max(bracket, 0)·|ω| d/(2V) + the Niskanen terms. It is still a magnitude, so
+`sixdof.rs` and the schema are unchanged. `AERO_MODEL_REVISION` is 6.
+
+### Sources
+
+- Row sum: MIL-HDBK-762 (5-32) (literature-map DM-MIL-01), the component
+  method after Chin: each row's load at its CP sees the local incidence
+  q(x_i − x_cg)/V.
+- Volume term: the slender-body load on a pitching body goes as
+  d/dx[(α + q(x − x_cg)/V) S(x)]; the product rule leaves a load (q/V) S(x)
+  along the body that no point-CP row carries. Its moment is half of
+  8 V_b (x_c − x_cg)/(S d²) and C_mα̇ the other half. With slender-body rows
+  (C_Nα,i = 2ΔS_i/S) the whole bracket integrates by parts to
+  4 (S_b/S)((L − x_cg)/d)², Sacks' NACA TN 3283 eq 58 (DM-3283-03) with
+  C_Lα = 2 S_b/S (table I, DM-3283-02). Sacks defines rate derivatives per
+  q l_r/U_0 (DM-3283-01), so his −2(S_b/S)(…)² doubles in qd/2V. Checked on
+  the rendered pages (pdf 7, 30, 57, 61).
+
+### Model choices
+
+1. **C_mq + C_mα̇ on the pitch rate.** DREV's range value is the sum. The sim
+   applies the sum to the pitch rate alone and has no separate α̇ term.
+2. **Left out:** the fins' downwash lag (their α̇ term) and each fin's own
+   chordwise rotary term (under 1% on the Basic Finner).
+3. **Point loads.** Body rows act at their CP. On the Basic Finner body alone
+   at M 0.3 this gives 79.2 against the slender-body 81.0 (−2.2%; the cone's
+   load is spread along it, not at a point). The volume term is the
+   slender-body one at every Mach number.
+4. **Floor at zero.** The bracket cannot go negative in the slender limit; a
+   negative-C_Nα boattail row could make it so in the hybrid, and the floor
+   keeps the term damping. The floor is a comparison, not `f64::max`, so a
+   NaN row propagates instead of reading as zero.
+5. **Crossflow term kept.** Niskanen (3.59)/(3.60) stays as an additive term:
+   negligible at flight rates (2.8e-6 of the linear term at 1e-3 rad/s on
+   case 1, proportional to ω), it matters only when tumbling.
+6. **Fin CP at the flight α.** The fin rows take the same CP as the static
+   path, `fin_set_cp` at the current α, not at zero α. So C_mq moves a
+   little with α where that CP moves (the 10–20° fade); C_Nα is the zero-α
+   slope. Kept shared with the static path rather than evaluating the fin
+   CP twice.
+7. **No tuning.** The model is 9 to 22% low from M 2.7 up. DREV is not
+   monotonic there (−306.5, −335.5, −260.1), so part of that is scatter.
+
+### Basic Finner before and after (rw-aero vs DREV Table IX, CG 5.50 cal)
+
+"Before" is the apparent C_mq at 1 rad/s; "after" at 1e-3 rad/s, where the
+quadratic term is negligible. Volume term: V_b/(S d) = 8.107 cal,
+x_c = 5.919 cal, 8 × 3.397 = 27.2.
+
+| Mach | DREV C_mq (pe %) | before | after | rw/ref |
+|---|---|---|---|---|
+| 1.077 | −322.4 (5) | −0.092 | −505.6 | 1.57 (blend, not scored) |
+| 1.293 | −487.4 (6) | −0.077 | −532.4 | 1.09 |
+| 1.832 | −377.7 (4) | −0.055 | −361.4 | 0.96 |
+| 2.375 | −306.5 (4) | −0.043 | −288.0 | 0.94 |
+| 2.718 | −335.5 (3) | −0.037 | −260.8 | 0.78 |
+| 3.147 | −260.1 (3) | −0.032 | −236.5 | 0.91 |
+| 3.734 | −239.8 (1) | −0.027 | −213.5 | 0.89 |
+| 4.300 | −247.0 (2) | −0.024 | −198.0 | 0.80 |
+
+RMS 13.3% over M 1.29 to 4.3; every scored group is within the R5 factor of
+1.5, which the test now gates. Subsonic the model gives −409 (M 0.1), −413
+(M 0.3) and −468 (M 0.9), not validated: AFATL-TR-68-82 has subsonic Basic
+Finner C_mq + C_mα̇ for a later check.
+
+### Checks
+
+- Static output: the dump of every `AeroCoeffs` field (cases 1–7, M 0–0.9
+  in 0.01 steps, α 0–15° in 3° steps, three roll/pitch-rate pairs, thrusting
+  on and off; 22,932 evaluations) is identical before and after at zero
+  pitch rate, and identical everywhere with `cm_damping` masked at nonzero
+  pitch rate. Only `cm_damping` at a nonzero pitch rate moves.
+- `make bar-parity`: unchanged (case 1 pass 6, fail 0, report 8). Case 1
+  flies vertically with no wind, so its pitch rate is zero and its series
+  is identical to the last bit. Cases 2–7 are not run without the
+  maintainer oracle cache, so the subsonic flights where the stronger
+  damping shows were not exercised here.
+- `cm_damping` is finite and positive for cases 1–7 over M 0.01–4 and
+  α 0–15° at 0.5 rad/s, and C¹ across M 0.9 and 1.5 for case 1 (value ratio
+  6.7e-5 and 2.8e-4, slope ratio 5.8e-4 and 2.3e-4 at h = 1e-4).
+- Volume term off the reference CG (`supersonic_sweep`): for cases 1–7 at
+  CGs 1 cal fore and aft of the volume centroid, M 0.3–3, the bracket's
+  second difference in x_cg is 4 C_Nα (h/d)² and the volume inferred from
+  its first difference is positive and the same at every Mach number (both
+  to 1e-6). Flipping the sign of the volume term fails it.
+- Mach scan at 1e-3 steps, M 0.005–4, the same three CGs, cases 1–7: no
+  floor hits (lowest C_mq 204, case 3 aft) and no jumps (worst second
+  difference 1.6e-4 of the value, case 4 at M 2.84). The supersonic tube
+  rows' CP is moment/C_Nα, which would spike if a row's C_Nα crossed zero
+  with a finite moment; none does in these cases.
+- 6DOF (`rw-sim` frames test, `LinearAero` now with a linear term): with
+  only the damping moment acting, ω̇ = −ρ V S d² C/(4 I) · ω at one state to
+  1e-10, and RK4 at dt 0.05 s follows exp(−λ t) to 1% over 1 s
+  (C = 400, λ dt ≈ 0.18).

@@ -23,7 +23,7 @@ Conventions:
 | BD | Base drag (body and fin trailing edge) | 16 |
 | PA | Parasitic drag (launch lugs, rail buttons) | 8 |
 | BW | Barrowman normal force and CP (nose, body, transitions, fins, fin-body interference, combination) | 156 |
-| DM | Roll and pitch damping, roll forcing | 59 |
+| DM | Roll and pitch damping, roll forcing | 63 |
 | TF | Tube fins as annular (ring) wings, ringtails | 11 |
 | GE | Nose and transition geometry | 10 |
 | MI | Mass and inertia (Pappus/shell/solid, parallel axis, combination) | 33 |
@@ -32,7 +32,7 @@ Conventions:
 | RC | Recovery, descent, tumbling | 7 |
 | RB | Rigid-body 6DOF (impl.) | 4 |
 | LQ | Liquid engines: thrust chamber, injector, feed, pressurant, tanks (sp-125) | 19 |
-| | **total** | **461** |
+| | **total** | **465** |
 
 ## Symbols
 
@@ -535,6 +535,10 @@ Conventions:
 | DM-B67-042 | interference | roll-damping interference factor, trapezoid | barrowman-1967 | (3-122) | 52 | 42 | k_R(B) = 1 + [(τ − λ)/τ − ((1 − λ)/(τ − 1)) ln τ] / [(τ + 1)(τ − λ)/2 − (1 − λ)(τ³ − 1)/(3(τ − 1))] |  |
 | DM-B67-043 | interference | roll damping in presence of body | barrowman-1967 | (3-123) | 52 | 42 | (C_lp)_T(B) = (C_lp)_T k_R(B) |  |
 | DM-B67-044 | fin (App. A) | rolling moment coefficient, 4 fins | barrowman-1967 | (19) | 97 | 87 | C_l = 4 M_r Δy / (A L) | 4 fins |
+| DM-MIL-01 | pitch damping | component pitch-damping sum (after Chin) | mil-hdbk-762 | (5-32) | 279 | 5-41 | C_mθ̇ ≈ −[2 (C_Nα)_b (x_b/d)² + 2 (C_Nα)_F (K_F(b) + K_b(F)) (S_F/A_ref) (x_t/d)²] | x_b, x_t from the CG to the body and tail CP; the rate normalisation is not stated on the page, the factor 2 is qd/2V's. `pitch_damping_linear` takes one term per zero-α C_Nα row (nose, tubes, transitions, fin sets with K_T(B) + K_B(T)) |
+| DM-3283-01 | pitch damping | rate-derivative normalisation | naca-tn-3283 | unnumbered | 7 | 5 | C_mq = ∂C_m/∂(q l_r/U_0), C_m on ½ρU_0² S_r l_r | per ql/V, not qd/2V |
+| DM-3283-02 | pitch damping | slender-body lift slope | naca-tn-3283 | table I | 57 | 55 | C_Lα = (2/S_r)[2π𝐑(ā_1 + r_0²) − S]_{x=l} = 2 S_b/S_r for a circular section | mapping coefficients zero for a circle |
+| DM-3283-03 | pitch damping | slender-body C_mq + C_mα̇ | naca-tn-3283 | (58) | 30 | 28 | C_mq + C_mα̇ = −((l − c_1)/l_r)² C_Lα | also table II (pdf 61). Body of revolution, per qd/2V: −4 (S_b/S)((L − x_cg)/d)². `pitch_damping_volume` is the part of it no point-CP row carries (the (q/V) S(x) load and C_mα̇); the split is ours |
 
 ### TF — Tube fins as annular (ring) wings, ringtails
 
@@ -744,7 +748,7 @@ SI forms (SP-125 writes weight flow ẇ and g; here ṁ = ẇ/g). sp-125 printed
 4. **Axial drag vs angle of attack (PD-11).** Only the constraints are printed (1 at 0°, 1.3 at 17°, 0 at 90°, zero slope); there are no polynomial coefficients.
 5. **Nose pressure drag data C_3(M) at f_n = 3** for power, parabolic, Haack and ellipsoid shapes (PD-19). The source is Stoney's data, which is not in any local reference. Transonic interpolation polynomials (PD-02, PD-16) are defined by constraints only.
 6. **Shoulder pressure drag (PD-03).** It is a stated rule, with no supersonic data.
-7. **Pitch damping.** Barrowman's C_mq result (3-115) is unreadable. Niskanen's DM-01..DM-04 are rough estimates.
+7. **Pitch damping.** Barrowman's C_mq result (3-115) is unreadable. The linear damping is the component sum of DM-MIL-01 over every zero-α C_Nα row plus a slender-body volume term, so that the sum equals Sacks' C_mq + C_mα̇ (DM-3283-03) for slender-body rows. No source gives: the split of DM-3283-03 into point-CP rows and the volume term 8 V_b (x_c − x_cg)/(S d²); using the slender-body volume term at every Mach number; applying C_mq + C_mα̇ to the pitch rate alone; leaving out the fins' downwash lag and their own chordwise rotary term (under 1 % on the Basic Finner). Niskanen's DM-01..DM-04 stay as an additive crossflow term, quadratic in the rate.
 8. **Closed-form nose/transition CP for specific shapes.** Not printed. Derive from BW-06 with V_c from MI-05 or the GE profiles.
 9. **USSA layer base values P_b, T_M,b for b ≥ 1.** Part 1 does not tabulate them; AT-11 values are derived via (23), (33a) and (33b) and checked against Table I at 11 km.
 10. **Rail buttons.** Modelled only as a lug of equal frontal area with l = d (PA-03); there is no dedicated equation. Every launch guide takes its free-stream drag (PA-01..PA-03) on the boundary-layer mean dynamic pressure over its height (PA-04..PA-07); PA-06 states the free-stream coefficient on q̄ only for h/δ > 1, so the Re(h) dependence of a submerged guide is not modelled. Hoerner's protuberance data (quoted by niskanen-2009 for the 0.74 and 0.80 values) are not in the folder, so whether those values already include immersion is unknown. The pin frontal area is the projected spool (base and flange at the outer diameter, neck at the neck diameter; PA-03, PA-07, PARITY-buttons). Rail buttons take q̄ from a linear velocity profile through δ (PA-08, PARITY-buttons-2); no source in the folder gives that profile for a turbulent layer (TM 1218 and TM 1299 use the 1/7-power law), so it is a model choice, kept for the strong immersion short pins show (drag falling with station and rising with speed). Lugs keep the 1/7-power profile.

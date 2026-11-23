@@ -188,6 +188,7 @@ fn forces_and_moments_match_rocketpy() {
         cp: X_CP,
         cd: CD,
         ref_area: AREA,
+        cm_damping_per_rate: 0.0,
         cm_damping_per_rate2: 0.0,
         cl_forcing: 0.0,
         cl_damping_per_rate: 0.0,
@@ -236,6 +237,7 @@ fn rotation_terms_match_rocketpy() {
         cp: X_CP,
         cd: CD,
         ref_area: AREA,
+        cm_damping_per_rate: 0.0,
         cm_damping_per_rate2: 0.0,
         cl_forcing: 0.0,
         cl_damping_per_rate: 0.0,
@@ -260,13 +262,15 @@ fn rotation_terms_match_rocketpy() {
 #[test]
 fn pitch_damping_sign_matches_rocketpy() {
     // RocketPy damps pitch through the ω×r velocity at the CP; we use the
-    // Niskanen damping coefficient. Both must oppose the transverse rate.
+    // rw-aero damping magnitude (the double here is quadratic in the rate,
+    // only the sign matters). Both must oppose the transverse rate.
     let r = rig();
     let aero = LinearAero {
         cn_alpha: CN_ALPHA,
         cp: X_CP,
         cd: CD,
         ref_area: AREA,
+        cm_damping_per_rate: 0.0,
         cm_damping_per_rate2: 2.0,
         cl_forcing: 0.0,
         cl_damping_per_rate: 0.0,
@@ -306,4 +310,86 @@ fn pitch_damping_sign_matches_rocketpy() {
             }
         }
     }
+}
+
+/// Linear pitch damping in the 6DOF: with no normal force, no drag, and the
+/// motor burnt out, the only pitching moment is
+/// −q̄ S d · C · |ω| d/(2V) · ω/|ω|, so ω̇ = −λ ω with λ = ρ V S d² C/(4 I).
+/// Checked at one state (to 1e-10), and over 1 s of RK4 at the 0.05 s step
+/// the simulator uses, flying level at 100 m/s (speed changes by < 0.2 %),
+/// against exp(−λ t). C = 400 is about case 1's C_mq; λ dt ≈ 0.18, far
+/// inside RK4's real-axis limit of 2.78.
+#[test]
+fn linear_pitch_damping_decays_pitch_rate_at_the_expected_rate() {
+    let r = rig();
+    let c = 400.0;
+    let aero = LinearAero {
+        cn_alpha: 0.0,
+        cp: X_CP,
+        cd: 0.0,
+        ref_area: AREA,
+        cm_damping_per_rate: c,
+        cm_damping_per_rate2: 0.0,
+        cl_forcing: 0.0,
+        cl_damping_per_rate: 0.0,
+    };
+    let veh = Vehicle {
+        env: &r.env,
+        aero: &aero,
+        mass: &r.mass,
+        propulsion: &r.prop,
+    };
+    let v0 = 100.0;
+    let d = (4.0 * AREA / core::f64::consts::PI).sqrt();
+    let rho = r.env.air(100.0).density;
+    let lambda = rho * v0 * AREA * d * d * c / (4.0 * I11);
+    // Nose along +x (level flight), pitching about body axis 1.
+    let mut y = sixdof::initial_state([0.0, 0.0, 100.0], [v0, 0.0, 0.0], [1.0, 0.0, 0.0]);
+    y[10] = 0.2;
+    let l = sixdof::loads(&veh, T, None, &y);
+    assert!(
+        (l.alpha_dot[0] / (-lambda * y[10]) - 1.0).abs() < 1e-10,
+        "ω̇ {} vs −λω {}",
+        l.alpha_dot[0],
+        -lambda * y[10]
+    );
+    assert!(l.alpha_dot[1].abs() < 1e-12 && l.moment_body[1].abs() < 1e-12);
+    let dt = 0.05;
+    let w0 = y[10];
+    let mut t = T;
+    for step in 1..=20 {
+        let f = |y: &State6, t: f64| {
+            let mut dy = [0.0; 13];
+            sixdof::rhs(&veh, t, None, y, &mut dy);
+            dy
+        };
+        let add = |a: &State6, k: &State6, h: f64| {
+            let mut o = *a;
+            for i in 0..13 {
+                o[i] += h * k[i];
+            }
+            o
+        };
+        let k1 = f(&y, t);
+        let k2 = f(&add(&y, &k1, dt / 2.0), t + dt / 2.0);
+        let k3 = f(&add(&y, &k2, dt / 2.0), t + dt / 2.0);
+        let k4 = f(&add(&y, &k3, dt), t + dt);
+        for i in 0..13 {
+            y[i] += dt / 6.0 * (k1[i] + 2.0 * k2[i] + 2.0 * k3[i] + k4[i]);
+        }
+        t += dt;
+        let want = w0 * (-lambda * dt * step as f64).exp();
+        assert!(
+            (y[10] / want - 1.0).abs() < 0.01,
+            "t={:.2}: ω {} vs {} (λ={lambda})",
+            dt * step as f64,
+            y[10],
+            want
+        );
+    }
+    assert!(
+        y[10] < 0.03 * w0,
+        "ω should decay by e^-3.7 in 1 s: {}",
+        y[10]
+    );
 }
